@@ -22,6 +22,7 @@
 | 主题 / 偏好 | `src/core/theme/theme.ts` + `src/core/settings.ts` | `theme.test.ts`（7 条）+ `settings.test.ts`（8 条） |
 | 导出动作抽出 | `src/core/export/export-document.ts` | `export-document.test.ts`（5 条） |
 | 错误收敛（`asAppError` / `AppError`） | `src/core/document/types.ts` | `types.test.ts`（9 条，含「抛字符串 / `null` / 对象也不能让它自己崩」） |
+| 文本统计（字数 / 字符数 / 阅读时长） | `src/core/statistics.ts` | `statistics.test.ts`（20 条，按 Word 口径逐条钉住）；状态栏接线由 `App.test.tsx` 的「状态栏统计」（3 条）覆盖 |
 
 合计 **339 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
 
