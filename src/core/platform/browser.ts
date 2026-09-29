@@ -11,6 +11,7 @@
 
 import {
   AppError,
+  type BinaryWriteOutcome,
   type BomKind,
   type DirEntry,
   type DocumentProvider,
@@ -113,6 +114,18 @@ function encodeText(text: string, encoding: string, bom: BomKind): BlobPart[] {
 
 export function createBrowserProvider(): DocumentProvider {
   const files = new Map<string, VirtualFile>();
+  /**
+   * 二进制虚拟盘。**只活在内存里，刷新即失** —— 与文本虚拟盘一样是开发期道具。
+   *
+   * 为什么不留空、直接抛 NOT_SUPPORTED：粘贴图片是**看得见**的功能。
+   * 预览模式下拒收字节的话，`npm run dev` 里就完全走不到「粘一张图 →
+   * 占位消失 → 图出现」这条链路，而那正是最需要眼睛确认的一段。
+   * 存进内存后 `readBinaryFile` 能原样读回来，整条显示链路就能跑通。
+   *
+   * 代价必须说清楚：**这些字节不会被写进任何文件**，刷新页面就没了。
+   * 所以它替代不了桌面版，只是让界面开发不用为了看一眼效果去编译 Rust。
+   */
+  const binaries = new Map<string, ArrayBuffer>();
   const now = () => Date.now();
 
   for (const [name, text] of SEED) {
@@ -205,15 +218,38 @@ export function createBrowserProvider(): DocumentProvider {
       return ensure(path).encoding;
     },
 
-    // 虚拟盘只存文本，没有图片字节可读。
-    // 明确抛错而不是返回空数据 —— 导出层据此退化为「保留原链接并标注」，
+    // 先看内存里的二进制盘（粘贴进来的图片就在那儿）。
+    // 拿不到才抛错 —— 导出层据此退化为「保留原链接并标注」，
     // 好过生成一张 0 字节的破图。
     async readBinaryFile(path) {
+      const hit = binaries.get(path);
+      if (hit !== undefined) return hit.slice(0);
+
       throw new AppError(
         'NOT_SUPPORTED',
         `（浏览器预览）无法读取二进制文件 ${path}`,
-        '浏览器预览只支持文本，图片内联请在桌面版里试',
+        '浏览器预览没有磁盘，只能读到本次会话里粘贴进来的图片；真实文件请在桌面版里试',
       );
+    },
+
+    /**
+     * 收下字节，放进内存二进制盘。语义与桌面版对齐：**已存在就拒绝**。
+     *
+     * 对齐这一条不是形式主义 —— 如果预览模式允许覆盖、桌面版拒绝，
+     * 那么「撞名」这条分支在开发期永远走不到，等到用户那儿才第一次触发。
+     * 返回的形状也与 Rust 的 `BinaryWriteOutcome` 一致。
+     */
+    async writeBinaryFile(path, bytes): Promise<BinaryWriteOutcome> {
+      if (binaries.has(path)) {
+        throw new AppError(
+          'CONFLICT',
+          `（浏览器预览）${path} 已存在，为避免覆盖已有内容，本次写入已取消`,
+        );
+      }
+      if (bytes.byteLength === 0) throw new AppError('INVALID_PATH', '拒绝写入空文件');
+
+      binaries.set(path, bytes.slice(0));
+      return { path, size: bytes.byteLength, mtimeMs: now() };
     },
 
     async runtimeInfo(): Promise<RuntimeInfo> {

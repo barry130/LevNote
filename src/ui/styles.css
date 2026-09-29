@@ -1011,6 +1011,97 @@ body {
   flex: none;
 }
 
+/* ---------------------------------------------------------------- 灯箱 */
+
+/*
+ * 点开文档里的一张图。
+ *
+ * ## 底色是写死的深色，**不跟主题走**
+ *
+ * 这是全项目唯一一处刻意不响应 `data-theme` 的地方，理由见 `Lightbox.tsx`：
+ * 图片的观感取决于周围的亮度，浅色底会让用户对「这张图有多亮」判断错。
+ * 所以这里不引用 `--surface`，也就不存在「深色主题下漏改」这回事。
+ *
+ * ## z-index 150
+ *
+ * 命令面板是 100、拖放提示是 200。灯箱压在命令面板之上（它是一层
+ * 「正在看一张图」的模态），但**在拖放提示之下** —— 把文件拖进窗口时，
+ * 「可以松手了」那句话不该被任何东西盖住。
+ */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 36px 28px;
+  background: rgba(8, 16, 14, 0.88);
+  /* 点任意处关闭。给一个「可以点掉」的暗示 */
+  cursor: zoom-out;
+}
+
+.lightbox-img {
+  max-width: 100%;
+  /* 给下面那行说明留位置，否则大图会把说明顶出视口 */
+  max-height: calc(100vh - 130px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  /* 深底上浅色图的边缘会「糊」进背景，一圈细描边把它分开 */
+  outline: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: default;
+}
+
+.lightbox-caption {
+  max-width: min(820px, 100%);
+  margin: 0;
+  text-align: center;
+  color: #e7f1ec;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* 有作者写的说明时显示它，否则这一行整行不存在（`caption` 为空时不渲染） */
+.lightbox-caption .title {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* 路径必须显示：看完大图之后用户常要做的下一件事是「找到这个文件」 */
+.lightbox-caption .path {
+  display: block;
+  font: 12px var(--mono);
+  color: #9fb8b0;
+  word-break: break-all;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7f1ec;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-close:focus-visible {
+  outline: 2px solid #b4d4c6;
+  outline-offset: 2px;
+}
+
 /* ---------------------------------------------------------------- 拖放 */
 
 .drop-overlay {

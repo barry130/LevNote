@@ -172,3 +172,86 @@
 .qm-editor .ProseMirror .selectedCell {
   position: relative;
 }
+
+/* ------------------------------------------------------------------ 图片 */
+
+/*
+ * 图片在编辑器里由 NodeView 接管（见 `image-view.ts`）。
+ *
+ * 外层这个 `span` 不是多余的包装：文档里写的是 `./a.assets/x.png`，
+ * 而能真正加载的 URL 要外壳读了字节才知道 —— 所以「解析结果」需要一个落点，
+ * 加载失败时那句说明也需要一个落点。两者共用这一个盒子。
+ *
+ * 尺寸与圆角由 `document-styles.css` 的 `.qm-doc img` 提供（编辑器与导出共用），
+ * 这里只加**编辑器特有**的那几件事：加载中的骨架、失败时的虚线框、可点的光标。
+ */
+.qm-editor .qm-img {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+}
+
+/* 只有真的加载出来了才可点（点开灯箱），给一个「能点」的暗示 */
+.qm-editor .qm-img.is-loaded .qm-img-el {
+  cursor: zoom-in;
+}
+
+/*
+ * 加载中：给一块会呼吸的底色。
+ *
+ * 少了它，读盘的那一小段时间里这个位置是**空的** —— 用户看到的是
+ * 「图片不见了」，而实际上它马上就会出现。留一块底色等于说「这里正在有东西」。
+ */
+.qm-editor .qm-img.is-loading .qm-img-el {
+  display: block;
+  min-width: 160px;
+  min-height: 72px;
+  border-radius: 6px;
+  background: var(--surface-sunken, #eef3f0);
+  animation: qm-img-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes qm-img-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* 读盘时间通常只有几毫秒。动画停不下来的话，前庭敏感的用户会被一直晃着 */
+@media (prefers-reduced-motion: reduce) {
+  .qm-editor .qm-img.is-loading .qm-img-el {
+    animation: none;
+  }
+}
+
+/* 加载失败时 `<img>` 没有 src —— 留着它只会占一行空高度 */
+.qm-editor .qm-img.is-failed .qm-img-el {
+  display: none;
+}
+
+/*
+ * 占位文案。**失败时才有内容**：加载中写的是「正在读取图片…」，
+ * 成功后清空（`.is-loaded` 里直接不显示，免得空元素还占一行行高）。
+ */
+.qm-editor .qm-img-note {
+  display: block;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--slate, #7a8690);
+  /* 路径可能很长（`./很长的目录名/a.assets/image-20260929-143022-a3f2.png`），
+     不换行的话会把整行撑破 */
+  word-break: break-all;
+}
+
+.qm-editor .qm-img.is-loaded .qm-img-note {
+  display: none;
+}
+
+/* 失败时明确「这里本该有一张图」，而不是什么都不留 */
+.qm-editor .qm-img.is-failed {
+  min-width: 8em;
+  border: 1px dashed var(--line-strong, #c6d3cd);
+  border-radius: 6px;
+  background: var(--surface-sunken, #eef3f0);
+}

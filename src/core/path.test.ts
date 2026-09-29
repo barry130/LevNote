@@ -62,9 +62,11 @@ describe('dirname', () => {
 });
 
 describe('joinPath', () => {
-  it('按基路径的风格拼分隔符', () => {
-    expect(joinPath('C:\\notes', 'img/a.png')).toBe('C:\\notes\\img/a.png');
+  it('按基路径的风格拼分隔符，相对部分的分隔符也统一成同一种', () => {
+    expect(joinPath('C:\\notes', 'img/a.png')).toBe('C:\\notes\\img\\a.png');
     expect(joinPath('/home/u', 'img/a.png')).toBe('/home/u/img/a.png');
+    // 反过来的方向也要统一：POSIX 基路径 + 反斜杠的相对路径
+    expect(joinPath('/home/u', 'img\\a.png')).toBe('/home/u/img/a.png');
   });
 
   it('基路径结尾已有分隔符时不重复', () => {
@@ -76,8 +78,44 @@ describe('joinPath', () => {
     expect(joinPath('C:\\notes', '\\img\\a.png')).toBe('C:\\notes\\img\\a.png');
   });
 
+  it('`./` 前缀也被吃掉 —— 否则它会一路走到 UI 和错误消息里', () => {
+    expect(joinPath('C:\\notes', './a.assets/x.png')).toBe('C:\\notes\\a.assets\\x.png');
+    expect(joinPath('/n', './x.png')).toBe('/n/x.png');
+  });
+
+  it('但 `../` 必须保留 —— 它是语义，不是多余的前缀', () => {
+    expect(joinPath('/n/sub', '../img/x.png')).toBe('/n/sub/../img/x.png');
+    expect(joinPath('C:\\n\\sub', '..\\x.png')).toBe('C:\\n\\sub\\..\\x.png');
+  });
+
+  it('单独的 `.` 原样保留（它表示当前目录，不是前缀）', () => {
+    expect(joinPath('/n', '.')).toBe('/n/.');
+  });
+
+  it('重复的分隔符**不折叠** —— 那是写入层的事', () => {
+    expect(joinPath('/n', 'a//b.png')).toBe('/n/a//b.png');
+    expect(joinPath('C:\\n', 'a\\\\b.png')).toBe('C:\\n\\a\\\\b.png');
+  });
+
   it('基路径为 null 时返回 null，而不是拼一个相对路径出来', () => {
     expect(joinPath(null, 'a.png')).toBeNull();
+  });
+
+  /**
+   * 这条是整个「图片落盘 → 回读」链路的基石，所以单独钉一次。
+   *
+   * 写入时的文件名是**裸名**（`image-x.png`，没有分隔符），
+   * 回读时来自 Markdown 的相对路径是 `./a.assets/image-x.png`（正斜杠）。
+   * 两条路算出来的必须是**同一个字符串** —— 否则任何按字符串比较的地方
+   * （缓存键、去重、相等判断）都会悄悄失配，而文件系统那边一切正常，
+   * 于是表现为「写进去了但显示不出来」。
+   */
+  it('写进去的路径与回读时算出来的路径**逐字符相同**', () => {
+    const directory = 'C:\\笔记\\读书笔记.assets';
+
+    const written = joinPath(directory, 'image-20260929-143022-a3f2.png');
+    const readBack = joinPath('C:\\笔记', './读书笔记.assets/image-20260929-143022-a3f2.png');
+    expect(readBack).toBe(written);
   });
 });
 

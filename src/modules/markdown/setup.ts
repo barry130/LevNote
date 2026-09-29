@@ -73,6 +73,8 @@ import type {
   EditorFormatting,
   EditorSearch,
   EditorTable,
+  ImageInfo,
+  ImagePasteRequest,
   SelectionSnapshot,
   SlashState,
   TableAlign,
@@ -80,6 +82,7 @@ import type {
 } from '../../core/editor/types.js';
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
 import { CODE_BLOCK, codeBlockChromePlugin, type CodeBlockChromeHandlers } from './code-block-view.js';
+import { IMAGE, imageViewPlugin } from './image-view.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
 import {
   codeHighlightPlugin,
@@ -127,6 +130,18 @@ export interface CreateMarkdownEditorOptions {
   onTableChange?: (state: TableState | null) => void;
   /** 语言选择器状态。参数为 null 表示「面板没开着」。 */
   onCodeBlockChange?: (state: CodeBlockState | null) => void;
+  /**
+   * 把文档里的图片 `src` 解析成能直接放进 `<img>` 的 URL。
+   * 返回 null 表示「这张图拿不到」，内核画一个带路径的占位。
+   */
+  resolveImageUrl?: (src: string) => Promise<string | null>;
+  /**
+   * 粘贴了一张图片：交出字节，换回**写进文档的相对路径**。
+   * 返回 null 表示放弃（格式不认识 / 文档没保存过 / 落盘失败）。
+   */
+  onImagePaste?: (request: ImagePasteRequest) => Promise<string | null>;
+  /** 用户点了文档里的一张图片（灯箱）。 */
+  onImageClick?: (image: ImageInfo) => void;
 }
 
 export interface MarkdownEditorInstance {
@@ -279,16 +294,25 @@ function expand(text: string, pattern: RegExp | null, replacement: string, asReg
  * 迟早只给其中一处修 bug —— 而这类 bug 的形态是「数据静默丢失」。
  */
 function withUserEdit<T>(editor: Editor, run: () => T): T {
-  return editor.action((ctx) => {
-    const view = ctx.get(editorViewCtx);
-    const original = view.dispatch;
-    view.dispatch = (tr) => original.call(view, tr.setMeta(USER_EDIT_META, true));
-    try {
-      return run();
-    } finally {
-      view.dispatch = original;
-    }
-  });
+  return editor.action((ctx) => withUserEditOnView(ctx.get(editorViewCtx), run));
+}
+
+/**
+ * 同上，但直接作用在一个 `view` 上。
+ *
+ * 拆出这一层是因为**粘贴图片**的入口拿不到 `editor`：它挂在
+ * `editorViewOptionsCtx` 的 `handlePaste` 上，那个对象在 `Editor.make()` 的
+ * `config` 阶段就要交出去，那时编辑器实例还不存在。而 ProseMirror 会把
+ * `view` 作为 `handlePaste` 的第一个参数给我们 —— 所以真正需要的只是它。
+ */
+function withUserEditOnView<T>(view: EditorView, run: () => T): T {
+  const original = view.dispatch;
+  view.dispatch = (tr) => original.call(view, tr.setMeta(USER_EDIT_META, true));
+  try {
+    return run();
+  } finally {
+    view.dispatch = original;
+  }
 }
 
 /**
@@ -939,6 +963,94 @@ function createMarkdownCodeBlock(editor: Editor, picker: CodeBlockPicker): Edito
   };
 }
 
+/**
+ * 从剪贴板里挑出图片文件。
+ *
+ * **两处都要看。** 各平台 WebView 的填充方式不一致：
+ * 有的把图片放进 `dataTransfer.files`，有的只放进 `dataTransfer.items`
+ * 且 `files` 是空的。只看 `files` 的后果是「在某些机器上粘贴图片没反应」——
+ * 而这种「只在别人的机器上坏」的 bug 最难查。
+ *
+ * 非图片（从文件管理器复制一个 `.txt`）会被过滤掉：那种粘贴应该走
+ * ProseMirror 默认的文本/文件处理，而不是被我们截住。
+ */
+function imageFilesOf(data: DataTransfer | null): File[] {
+  if (data === null) return [];
+
+  const out: File[] = [];
+  const consider = (file: File | null): void => {
+    if (file !== null && file.type.startsWith('image/')) out.push(file);
+  };
+
+  for (const file of Array.from(data.files)) consider(file);
+  if (out.length > 0) return out;
+
+  for (const item of Array.from(data.items)) {
+    if (item.kind === 'file') consider(item.getAsFile());
+  }
+  return out;
+}
+
+/**
+ * 把一张图片插到光标处。
+ *
+ * 与 Milkdown 的 `insertImageCommand` 逐字一致（`replaceSelectionWith` +
+ * `scrollIntoView`），只是这里不经过它的 command manager：`handlePaste` 在
+ * `Editor.make()` 的 config 阶段就要交出去，那时还拿不到编辑器实例，
+ * 而 `view` 是 ProseMirror 直接给我们的。为同一行代码绕一圈去取 `commandsCtx`
+ * 不划算 —— 代价是这层「与上游一致」的约定需要一句注释守住。
+ */
+function insertImageNode(view: EditorView, src: string): void {
+  const type = view.state.schema.nodes[IMAGE];
+  if (type === undefined) return;
+  const image = type.create({ src, alt: '', title: '' });
+  view.dispatch(view.state.tr.replaceSelectionWith(image).scrollIntoView());
+}
+
+/**
+ * 把剪贴板里的图片逐张交给外壳落盘，再把换回来的路径插进文档。
+ *
+ * ## 为什么必须自己声明「这是用户发起的编辑」
+ *
+ * 落盘是异步的（要读字节、写文件），等它回来时 `markdownEmitPlugin` 的
+ * 「刚发生过用户输入」窗口早就过了 —— 与浮层按钮、查找替换是同一个问题。
+ * 不声明的话文档不会变脏，用户按 `Ctrl+S` 写回磁盘的是**粘贴之前**的文本，
+ * 而界面上那张图还在。这是本项目第四次遇到这条路径（见 `withUserEdit` 的注释）。
+ *
+ * ## 失败要一张一张地跳过，不能让整次粘贴崩掉
+ *
+ * 三张图里有一张格式不认识，另外两张仍然应该落盘 ——
+ * 所以循环里逐张 `try`，且 `null` 只代表「这一张放弃」。
+ */
+async function insertPastedImages(
+  view: EditorView,
+  handler: (request: ImagePasteRequest) => Promise<string | null>,
+  files: readonly File[],
+): Promise<void> {
+  const sources: string[] = [];
+
+  for (const file of files) {
+    let src: string | null;
+    try {
+      src = await handler({ bytes: await file.arrayBuffer(), mimeType: file.type });
+    } catch {
+      // 外壳理论上不抛（它内部已把失败收敛成 null），但这里不能假设：
+      // 一个未捕获的拒绝会变成没人处理的 Promise，而用户只看到「粘贴没反应」
+      src = null;
+    }
+    if (src !== null && src !== '') sources.push(src);
+  }
+
+  if (sources.length === 0) return;
+
+  // 逐张插入而不是一次事务插全部：`replaceSelectionWith` 会把光标挪到
+  // 刚插入的节点之后，所以连续调用是「追加」，而一次事务里插多个节点
+  // 需要自己算位置 —— 没必要。
+  for (const src of sources) {
+    withUserEditOnView(view, () => insertImageNode(view, src));
+  }
+}
+
 export async function createMarkdownEditor(
   options: CreateMarkdownEditorOptions,
 ): Promise<MarkdownEditorInstance> {
@@ -973,6 +1085,37 @@ export async function createMarkdownEditor(
         editable: () => !options.readOnly,
         // 内容元素上挂共用版式类名：编辑器与导出用同一套 CSS，这是「所见即所得导出」的前提
         attributes: { class: DOC_CLASS },
+        /**
+         * 粘贴图片。
+         *
+         * 挂在 `editorViewOptionsCtx` 而不是自建一个 `$prose` 插件：这是
+         * ProseMirror 为「我要先看一眼剪贴板」准备的官方钩子，返回 `true`
+         * 表示已处理、不再走默认的 slice 解析。自建插件要用
+         * `props.handlePaste` 复现同一个位置，多一层没有收益的间接。
+         *
+         * 这里**不检查 readOnly** —— 读源码确认过：`prosemirror-view` 注册
+         * 事件监听时用的是 `view.editable || !(event.type in editHandlers)`，
+         * 所以只读视图里 `paste` 这个监听**根本没装上**，`handlePaste` 不会被调用。
+         *
+         * 这条不能想当然，因为我们的处理顺序是「**先落盘、再插节点**」
+         * （见 `insertPastedImages`）。要是只读视图里也会走到这里，
+         * 就会在磁盘上留下一个文档里没有引用的孤儿图片 ——
+         * 而「多写一个 readOnly 判断」在这里反而是有害的：
+         * 它会让「ProseMirror 到底拦不拦」这件事变得没人知道。
+         */
+        handlePaste: (view, event) => {
+          const handler = options.onImagePaste;
+          if (handler === undefined) return false;
+
+          const files = imageFilesOf(event.clipboardData);
+          if (files.length === 0) return false;
+
+          // 必须在这里就拦下：默认处理会把剪贴板解析成一个 slice 插进去，
+          // 而对一张图片来说那要么是空的、要么是一段没意义的文本
+          event.preventDefault();
+          void insertPastedImages(view, handler, files);
+          return true;
+        },
       });
       /**
        * 解析前把 mdast 里「声明为字符串、实际是 null」的字段收敛成空字符串。
@@ -992,6 +1135,7 @@ export async function createMarkdownEditor(
     .use(trailing)
     .use(codeHighlightPlugin)
     .use(codeBlockChromePlugin(() => codeBlockHandlers))
+    .use(imageViewPlugin(() => ({ resolve: options.resolveImageUrl, onClick: options.onImageClick })))
     .use(cursorReporterPlugin(() => options.onCursorChange))
     .use(selectionReporterPlugin(() => options.onSelectionChange))
     .use(slashReporterPlugin(() => options.onSlashChange))

@@ -26,6 +26,7 @@ import { DEFAULT_SETTINGS, type ViewSettings } from '../core/settings.js';
 import { WorkspaceStore } from '../core/workspace/store.js';
 import { typeInto } from '../test/typing.js';
 import type {
+  BinaryWriteOutcome,
   BomKind,
   DirEntry,
   DocumentProvider,
@@ -57,6 +58,8 @@ interface FakeFile {
 class FakeProvider implements DocumentProvider {
   readonly kind = 'desktop' as const;
   readonly files = new Map<string, FakeFile>();
+  /** 粘贴图片落下来的字节。键是完整路径。 */
+  readonly binaries = new Map<string, ArrayBuffer>();
   readonly writes: WriteRequest[] = [];
   readonly notices: string[] = [];
   /** 导出时用的目标路径；null 模拟用户点了取消 */
@@ -108,9 +111,22 @@ class FakeProvider implements DocumentProvider {
   }
 
   async readBinaryFile(path: string): Promise<ArrayBuffer> {
-    // 一张最小 PNG 的文件头，足以让 MIME 嗅探认出 image/png
+    // 粘贴进来的图片先在内存二进制盘里 —— 与浏览器预览模式同一套优先级
+    const pasted = this.binaries.get(path);
+    if (pasted !== undefined) return pasted.slice(0);
+
+    // 其余情况给一张最小 PNG 的文件头，足以让 MIME 嗅探认出 image/png
     void this.need(path);
     return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).buffer;
+  }
+
+  async writeBinaryFile(path: string, bytes: ArrayBuffer): Promise<BinaryWriteOutcome> {
+    // 与桌面版对齐：已存在就拒绝，不覆盖
+    if (this.binaries.has(path)) {
+      throw { code: 'CONFLICT', message: `已存在：${path}`, detail: null };
+    }
+    this.binaries.set(path, bytes.slice(0));
+    return { path, size: bytes.byteLength, mtimeMs: (this.clock += 10) };
   }
 
   async statFile(path: string): Promise<FileStat> {
@@ -1653,5 +1669,241 @@ describe('代码块语言选择器', () => {
 
     expect(prevented).toBe(true);
     expect(pickerOf(mounted.container)).not.toBeNull();
+  });
+});
+
+describe('图片：粘贴落盘 + 显示 + 灯箱', () => {
+  /**
+   * 这一组打的是**整条图片链路**，而它横跨四层：
+   *
+   *   ProseMirror 的 handlePaste（内核）
+   *     → 字节交给外壳（`EditorMountProps.onImagePaste`）
+   *     → 生成文件名并写盘（`DocumentStore.pasteImage` / `core/document/images.ts`）
+   *     → 换回来的相对路径插进文档，再由 NodeView 读回来显示
+   *
+   * 每一层单独都有测试（`modules/markdown/image.test.ts`、`core/document/images.test.ts`），
+   * 但**接缝**只有在这里才被真正跑过一遍：内核报的 MIME 有没有变成正确的后缀、
+   * 外壳算出来的路径和 NodeView 要读的路径是不是同一个字符串、
+   * 落盘之后文档有没有变脏。任何一处对不上，界面上都是「粘了没反应」。
+   */
+
+  const NOTES = 'C:\\notes';
+  const DOC = `${NOTES}\\note.md`;
+  /** 资源目录在磁盘上的前缀。分隔符统一成文档路径的风格，见 `core/path.ts` 的 `joinPath`。 */
+  const ASSETS = `${NOTES}\\note.assets\\`;
+
+  function imageEl(container: HTMLElement): HTMLImageElement | null {
+    return container.querySelector<HTMLImageElement>('.qm-editor img.qm-img-el');
+  }
+
+  function imageBox(container: HTMLElement): HTMLElement | null {
+    return container.querySelector<HTMLElement>('.qm-editor .qm-img');
+  }
+
+  function lightbox(container: HTMLElement): HTMLElement | null {
+    return container.querySelector<HTMLElement>('.lightbox');
+  }
+
+  function pngFile(name = 'shot.png'): File {
+    return new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x2a])], name, {
+      type: 'image/png',
+    });
+  }
+
+  /**
+   * 往编辑器里粘贴一批文件。
+   *
+   * 用真的 `ClipboardEvent` + `DataTransfer`（`src/test/jsdom-gaps.ts` 补的那两个），
+   * 而不是直接调内核的 `handlePaste` —— 后者会跳过 ProseMirror 的
+   * 「先看剪贴板、再决定要不要拦」那一段，而那正是「普通文本粘贴有没有被误拦」
+   * 的关键。走真实事件路径才测得到。
+   */
+  async function pasteFiles(container: HTMLElement, files: File[]): Promise<void> {
+    const editable = editableOf(container);
+    const data = new DataTransfer();
+    for (const file of files) data.items.add(file);
+
+    await act(async () => {
+      editable.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+    });
+    // 落盘 + 插节点 + NodeView 回读，串了三段异步，比通常多等一轮
+    await settle(6);
+  }
+
+  it('粘贴一张图：落到 `<文档名>.assets/`，文档里写相对路径，并且变脏', async () => {
+    mounted = await mount((p) => p.put(DOC, '前文\n'));
+    await mounted.open(DOC);
+
+    await pasteFiles(mounted.container, [pngFile()]);
+
+    // 磁盘上多了一个文件，且在文档旁边的同名资源目录里
+    const written = [...mounted.provider.binaries.keys()];
+    expect(written).toHaveLength(1);
+    expect(written[0]?.startsWith(ASSETS)).toBe(true);
+    // 文件名 = 时间戳 + 4 位随机盐 + 按 MIME 推出来的后缀
+    expect(written[0]?.slice(ASSETS.length)).toMatch(/^image-\d{8}-\d{6}-[0-9a-f]{4}\.png$/);
+    // 字节一字不差（PNG 文件头 8 字节 + 一个尾字节，用来证明「长度也对得上」）
+    expect(mounted.provider.binaries.get(written[0]!)!.byteLength).toBe(9);
+
+    // 文档里是**相对路径**，不是绝对路径 —— 绝对路径写进文档会让它
+    // 在别人的机器上、在 Git 仓库里都失去意义
+    const text = mounted.store.getSnapshot().doc!.text;
+    expect(text).toContain('](./note.assets/image-');
+    expect(text).not.toContain(NOTES);
+
+    // 落盘是异步的，等它回来时「刚发生过用户输入」的窗口早过了 ——
+    // 不显式声明的话这里会显示「已保存」，而磁盘上还是粘贴前的文本
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+    // 状态栏要说清「图已经落盘、文档还没存」，这是用户真正会担心的事
+    expect(mounted.container.querySelector('.statusbar .hint')?.textContent).toContain('文档还需保存');
+  });
+
+  it('**粘进来的图能立刻显示**，而且 data URI 绝不进文档', async () => {
+    mounted = await mount((p) => p.put(DOC, '前文\n'));
+    await mounted.open(DOC);
+
+    await pasteFiles(mounted.container, [pngFile()]);
+
+    // 显示：NodeView 把相对路径读回来、换成了能加载的 URL
+    expect(imageBox(mounted.container)?.className).toContain('is-loaded');
+    expect(imageEl(mounted.container)?.getAttribute('src')).toContain('data:image/png;base64,');
+
+    // 但文档里必须还是那一串相对路径。少了 `ignoreMutation`，
+    // ProseMirror 会把我们写进 `<img>` 的 data URI 当成用户输入读进文档 ——
+    // 存出来的 Markdown 里会多出一大段 base64
+    expect(mounted.store.getSnapshot().doc!.text).not.toContain('base64');
+  });
+
+  it('点图片开灯箱：显示图、显示路径；Esc 与点背景都能关', async () => {
+    mounted = await mount((p) => p.put(DOC, '前文\n'));
+    await mounted.open(DOC);
+    await pasteFiles(mounted.container, [pngFile()]);
+
+    const el = imageEl(mounted.container);
+    expect(el).not.toBeNull();
+    await act(async () => {
+      el!.click();
+    });
+
+    const box = lightbox(mounted.container);
+    expect(box).not.toBeNull();
+    // 灯箱里显示的是同一个 URL（不重新读一遍盘）
+    expect(box?.querySelector<HTMLImageElement>('.lightbox-img')?.getAttribute('src')).toBe(
+      el?.getAttribute('src'),
+    );
+    // 路径要显示出来 —— 看完大图之后用户常要做的下一件事是「找到这个文件」
+    expect(box?.querySelector('.lightbox-caption .path')?.textContent).toContain('./note.assets/image-');
+
+    // Esc 关（在 document 上派发，走的是真实的冒泡路径）
+    await act(async () => {
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(lightbox(mounted.container)).toBeNull();
+
+    // 再开一次，点背景关
+    await act(async () => {
+      el!.click();
+    });
+    // 窄化必须发生在 `act` 外面：`mounted` 是外层作用域的 `let`，
+    // 回调里再取一次会让控制流分析失效（与上面 `host` 那条是同一件事）
+    const backdrop = lightbox(mounted.container);
+    expect(backdrop).not.toBeNull();
+    await act(async () => {
+      backdrop!.click();
+    });
+    expect(lightbox(mounted.container)).toBeNull();
+  });
+
+  it('切标签页时灯箱自动关 —— 不能留着一张上一个文档的图', async () => {
+    mounted = await mount((p) => {
+      p.put(DOC, '前文\n');
+      p.put(`${NOTES}\\other.md`, '# 另一份\n');
+    });
+    await mounted.open(DOC);
+    await pasteFiles(mounted.container, [pngFile()]);
+
+    const el = imageEl(mounted.container);
+    expect(el).not.toBeNull();
+    await act(async () => {
+      el!.click();
+    });
+    expect(lightbox(mounted.container)).not.toBeNull();
+
+    await mounted.open(`${NOTES}\\other.md`);
+    expect(lightbox(mounted.container)).toBeNull();
+  });
+
+  it('文档还没保存过时不落盘，并在状态栏说清原因', async () => {
+    // 虚拟盘里的 `demo.md` 没有目录信息 —— 相对路径无从谈起
+    mounted = await mount((p) => p.put('demo.md', '前文\n'));
+    await mounted.open('demo.md');
+
+    await pasteFiles(mounted.container, [pngFile()]);
+
+    expect(mounted.provider.binaries.size).toBe(0);
+    expect(mounted.store.getSnapshot().doc!.text).toBe('前文\n');
+    expect(mounted.container.querySelector('.statusbar .hint')?.textContent).toContain('还没有保存过');
+  });
+
+  it('不认识的图片格式不落盘，并说清是哪一种', async () => {
+    mounted = await mount((p) => p.put(DOC, '前文\n'));
+    await mounted.open(DOC);
+
+    const tiff = new File([new Uint8Array([0x49, 0x49, 0x2a, 0x00])], 'scan.tif', { type: 'image/tiff' });
+    await pasteFiles(mounted.container, [tiff]);
+
+    expect(mounted.provider.binaries.size).toBe(0);
+    expect(mounted.store.getSnapshot().doc!.text).toBe('前文\n');
+    expect(mounted.container.querySelector('.statusbar .hint')?.textContent).toContain('image/tiff');
+  });
+
+  it('三张图里有一张失败，另外两张照样落盘', async () => {
+    mounted = await mount((p) => p.put(DOC, '前文\n'));
+    await mounted.open(DOC);
+
+    const tiff = new File([new Uint8Array([0x49, 0x49])], 'scan.tif', { type: 'image/tiff' });
+    await pasteFiles(mounted.container, [pngFile('a.png'), tiff, pngFile('b.png')]);
+
+    expect(mounted.provider.binaries.size).toBe(2);
+    const text = mounted.store.getSnapshot().doc!.text;
+    expect(text.match(/!\[\]\(\.\/note\.assets\//g)).toHaveLength(2);
+  });
+
+  it('普通文本的粘贴不被拦 —— 走默认处理', async () => {
+    mounted = await mount((p) => p.put(DOC, '前文\n'));
+    await mounted.open(DOC);
+
+    const txt = new File([new Uint8Array([0x61])], 'a.txt', { type: 'text/plain' });
+    await pasteFiles(mounted.container, [txt]);
+
+    expect(mounted.provider.binaries.size).toBe(0);
+    // 没被我们截住 = 文档没有多出一个图片节点
+    expect(imageBox(mounted.container)).toBeNull();
+  });
+
+  it('图片读不到时画一个**带路径**的占位，而不是一个破图', async () => {
+    mounted = await mount((p) => p.put(DOC, '![说明](./note.assets/missing.png)\n'));
+    await mounted.open(DOC);
+    await settle();
+
+    const box = imageBox(mounted.container);
+    expect(box?.className).toContain('is-failed');
+    // 用户下一步要做的恰恰是「去把那张图找回来」，他需要知道路径
+    expect(box?.querySelector('.qm-img-note')?.textContent).toContain('./note.assets/missing.png');
+    // 失败时 `<img>` 上不该有 src，否则浏览器会画一个破图图标
+    expect(imageEl(mounted.container)?.hasAttribute('src')).toBe(false);
+  });
+
+  it('切到源码视图时图片节点如实呈现为 Markdown 语法', async () => {
+    mounted = await mount((p) => p.put(DOC, '前文\n'));
+    await mounted.open(DOC);
+    await pasteFiles(mounted.container, [pngFile()]);
+
+    await mounted.click('源码');
+
+    expect(mounted.container.querySelector('.lightbox')).toBeNull();
+    expect(renderedText(mounted.container)).toContain('![](./note.assets/image-');
   });
 });

@@ -14,6 +14,7 @@
  */
 
 import { highlightCode } from '../highlight/hljs.js';
+import { bytesToDataUrl, sniffImageMime } from '../image.js';
 
 export interface InlineIo {
   /** 文档所在目录。null = 拿不到（例如浏览器预览的虚拟盘），此时只处理绝对路径的图片。 */
@@ -38,60 +39,17 @@ export interface InlineReport {
 }
 
 /**
- * 把图片字节转成 base64。
+ * 拼接目录与相对路径，保留原路径的分隔符风格（Windows 上是反斜杠）。
  *
- * 分块是为了避开 `String.fromCharCode(...bytes)` 的参数个数上限
- * （约 65535，一个 1 MB 的图片会直接抛 RangeError）。
- */
-function toBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const chunk = 0x8000;
-  let binary = '';
-  for (let offset = 0; offset < bytes.length; offset += chunk) {
-    binary += String.fromCharCode(...(bytes.subarray(offset, offset + chunk) as unknown as number[]));
-  }
-  return btoa(binary);
-}
-
-const MIME_BY_EXTENSION: Record<string, string> = {
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  jpe: 'image/jpeg',
-  gif: 'image/gif',
-  webp: 'image/webp',
-  bmp: 'image/bmp',
-  ico: 'image/x-icon',
-  svg: 'image/svg+xml',
-  avif: 'image/avif',
-};
-
-/**
- * 先看文件头再退回扩展名。
+ * **它与 `core/path.ts` 的 `joinPath` 不是同一个东西，所以名字也不同。**
+ * 两者都吃掉 `./` 与开头的分隔符，但这一份**还多收敛一层重复分隔符**
+ * （`a//b.png` → `a/b.png`），而 `path.ts` 那份只做拼接、一个字符都不多改 ——
+ * 它服务的是 UI（显示、拼接），不该悄悄改写用户写在文档里的路径。
  *
- * 顺序不能反：`.png` 里装的其实是一张 JPEG、扩展名写错的图片很常见，
- * 而 MIME 报错的后果是浏览器直接不渲染 —— 用户看到的是一个空白方框，
- * 完全不知道为什么。文件头是事实，扩展名只是猜测。
+ * 导出这条路径上做规范化是合适的：拼出来的字符串马上要交给文件系统去读。
+ * 但**不要**把两份合并成一个 —— 合并意味着其中一边要接受自己不需要的行为。
  */
-function sniffMime(bytes: Uint8Array, path: string): string {
-  const at = (...signature: number[]) => signature.every((byte, index) => bytes[index] === byte);
-  if (at(0x89, 0x50, 0x4e, 0x47)) return 'image/png';
-  if (at(0xff, 0xd8, 0xff)) return 'image/jpeg';
-  if (at(0x47, 0x49, 0x46, 0x38)) return 'image/gif';
-  if (at(0x52, 0x49, 0x46, 0x46) && bytes[8] === 0x57 && bytes[9] === 0x45) return 'image/webp';
-  if (at(0x42, 0x4d)) return 'image/bmp';
-  if (bytes[0] === 0x3c) {
-    // '<' 开头：可能是 SVG，也可能是 HTML —— 用 `image/svg+xml` 处理更安全（见下）
-    const head = new TextDecoder('utf-8', { fatal: false }).decode(bytes.subarray(0, 512)).toLowerCase();
-    if (head.includes('<svg')) return 'image/svg+xml';
-  }
-
-  const ext = path.split('.').pop()?.toLowerCase() ?? '';
-  return MIME_BY_EXTENSION[ext] ?? 'application/octet-stream';
-}
-
-/** 拼接目录与相对路径，保留原路径的分隔符风格（Windows 上是反斜杠）。 */
-function joinPath(baseDir: string, relative: string): string {
+function normalizeJoin(baseDir: string, relative: string): string {
   const separator = baseDir.includes('\\') ? '\\' : '/';
   const trimmed = baseDir.replace(/[\\/]+$/, '');
   const parts = relative.replace(/^\.?[\\/]+/, '').split(/[\\/]/).filter((part) => part !== '');
@@ -153,7 +111,7 @@ export async function inlineAssets(root: HTMLElement, io: InlineIo): Promise<Inl
     if (isAbsolutePath(src)) {
       resolved = src;
     } else if (io.baseDir !== null) {
-      resolved = joinPath(io.baseDir, decodeURIComponent(src));
+      resolved = normalizeJoin(io.baseDir, decodeURIComponent(src));
     }
 
     if (resolved === null || !io.readBinaryFile) {
@@ -165,14 +123,14 @@ export async function inlineAssets(root: HTMLElement, io: InlineIo): Promise<Inl
     try {
       const readBinaryFile = io.readBinaryFile;
       const bytes = await readBinaryFile(resolved);
-      const mime = sniffMime(new Uint8Array(bytes), resolved);
+      const mime = sniffImageMime(new Uint8Array(bytes), resolved);
       /**
        * SVG 也用 base64 而不是 `data:image/svg+xml,<svg…>`：
        * SVG 里可以带 `<script>`，放进 `<img>` 里虽然不会执行，
        * 但以明文形式躺在 HTML 里会让人以为它执行了。base64 让「这是一份不透明的资源」
        * 一目了然，也避免把 `#` `&` 这些字符带进 HTML 属性。
        */
-      img.setAttribute('src', `data:${mime};base64,${toBase64(bytes)}`);
+      img.setAttribute('src', bytesToDataUrl(bytes, mime));
       report.inlinedImages += 1;
     } catch {
       // 读不到：保留原链接并打标记，由 CSS 画出可见的占位（见 document-styles.css）

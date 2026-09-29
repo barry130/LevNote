@@ -9,6 +9,7 @@
  * - 保存前把 `mtimeMs` 作为乐观锁传给 Rust；不符即失败，绝不静默覆盖。
  */
 
+import { randomSalt, readImageAsUrl, writePastedImage } from './images.js';
 import {
   asAppError,
   type AppErrorShape,
@@ -176,6 +177,67 @@ export class DocumentStore {
 
   clearError = (): void => this.commit({ error: null });
   clearNotice = (): void => this.commit({ notice: '' });
+
+  /**
+   * 把文档里的图片 `src` 解析成能直接放进 `<img>` 的 URL。拿不到时返回 `null`。
+   *
+   * ## 为什么是箭头属性而不是方法
+   *
+   * 它会被**拆下来单传**（`DocumentPane` → `MarkdownEditor` → 内核的 NodeView），
+   * 内核拿到的是函数本身。原型上的方法被拆下来之后 `this` 就丢了，
+   * 一调用就抛 `Cannot read properties of undefined`。箭头属性把它绑在实例上，
+   * 拆到哪儿都能用 —— 与 `getSnapshot` / `subscribe` 是同一条理由。
+   *
+   * ## 为什么**不缓存**
+   *
+   * 缓存看起来划算（切一次视图模式就要把整篇的图重读一遍），但缓存的对象是
+   * `data:` URI —— 一张 1MB 的图会变成约 1.4MB 的字符串，而它是**常驻**的。
+   * 一份有三十张截图的文档就能吃掉几十 MB，且没有任何上界。
+   *
+   * 不缓存的代价是有限的：NodeView 只在**节点创建时**解析一次，
+   * 重渲染不会重读（`update()` 只在 `src` 变了才重新加载）。
+   * 真正会重读的只有「切换视图模式」，而那是用户主动做的一次动作。
+   *
+   * **重审条件**：如果实测切视图出现可感知的卡顿，再加一个有上界的缓存
+   * （按字节总量而不是条目数限制），而不是先加一个没有上界的。
+   */
+  resolveImageUrl = async (src: string): Promise<string | null> => {
+    const doc = this.state.doc;
+    if (!doc) return null;
+    return readImageAsUrl(this.provider, doc.path, src);
+  };
+
+  /**
+   * 粘贴进来的一张图片：落盘，返回**写进文档的相对路径**；失败返回 `null`。
+   *
+   * 失败原因写进 `notice`（状态栏）而不是 `error`（错误横幅）：
+   * 「这份文档还没保存过」「这个格式不认识」都是**正常的用户操作结果**，
+   * 不是程序异常。用错误横幅会让人以为软件坏了，而状态栏那句话
+   * 恰好能在他下一次动作之前被读到。
+   *
+   * 无论成败都**不抛**：调用链尽头是内核的一次异步插入，
+   * 抛出去只会变成一个没人处理的 Promise。
+   */
+  pasteImage = async (bytes: ArrayBuffer, mimeType: string): Promise<string | null> => {
+    const doc = this.state.doc;
+    if (!doc) return null;
+
+    const result = await writePastedImage(this.provider, doc.path, {
+      bytes,
+      mimeType,
+      at: new Date(),
+      salt: randomSalt,
+    });
+
+    if (!result.ok) {
+      this.commit({ notice: result.reason });
+      return null;
+    }
+
+    // 说清楚「图片已经在磁盘上了，但文档还没保存」—— 这是用户真正会担心的事
+    this.commit({ notice: `图片已存到 ${basename(result.path)}（文档还需保存）` });
+    return result.src;
+  };
 
   /** 打开一个路径。失败时把错误放进 state，由 UI 决定怎么呈现。 */
   async open(path: string): Promise<boolean> {

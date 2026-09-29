@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type {
+  BinaryWriteOutcome,
   BomKind,
   DirEntry,
   DocumentProvider,
@@ -106,6 +107,11 @@ class FakeProvider implements DocumentProvider {
 
   async readBinaryFile(): Promise<ArrayBuffer> {
     return new ArrayBuffer(0);
+  }
+
+  /** 这个套件只测标签页语义，不测图片落盘；接口要求存在。 */
+  async writeBinaryFile(path: string, bytes: ArrayBuffer): Promise<BinaryWriteOutcome> {
+    return { path, size: bytes.byteLength, mtimeMs: (this.clock += 10) };
   }
 
   async runtimeInfo(): Promise<RuntimeInfo> {

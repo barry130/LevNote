@@ -20,6 +20,9 @@ function MarkdownEditor({
   onSlashChange,
   onTableChange,
   onCodeBlockChange,
+  resolveImageUrl,
+  onImagePaste,
+  onImageClick,
   onError,
   readOnly,
   placeholder,
@@ -41,6 +44,12 @@ function MarkdownEditor({
   onTableChangeRef.current = onTableChange;
   const onCodeBlockChangeRef = useRef(onCodeBlockChange);
   onCodeBlockChangeRef.current = onCodeBlockChange;
+  const resolveImageUrlRef = useRef(resolveImageUrl);
+  resolveImageUrlRef.current = resolveImageUrl;
+  const onImagePasteRef = useRef(onImagePaste);
+  onImagePasteRef.current = onImagePaste;
+  const onImageClickRef = useRef(onImageClick);
+  onImageClickRef.current = onImageClick;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -70,6 +79,16 @@ function MarkdownEditor({
           onSlashChange: (state) => onSlashChangeRef.current?.(state),
           onTableChange: (state) => onTableChangeRef.current?.(state),
           onCodeBlockChange: (state) => onCodeBlockChangeRef.current?.(state),
+          // 这两个都**必须**转发（而不是直接传 `resolveImageUrl` / `onImagePaste`）：
+          // 内核的 NodeView 与 handlePaste 在创建时就把它们捕获了，直接传的话
+          // 之后 React 重渲染产生的新函数永远不会被内核看到 ——
+          // 而这两个回调恰恰会变（文档路径变了、provider 换了）。
+          resolveImageUrl: async (src) => (await resolveImageUrlRef.current?.(src)) ?? null,
+          onImagePaste: async (request) => (await onImagePasteRef.current?.(request)) ?? null,
+          // 点击不必转发成新函数：它没有返回值，也不会被内核异步持有 ——
+          // 但内核**只在构造 NodeView 时**读一次这个属性，所以仍然要经 ref，
+          // 否则切标签页之后点开的是旧文档的灯箱
+          onImageClick: (image) => onImageClickRef.current?.(image),
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { DocumentStore, isDirty } from './store.js';
 import type {
+  BinaryWriteOutcome,
   BomKind,
   DirEntry,
   DocumentProvider,
@@ -33,6 +34,8 @@ interface FakeFile {
 class FakeProvider implements DocumentProvider {
   readonly kind = 'desktop' as const;
   readonly files = new Map<string, FakeFile>();
+  /** 二进制写入落下来的字节。这个套件不测它，但接口要求盘上有地方放。 */
+  readonly binaries = new Map<string, ArrayBuffer>();
   writes: WriteRequest[] = [];
   private clock = 1_000;
 
@@ -66,6 +69,13 @@ class FakeProvider implements DocumentProvider {
     const file = this.files.get(path);
     if (!file) throw { code: 'NOT_FOUND', message: `没有这个文件：${path}`, detail: null };
     return new TextEncoder().encode(file.text).buffer;
+  }
+
+  /** 这个假盘不测图片落盘，但接口要求它存在。语义与桌面版对齐：已存在就拒绝。 */
+  async writeBinaryFile(path: string, bytes: ArrayBuffer): Promise<BinaryWriteOutcome> {
+    if (this.binaries.has(path)) throw { code: 'CONFLICT', message: `已存在：${path}`, detail: null };
+    this.binaries.set(path, bytes.slice(0));
+    return { path, size: bytes.byteLength, mtimeMs: this.tick() };
   }
 
   async readTextFile(path: string): Promise<TextFile> {

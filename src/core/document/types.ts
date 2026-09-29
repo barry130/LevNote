@@ -65,6 +65,27 @@ export interface WriteOutcome {
   lineEnding: LineEndingName;
 }
 
+/**
+ * 对应 Rust `fs::BinaryWriteOutcome` —— 写二进制文件的结果。
+ *
+ * 字段比 `WriteOutcome` 少得多，因为二进制写入**不做编码 / BOM / 行尾的协商**：
+ * 那些概念只对文本成立。剩下的三个字段各自对应一个真实问题：
+ *
+ * - `path`：Rust 侧会做规范化（反斜杠、`..`），返回**实际落盘的那个路径**，
+ *   调用方据此回写文档里的相对路径，而不是拿自己拼的字符串去猜；
+ * - `size`：落盘字节数。调用方可以拿它和内存里的字节数比一次 ——
+ *   不一致说明写坏了，这比「写完了但没人核对」多一道闸；
+ * - `mtimeMs`：这个文件的落盘时间。**注意它不是并发检测的依据** ——
+ *   二进制写入用的是「目标已存在就拒绝」（见 `write_binary_file`），
+ *   与文本写入的 mtime 乐观锁不是同一套。留着它是为了让调用方能
+ *   在状态栏或日志里说出「这张图是什么时候落盘的」。
+ */
+export interface BinaryWriteOutcome {
+  path: string;
+  size: number;
+  mtimeMs: number;
+}
+
 /** 对应 Rust `fs::DirEntry` */
 export interface DirEntry {
   name: string;
@@ -73,7 +94,6 @@ export interface DirEntry {
   size: number;
   mtimeMs: number;
 }
-
 export interface RuntimeInfo {
   name: string;
   version: string;
@@ -179,6 +199,20 @@ export interface DocumentProvider {
    * 平台不支持时抛错，调用方退化为「不内联、标注出来」而不是假装成功。
    */
   readBinaryFile(path: string): Promise<ArrayBuffer>;
+  /**
+   * 按字节写出一个二进制文件（粘贴图片时把剪贴板里的图落到磁盘上）。
+   *
+   * ## 为什么是「已存在就拒绝」而不是「覆盖」
+   *
+   * 文件名由内核生成（`image-<时间戳>-<盐><扩展名>`），撞名的概率极低；
+   * 一旦真撞上，说明要么是同一秒里粘了同名文件，要么是磁盘上已经有一份
+   * 我们没见过的内容。两种情况下**覆盖都是错的**：前者会丢掉刚粘的那张，
+   * 后者会破坏用户已有的文件。所以这里选择明确失败，让调用方换一个盐重试，
+   * 或者把冲突如实报给用户 —— 与项目「绝不静默覆盖」的硬约束一致。
+   *
+   * 平台不支持时抛错（浏览器预览没有二进制盘），调用方据此在界面上说明。
+   */
+  writeBinaryFile(path: string, bytes: ArrayBuffer): Promise<BinaryWriteOutcome>;
   runtimeInfo(): Promise<RuntimeInfo>;
   /** 弹「打开」对话框。用户取消时返回 null（不抛错）。 */
   pickOpenPath(): Promise<string | null>;

@@ -101,13 +101,43 @@ export function dirname(path: string): string | null {
   return null;
 }
 
-/** 把相对路径拼到目录上。`base` 为 null 时返回 null（不猜）。 */
+/**
+ * 把相对路径拼到目录上。`base` 为 null 时返回 null（不猜）。
+ *
+ * ## `./` 前缀要被吃掉，`../` 不能
+ *
+ * `./a.png` 与 `a.png` 指的是同一个文件，所以拼出来的路径里不该留着 `./` ——
+ * 它会一路走到错误消息和 UI 上（`C:\笔记\./a.assets/x.png`），既难看又让人怀疑。
+ *
+ * 而 `../` **必须保留**：它不是「多余的前缀」，是真正的语义（去上一级）。
+ * 所以这里只剥「最多一个点 + 分隔符」，`..` 后面跟分隔符时正则不匹配、原样保留。
+ *
+ * > 这个不一致是真实存在过的：`core/export/inline-html.ts` 里有一份私有的同名函数
+ * > 剥了 `./`，而这里没剥 —— 同一个名字两种行为。已在那边改名为 `normalizeJoin`
+ * > 并注明差异（它还多做了一层重复分隔符的收敛）。
+ *
+ * ## 相对部分的分隔符统一成 `base` 的风格
+ *
+ * Markdown 里的图片地址**必须是正斜杠**（`./a.assets/x.png` 在 Windows 的
+ * 记事本里也是这么写的），而文档路径在 Windows 上是反斜杠。直接拼会得到
+ * `C:\笔记\a.assets/x.png` 这种**混排**的字符串。
+ *
+ * 操作系统不在乎（Win32 两种都认），但我们的代码在乎：这条路径会被当作
+ * **字符串**用在「写进去」和「读回来」两条路上 ——
+ * 写入时文件名是裸名（`joinPath(目录, 'image-x.png')`，得到反斜杠），
+ * 回读时来自 Markdown 的相对路径带正斜杠。同一个文件两个字符串，
+ * 任何按字符串比较的地方（缓存键、去重、相等判断）都会悄悄失配。
+ *
+ * 所以这里统一成 `base` 的风格。**只换风格，不做别的**：
+ * 不折叠重复分隔符、不解析 `..` —— 那些仍然属于写入层的职责。
+ */
 export function joinPath(base: string | null, relative: string): string | null {
   if (base === null) return null;
   if (relative === '') return base;
   const separator = separatorOf(base);
   const trimmed = base.endsWith(separator) ? base.slice(0, -1) : base;
-  return `${trimmed}${separator}${relative.replace(/^[\\/]+/, '')}`;
+  const tail = relative.replace(/^\.?[\\/]+/, '').replace(/[\\/]/g, separator);
+  return `${trimmed}${separator}${tail}`;
 }
 
 /**

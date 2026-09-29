@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type {
+  BinaryWriteOutcome,
   DirEntry,
   DocumentProvider,
   FileStat,
@@ -80,6 +81,13 @@ class FakeProvider implements DocumentProvider {
     const bytes = this.bytes.get(path);
     if (!bytes) throw new Error('ENOENT');
     return bytes;
+  }
+
+  /** 这个套件不测图片落盘；接口要求存在，写进同一个字节盘。 */
+  async writeBinaryFile(path: string, bytes: ArrayBuffer): Promise<BinaryWriteOutcome> {
+    if (this.bytes.has(path)) throw new Error('CONFLICT');
+    this.bytes.set(path, bytes.slice(0));
+    return { path, size: bytes.byteLength, mtimeMs: 2 };
   }
 
   async runtimeInfo(): Promise<RuntimeInfo> {

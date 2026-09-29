@@ -27,6 +27,8 @@ import type {
   EditorFormatting,
   EditorHandle,
   EditorTable,
+  ImageInfo,
+  ImagePasteRequest,
   SelectionSnapshot,
   SlashState,
   TableState,
@@ -35,6 +37,7 @@ import { resolveAdapter } from '../core/editor/registry.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
 import { CodeBlockPicker } from './CodeBlockPicker.js';
+import { Lightbox } from './Lightbox.js';
 import { SelectionToolbar } from './SelectionToolbar.js';
 import { SlashMenu } from './SlashMenu.js';
 import { TableToolbar } from './TableToolbar.js';
@@ -167,6 +170,13 @@ export function DocumentPane({
    */
   const [codeBlock, setCodeBlock] = useState<CodeBlockState | null>(null);
   const [codeBlockOps, setCodeBlockOps] = useState<EditorCodeBlock | null>(null);
+  /**
+   * 灯箱里正在看的那张图。null 表示灯箱关着。
+   *
+   * 只存**已经解析好的那一个**（内核给什么就是什么），不拿 `src` 再解析一次 ——
+   * 那意味着把同一个文件读第二遍，而字节此刻就在 DOM 上。
+   */
+  const [lightbox, setLightbox] = useState<ImageInfo | null>(null);
 
   const session = doc?.session ?? 0;
   /**
@@ -307,7 +317,31 @@ export function DocumentPane({
     setTableOps(null);
     setCodeBlock(null);
     setCodeBlockOps(null);
+    // 灯箱也要关：换标签页之后还留着一张上一个文档的图，用户会以为它属于新文档
+    setLightbox(null);
   }, [kernelKey]);
+
+  /**
+   * 把内核交出来的粘贴请求转给文档模型。
+   *
+   * 内核说的是「字节 + MIME」，文档模型说的是「写进文档的相对路径」——
+   * 中间那一层（生成文件名、写到哪、绝不覆盖）全在 `DocumentStore.pasteImage`
+   * 与 `core/document/images.ts` 里。这里只做一次形状转换，
+   * 不让内核的契约类型漏进 `core/document`（那是两个不同层次的抽象）。
+   */
+  const handleImagePaste = useCallback(
+    (request: ImagePasteRequest) => store.pasteImage(request.bytes, request.mimeType),
+    [store],
+  );
+
+  /**
+   * 关灯箱。
+   *
+   * **必须是稳定引用**：`Lightbox` 把它放进 `useEffect` 的依赖里（Esc 的监听），
+   * 每渲染一次换一个新函数就等于每次打字都把那个 window 监听拆掉再装上。
+   * 功能上不会坏，但那是「每次按键做一次多余的 DOM 操作」。
+   */
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   const handleEditorError = useCallback(
     (thrown: Error) => {
@@ -406,6 +440,9 @@ export function DocumentPane({
             onSlashChange={setSlash}
             onTableChange={setTable}
             onCodeBlockChange={setCodeBlock}
+            resolveImageUrl={store.resolveImageUrl}
+            onImagePaste={handleImagePaste}
+            onImageClick={setLightbox}
             onError={handleEditorError}
           />
         ) : doc ? (
@@ -441,6 +478,11 @@ export function DocumentPane({
             onToggleLineNumbers={onToggleCodeLineNumbers}
           />
         )}
+
+        {/* 灯箱是**模态**的：它铺满整个视口，所以放在最后（同层里最后画的在最上面），
+            并且不像上面几个浮层那样有「什么时候该出现」的条件判断 ——
+            它只由用户点图片决定 */}
+        {lightbox !== null && <Lightbox image={lightbox} onClose={closeLightbox} />}
       </main>
 
       <footer className="statusbar">

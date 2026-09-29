@@ -27,14 +27,16 @@
 | 选中浮层工具条（bubble menu） | `src/core/editor/types.ts`（`onSelectionChange` + `formatting`）+ `modules/markdown/selection.ts`（格式名翻译）+ `ui/SelectionToolbar.tsx` | `modules/markdown/formatting.test.ts`（13 条，走真实内核、断言序列化出来的 markdown）+ `App.test.tsx` 的「选中浮层工具条」（9 条，用真实 DOM 选区驱动）。决策见 [ADR 0015](./decisions/0015-selection-toolbar.md) |
 | 斜杠菜单（`/` 插入块） | `src/core/editor/types.ts`（`onSlashChange` + `insertBlock`）+ `modules/markdown/selection.ts`（`describeSlash`）+ `ui/SlashMenu.tsx` | `modules/markdown/slash.test.ts`（18 条，**逐字真的打字**驱动，覆盖六种触发条件 + 九个可插入块）+ `App.test.tsx` 的「斜杠菜单」（8 条，覆盖筛选 / 回车 / 上下键 / Esc / 无匹配 / 鼠标 / 切源码视图）。决策见 [ADR 0016](./decisions/0016-slash-menu.md) |
 | 表格增强 + 代码块（语言选择器 / 行号） | `src/core/editor/types.ts`（`onTableChange` / `onCodeBlockChange` + `EditorTable` / `EditorCodeBlock`）+ `modules/markdown/table.ts`、`code-block-view.ts`（NodeView）+ `ui/TableToolbar.tsx`、`CodeBlockPicker.tsx` | `modules/markdown/table.test.ts`（27 条）+ `code-block.test.ts`（29 条）+ `App.test.tsx` 的「表格工具条」（12 条）与「代码块语言选择器」（14 条）+ `ui/floating.test.ts`（12 条，**新建** —— 浮层算术提取成纯函数后第一次有测试）。**两半都自研** —— 官方组件是 Vue 3 的，理由与重审条件见 [ADR 0017](./decisions/0017-m5-tables-and-code-blocks.md) |
+| 图片：粘贴落盘 + 显示 + 灯箱 | `src/core/document/images.ts`（**新建**，两个无状态的文档级动作）+ `core/document/assets.ts`（目录与命名规则）+ `core/image.ts`（MIME ↔ 扩展名、字节 → `data:` URI）+ `modules/markdown/image-view.ts`（NodeView）+ `ui/Lightbox.tsx`（**新建**）+ `src-tauri/src/fs/mod.rs` 的 `write_binary_file` | `core/document/images.test.ts`（18 条，**新建**：六种读取降级、撞名重试、非 CONFLICT 不重试、写入被截断要报出来）+ `core/image.test.ts`（29 条）+ `core/document/assets.test.ts`（38 条）+ `modules/markdown/image.test.ts`（16 条，内核半边）+ `App.test.tsx` 的「图片」（10 条，**跨四层的端到端**）+ `core/path.test.ts` +4（含「写读路径逐字符相同」）+ Rust 侧 4 条（`percent_decode`）。决策见 [ADR 0018](./decisions/0018-m6-images.md) |
 
-合计 **505 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
+合计 **621 条前端测试 + 15 条 Rust 测试**（P2 结束时是 162 条），
+`tsc` / `eslint` / `vite build` / `cargo test` 全绿。
 
 > 其中 `eslint` 的「全绿」是 **2026-09-29 才真正成立**的：此前它虽然被写在这一行，
 > 但实际上是非阻塞的、且还有 33 项欠账。现在它是阻塞门禁，且配置里没有关掉的规则。
 > 明细见 ADR 0013 末尾的表。
 
-**本阶段修掉的两处真实缺陷**（不是重构，是 bug）：
+**本阶段修掉的三处真实缺陷**（不是重构，是 bug）：
 
 1. `core/editor/registry.ts` 的 `registerAdapter` 用 `unshift` 插入，
    实际优先级与注释**相反**。只有一个内核时看不出来；接上第二个认得 `.md` 的内核后，
@@ -42,6 +44,17 @@
 2. **查找替换在 Markdown 内核上会静默丢数据**：替换不经过键盘事件，
    原先的「变更上报」判定把它当成程序写入而不上报，外壳持有的内容停留在替换前，
    用户按保存时写回磁盘的是旧内容。已加 `USER_EDIT_META`。
+3. **图片的写入路径与回读路径不是同一个字符串**（M6 暴露）：
+   Markdown 里的地址必须是正斜杠，Windows 上的文档路径是反斜杠 ——
+   `joinPath` 只拼接、不统一，于是写入时算出 `…\a.assets\image-x.png`、
+   回读时算出 `…\a.assets/image-x.png`。文件系统两种都认，所以**只在按字符串
+   比较的地方出问题**（缓存键、去重、相等判断），表现为「图写进去了但显示不出来」。
+   已让 `joinPath` 统一分隔符风格（只换风格，不折叠重复分隔符、不解析 `..`），
+   并补了一条「写读路径逐字符相同」的用例。
+
+   > 这一条**在单元测试里看不到**：内核那一层拿到的「读文件」是测试自己给的假函数，
+   > 返回什么都是测试说了算。只有端到端（真写盘 → 真回读）才把它照出来 ——
+   > 这也是「接缝必须单独测」的一个具体例子。
 
 **P3 新发现的推迟项**：
 
@@ -57,6 +70,10 @@
 | **命令面板的拼音关键词要手工维护** | 每条命令手写 `keywords` | 低。命令数量还少（15 条）。超过 ~50 条时应改为自动生成拼音 |
 | **代码块语言的中文名 / 拼音关键词是手工的** | 候选列表来自 `supportedLanguages()`（直接读 highlight.js 的 `listLanguages()`，不会过期），但**中文名与拼音是手写的一张表**。新增语言只会显示成英文 id，**不会坏**，只是不友好 | 低。这张表的规模由 `highlight.js/lib/common` 的 36 种语言决定，是**固定集合**，不随我们的代码增长。真需要时按语言 id 的常见程度补 |
 | **代码块语言面板的屏幕几何只有人眼能验** | 同 M3 / M4：`getBoundingClientRect()` 在 jsdom 里全是 0 | 低（但确实没验）。面板要**右对齐到语言标签的右边缘**（`horizontal: 'end'`），贴右边缘时会被夹回视口 —— 夹取逻辑有单测，观感要在 `npm run desktop` 里看 |
+| **图片没有尺寸调整与右键菜单** | 拖动改宽高、`width` 属性、复制路径、在文件管理器里打开 —— 这些都是纯交互层的增量，不需要新的内核能力。M6 先把「能粘进来、存得住、看得见」这条主干打通 | 低。等有人真的需要在文档里控制图片大小时再做。难点在「改了尺寸之后怎么存」—— 要么写进 Markdown 的 HTML 形式（会牺牲可移植性），要么只在预览里生效（那就不算功能） |
+| **图片的显示观感与灯箱只有人眼能验** | 同 M3–M5：jsdom 没有布局引擎，也不解码图片 | 低（但确实没验）。要在 `npm run desktop` 里确认：占位的虚线框大小、加载中那块底色的位置、灯箱在大图 / 长图上的表现、深底与浅色主题的对比度 |
+| **图片走 `data:` URI 而非 `asset:` 协议** | `asset:` 要打开 `app.security.assetProtocol` 并配一份路径白名单 —— 那是一块需要长期维护的安全面。`data:` 走已有的 `read_binary_file`，权限收口在同一个地方。代价（base64 大 1/3、常驻 DOM）由上游 24 MB 的单文件上限兜住 | 低到中。**重审条件**：一份文档里几十张大图、打开明显变慢时，重新评估 —— 届时要一并给出白名单方案，而不是只把开关打开。见 [ADR 0018](./decisions/0018-m6-images.md) |
+| **显示图片不做缓存** | 缓存对象是 `data:` URI（1 MB 的图 → 约 1.4 MB 字符串），**常驻且无上界**。一份三十张截图的文档就能吃掉几十 MB。不缓存的代价有限：NodeView 只在节点创建时解析一次，真正会重读的只有「切换视图模式」 | 低。**重审条件**：实测切视图出现可感知卡顿时，加一个**按字节总量**（而不是条目数）设上界的缓存 |
 
 ---
 
@@ -223,6 +240,7 @@ B3 / B4 是原规划就指出「应尽早启动申请」的事项 —— 它们�
 | 选中浮层工具条 | 内核只上报「选区是什么格式、在屏幕哪儿」，浮层由外壳画 | [0015](./decisions/0015-selection-toolbar.md) |
 | 斜杠菜单 | 触发判定留在内核、菜单与键盘在外壳；**Esc 只收菜单不删字** | [0016](./decisions/0016-slash-menu.md) |
 | M5 表格与代码块 | **自研两半，不用官方 Vue 版组件**；表格走装饰、代码块走 NodeView | [0017](./decisions/0017-m5-tables-and-code-blocks.md) |
+| M6 图片 | 落 `<文档名>.assets/`、文档里写相对路径、显示走 `data:` URI（不开 `asset:` 协议）、灯箱自研 | [0018](./decisions/0018-m6-images.md) |
 
 ---
 

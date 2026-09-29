@@ -84,6 +84,14 @@ pub struct DirEntry {
     pub mtime_ms: u64,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BinaryWriteOutcome {
+    pub path: String,
+    pub size: u64,
+    pub mtime_ms: u64,
+}
+
 // ---------------------------------------------------------------- 工具函数
 
 fn mtime_ms_of(meta: &fs::Metadata) -> u64 {
@@ -368,4 +376,148 @@ pub fn runtime_info() -> serde_json::Value {
             .map(|d| d.as_millis() as u64)
             .unwrap_or(0),
     })
+}
+
+// ---------------------------------------------------------------- 二进制写入
+
+/// 二进制写入时路径走这个请求头。
+///
+/// ## 为什么路径不放在请求体里
+///
+/// Tauri 2 的二进制通道要求**整个请求体**就是原始字节
+/// （JS 侧 `invoke(cmd, uint8Array, …)` → `content-type: application/octet-stream`
+/// → Rust 侧 `InvokeBody::Raw`）。请求体被字节占满，就没有地方再放一个路径了。
+///
+/// 另外两条路都不好走：
+/// - 把字节 base64 塞进 JSON：传输量 +33%，而且 JS 侧要先做一次编码；
+/// - 两次调用（先建文件再写）：中间多一个「文件建好了但没内容」的窗口。
+///
+/// 请求头是 Tauri 官方支持的自定义元数据通道（`invoke` 的第三个参数 `options.headers`
+/// 会被原样带上），且与我们**反向**的 `read_binary_file`（用 `ipc::Response` 回原始字节）
+/// 正好对称。
+///
+/// ## 为什么值是 percent 编码的
+///
+/// HTTP 头只允许 ASCII，而路径里几乎必然有中文。JS 侧用 `encodeURIComponent`
+/// 编码（它输出的就是纯 ASCII），这里解码。**不能用 base64**：那要求两侧各写一份
+/// 编解码，而 `encodeURIComponent` 是 JS 自带的。
+const PATH_HEADER: &str = "x-qm-path";
+
+/// 还原 `encodeURIComponent` 的结果。
+///
+/// 刻意**不引入 `percent-encoding` crate**：这三十行只处理一种输入
+/// （`encodeURIComponent` 的输出，即「未保留字符 + `%XX` 三元组」），
+/// 而通用 crate 要处理它自己的全部边界。少一个依赖，也少一份「版本升级会不会变行为」。
+fn percent_decode(input: &str) -> AppResult<String> {
+    let bytes = input.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+
+    while i < bytes.len() {
+        if bytes[i] != b'%' {
+            out.push(bytes[i]);
+            i += 1;
+            continue;
+        }
+
+        // `get` 而不是切片：`%` 出现在末尾时切片会 panic，而这是外部输入
+        let hex = bytes
+            .get(i + 1..i + 3)
+            .and_then(|s| std::str::from_utf8(s).ok())
+            .ok_or_else(|| AppError::invalid_path("路径的 percent 编码不完整"))?;
+        let byte = u8::from_str_radix(hex, 16)
+            .map_err(|_| AppError::invalid_path(format!("路径里有一个非法的转义：%{hex}")))?;
+        out.push(byte);
+        i += 3;
+    }
+
+    String::from_utf8(out).map_err(|_| AppError::invalid_path("路径不是合法的 UTF-8"))
+}
+
+/// 写入二进制文件（目前用于「粘贴的图片落盘」）。
+///
+/// ## 三条刻意的行为
+///
+/// 1. **绝不覆盖**。文件名由前端按「时间戳 + 随机后缀」生成，正常不会撞；
+///    一旦撞上就说明调用方算错了名字。这时报 `CONFLICT` 比悄悄毁掉一张已有的图好 ——
+///    这是本项目「绝不静默覆盖」在二进制通道上的同一句话。
+/// 2. **父目录自动创建**（在 `atomic::write_atomic` 里）。资源目录
+///    （`<文档名>.assets/`）第一次粘贴时还不存在，要求调用方先建一次目录
+///    只会多一次 IPC 和一个「建了目录但写失败」的中间状态。
+/// 3. **空字节直接拒绝**。写一个 0 字节的 `.png` 不会报错，但它是一张永远打不开的图，
+///    而错误会在很久以后（导出、发给别人）才暴露。
+#[tauri::command]
+pub fn write_binary_file(request: tauri::ipc::Request<'_>) -> AppResult<BinaryWriteOutcome> {
+    let encoded = request
+        .headers()
+        .get(PATH_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .ok_or_else(|| AppError::invalid_path(format!("缺少 {PATH_HEADER} 请求头")))?;
+    let p = normalize_path(&percent_decode(encoded)?)?;
+    guard_not_dir(&p)?;
+
+    // 只有原始字节通道能走到这里。用 JSON 调用（比如把字节塞进对象里）
+    // 会得到 Json body，那时应当明确报错，而不是把一串数字当成字节写进文件
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err(AppError::invalid_path(
+            "二进制写入要求请求体是原始字节（content-type: application/octet-stream）",
+        ));
+    };
+
+    if bytes.is_empty() {
+        return Err(AppError::invalid_path("拒绝写入空文件"));
+    }
+
+    if p.exists() {
+        return Err(AppError::new(
+            ErrorCode::Conflict,
+            format!(
+                "目标文件已存在，为避免覆盖已有内容，本次写入已取消：{}",
+                p.display()
+            ),
+        ));
+    }
+
+    atomic::write_atomic(&p, bytes)?;
+
+    let meta = fs::metadata(&p)?;
+    Ok(BinaryWriteOutcome {
+        path: p.to_string_lossy().to_string(),
+        size: meta.len(),
+        mtime_ms: mtime_ms_of(&meta),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn percent_decode_handles_ascii_and_chinese() {
+        assert_eq!(percent_decode("a/b.png").unwrap(), "a/b.png");
+        assert_eq!(percent_decode("C%3A%5C%E7%AC%94%E8%AE%B0").unwrap(), "C:\\笔记");
+        assert_eq!(percent_decode("%E4%B8%AD.md").unwrap(), "中.md");
+    }
+
+    #[test]
+    fn percent_decode_keeps_plus_and_space_as_is() {
+        // `encodeURIComponent` 不会把空格变成 `+`（那是表单编码的行为），
+        // 所以这里也不能把 `+` 当空格还原 —— 否则文件名里的 `+` 会凭空变成空格
+        assert_eq!(percent_decode("a+b%20c.png").unwrap(), "a+b c.png");
+    }
+
+    #[test]
+    fn percent_decode_rejects_broken_input() {
+        // 末尾一个孤立的 `%`：不能 panic，要报错
+        assert!(percent_decode("a%").is_err());
+        assert!(percent_decode("a%2").is_err());
+        assert!(percent_decode("a%zz").is_err());
+        // 单个字节不是合法 UTF-8 序列
+        assert!(percent_decode("%FF%FE").is_err());
+    }
+
+    #[test]
+    fn percent_decode_survives_empty_input() {
+        assert_eq!(percent_decode("").unwrap(), "");
+    }
 }
