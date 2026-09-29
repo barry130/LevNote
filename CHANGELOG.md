@@ -47,12 +47,18 @@
 
 ### 工程
 
-- 初始化 git 仓库；新增 GitHub Actions CI（类型检查 + 测试 + 构建 + Rust clippy/test）。
+- 初始化 git 仓库；新增 GitHub Actions CI（类型检查 + lint + 测试 + 构建 + Rust clippy/test）。
 - 新增 ESLint 扁平配置与 `.editorconfig`。
-  **lint 目前是「非阻塞」的**：刚接入，首轮全量扫描还剩一批历史问题，
-  因此 CI 里是 `continue-on-error`。收尾动作见 `ROADMAP.md` 第 20 项。
+  **lint 是阻塞门禁**：首轮全量扫描 33 项欠账，已全部清零，且 `unbound-method`
+  也从「关掉」变成「修好写法后打开」—— **配置里不再有任何被关掉的规则**。
+  每一条的去向见 `ROADMAP.md` 第 20 项与 ADR 0013。
+- 新增 `.gitattributes`。**这一条是必需的，不是可选的**：本机 `core.autocrlf=true`，
+  而 `tests/fixtures/` 放的是逐字节敏感的编码 / 行尾样本，不保护的话
+  `mixed-endings.txt` 会被从 10B 归一成 8B —— 归一化抹掉的正是被测对象本身。
 - 为让 `typescript-eslint` 能跑起来，`typescript` 暂时指向 TS 6
   （`@typescript/native` 保留 TS 7）。取舍与重审条件写在 `eslint.config.js` 头部。
+  已知代价：lint 与 `tsc` 可能对同一段代码给出不同的类型（已实测到一次），
+  所以两条命令都必须跑。
 - 新增 `README.md` / `ROADMAP.md` / `CONTRIBUTING.md` / `SECURITY.md` / `AGENTS.md`。
 - 新增 ADR [0010](docs/decisions/0010-multi-tab-workspace.md) /
   [0011](docs/decisions/0011-code-kernel-and-graceful-downgrade.md) /

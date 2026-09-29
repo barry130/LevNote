@@ -20,35 +20,37 @@ npm run dev          # 只跑前端（浏览器预览，内存虚拟盘）
 提交之前**必须**跑：
 
 ```bash
-npm run check        # = npm run typecheck && npm run test（当前的质量门）
+npm run check        # = npm run typecheck && npm run lint && npm run test
 ```
 
-CI 会跑同样两条命令加一次 `vite build`。**任何一条不过都不合**。
+CI 会跑同样三条命令加一次 `vite build`。**任何一条不过都不合**。
 
 ### 关于 lint
 
-`npm run lint` 可用（ESLint 9 扁平配置 + `typescript-eslint` 的类型感知规则），
-但**目前还不阻塞 CI** —— 刚接入，首轮全量扫描还剩一批历史问题。请把清理当作顺手的事：
+`npm run lint` 是**阻塞**的：`npm run check` 与 CI 都会因它失败。
+它曾经以「非阻塞」引入（首轮有 33 条历史问题），欠账清零后转正 ——
+「有规则但不执行」比「没有规则」更糟，因为它让人以为已经守住了。
 
-- 改到某个文件时，**先把它 lint 干净**（`npx eslint <file>`），不要顺手扩大战场。
-- `npm run lint:fix` 能自动修掉一部分。
-- 全部清完之后，去掉 `.github/workflows/ci.yml` 里的 `continue-on-error: true`，
-  并把 `lint` 加进 `npm run check`。
+配置的取向是**只开能抓到真问题的规则**，不开风格规则（缩进、引号、分号交给
+`.editorconfig`）。最重要的三条是 `no-floating-promises`
+（异步调用没接住 → 保存失败被吞掉，而用户以为存上了）、`no-misused-promises`、
+`eqeqeq`。
 
-**为什么用「非阻塞」的方式引入**：直接让一个新 linter 把 CI 变红，
-结果是所有人学会忽略红灯 —— 那比没有 lint 更糟。
+**要加规则之前先问一句：它抓的是哪一类真 bug？** 答不上来就先别加。
+lint 一旦变成噪声源就会开始被忽略，那比没有 lint 更糟。
 
-**关于 `@typescript-eslint/unbound-method`**：这条规则在
-「用方法简写声明 React props，然后解构」时会大面积误报
-（解构出来的函数并没有失去 `this`，React 组件根本不是类实例）。
-正解是把 props 接口从方法简写改成函数属性：
+**回调一律用属性签名。** 这条约定来自 `@typescript-eslint/unbound-method`：
 
 ```ts
-interface Props { onClose(id: number): void }        // 会被误报
-interface Props { onClose: (id: number) => void }    // 不会，而且这才是 React 的惯用写法
+interface Props { onClose(id: number): void }        // 方法简写 → 解构时报 unbound-method
+interface Props { onClose: (id: number) => void }    // 属性签名 → 不会，而且这才是 React 的惯用写法
 ```
 
-在那次重构完成之前，规则先关着（配置里有说明）。**顺手改到哪个接口就顺手改掉它。**
+**返回实例上的方法**（`EditorHandle`、`MarkdownEditorInstance`）保持方法简写 ——
+它们只会以 `instance.foo()` 的形式调用，不会被拆下来单传。
+
+为什么较真这个：属性签名下参数是**逆变**的（方法签名是**双变**的），
+所以回调的参数类型会被真正检查，而不是「长得差不多就行」。
 
 ### 关于 TypeScript 的两个大版本
 

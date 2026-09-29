@@ -10,6 +10,7 @@
  */
 
 import {
+  AppError,
   type BomKind,
   type DirEntry,
   type DocumentProvider,
@@ -121,8 +122,7 @@ export function createBrowserProvider(): DocumentProvider {
   const ensure = (path: string): VirtualFile => {
     const found = files.get(path);
     if (!found) {
-      const error = { code: 'NOT_FOUND' as const, message: `（浏览器预览）虚拟盘里没有 ${path}`, detail: null };
-      throw error;
+      throw new AppError('NOT_FOUND', `（浏览器预览）虚拟盘里没有 ${path}`);
     }
     return found;
   };
@@ -157,15 +157,15 @@ export function createBrowserProvider(): DocumentProvider {
     async writeTextFile(request: WriteRequest) {
       const previous = files.get(request.path);
       if (request.expectedMtimeMs !== undefined && previous && previous.mtimeMs !== request.expectedMtimeMs) {
-        throw {
-          code: 'CONFLICT' as const,
-          message: '（浏览器预览）文件已被外部修改，本次保存已取消',
-          detail: `expected ${request.expectedMtimeMs}, actual ${previous.mtimeMs}`,
-        };
+        throw new AppError(
+          'CONFLICT',
+          '（浏览器预览）文件已被外部修改，本次保存已取消',
+          `expected ${request.expectedMtimeMs}, actual ${previous.mtimeMs}`,
+        );
       }
 
       const encoding = request.encoding ?? previous?.encoding ?? 'UTF-8';
-      const bom = request.bom ?? previous?.bom ?? ('none' as BomKind);
+      const bom = request.bom ?? previous?.bom ?? ('none');
       let text = request.text;
       if (request.lineEnding) {
         const unified = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -209,11 +209,11 @@ export function createBrowserProvider(): DocumentProvider {
     // 明确抛错而不是返回空数据 —— 导出层据此退化为「保留原链接并标注」，
     // 好过生成一张 0 字节的破图。
     async readBinaryFile(path) {
-      throw {
-        code: 'NOT_SUPPORTED' as const,
-        message: `（浏览器预览）无法读取二进制文件 ${path}`,
-        detail: '浏览器预览只支持文本，图片内联请在桌面版里试',
-      };
+      throw new AppError(
+        'NOT_SUPPORTED',
+        `（浏览器预览）无法读取二进制文件 ${path}`,
+        '浏览器预览只支持文本，图片内联请在桌面版里试',
+      );
     },
 
     async runtimeInfo(): Promise<RuntimeInfo> {

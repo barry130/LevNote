@@ -30,7 +30,7 @@
 | 6 | 查找 / 替换（三个内核共用语义） | ✅ | `$1` 展开在正则模式生效 |
 | 7 | 大纲面板 | ✅ | 纯函数提取，不依赖内核 |
 | 8 | 主题（宣纸 / 松烟 / 跟随系统）+ 偏好持久化 | ✅ | 颜色只有一处来源 |
-| 9 | 工程基建：git / CI / ESLint / 六份对外文档 | ✅ | lint 以「非阻塞」方式接入，收尾项见下 |
+| 9 | 工程基建：git / CI / ESLint / 六份对外文档 | ✅ | lint 已**阻塞**（欠账清零，见第 20 项） |
 | 10 | 修掉两处真实缺陷 | ✅ | 注册表优先级与注释相反；查找替换不报变更会静默丢数据 |
 
 ### P3 收尾（尚未做）
@@ -44,27 +44,110 @@
 | 15 | 设置页 | ⏳ | |
 | 16 | PDF 导出（WebView 打印管线） | ⏳ | 与自包含导出共用渲染结果 |
 | 17 | i18n 骨架（先抽文案，不急翻译） | ⏳ | 越晚做越贵 |
-| 18 | 主包拆分（`React.lazy` 加载内核） | ⏳ | 外壳首屏目标 < 200 kB |
+| 18 | 主包拆分（`React.lazy` 加载内核） | ⏳ | 外壳首屏目标 < 200 kB。**实测数据见下** |
 | 19 | 标签页切换保留撤销栈与光标 | ⏳ | 需先实测内存占用（见 ADR 0010 的重审条件） |
-| 20 | **lint 清尾** | ⏳ | 见下 |
+| 20 | **lint 清尾** | ✅ | 已完成，记录见下 |
 
-### lint 清尾（第 20 项）
+### 主包体积（第 18 项的起点数据）
 
-ESLint 已接入并可运行（类型感知规则，含 `no-floating-promises`）。
-**首轮全量扫描还剩一批历史问题，因此 CI 里是 `continue-on-error`。**
+`npx vite build` 的实测产出（2026-09-29）：
 
-收尾动作，按顺序：
+```
+dist/assets/index-BJFEf3OL.js    1,666.96 kB │ gzip: 555.58 kB
+dist/assets/index-Ba5UDY8g.css      18.63 kB │ gzip:   4.57 kB
+```
 
-1. 把 props 接口从**方法简写**改成**函数属性** —— 这是 `unbound-method` 误报的正解
-   （React 组件不是类实例，解构出来的函数没有失去 `this`，但规则看不出来）。
-   目前该规则先关着，配置里有说明。
-2. 跑 `npm run lint:fix` 清掉可自动修的部分。
-3. 人工处理剩下的。
-4. 全绿之后：去掉 `.github/workflows/ci.yml` 里的 `continue-on-error: true`，
-   并把 `lint` 加进 `npm run check`。
+**已经超过 Vite 的 500 kB 警戒线。** 这不是「要不要优化」的问题 —— 一个
+「轻量桌面编辑器」让 WebView 在启动时解析 1.7 MB JS，与定位直接冲突。
 
-**为什么不直接让它把 CI 变红**：一个新 linter 一上来就满屏红，
-结果是所有人学会忽略红灯 —— 那比没有 lint 更糟。
+归因（源码体积，非压缩后；带 `.` 前缀的目录是 npm 暂存残留，不计入）：
+
+| 来源 | 体积 | 说明 |
+|---|---|---|
+| Lezer 语法表 × 10 种语言 | ≈ 1346 KB | `@lezer/rust` 254、`javascript` 241、`markdown` 172、`python` 97、`html` 67、`css` 60、`yaml` 53、`xml` 33、`json` 7，`lang-sql` 自带 104 |
+| prosemirror-view / model / state | ≈ 748 KB | Milkdown 的内核 |
+| `highlight.js/lib/common` | 已是最优选择 | 用的是 `lib/common`（约 40 种常用语言），不是全量包 |
+
+**根因是接线方式，不是依赖选得不对**：`src/modules/index.ts` **静态**引入
+`markdownAdapter` 与 `codeAdapter`，于是打开**任何**文件（哪怕是个 `.txt`）
+都会把两套内核、10 种语言的语法表、highlight.js 全部加载进来。
+
+三条可做的（按收益/风险排序）：
+
+1. **内核级代码分割**：`registerBuiltInEditors()` 改成动态 `import()`。
+   注意这会引入一个**真实的语义变化** —— 注册是异步的，如果用户在注册完成前
+   就打开了文件，注册表里还没有候选，会落到兜底内核。那不是崩溃（plaintext
+   永不失败），但是「用错了内核」，属于本项目的**静默降级**红线。
+   所以这一条**必须配套一个「等待注册完成」的状态**，不能只改 import 就完事。
+2. **语言支持按扩展名懒加载**：`@codemirror/lang-*` 用动态 import，
+   由 CodeMirror 的 `Compartment` 在扩展名确定后重配置。
+   代价是首次打开会多一次重解析，需与 V3 的延迟结论一起看。
+3. 把 `@lezer/markdown`（172 KB）与 Milkdown 自带的 markdown 解析器对齐 ——
+   当前 markdown 解析能力在包里存在两份。
+
+**第 1 条与 V3 的结论有耦合**（都落在「打开文件到能打字」这条路径上），
+所以排在第 11 项之后做。
+
+### lint 清尾（第 20 项）—— 已完成
+
+`ESLint` 已从「非阻塞」转为**阻塞**：`npm run check` 与 CI 都会因 lint 失败而失败。
+
+首轮全量扫描 **33 条**，现在 **0 条**。逐条的去向：
+
+| 规则 | 数量 | 怎么处理的 |
+|---|---|---|
+| `react-hooks/exhaustive-deps`「规则不存在」 | 4 | 装上 `eslint-plugin-react-hooks`。**只开 `rules-of-hooks` + `exhaustive-deps`**，不开它的 `recommended` —— 那会把整套 React Compiler 规则（`purity` / `immutability` / `set-state-in-render` …）一起打开，瞬间产出上百条意见，等于把 lint 重新变成噪声 |
+| `only-throw-error` | 11 | 生产代码引入 `AppError` 类（`extends Error`，与 Rust 的 `AppError::new` 对称）；测试里的 `FakeProvider` **保留抛普通对象**并加豁免 —— 那是在模拟 Tauri 边界的 serde 输出，抛对象才是保真 |
+| `no-unnecessary-type-assertion` | 7 | `lint:fix` 自动去除（顺带发现 `store.ts` 的 `TargetLineEnding` 变成未使用导入，已删） |
+| `no-base-to-string` | 3 | 改成 `typeof` 收窄。`String(对象)` 会得到 `'[object Object]'`，那种「看起来有值其实是垃圾」的结果比空串更难查 |
+| `no-useless-assignment` | 2 | 去掉 `let x = <初值>` 的死初值（try/catch 两条路径都会赋值） |
+| `consistent-type-imports` | 2 | `lint:fix` 自动修；`registry.test.ts` 的 `typeof import(...)` 改成静态 `import type`（类型被完全擦除，不影响 `vi.resetModules()`） |
+| `restrict-plus-operands` | 1 | 提取 `findHeadingPos()` 辅助函数。**这条最有信息量**，见下 |
+| `no-console`（脚本） | 2 | `scripts/**` 的 override 里关掉 —— 命令行脚本的产出就是 stdout |
+| 未使用的 disable 指令 | 2 | 自动清除，并清掉留下的纯空白行 |
+
+**另外还多做了一件：把一条原本被关掉的规则重新打开。**
+
+`@typescript-eslint/unbound-method` 在接入时是 `off` 的 —— 它报的是
+「把对象上的方法拆下来单传」，而 React 里回调 prop 用**方法简写**声明时会被误报：
+
+```ts
+interface SidebarProps { onOpenFolder(): void }                    // 方法签名 → 被认为「有 this」
+export function Sidebar({ onOpenFolder }: SidebarProps) { ... }     // 解构 → 报错
+```
+
+关掉它只是把噪声藏起来。真正的修法是把 11 个文件里的回调统一改成**属性签名**
+`onOpenFolder: () => void`，改完之后规则不再误报，于是打开。
+
+顺带的好处是**类型安全变严了**：方法参数是双变的，属性参数是逆变的
+（`strictFunctionTypes`），所以「回调参数类型必须真的对得上」从此被编译器检查。
+实测这次改动**没有暴露任何新的类型错误**，说明原来的标注本来就是对的 ——
+这也算是一次免费的验证。
+
+**留下的配套约定**（写在 `eslint.config.js` 里）：options / props 里的**回调**用属性签名；
+**返回实例上的方法**（`EditorHandle`、`MarkdownEditorInstance`）保持方法简写 ——
+它们只会以 `instance.foo()` 调用，不会被拆下来。
+
+**`restrict-plus-operands` 暴露的是一件比它本身重要得多的事**：
+同一行代码，**TS 6 算出 `never`，TS 7 算出 `number`**。
+
+用 TS 6 的编译器 API 逐点查过（`src/modules/markdown/setup.ts`）：
+
+```
+行 335  回调内 found !== null  => number | null
+行 343  守卫 found === null    => null      ← TS 6 没把回调里的赋值算进去
+行 345  使用点 found + 1       => never
+```
+
+原来的写法是「在 `descendants` 回调里给外部 `let` 赋值 → 外层收窄 → 再 `+ 1`」。
+TS 6 的控制流分析对这种模式失效，把 `found` 当成 `null`，排除后成了 `never`；
+TS 7 则得到正确的 `number`。所以 `tsc --noEmit` 一直是通过的，只有 lint 报错。
+
+**这是「lint 用 TS 6、tsc 用 TS 7」双编译器并存（ADR 0013）会系统性地暴露出来
+的一类分歧：lint 看到的类型不一定等于 tsc 看到的类型。**
+修法不是去赌哪个版本的 CFA 更聪明，而是换成不依赖它的写法（提取辅助函数后
+`return found` 即可）。这条已写进 `setup.ts` 的注释，因为下一个人很可能再踩。
+
 
 ### 关于 TypeScript 的两个大版本
 
@@ -73,6 +156,12 @@ ESLint 已接入并可运行（类型感知规则，含 `no-floating-promises`�
 （跟踪 issue：typescript-eslint#10940）。
 **重审条件**：typescript-eslint 支持 TS ≥ 7.1 后，把 `typescript` 换回 TS 7、
 删掉 `@typescript/native`、重跑 `npm run lint`。
+
+**已知代价（实测，不是推测）**：两个编译器对同一段代码可能给出**不同的类型**。
+lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，所以「`tsc` 通过」不等于「lint 通过」。
+第一次清尾时就在 `src/modules/markdown/setup.ts` 撞到过一次
+（TS 6 把闭包赋值后的变量收窄成 `never`，TS 7 正确得到 `number`），
+细节见第 20 项的记录。**遇到这种分歧，改写法，不要去赌哪个版本更聪明。**
 
 ---
 

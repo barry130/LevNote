@@ -54,14 +54,24 @@ import {
  */
 export const DOC_CLASS = 'qm-doc';
 
+/**
+ * 创建内核所需的输入。
+ *
+ * **回调用属性签名**，理由与 `EditorMountProps` 相同（见 `core/editor/types.ts`）：
+ * 这些函数会被**取出来当值传**（例如下面 `cursorReporterPlugin(() => options.onCursorChange)`），
+ * 方法简写声明的成员被认为「有 `this`」，一被取出就触发 `unbound-method`。
+ *
+ * 注意区分：**返回实例上的方法**（下面的 `MarkdownEditorInstance`）保持方法简写 ——
+ * 它们只会以 `instance.foo()` 的形式调用，不会被拆下来单传。
+ */
 export interface CreateMarkdownEditorOptions {
   root: HTMLElement;
   defaultValue: string;
   readOnly?: boolean;
   placeholder?: string;
   /** 内容变化。**由 `setMarkdown` 触发的变化不会回调到这里**（避免回声）。 */
-  onChange(markdown: string): void;
-  onCursorChange?(position: CursorPosition): void;
+  onChange: (markdown: string) => void;
+  onCursorChange?: (position: CursorPosition) => void;
 }
 
 export interface MarkdownEditorInstance {
@@ -184,6 +194,37 @@ function createMarkdownSearch(editor: Editor): EditorSearch {
 function expand(text: string, pattern: RegExp | null, replacement: string, asRegex: boolean): string {
   if (!asRegex || pattern === null) return replacement;
   return text.replace(new RegExp(pattern.source, pattern.flags.replace('g', '')), replacement);
+}
+
+/**
+ * 在文档树里找第一个「层级 + 标题文字」都匹配的标题，返回它的位置；找不到返回 `null`。
+ *
+ * **为什么单独拆成函数**（而不是在调用处就地写 `let found` + 回调里赋值）：
+ * 「回调里给外部 `let` 赋值，回到外层再收窄」这个写法会让控制流分析失效。
+ * 用 TS 6 的编译器 API 实测过同一个表达式：
+ *
+ * - 本函数这种「直接 `return found`」的写法，两个编译器都得到 `number | null`；
+ * - 原来那种「回调里赋值 → 外层 `if (found === null) return false;` → 再 `found + 1`」
+ *   的写法，**TS 6 会把 `found` 收窄成 `null`**（也就是完全没把回调里的那次赋值
+ *   算进去），于是排除 `null` 之后变成 `never`；而 TS 7 能正确得到 `number`。
+ *
+ * 这正好是本项目「lint 用 TS 6、tsc 用 TS 7」双编译器并存（见 ADR 0013）
+ * 会暴露出来的一类分歧：**lint 看到的类型不一定等于 tsc 看到的类型**。
+ * 与其赌哪个版本的 CFA 更聪明，不如换成不依赖它的写法。
+ */
+function findHeadingPos(doc: ProseNode, level: number, text: string): number | null {
+  let found: number | null = null;
+
+  doc.descendants((node, pos) => {
+    if (found !== null) return false;
+    if (node.type.name !== 'heading') return true;
+    if (node.attrs['level'] !== level) return true;
+    if (node.textContent.trim() !== text) return true;
+    found = pos;
+    return false;
+  });
+
+  return found;
 }
 
 export async function createMarkdownEditor(
@@ -328,19 +369,10 @@ export async function createMarkdownEditor(
     goToHeading: (level, text) =>
       editor.action((ctx) => {
         const view = ctx.get(editorViewCtx);
-        const target = text.trim();
-        let found: number | null = null;
 
-        view.state.doc.descendants((node, pos) => {
-          if (found !== null) return false;
-          if (node.type.name !== 'heading') return true;
-          if (node.attrs['level'] !== level) return true;
-          if (node.textContent.trim() !== target) return true;
-          found = pos;
-          return false;
-        });
-
+        const found = findHeadingPos(view.state.doc, level, text.trim());
         if (found === null) return false;
+
         // +1 进到标题节点内部，避免把光标停在节点边界上
         const inside = Math.min(found + 1, view.state.doc.content.size);
         view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(inside))).scrollIntoView());

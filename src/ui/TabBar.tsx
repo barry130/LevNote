@@ -13,9 +13,9 @@ import type { TabSummary } from '../core/workspace/store.js';
 export interface TabBarProps {
   tabs: readonly TabSummary[];
   activeId: number | null;
-  onActivate(id: number): void;
-  onClose(id: number): void;
-  onReorder(from: number, to: number): void;
+  onActivate: (id: number) => void;
+  onClose: (id: number) => void;
+  onReorder: (from: number, to: number) => void;
 }
 
 export function TabBar({ tabs, activeId, onActivate, onClose, onReorder }: TabBarProps) {

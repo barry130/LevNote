@@ -59,9 +59,9 @@ export interface DocumentPaneProps {
   store: DocumentStore;
   wordWrap: boolean;
   /** 编辑器就绪时交出命令面；卸载或换文档时交回 null。 */
-  onHandle(handle: EditorHandle | null): void;
+  onHandle: (handle: EditorHandle | null) => void;
   /** 解析出的内核变化时通知外壳（状态栏之外的地方也可能要用）。 */
-  onAdapterChange?(adapter: EditorAdapter | null): void;
+  onAdapterChange?: (adapter: EditorAdapter | null) => void;
 }
 
 export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: DocumentPaneProps) {

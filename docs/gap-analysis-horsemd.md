@@ -157,7 +157,7 @@ horseMD 的功能清单里有 **17 项**是轻墨完全没有的。按「是否�
 |---|---|---|---|
 | 版本控制 | git + 644 commits | **无** | ✅ 已初始化（git 仓库 + 首次提交） |
 | CI | GitHub Actions，含 Linux 打包矩阵与产物校验 | **无** | ✅ 已补（typecheck + test + build + Rust clippy/test） |
-| Lint | 有（推断自 CONTRIBUTING） | **无**（代码里已有 `eslint-disable` 注释，说明作者在按 ESLint 的规则写，但没有配置） | ⚠️ 已接入但**非阻塞**，收尾项见下 |
+| Lint | 有（推断自 CONTRIBUTING） | **无**（代码里已有 `eslint-disable` 注释，说明作者在按 ESLint 的规则写，但没有配置） | ✅ 已接入且**阻塞**（欠账 33 → 0，且没有关掉任何规则），细节见下 |
 | 对外文档 | README 中英、ROADMAP、CHANGELOG、CONTRIBUTING、SECURITY、AGENTS.md | **无** | ✅ 已补 |
 | 新人/新 AI 接手手册 | `AGENTS.md` + `CLAUDE.md` + `docs/ai-handoff.md` 三级 | 无（但有 ADR，信息密度更高） | ✅ 已补 AGENTS.md |
 | 安全策略 | `SECURITY.md` | 无 | ✅ 已补 |
@@ -191,12 +191,19 @@ horseMD 的功能清单里有 **17 项**是轻墨完全没有的。按「是否�
 （`strict` + `noUncheckedIndexedAccess` + `verbatimModuleSyntax`），这是对的；
 但**严格与「工具链可用」之间存在一个需要被跟踪的窗口期**。
 
-**当前状态**：ESLint 可运行，首轮全量扫描还有一批历史问题，因此 CI 里是
-`continue-on-error`。收尾动作（把 props 接口从方法简写改成函数属性、
-`lint:fix`、人工处理剩余项、改为阻塞）登记在 `ROADMAP.md` 的第 20 项。
+**当前状态（2026-09-29 更新）**：ESLint 已**全绿并阻塞**。
+首轮全量扫描 33 项，全部清零；`unbound-method` 也从「关掉」变成「修好写法后打开」，
+**配置里不再有任何被关掉的规则**。`npm run check` 与 CI 都会因 lint 失败而失败。
+每一条的去向记在 `ROADMAP.md` 第 20 项与 ADR 0013 末尾的表。
 
-**为什么不直接让它把 CI 变红**：一个新 linter 一上来就满屏红，
+清零过程中还暴露了这套双编译器方案的一个**系统性代价**：lint 跑在 TS 6 上、
+`tsc` 跑在 TS 7 上，两者对同一段代码可能给出不同的类型（实测到一次：
+TS 6 得到 `never`、TS 7 得到 `number`）。也就是说**「`tsc` 通过」不蕴含
+「lint 通过」**，两条命令都必须跑。已写进 ADR 0013 的「代价」一节。
+
+**当初为什么不直接让它把 CI 变红**：一个新 linter 一上来就满屏红，
 结果是所有人学会忽略红灯 —— 那比没有 lint 更糟。
+所以「先非阻塞、清零后转正」是有意的两步走，不是拖延。
 
 ---
 
@@ -346,11 +353,12 @@ horseMD 只有 Markdown 一类文档。轻墨的 `docs/format-spec.md` 定义了
 > | 项 | 状态 |
 > |---|---|
 > | `tsc --noEmit` | ✅ 通过 |
-> | `vitest run` | ✅ 307 / 307 通过 |
-> | `vite build` | ⚠️ **未取得完整日志**。作者环境的沙箱拦下了「清空输出目录」这一步（不是代码问题）。验证方式：把 `outDir` 指到工作区外再跑一次 |
-> | `npm run lint` | ⚠️ **可运行，但尚未全绿**。收尾动作见 `ROADMAP.md` 第 20 项 |
-> | git | ⚠️ 仓库已 `git init`（`main` 分支），但**尚未提交**，需要跑一次 `git add -A && git commit` |
+> | `vitest run` | ✅ **316 / 316 通过**（21 个文件） |
+> | `vite build` | ✅ 通过。但产物 **1,666.96 kB（gzip 555.58 kB）**，已超过 Vite 的 500 kB 警戒线 —— 归因与处理方向见 `ROADMAP.md` 第 18 项 |
+> | `npm run lint` | ✅ **0 问题**，且配置里没有任何被关掉的规则 |
+> | git | ✅ 已提交初始基线 `a224ec4`。**`.gitattributes` 已补** —— 本机 `core.autocrlf=true`，而 `tests/fixtures/` 是逐字节敏感的编码/行尾样本，不加保护时 `mixed-endings.txt` 会被从 10B 归一成 8B。已用 `-text` 保护，并**克隆一份后逐字节校验过 9 个样本** |
 > | 真实浏览器里的视觉确认 | ❌ **仍然只有人能做的**。编辑器排版与导出观感这一条从 P2 起就一直挂着，见 `open-decisions.md` |
+> | V1–V4 实测 | ❌ **一项未跑**。见 `open-decisions.md` —— 这是当前最该做的事 |
 >
 > 把这些列出来，是因为「没做/没验证」和「做了但没说」在交接时是同一种伤害。
 

@@ -11,12 +11,11 @@
 
 import {
   asAppError,
-  type AppError,
+  type AppErrorShape,
   type BomKind,
   type DocumentProvider,
   type LineEndingName,
   type ProviderKind,
-  type TargetLineEnding,
   type TextFile,
 } from './types.js';
 
@@ -58,7 +57,7 @@ export interface StoreState {
   doc: OpenDocument | null;
   status: DocumentStatus;
   /** 最近一次失败，供 UI 弹提示；处理后应清空 */
-  error: AppError | null;
+  error: AppErrorShape | null;
   /** 非空表示有未决冲突，UI 必须让用户选一个出路 */
   conflict: ConflictInfo | null;
   providerKind: ProviderKind;
@@ -230,7 +229,7 @@ export class DocumentStore {
         encoding: doc.encoding,
         bom: doc.bom,
         // mixed 不传目标行尾：混排是文件既有事实，不该由一次保存擅自统一掉
-        lineEnding: doc.lineEnding === 'mixed' ? undefined : (doc.lineEnding as TargetLineEnding),
+        lineEnding: doc.lineEnding === 'mixed' ? undefined : (doc.lineEnding),
         expectedMtimeMs: doc.mtimeMs,
         create: true,
       });
@@ -275,7 +274,7 @@ export class DocumentStore {
         text: doc.text,
         encoding: doc.encoding,
         bom: doc.bom,
-        lineEnding: doc.lineEnding === 'mixed' ? undefined : (doc.lineEnding as TargetLineEnding),
+        lineEnding: doc.lineEnding === 'mixed' ? undefined : (doc.lineEnding),
         create: true,
       });
 
@@ -329,7 +328,7 @@ export class DocumentStore {
             text: doc.text,
             encoding: doc.encoding,
             bom: doc.bom,
-            lineEnding: doc.lineEnding === 'mixed' ? undefined : (doc.lineEnding as TargetLineEnding),
+            lineEnding: doc.lineEnding === 'mixed' ? undefined : (doc.lineEnding),
             create: true,
             // 明确不传 expectedMtimeMs：用户已确认要用当前内容覆盖磁盘
           });

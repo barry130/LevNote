@@ -137,7 +137,10 @@ function expandReplacement(replacement: string, args: unknown[], asRegex: boolea
   if (!asRegex) return replacement;
 
   // 参数形状：($&, $1..$n, offset, string, groups?)
-  const whole = String(args[0] ?? '');
+  // 第 0 项（整段匹配）与各捕获组都是字符串；命名分组（如果有）是对象，这里用不到。
+  // 用 typeof 收窄而不是 String()：String(对象) 会得到 '[object Object]'，
+  // 一旦参数形状不是预期的样子，那种「看起来有值其实是垃圾」的结果比空串更难查。
+  const whole = typeof args[0] === 'string' ? args[0] : '';
   const offset = typeof args[args.length - 2] === 'number' ? (args[args.length - 2] as number) : -1;
   void offset;
   const groups = args.slice(1, args.length - 2);
@@ -147,7 +150,8 @@ function expandReplacement(replacement: string, args: unknown[], asRegex: boolea
     if (token === '&') return whole;
     const index = Number.parseInt(token, 10);
     const value = groups[index - 1];
-    return value === undefined ? '' : String(value);
+    // 没参与的捕获组是 undefined；这里只认字符串，其余一律当空
+    return typeof value === 'string' ? value : '';
   });
 }
 

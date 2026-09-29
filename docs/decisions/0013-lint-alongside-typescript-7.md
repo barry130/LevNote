@@ -97,6 +97,15 @@ if (versionMajor >= 7) {
 2. **类型感知的规则实际跑在 TS 6 的类型系统上。** 若代码使用了 TS 7 独有的语法，
    linter 可能解析失败。当前语料未触发，但这是一条真实存在的边界。
 3. **这是一个过渡期方案。** 官方明说 TS 7.1 会提供「一个新的、不同的 API」。
+4. **lint 与 `tsc` 可能对同一段代码给出不同的类型**（2026-09-29 实测到）。
+   lint 跑在 TS 6 上、`tsc` 跑在 TS 7 上，两者的控制流分析并不等价。
+   已撞到过一次：`src/modules/markdown/setup.ts` 里「在回调中给外部 `let` 赋值 →
+   回到外层收窄 → 再做 `+ 1`」这种写法，**TS 6 把变量收窄成 `null`，
+   排除 null 后得到 `never`**，而 TS 7 正确得到 `number`。
+   结果是 `tsc --noEmit` 通过、lint 报错。
+   影响：**「`tsc` 通过」不再蕴含「lint 通过」**，两条命令都必须跑
+   （`npm run check` 现在就是这么做的）。
+   遇到这类分歧时**改写法**，不要去赌哪个版本的 CFA 更聪明。
 
 ---
 
@@ -110,24 +119,30 @@ if (versionMajor >= 7) {
 
 ---
 
-## 首次 lint 的真实结果
+## 首次 lint 的真实结果 —— 以及后续的清零
 
-`npx eslint .` → **64 problems（61 errors, 3 warnings）**。按规则归类与处理决定：
+`npx eslint .` 首轮 → **64 problems（61 errors, 3 warnings）**。
+其中 31 项是 `unbound-method` 的误报（当时先关掉规则），**剩余 33 项是真的**。
 
-| 数量 | 规则 | 处理 |
+**2026-09-29：33 项全部清零，并且 `unbound-method` 也被重新打开。**
+配置里不再有任何被关掉的规则，`npm run check` 与 CI 都会因 lint 失败而失败。
+下表是每一条的最终去向：
+
+| 数量 | 规则 | 最终处理 |
 |---|---|---|
-| 31 | `@typescript-eslint/unbound-method` | **关闭**。误报根源是回调 prop 用方法简写声明（`onOpenFolder(): void`）后被解构；这些函数不访问 `this`。彻底修法是改用属性签名 `onOpenFolder: () => void`，顺带修正参数双变/逆变的类型安全差异 —— 因为要改 11 个文件，列为后续项 |
-| 11 | `@typescript-eslint/only-throw-error` | **待处理**（疑似真实问题：抛出非 `Error` 值） |
-| 7 | `@typescript-eslint/no-unnecessary-type-assertion` | **待处理**，多数可用 `--fix` 解决 |
-| 4 | `react-hooks/exhaustive-deps` | **待处理**。`eslint-plugin-react-hooks` 未安装，导致源码里的 disable 注释变成「规则未找到」错误。要么装插件，要么删注释 |
-| 3 | `@typescript-eslint/no-base-to-string` | **待处理** |
-| 2 | `no-useless-assignment` | **待处理** |
-| 2 | `@typescript-eslint/consistent-type-imports` | **待处理**，`--fix` 可解决 |
-| 2 | `no-console`（warn） | 可接受 |
-| 1 | `@typescript-eslint/restrict-plus-operands` | **待处理** |
-| 1 | 解析错误 | **待处理**（需先定位） |
+| 31 | `@typescript-eslint/unbound-method` | **重新打开**。11 个文件里的回调 prop 从方法简写改成属性签名（`onOpenFolder: () => void`）。附带的**逆变**检查没有暴露新的类型错误 —— 说明原来的标注本来就是对的 |
+| 11 | `@typescript-eslint/only-throw-error` | 生产代码引入 `AppError` 类（`extends Error`，与 Rust 的 `AppError::new` 对称）；测试里的 `FakeProvider` **保留抛普通对象**并加文件级豁免 —— 那是在模拟 Tauri 边界的 serde 输出，抛对象才是保真 |
+| 7 | `@typescript-eslint/no-unnecessary-type-assertion` | `lint:fix` 自动去除。顺带发现 `document/store.ts` 的 `TargetLineEnding` 因此变成未使用导入（已删） |
+| 4 | `react-hooks/exhaustive-deps`「规则不存在」 | 装上 `eslint-plugin-react-hooks`。**只开 `rules-of-hooks` + `exhaustive-deps`**，不开它的 `recommended` —— 那会连带打开整套 React Compiler 规则（`purity` / `immutability` / `set-state-in-render` …），瞬间产出上百条意见，等于把 lint 重新变成噪声 |
+| 3 | `@typescript-eslint/no-base-to-string` | 改成 `typeof` 收窄。`String(对象)` 会得到 `'[object Object]'`，那种「看起来有值其实是垃圾」的结果比空串更难查 |
+| 2 | `no-useless-assignment` | 去掉 `let x = <初值>` 的死初值（try 与 catch 两条路径都会赋值） |
+| 2 | `@typescript-eslint/consistent-type-imports` | `lint:fix`；`registry.test.ts` 的 `typeof import(...)` 改成静态 `import type`（类型被完全擦除，不影响 `vi.resetModules()`） |
+| 2 | `no-console`（warn） | `scripts/**` 的 override 里关掉 —— 命令行脚本的产出就是 stdout |
+| 1 | `@typescript-eslint/restrict-plus-operands` | 提取 `findHeadingPos()` 辅助函数。**这一条本身不重要，重要的是它暴露了上面「代价」第 4 点的双编译器分歧** |
+| 2 | 未使用的 disable 指令（warn） | 自动清除，并清掉留下的纯空白行 |
 
 > 这张表本身就是「有 lint 之后才能拿到的信息」。在此之前，上面每一项都无从得知。
-> 剩余项不阻塞提交 —— 但**在把它们清零之前，CI 里的 `npm run lint` 不应设为
-> 强制门禁**，否则第一次推送就会红。当前 `check` 脚本已包含 `lint`，
-> 因此这一条在清账前需要留意。
+>
+> 一处勘误：上表最初列过一条「解析错误 ×1」。在后续的稳定复现里没有出现过，
+> 重新归类后那 33 项可以被完整解释，不再单列。推断是首轮运行时 `projectService`
+> 的冷启动产物，**没有进一步追查** —— 记在这里是为了不让它无声消失。

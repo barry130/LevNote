@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// 类型用静态 `import type` 取，运行时仍然走下面的动态 `import()` ——
+// 类型在编译后被完全擦除，不会把模块提前拉进缓存，`vi.resetModules()` 照常生效
+import type * as RegistryModule from './registry.js';
 import type { EditorAdapter } from './types.js';
 
 /**
@@ -11,7 +14,7 @@ import type { EditorAdapter } from './types.js';
  * （`vi.resetModules()` 把模块缓存清掉）。
  */
 
-type Registry = typeof import('./registry.js');
+type Registry = typeof RegistryModule;
 
 async function freshRegistry(): Promise<Registry> {
   vi.resetModules();

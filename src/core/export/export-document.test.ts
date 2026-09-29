@@ -41,7 +41,7 @@ class FakeProvider implements DocumentProvider {
   private readonly bytes = new Map<string, ArrayBuffer>();
 
   putBytes(path: string, bytes: number[]): void {
-    this.bytes.set(path, new Uint8Array(bytes).buffer as ArrayBuffer);
+    this.bytes.set(path, new Uint8Array(bytes).buffer);
   }
 
   async readTextFile(path: string): Promise<TextFile> {

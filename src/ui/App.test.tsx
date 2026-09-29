@@ -21,7 +21,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { DocumentStore } from '../core/document/store.js';
+import type { DocumentStore } from '../core/document/store.js';
 import { DEFAULT_SETTINGS, type ViewSettings } from '../core/settings.js';
 import { WorkspaceStore } from '../core/workspace/store.js';
 import type {
@@ -38,7 +38,6 @@ import { App } from './App.js';
 
 declare global {
   // React 要求测试环境显式声明这一点，否则 act() 会警告并跳过批处理
-  // eslint-disable-next-line no-var
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
 }
 
@@ -110,7 +109,7 @@ class FakeProvider implements DocumentProvider {
   async readBinaryFile(path: string): Promise<ArrayBuffer> {
     // 一张最小 PNG 的文件头，足以让 MIME 嗅探认出 image/png
     void this.need(path);
-    return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).buffer as ArrayBuffer;
+    return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).buffer;
   }
 
   async statFile(path: string): Promise<FileStat> {

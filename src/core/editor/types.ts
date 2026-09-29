@@ -99,6 +99,18 @@ export interface CursorPosition {
   column: number;
 }
 
+/**
+ * 挂载一个内核所需的全部输入。
+ *
+ * **回调一律用属性签名**（`onChange: (v: string) => void`），不用方法简写
+ * （`onChange(v: string): void`）。两个原因，第二个更重要：
+ *
+ * 1. 组件会把 props 解构（`function Editor({ onChange }: Props)`）。方法简写声明的
+ *    成员被当作「有 `this`」，解构出来就触发 `@typescript-eslint/unbound-method`
+ *    —— 而 React 组件根本不是类实例，这个 `this` 不存在。属性签名没有这个问题。
+ * 2. 方法参数是**双变**的，属性参数是**逆变**的（在 `strictFunctionTypes` 下）。
+ *    用属性签名意味着「回调参数类型必须真的对得上」，而不是「长得差不多就行」。
+ */
 export interface EditorMountProps {
   /** 初始内容。**只在挂载时读取一次**；之后的外部变更一律走 `handle.setValue`。 */
   initialValue: string;
@@ -110,16 +122,16 @@ export interface EditorMountProps {
    */
   path: string;
   /** 用户在编辑器里改动内容时回调。 */
-  onChange(value: string): void;
+  onChange: (value: string) => void;
   /** 内核就绪，交出命令面。只调用一次。 */
-  onReady(handle: EditorHandle): void;
+  onReady: (handle: EditorHandle) => void;
   /**
    * 光标位置变化。可选 —— 不想实现的内核不实现即可，
    * 外壳会自动隐藏状态栏里的行列显示，而不是显示一个假的 1:1。
    */
-  onCursorChange?(position: CursorPosition): void;
+  onCursorChange?: (position: CursorPosition) => void;
   /** 编辑器报错（内核初始化失败等），交给外壳呈现。 */
-  onError?(error: Error): void;
+  onError?: (error: Error) => void;
   readOnly?: boolean;
   placeholder?: string;
   /** 视图偏好：软换行。不适用的内核忽略即可。 */

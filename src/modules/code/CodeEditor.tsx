@@ -93,7 +93,6 @@ function CodeEditor({
       instance?.destroy();
     };
     // 空依赖：内核只在挂载时创建一次，外部内容变更一律走 handle.setValue
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 软换行是「视图偏好」而不是「文档属性」：切换它不该重建内核，

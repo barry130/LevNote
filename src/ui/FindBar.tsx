@@ -21,7 +21,7 @@ import type { FindOptions } from '../core/search/find.js';
 
 export interface FindBarProps {
   handle: EditorHandle | null;
-  onClose(): void;
+  onClose: () => void;
 }
 
 export function FindBar({ handle, onClose }: FindBarProps) {

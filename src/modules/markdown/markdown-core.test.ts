@@ -225,7 +225,7 @@ describe('变更上报的语义', () => {
    * 用户从没碰过的排版（`*a*` → `_a_`）就这么变了。
    */
 
-  async function mountCounting(source: string): Promise<{ changes: string[]; destroy(): Promise<void> }> {
+  async function mountCounting(source: string): Promise<{ changes: string[]; destroy: () => Promise<void> }> {
     const root = document.createElement('div');
     document.body.appendChild(root);
     const changes: string[] = [];

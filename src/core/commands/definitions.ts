@@ -24,10 +24,12 @@ async function runExport(ctx: CommandContext): Promise<void> {
   if (!doc) return;
 
   const handle = ctx.ui.editor();
-  let bodyHtml: string | null = null;
+
+  // toHtml() 返回 null 是**合法结果**（纯文本内核就是如此），不是错误。
+  // 抛错也按 null 处理：导出成纯文本总比导不出来强。
+  // 不写初始值：try 与 catch 两条路径都会赋值，`= null` 是永远读不到的死赋值。
+  let bodyHtml: string | null;
   try {
-    // toHtml() 返回 null 是**合法结果**（纯文本内核就是如此），不是错误。
-    // 抛错也按 null 处理：导出成纯文本总比导不出来强。
     bodyHtml = handle ? await handle.toHtml() : null;
   } catch {
     bodyHtml = null;

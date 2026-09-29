@@ -46,6 +46,7 @@
 
 import js from '@eslint/js';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -91,24 +92,29 @@ export default tseslint.config(
       '@typescript-eslint/no-non-null-assertion': 'off',
 
       /**
-       * **关掉 `unbound-method`。**
+       * `unbound-method` —— **开着**，而且这是本配置里最值得留下的一条。
        *
-       * 它在 React 组件里几乎全是误报，根源是一个很具体的写法：
-       * 回调 prop 用**方法简写**声明时，
+       * 它报的是「把对象上的方法拆下来当值单传」。React 里最常见的触发写法是
+       * 回调 prop 用**方法简写**声明：
        *
        * ```ts
        * interface SidebarProps { onOpenFolder(): void }   // 方法签名 → 被认为「有 this」
-       * export function Sidebar({ onOpenFolder }: SidebarProps) { ... }  // 解构 → 报 unbound-method
+       * export function Sidebar({ onOpenFolder }: SidebarProps) { ... }  // 解构 → 报错
        * ```
        *
-       * 解构一个「方法」触发了这条规则，但这些函数根本不访问 `this`。
+       * 这条规则一开始是**关掉**的（在 React 组件里几乎全是误报）。
+       * 后来把 11 个文件里的回调统一改成**属性签名**，它就不再误报了，
+       * 于是打开。**关规则只是把噪声藏起来，改写法才是真的修好。**
        *
-       * **更彻底的修法**（比关规则更好，但因为要改 11 个文件而排到后面）：
-       * 把接口里的回调统一写成属性签名 `onOpenFolder: () => void`。
-       * 属性签名不仅消掉这条规则，还顺带把「方法参数双变、属性参数逆变」的
-       * 类型安全差异修正过来 —— 见 `docs/open-decisions.md` 的 P3 收尾项。
+       * 顺带的好处：方法参数是**双变**的，属性参数是**逆变**的（`strictFunctionTypes`）。
+       * 换成属性签名之后，「回调参数类型必须真的对得上」开始被编译器检查 ——
+       * 实测这次改动没有暴露新的类型错误，说明之前的标注本来就是对的。
+       *
+       * **配套约定**（写在这里，因为它只对这类成员成立）：
+       * - options / props 里的**回调** → 属性签名（它们会被取出来单传或解构）；
+       * - **返回实例上的方法** → 保持方法简写（只会以 `instance.foo()` 调用，不会被拆下来）。
        */
-      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/unbound-method': 'error',
 
       // 这几条在本项目里误报太多：Tauri 命令返回的 JSON 是运行时才知道形状的
       '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -132,6 +138,54 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+
+      /**
+       * 关掉 `only-throw-error` —— 只关测试。
+       *
+       * 测试里的 `FakeProvider` 抛的是**普通对象字面量**：
+       *
+       * ```ts
+       * if (!file) throw { code: 'NOT_FOUND', message: `没有这个文件：${path}`, detail: null };
+       * ```
+       *
+       * 这是**故意的，而且是对的做法**：Tauri 把 Rust 的 `Err(AppError)`
+       * 序列化过来时，JS 侧拿到的就是这么一个普通对象。假对象的职责是复现
+       * 真实边界的形状，而不是复现我们这边「抛什么」。用 `new AppError(...)`
+       * 反而会让测试测不到「线上对象进来」这条路径。
+       *
+       * 生产代码里这条规则**保持开启** —— 见 `AppError` 类的注释：
+       * 那边该抛真正的 `Error` 子类。区分开正是为了这个。
+       */
+      '@typescript-eslint/only-throw-error': 'off',
+    },
+  },
+
+  {
+    /**
+     * React Hooks。
+     *
+     * **只开这两条，不用插件的 `recommended` 预设。**
+     * v7 的 `recommended` 顺带把整套 React Compiler 规则（`purity`、`immutability`、
+     * `set-state-in-render`、`preserve-manual-memoization` …）一起打开了。
+     * 那套规则是按「已按编译器心智模型写好的代码」设计的，对一个还在用
+     * `useRef` 手动挂载编辑器的项目会瞬间产出上百条意见 ——
+     * 结果就是 lint 重新变成噪声，与「让它成为阻塞门」的目标正好相反。
+     *
+     * 开这两条的理由很具体：
+     * - `rules-of-hooks`：在条件 / 循环里调 hook 是**真实崩溃**，不是风格问题。
+     * - `exhaustive-deps`：代码里本来就有 4 处
+     *   `eslint-disable-next-line react-hooks/exhaustive-deps` —— 说明作者
+     *   一直在按这条规则写。之前插件没装，那些 disable 注释反而变成了
+     *   「规则不存在」的报错。开上之后这些压制才真正生效、可被复查。
+     *
+     * **重审条件**：等编辑器挂载改成官方 `useSyncExternalStore` / 不再依赖
+     * `useRef` + 手写 `useEffect` 之后，可以再评估接入 `recommended-latest`。
+     */
+    files: ['**/*.tsx'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 
@@ -139,5 +193,10 @@ export default tseslint.config(
     // 配置与脚本文件不在 tsconfig 的 include 里，开类型感知会直接报「找不到 project」
     files: ['*.config.*', 'scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+      // 命令行脚本的产出就是 stdout，打印是它的正常行为，不是「忘了删的调试语句」
+      'no-console': 'off',
+    },
   },
 );

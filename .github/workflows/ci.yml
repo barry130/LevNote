@@ -15,6 +15,10 @@
 #    不装的话 `cargo test` 会在链接阶段失败，而不是在代码阶段失败 ——
 #    那种失败信息会让人以为是代码问题。
 #
+# 4. **ESLint 是阻塞的。** 它一开始以 `continue-on-error` 引入（首轮有 33 条
+#    历史问题），欠账清零后就转成阻塞。「有规则但不执行」比「没有规则」更糟，
+#    因为它让人以为已经守住了。
+#
 # 刻意**不做**的：不在 CI 上出安装包（`tauri build`）。它需要各平台的原生工具链，
 # 而产物体积大、跑得慢，收益只有「确保打包没坏」。
 # 等 P7 的签名流水线落地时再一起做。
@@ -46,16 +50,16 @@ jobs:
       - name: 类型检查
         run: npm run typecheck
 
-      # lint 目前**不阻塞**（continue-on-error），原因写在 CONTRIBUTING.md 的
-      # 「关于 lint」一节：刚接入，首轮全量扫描还有一批历史问题待清理
-      # （主要是 `unbound-method` 对 React props 的误报，已临时关掉该规则，
-      # 剩下的需要把 props 接口从方法简写改成函数属性）。
+      # lint **阻塞**（不再是 continue-on-error）。
       #
-      # 用「非阻塞但可见」的方式引入新 linter，比直接让它把 CI 变红好：
-      # 后者会训练人忽略红灯。清理完成后去掉 continue-on-error。
-      - name: ESLint（暂不阻塞）
+      # 它曾经是非阻塞的：刚接入时首轮全量扫描有 33 条历史问题，让它直接
+      # 把 CI 变红只会训练人忽略红灯。现在欠账已清零，就换成阻塞 ——
+      # 「有规则但不执行」和「没有规则」在效果上是一样的，而前者更糟，
+      # 因为它让人以为已经守住了。
+      #
+      # 与 TS 双大版本共存的关系见 ADR 0013。
+      - name: ESLint
         run: npm run lint
-        continue-on-error: true
 
       - name: 单元测试
         run: npm run test

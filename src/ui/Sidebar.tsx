@@ -24,11 +24,11 @@ import type { TreeState } from '../core/workspace/store.js';
 export interface SidebarProps {
   tree: TreeState;
   activePath: string | null;
-  onOpenFolder(): void;
-  onToggleDir(path: string): void;
-  onOpenFile(path: string): void;
-  onRefresh(): void;
-  onToggleIgnored(): void;
+  onOpenFolder: () => void;
+  onToggleDir: (path: string) => void;
+  onOpenFile: (path: string) => void;
+  onRefresh: () => void;
+  onToggleIgnored: () => void;
 }
 
 export function Sidebar({
@@ -111,8 +111,8 @@ function TreeItem({
 }: {
   row: TreeRow;
   active: boolean;
-  onToggle(path: string): void;
-  onOpen(path: string): void;
+  onToggle: (path: string) => void;
+  onOpen: (path: string) => void;
 }) {
   return (
     <div

@@ -20,7 +20,7 @@
  * 自动关闭标签页」这类自作主张的行为 —— 标签页只有在用户明确关闭时才消失。
  */
 
-import type { AppError, DirEntry, DocumentProvider } from '../document/types.js';
+import type { AppErrorShape, DirEntry, DocumentProvider } from '../document/types.js';
 import { DocumentStore, type DocumentStatus } from '../document/store.js';
 import { basename } from '../path.js';
 import { ancestorsOf } from './tree.js';
@@ -43,7 +43,7 @@ export interface TreeState {
   readonly loading: readonly string[];
   /** 是否显示 node_modules / target 这类默认折叠项 */
   readonly showIgnored: boolean;
-  readonly error: AppError | null;
+  readonly error: AppErrorShape | null;
 }
 
 export interface WorkspaceState {
@@ -51,7 +51,7 @@ export interface WorkspaceState {
   readonly activeId: number | null;
   readonly tree: TreeState;
   /** 最近一次打开失败。UI 弹一次之后应调 `clearOpenError`。 */
-  readonly openError: AppError | null;
+  readonly openError: AppErrorShape | null;
 }
 
 interface Tab {

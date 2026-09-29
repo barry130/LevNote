@@ -95,21 +95,60 @@ export type ErrorCode =
   | 'IO'
   | 'INTERNAL';
 
-/** 对应 Rust `error::AppError`。Tauri 会把命令返回的 Err 原样序列化到这里。 */
-export interface AppError {
+/**
+ * 对应 Rust `error::AppError` 的**线上形状**。
+ *
+ * 跨语言边界上它就是一个普通对象：Tauri 把命令返回的 `Err` 按 serde 序列化成它。
+ * 所以这个类型描述的是「数据长什么样」，不是「JS 侧抛什么」—— 后者见下面的 `AppError`。
+ */
+export interface AppErrorShape {
   code: ErrorCode;
   message: string;
   detail?: string | null;
 }
 
-/** 把任意抛出物收敛成 AppError，UI 里不必到处写 instanceof。 */
-export function asAppError(thrown: unknown): AppError {
+/**
+ * JS 侧抛出的应用错误。**与 Rust 侧的 `AppError::new(code, message)` 对称。**
+ *
+ * 为什么不直接 `throw { code, message, detail }`：
+ * 一个不是 `Error` 的抛出物很容易被漏掉 —— 任何 `instanceof Error` 判断、
+ * 控制台里的堆栈、未捕获拒绝的上报都拿不到它。而 Rust 那边本来就有正经构造器，
+ * 用裸对象字面量抛是**只有 JS 这一侧才有的不对称**。
+ *
+ * 继承 `Error` 的同时保持 `AppErrorShape` 的字段，于是：
+ * - `asAppError()` 不用改（它按鸭子类型识别，两种形状都认）；
+ * - 想 `instanceof AppError` 做精细分支的调用方也拿得到；
+ * - 出问题时有堆栈，而不是只有一个 `code`。
+ */
+export class AppError extends Error implements AppErrorShape {
+  readonly code: ErrorCode;
+  readonly detail: string | null;
+
+  constructor(code: ErrorCode, message: string, detail?: string | null) {
+    super(message);
+    this.name = 'AppError';
+    this.code = code;
+    this.detail = detail ?? null;
+  }
+}
+
+/**
+ * 把任意抛出物收敛成 `AppErrorShape`，UI 里不必到处写 instanceof。
+ *
+ * 三种输入都要认，因为**它们都会真实出现**：
+ * 1. 来自 Tauri 的普通对象（跨语言边界，serde 序列化的结果）；
+ * 2. JS 侧抛出的 `AppError` 实例 —— 它是 `Error` 子类且带 `code`，走第 1 支；
+ * 3. 意外抛出物：字符串、`null`、别的 `Error` —— 走兜底，统一成 INTERNAL。
+ */
+export function asAppError(thrown: unknown): AppErrorShape {
   if (typeof thrown === 'object' && thrown !== null && 'code' in thrown && 'message' in thrown) {
     const candidate = thrown as { code: unknown; message: unknown; detail?: unknown };
     return {
       code: (candidate.code as ErrorCode) ?? 'INTERNAL',
       message: String(candidate.message),
-      detail: candidate.detail === undefined || candidate.detail === null ? null : String(candidate.detail),
+      // detail 的契约是「字符串或空」。上游多塞了个对象时一律收敛成 null，
+      // 而不是 String() 成 '[object Object]' 再显示给用户。
+      detail: typeof candidate.detail === 'string' ? candidate.detail : null,
     };
   }
   if (thrown instanceof Error) return { code: 'INTERNAL', message: thrown.message, detail: null };

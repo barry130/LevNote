@@ -118,17 +118,26 @@ CSS 模块被替换成空实现，`?raw` 也拿不到内容 —— **测试假�
 ## 五、工作流
 
 ```bash
-npm run check        # = typecheck + test。提交前必须全绿
-npm run lint         # ESLint（类型感知）。目前不阻塞 CI，见 CONTRIBUTING.md
+npm run check        # = typecheck + lint + test。提交前必须全绿
+npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 ```
 
-> **lint 是「非阻塞」的**：刚接入，首轮全量扫描还有一批历史问题。
-> 请**改到哪个文件就顺手把它 lint 干净**，不要顺手扩大战场。
-> 全部清完之后去掉 CI 里的 `continue-on-error`，并把 `lint` 加进 `check`。
+> **lint 是阻塞的。** 它曾经以「非阻塞」引入（首轮有 33 条历史问题），
+> 欠账清零后已转为强制门禁。「有规则但不执行」比「没有规则」更糟 ——
+> 前者会让人以为已经守住了。
+>
+> 配置里**刻意只开能抓真问题的规则**：不开风格规则，也不开
+> `eslint-plugin-react-hooks` 的 `recommended`（它会把整套 React Compiler
+> 规则一起打开）。要加规则，先想清楚它抓的是哪一类真 bug。
 
 > **注意 `package.json` 里有两个 TypeScript 大版本**（`typescript` 指向 TS 6、
 > `@typescript/native` 指向 TS 7）。这是为了让 `typescript-eslint` 能跑起来，
 > 理由与重审条件写在 `eslint.config.js` 头部。**不要「顺手」把它改回 TS 7。**
+>
+> 代价要知道：**lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，两者可能对同一段代码
+> 给出不同的类型**（已实测遇到过：TS 6 把闭包赋值后的变量收窄成 `never`，
+> TS 7 正确得到 `number`）。所以「`tsc` 通过」不等于「lint 通过」。
+> 撞上这种分歧时改写法，不要赌哪个版本更聪明。
 
 改完代码之后：
 

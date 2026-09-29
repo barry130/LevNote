@@ -28,7 +28,7 @@ export interface CommandPaletteProps {
   registry: CommandRegistry;
   context: CommandContext;
   platform: Platform;
-  onClose(): void;
+  onClose: () => void;
 }
 
 interface Row {
@@ -56,7 +56,8 @@ export function CommandPalette({ registry, context, platform, onClose }: Command
     }));
 
     return ranked.map(({ item }) => {
-      let enabled = true;
+      // 不写初始值：try 与 catch 都会赋值，`= true` 是永远读不到的死赋值
+      let enabled: boolean;
       try {
         enabled = item.enabled ? item.enabled(context) : true;
       } catch {

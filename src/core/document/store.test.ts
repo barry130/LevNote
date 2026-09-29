@@ -65,7 +65,7 @@ class FakeProvider implements DocumentProvider {
   async readBinaryFile(path: string): Promise<ArrayBuffer> {
     const file = this.files.get(path);
     if (!file) throw { code: 'NOT_FOUND', message: `没有这个文件：${path}`, detail: null };
-    return new TextEncoder().encode(file.text).buffer as ArrayBuffer;
+    return new TextEncoder().encode(file.text).buffer;
   }
 
   async readTextFile(path: string): Promise<TextFile> {

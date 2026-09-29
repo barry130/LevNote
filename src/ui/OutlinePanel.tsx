@@ -19,8 +19,8 @@ export interface OutlinePanelProps {
   store: DocumentStore | null;
   /** 当前内核是否支持按标题跳转 */
   canJump: boolean;
-  onJump(item: OutlineItem): void;
-  onClose(): void;
+  onJump: (item: OutlineItem) => void;
+  onClose: () => void;
 }
 
 export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelProps) {
