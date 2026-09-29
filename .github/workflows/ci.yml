@@ -1,0 +1,94 @@
+# 持续集成。
+#
+# ## 三个刻意的决定
+#
+# 1. **前端与 Rust 分成两个 job，不串行。** 它们互相独立（前端跑在 Node 里，
+#    Rust 那 11 条测试不需要 WebView），串起来只会让反馈变慢。
+#    这也是 `cargo test` 能在 CI 上跑的原因 —— 它不需要图形环境。
+#
+# 2. **`vite build` 单独跑一次，而不是混在 typecheck 里。**
+#    `tsc --noEmit` 通过不代表 Vite 能打包（路径别名、CSS `?raw`、动态 import
+#    都只有在真正的打包器里才会暴露）。这两件事的失败原因完全不同，
+#    分开跑能让「哪一步坏了」一眼可见。
+#
+# 3. **Ubuntu 上装 WebKitGTK 的依赖。** Tauri 的 Rust 侧要链接它才能编译。
+#    不装的话 `cargo test` 会在链接阶段失败，而不是在代码阶段失败 ——
+#    那种失败信息会让人以为是代码问题。
+#
+# 刻意**不做**的：不在 CI 上出安装包（`tauri build`）。它需要各平台的原生工具链，
+# 而产物体积大、跑得慢，收益只有「确保打包没坏」。
+# 等 P7 的签名流水线落地时再一起做。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  frontend:
+    name: 前端（类型 / 规范 / 测试 / 构建）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: 类型检查
+        run: npm run typecheck
+
+      # lint 目前**不阻塞**（continue-on-error），原因写在 CONTRIBUTING.md 的
+      # 「关于 lint」一节：刚接入，首轮全量扫描还有一批历史问题待清理
+      # （主要是 `unbound-method` 对 React props 的误报，已临时关掉该规则，
+      # 剩下的需要把 props 接口从方法简写改成函数属性）。
+      #
+      # 用「非阻塞但可见」的方式引入新 linter，比直接让它把 CI 变红好：
+      # 后者会训练人忽略红灯。清理完成后去掉 continue-on-error。
+      - name: ESLint（暂不阻塞）
+        run: npm run lint
+        continue-on-error: true
+
+      - name: 单元测试
+        run: npm run test
+
+      - name: 构建
+        run: npx vite build
+
+  rust:
+    name: Rust（格式 / 检查 / 测试）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tauri 在 Linux 上需要这些系统库才能编译
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf libgtk-3-dev libsoup-3.0-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: 格式检查
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: 测试
+        run: cargo test --manifest-path src-tauri/Cargo.toml

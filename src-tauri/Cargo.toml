@@ -1,0 +1,75 @@
+[package]
+name = "qingmo"
+version = "0.1.0"
+description = "轻墨 — Typora / Notepad++ / 思维导图 / draw.io 四合一的轻量桌面编辑器"
+authors = ["qingmo"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+# Tauri 2 约定：业务逻辑放在 lib，main.rs 只做入口，便于日后做移动端/集成测试
+name = "qingmo_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# 编码探测与转码：绝不静默改编码，探测只用于「用正确编码解码」
+chardetng = "0.1"
+encoding_rs = "0.8"
+
+# 见文件底部「indexmap 为什么出现在这里」。
+indexmap = { version = "1.9", features = ["std"] }
+
+# 文件系统监听（外部修改 / 目录树刷新）：P3 启用时再打开，避免 P1 引入未使用依赖
+# notify = "7"
+# notify-debouncer-mini = "0.4"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+# 见文件底部「indexmap 为什么出现在这里」。
+indexmap = { version = "1.9", features = ["std"] }
+
+[features]
+# 由 tauri-build 注入，保持默认即可
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+
+# ---------------------------------------------------------------------------
+# indexmap 为什么出现在这里（且必须是两份）
+#
+# 现象：构建时 schemars 0.8.22 编译失败，报 E0107 ——
+#   `pub type Map<K, V> = indexmap::IndexMap<K, V>;` 只给了 2 个泛型参数，
+#   而 indexmap 1.9.3 的 `IndexMap<K, V, S>` 需要 3 个。
+#
+# 根因：indexmap 1.9.x 没有 `default` 特性，`std` 默认是关的。
+#   它的 build.rs 靠 autocfg 探测「目标平台有没有 std」来决定是否置 `has_std`：
+#       Some(CARGO_FEATURE_STD) => autocfg::emit("has_std")
+#       None                     => autocfg::new().emit_sysroot_crate("std")
+#   本机探测没拿到结果，`has_std` 未置上，map.rs 便落到
+#       #[cfg(not(has_std))] pub struct IndexMap<K, V, S>   // 无默认参数
+#   于是 schemars 那个别名编译不过。schemars 只在开了 `preserve_order`
+#   特性时才这么写，而 tauri-utils / tauri-build 正是这么用的。
+#
+# 修法：indexmap 自己的 Cargo.toml.orig 里写着正解 ——
+#       `# Force the use of 'std', bypassing target detection.`
+#   即显式开 `std`，跳过探测。我们借特性统一（feature unification）把它打开。
+#
+# 为什么写两份：[dependencies] 与 [build-dependencies] 各一份。
+#   resolver v2 刻意**不跨这两类依赖统一特性**，而 schemars 在正常依赖图
+#   与构建依赖图里都会被编译（tauri-utils 走前者，tauri-build / tauri-plugin 走后者），
+#   只写一份修不全。
+#
+# 何时可以删：tauri 用到的 schemars 不再依赖 indexmap 1.x，
+#   或 indexmap 1.9.x 补上 `default = ["std"]`。删掉后跑 `cargo check --all-targets` 验证。
+# ---------------------------------------------------------------------------

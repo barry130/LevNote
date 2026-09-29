@@ -1,0 +1,353 @@
+/**
+ * 文档版式 CSS —— 编辑器与自包含导出**唯一的一份来源**。
+ *
+ * 为什么放在 `core/export` 而不是 `modules/markdown`：依赖方向只能是
+ * 「模块 → core」。「导出成一份文档长什么样」是导出层定义的事，
+ * Markdown 编辑器是**采用**这份规范的一方（见 `modules/markdown/markdown.css`
+ * 的 `@import`），而不是定义它的一方。将来思维导图导出、draw.io 导出
+ * 要嵌在同一份 HTML 里时，也从这里取版式。
+ *
+ * 为什么只用元素选择器：
+ * - 编辑器通过 `editorViewOptionsCtx.attributes` 把 `.qm-doc` 挂到 contenteditable 上；
+ *   导出时 `core/export/document.ts` 用 `?raw` 把这份文件原样内联进 `<style>`。
+ *   一处修改，两边同时生效，不存在「编辑器好看、导出难看」的漂移。
+ * - ProseMirror 的 `toDOM` 输出的就是语义标签（`h1`、`pre`、`table`…），没有额外类名，
+ *   所以选择器只能按元素写。
+ *
+ * 自包含要求：
+ * - 不引用任何外部资源（字体、图片）。
+ * - 调色板定义在 `.qm-doc` 内部而不是 `:root`，这样导出的 HTML 单独打开也有颜色，
+ *   不依赖宿主页面的变量。
+ */
+
+.qm-doc {
+  --qm-ink: #16302a;
+  --qm-vermilion: #d1543a;
+  --qm-bamboo: #2e7d6a;
+  --qm-slate: #6f7c86;
+  --qm-blue: #3f6ea8;
+  --qm-plum: #8a5a86;
+
+  --qm-line: #e2e8e5;
+  --qm-line-soft: #eef2f0;
+  --qm-code-bg: #f5f8f6;
+  --qm-quote-bg: #f3f7f5;
+  --qm-mark-bg: #fdf3d8;
+  --qm-head-bg: #f6f9f7;
+
+  --qm-sans: 'Segoe UI', system-ui, -apple-system, 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  --qm-mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, 'Sarasa Mono SC', 'Menlo', 'Courier New', monospace;
+
+  color: var(--qm-ink);
+  font-family: var(--qm-sans);
+  font-size: 15px;
+  line-height: 1.75;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ------------------------------------------------------------------ 标题 */
+
+.qm-doc h1,
+.qm-doc h2,
+.qm-doc h3,
+.qm-doc h4,
+.qm-doc h5,
+.qm-doc h6 {
+  font-weight: 650;
+  line-height: 1.3;
+  margin: 1.6em 0 0.7em;
+}
+
+.qm-doc > :first-child {
+  margin-top: 0;
+}
+
+.qm-doc h1 {
+  font-size: 1.85em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--qm-line);
+}
+
+.qm-doc h2 {
+  font-size: 1.45em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--qm-line-soft);
+}
+
+.qm-doc h3 { font-size: 1.2em; }
+.qm-doc h4 { font-size: 1.05em; }
+.qm-doc h5 { font-size: 0.95em; }
+
+.qm-doc h6 {
+  font-size: 0.9em;
+  color: var(--qm-slate);
+}
+
+/* ------------------------------------------------------------------ 正文 */
+
+.qm-doc p {
+  margin: 0 0 0.9em;
+}
+
+.qm-doc strong { font-weight: 680; }
+
+.qm-doc em { font-style: italic; }
+
+.qm-doc del {
+  color: var(--qm-slate);
+  text-decoration: line-through;
+}
+
+.qm-doc mark {
+  background: var(--qm-mark-bg);
+  padding: 0 0.15em;
+}
+
+.qm-doc a {
+  color: var(--qm-bamboo);
+  text-decoration: none;
+  /* 固定 rgba 而不是 color-mix()：导出的 HTML 要在任意浏览器里都一样，
+     不该依赖较新的 CSS 颜色函数（Chrome 111+ / Safari 16.2+ 才有） */
+  border-bottom: 1px solid rgba(46, 125, 106, 0.35);
+}
+
+.qm-doc a:hover {
+  border-bottom-color: var(--qm-bamboo);
+}
+
+.qm-doc hr {
+  border: none;
+  border-top: 1px solid var(--qm-line);
+  margin: 2em 0;
+}
+
+/* ------------------------------------------------------------------ 列表 */
+
+.qm-doc ul,
+.qm-doc ol {
+  margin: 0 0 0.9em;
+  padding-left: 1.6em;
+}
+
+.qm-doc li {
+  margin: 0.2em 0;
+}
+
+.qm-doc li > ul,
+.qm-doc li > ol {
+  margin: 0.2em 0;
+}
+
+/* GFM 任务列表：Milkdown 用 li[data-checked] 表达勾选状态 */
+.qm-doc li[data-checked] {
+  list-style: none;
+  position: relative;
+  margin-left: -1.35em;
+  padding-left: 1.35em;
+}
+
+.qm-doc li[data-checked]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.42em;
+  width: 0.95em;
+  height: 0.95em;
+  border: 1.5px solid var(--qm-slate);
+  border-radius: 3px;
+}
+
+.qm-doc li[data-checked='true']::before {
+  background: var(--qm-bamboo);
+  border-color: var(--qm-bamboo);
+}
+
+.qm-doc li[data-checked='true']::after {
+  content: '';
+  position: absolute;
+  left: 0.3em;
+  top: 0.56em;
+  width: 0.42em;
+  height: 0.2em;
+  border-left: 1.8px solid #fff;
+  border-bottom: 1.8px solid #fff;
+  transform: rotate(-45deg);
+}
+
+/* ------------------------------------------------------------------ 引用 */
+
+.qm-doc blockquote {
+  margin: 0 0 0.9em;
+  padding: 0.5em 1em;
+  border-left: 3px solid var(--qm-bamboo);
+  background: var(--qm-quote-bg);
+  color: #3b5148;
+}
+
+.qm-doc blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------ 代码 */
+
+.qm-doc code {
+  font-family: var(--qm-mono);
+  font-size: 0.88em;
+  background: var(--qm-code-bg);
+  border: 1px solid var(--qm-line-soft);
+  border-radius: 4px;
+  padding: 0.12em 0.34em;
+}
+
+/*
+ * `code_block` 的 toDOM 是 <pre data-language="js"><code>…</code></pre> ——
+ * 语言挂在 pre 上（属性名 data-language），不是挂在 code 的 class 上。
+ */
+.qm-doc pre {
+  position: relative;
+  margin: 0 0 1em;
+  padding: 0.85em 1em;
+  background: var(--qm-code-bg);
+  border: 1px solid var(--qm-line);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.qm-doc pre code {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.86em;
+  line-height: 1.65;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* 语言名显示在右上角，纯 CSS 生成，不需要额外的 DOM */
+.qm-doc pre[data-language]::after {
+  content: attr(data-language);
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.15em 0.6em;
+  font-family: var(--qm-mono);
+  font-size: 0.7em;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--qm-slate);
+  background: var(--qm-line-soft);
+  border-radius: 0 7px 0 7px;
+}
+
+/* ----------------------------------------------- highlight.js 令牌配色 */
+
+.qm-doc .hljs-comment,
+.qm-doc .hljs-quote {
+  color: var(--qm-slate);
+  font-style: italic;
+}
+
+.qm-doc .hljs-keyword,
+.qm-doc .hljs-literal,
+.qm-doc .hljs-selector-tag,
+.qm-doc .hljs-name,
+.qm-doc .hljs-tag,
+.qm-doc .hljs-section,
+.qm-doc .hljs-meta {
+  color: var(--qm-plum);
+}
+
+.qm-doc .hljs-string,
+.qm-doc .hljs-regexp,
+.qm-doc .hljs-addition,
+.qm-doc .hljs-symbol,
+.qm-doc .hljs-bullet,
+.qm-doc .hljs-selector-attr,
+.qm-doc .hljs-selector-pseudo {
+  color: var(--qm-bamboo);
+}
+
+.qm-doc .hljs-number,
+.qm-doc .hljs-built_in,
+.qm-doc .hljs-type,
+.qm-doc .hljs-variable,
+.qm-doc .hljs-template-variable,
+.qm-doc .hljs-attr,
+.qm-doc .hljs-attribute,
+.qm-doc .hljs-property {
+  color: var(--qm-blue);
+}
+
+.qm-doc .hljs-title,
+.qm-doc .hljs-function,
+.qm-doc .hljs-title.function_,
+.qm-doc .hljs-title.class_ {
+  color: var(--qm-vermilion);
+}
+
+.qm-doc .hljs-operator,
+.qm-doc .hljs-punctuation,
+.qm-doc .hljs-subst {
+  color: var(--qm-slate);
+}
+
+.qm-doc .hljs-deletion {
+  color: var(--qm-vermilion);
+  text-decoration: line-through;
+}
+
+.qm-doc .hljs-emphasis { font-style: italic; }
+.qm-doc .hljs-strong { font-weight: 680; }
+
+/* ------------------------------------------------------------------ 表格 */
+
+.qm-doc table {
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  width: 100%;
+  font-size: 0.94em;
+  /* 单元格有背景色，缺了这条圆角与边框会露出直角 */
+  overflow: hidden;
+}
+
+.qm-doc th,
+.qm-doc td {
+  border: 1px solid var(--qm-line);
+  padding: 0.42em 0.7em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.qm-doc th {
+  background: var(--qm-head-bg);
+  font-weight: 650;
+}
+
+/* Milkdown 的表头行会带 data-is-header */
+.qm-doc tr[data-is-header] td {
+  background: var(--qm-head-bg);
+  font-weight: 650;
+}
+
+/* ------------------------------------------------------------------ 图片 */
+
+.qm-doc img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+/*
+ * 导出时图片可能读不到（路径失效 / 非桌面端）——
+ * export/document.ts 会给这类图片挂 data-qm-missing，
+ * 用可见的占位替代一个静默的破图标。
+ */
+.qm-doc img[data-qm-missing] {
+  display: inline-block;
+  min-width: 8em;
+  min-height: 2.2em;
+  background: var(--qm-line-soft);
+  border: 1px dashed var(--qm-slate);
+}

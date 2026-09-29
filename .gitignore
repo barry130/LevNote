@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+.vite/
+
+# Rust 构建产物
+src-tauri/target/
+
+# tauri-build 生成的 capability 校验 schema，属于构建产物不进版本库
+src-tauri/gen/schemas/
+
+# 编辑器与系统临时文件
+*.swp
+Thumbs.db
+
+# AI 助手的项目记忆，属于工具状态而非源码
+.workbuddy-ai/

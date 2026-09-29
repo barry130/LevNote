@@ -1,0 +1,42 @@
+[
+  {
+    "file": "plain-utf8.md",
+    "bytes": 493,
+    "why": "最常见的情况：UTF-8 无 BOM，LF 行尾。作为基线。"
+  },
+  {
+    "file": "bom-utf8.md",
+    "bytes": 496,
+    "why": "带 UTF-8 BOM。验证 BOM 被剥离、且保存时被原样写回（很多 Windows 工具依赖它）。"
+  },
+  {
+    "file": "crlf-gbk.md",
+    "bytes": 28,
+    "why": "GBK 编码 + CRLF 行尾。验证无 BOM 时的中文编码探测，以及保存不改行尾。"
+  },
+  {
+    "file": "utf16le.txt",
+    "bytes": 22,
+    "why": "UTF-16LE + BOM。这类文件在 Windows 上常见，且极易被误判成 UTF-8 而整篇乱码。"
+  },
+  {
+    "file": "utf16be.txt",
+    "bytes": 32,
+    "why": "UTF-16BE + BOM。验证大小端都被正确识别。"
+  },
+  {
+    "file": "mixed-endings.txt",
+    "bytes": 10,
+    "why": "LF 与 CRLF 混排。验证探测结果为 mixed，且一次保存不会擅自统一整篇文件。"
+  },
+  {
+    "file": "empty.txt",
+    "bytes": 0,
+    "why": "空文件。边界情况：不该崩、不该被当成二进制。"
+  },
+  {
+    "file": "no-trailing-newline.md",
+    "bytes": 20,
+    "why": "结尾没有换行符。验证写回时不擅自补一个换行（会让 diff 多出一行）。"
+  }
+]

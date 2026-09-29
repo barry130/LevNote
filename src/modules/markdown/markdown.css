@@ -1,0 +1,68 @@
+/**
+ * Markdown 内核的编辑器外壳样式。
+ *
+ * 只管「编辑器该有的行为」，不管「文档长什么样」—— 后者在
+ * `core/export/document-styles.css` 里，与导出共用同一份。
+ * 这个文件**不参与导出**。
+ */
+
+@import '../../core/export/document-styles.css';
+
+.qm-editor {
+  position: relative;
+  height: 100%;
+  overflow: auto;
+  background: var(--surface, #fff);
+}
+
+.qm-editor .ProseMirror {
+  /* 顶到整块高度：点在最后一行下方也该聚焦，而不是落在空处 */
+  min-height: 100%;
+  padding: 26px max(32px, calc((100% - 760px) / 2)) 40vh;
+  outline: none;
+  caret-color: var(--ink, #16302a);
+}
+
+/* ProseMirror 的 `.ProseMirror-selectednode` 默认是个蓝色描边，换成品牌色 */
+.qm-editor .ProseMirror-selectednode {
+  outline: 2px solid var(--moss, #b4d4c6);
+  outline-offset: 2px;
+}
+
+/* 端点在代码块 / 表格里的焦点圈 */
+.qm-editor .ProseMirror-gapcursor::after {
+  border-top-color: var(--ink, #16302a);
+}
+
+/*
+ * 占位提示。
+ * 由 plugin.ts 的 `placeholderPlugin` 在文档「只有一个空段落」时挂上 `.is-empty`
+ * 并写好 `data-placeholder`；这里只负责画出来。
+ */
+.qm-editor .ProseMirror.is-empty::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  pointer-events: none;
+  color: var(--slate, #7a8690);
+  opacity: 0.75;
+}
+
+/* 只读时（例如打开了只读文件）不要显示文本光标 */
+.qm-editor .ProseMirror[contenteditable='false'] {
+  caret-color: transparent;
+}
+
+/* 拖入文件时的高亮由外壳的 `.shell.dragging` 负责，这里不重复 */
+
+/* 表格边框在编辑器里容易被光标遮住，给选中单元格一点反馈 */
+.qm-editor .ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(46, 125, 106, 0.12);
+  pointer-events: none;
+}
+
+.qm-editor .ProseMirror .selectedCell {
+  position: relative;
+}

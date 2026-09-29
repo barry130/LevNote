@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest';
+
+import { basename, dirname, extensionOf, isInside, joinPath, segments, separatorOf, titleOf } from './path.js';
+
+describe('basename / titleOf / extensionOf', () => {
+  it('同时认 Windows 与 POSIX 两种分隔符', () => {
+    expect(basename('C:\\notes\\a.md')).toBe('a.md');
+    expect(basename('/home/u/a.md')).toBe('a.md');
+    // 混用也要对：WebView 里拿到的路径有时是这种
+    expect(basename('C:\\notes/sub/a.md')).toBe('a.md');
+  });
+
+  it('没有分隔符时原样返回', () => {
+    expect(basename('a.md')).toBe('a.md');
+    expect(basename('')).toBe('');
+  });
+
+  it('titleOf 去掉最后一个扩展名', () => {
+    expect(titleOf('C:\\notes\\a.md')).toBe('a');
+    expect(titleOf('archive.tar.gz')).toBe('archive.tar');
+    expect(titleOf('README')).toBe('README');
+  });
+
+  it('扩展名统一小写，且隐藏文件不算扩展名', () => {
+    expect(extensionOf('A.MD')).toBe('.md');
+    // `.gitignore` 不是「扩展名为 gitignore 的无名文件」，它就是一个隐藏文件
+    expect(extensionOf('.gitignore')).toBe('');
+    expect(extensionOf('noext')).toBe('');
+    expect(extensionOf('C:\\a\\b.Tsx')).toBe('.tsx');
+  });
+});
+
+describe('dirname', () => {
+  it('常规路径', () => {
+    expect(dirname('C:\\notes\\a.md')).toBe('C:\\notes');
+    expect(dirname('/home/u/a.md')).toBe('/home/u');
+  });
+
+  it('Windows 盘根：不能只切出 `C:`', () => {
+    // `C:` 表示「C 盘的当前目录」，不是根目录。少这一个反斜杠，
+    // 拼出来的图片路径就会指向一个不存在的位置
+    expect(dirname('C:\\a.md')).toBe('C:\\');
+    expect(dirname('/a.md')).toBe('/');
+  });
+
+  it('拿不到目录时返回 null —— 不能猜', () => {
+    // 光秃秃的文件名（浏览器虚拟盘）没有目录信息，硬拼一定是错的
+    expect(dirname('a.md')).toBeNull();
+    expect(dirname('')).toBeNull();
+  });
+});
+
+describe('joinPath', () => {
+  it('按基路径的风格拼分隔符', () => {
+    expect(joinPath('C:\\notes', 'img/a.png')).toBe('C:\\notes\\img/a.png');
+    expect(joinPath('/home/u', 'img/a.png')).toBe('/home/u/img/a.png');
+  });
+
+  it('基路径结尾已有分隔符时不重复', () => {
+    expect(joinPath('C:\\', 'a.png')).toBe('C:\\a.png');
+    expect(joinPath('/home/u/', 'a.png')).toBe('/home/u/a.png');
+  });
+
+  it('相对路径开头的分隔符被吃掉（它本来就是相对的）', () => {
+    expect(joinPath('C:\\notes', '\\img\\a.png')).toBe('C:\\notes\\img\\a.png');
+  });
+
+  it('基路径为 null 时返回 null，而不是拼一个相对路径出来', () => {
+    expect(joinPath(null, 'a.png')).toBeNull();
+  });
+});
+
+describe('isInside', () => {
+  it('判断路径是否在目录之内', () => {
+    expect(isInside('C:\\notes\\a.md', 'C:\\notes')).toBe(true);
+    expect(isInside('C:\\notes2\\a.md', 'C:\\notes')).toBe(false);
+  });
+
+  it('Windows 下不区分大小写', () => {
+    expect(isInside('c:\\Notes\\a.md', 'C:\\notes')).toBe(true);
+  });
+});
+
+describe('segments / separatorOf', () => {
+  it('拆成层级片段', () => {
+    expect(segments('C:\\notes\\sub\\a.md')).toEqual(['C:', 'notes', 'sub', 'a.md']);
+    expect(segments('/home/u/a.md')).toEqual(['home', 'u', 'a.md']);
+  });
+
+  it('分隔符按「出现过反斜杠」判断', () => {
+    expect(separatorOf('C:\\a')).toBe('\\');
+    expect(separatorOf('/a')).toBe('/');
+  });
+});

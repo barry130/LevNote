@@ -1,0 +1,23 @@
+# 跨编辑器的基本约定。风格类规则交给这里，不放进 ESLint。
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+# Markdown 里行尾的两个空格是「硬换行」，删掉会改变渲染结果
+trim_trailing_whitespace = false
+
+[*.rs]
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

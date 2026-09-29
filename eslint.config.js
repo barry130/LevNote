@@ -1,0 +1,143 @@
+/**
+ * ESLint 扁平配置。
+ *
+ * ## 为什么现在才加
+ *
+ * 代码里早就有 `// eslint-disable-next-line` 注释 —— 说明作者一直是按 ESLint 的
+ * 规则在写，只是没把它配置起来。这意味着「有规则但不执行」：
+ * 新加入的人不知道边界在哪，而漏掉的规则也没有任何东西会提醒。
+ *
+ * ## 规则选择的取向
+ *
+ * 只开**能抓到真问题**的规则，不开**风格**规则。
+ * 缩进、引号、分号这些交给 `.editorconfig` 与格式化工具，
+ * 混进 ESLint 会让「跑 lint」变成一件噪声很大、逐渐被忽略的事。
+ *
+ * 最重要的三条：
+ * - `no-floating-promises`：异步调用没接住是这类应用最常见的真实 bug
+ *   （保存失败被吞掉，用户以为存上了）。
+ * - `no-misused-promises`：把 async 函数直接当事件处理器传，错误会静默消失。
+ * - `eqeqeq`：`==` 在 `null` 判断上的宽松语义容易埋雷。
+ *
+ * ## 与 TypeScript 7 共存（**本配置最重要的一条背景**）
+ *
+ * 本项目用 TypeScript 7，而 TypeScript 7 **不提供 JS API**
+ * （官方原话：*"While TypeScript 7.0 is here, it does not ship with an API."*）。
+ * `typescript-eslint` 需要 API，因此它在 `versionMajorMinor >= 7` 时**直接抛错**，
+ * 连纯语法规则都跑不起来 —— 这不是 peer 警告，是硬性 `throw`。
+ *
+ * 官方给的过渡方案是 npm 别名，让两者并存（见 `package.json`）：
+ *
+ * ```json
+ * "typescript":            "npm:@typescript/typescript6@^6.0.2",  // 给工具用的 TS6 API
+ * "@typescript/native":    "npm:typescript@^7.0.2"                // 给构建用的 TS7 tsc
+ * ```
+ *
+ * 于是 `require('typescript')` 拿到 6.x（linter 可用），而 `npx tsc` 仍是 7.x
+ * （原生编译器，快得多）。**顺带消掉了 peer 冲突**：`typescript-eslint` 的
+ * peer 范围是 `>=4.8.4 <6.1.0`，别名后的 `typescript` 正好落在里面，
+ * 因此不需要 `legacy-peer-deps`，`npm ci` 可以直接跑。
+ *
+ * **重审条件**：TypeScript 7.1 预计提供新 API；`typescript-eslint` 宣布支持
+ * TS ≥ 7.1 后（跟踪 issue #10940），把这两条别名还原成普通的
+ * `"typescript": "^7.x"` 即可。若某次升级后 lint 开始崩溃，
+ * 第一件事是退到 `tseslint.configs.recommended`（纯语法规则），而不是加 `--force`。
+ */
+
+import js from '@eslint/js';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  {
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'src-tauri/target/**',
+      'src-tauri/gen/**',
+      'coverage/**',
+      'docs/samples/**',
+    ],
+  },
+
+  js.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+
+  {
+    languageOptions: {
+      parserOptions: {
+        // 让类型感知的规则能用上 tsconfig 的路径别名
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: { ...globals.browser, ...globals.node },
+    },
+    rules: {
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'all' },
+      ],
+
+      /**
+       * `!` 在这类代码里通常意味着「我知道这个索引一定存在」，
+       * 而 tsconfig 开了 `noUncheckedIndexedAccess` —— 两者是有意的搭配。
+       */
+      '@typescript-eslint/no-non-null-assertion': 'off',
+
+      /**
+       * **关掉 `unbound-method`。**
+       *
+       * 它在 React 组件里几乎全是误报，根源是一个很具体的写法：
+       * 回调 prop 用**方法简写**声明时，
+       *
+       * ```ts
+       * interface SidebarProps { onOpenFolder(): void }   // 方法签名 → 被认为「有 this」
+       * export function Sidebar({ onOpenFolder }: SidebarProps) { ... }  // 解构 → 报 unbound-method
+       * ```
+       *
+       * 解构一个「方法」触发了这条规则，但这些函数根本不访问 `this`。
+       *
+       * **更彻底的修法**（比关规则更好，但因为要改 11 个文件而排到后面）：
+       * 把接口里的回调统一写成属性签名 `onOpenFolder: () => void`。
+       * 属性签名不仅消掉这条规则，还顺带把「方法参数双变、属性参数逆变」的
+       * 类型安全差异修正过来 —— 见 `docs/open-decisions.md` 的 P3 收尾项。
+       */
+      '@typescript-eslint/unbound-method': 'off',
+
+      // 这几条在本项目里误报太多：Tauri 命令返回的 JSON 是运行时才知道形状的
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      // `async` 函数在没有 await 时返回 Promise，是有意的接口约定（例如 DocumentProvider）
+      '@typescript-eslint/require-await': 'off',
+      // 空接口 / 空对象类型在「标记类型」的用法里是合理的
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-redundant-type-constituents': 'off',
+      // 测试里大量使用 `!` 与假对象，这条规则会让测试文件变成噪声源
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', 'tests/**/*'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+
+  {
+    // 配置与脚本文件不在 tsconfig 的 include 里，开类型感知会直接报「找不到 project」
+    files: ['*.config.*', 'scripts/**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+);
