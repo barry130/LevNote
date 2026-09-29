@@ -25,11 +25,13 @@ import type {
   EditorFormatting,
   EditorHandle,
   SelectionSnapshot,
+  SlashState,
 } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
 import { SelectionToolbar } from './SelectionToolbar.js';
+import { SlashMenu } from './SlashMenu.js';
 
 const ENCODINGS: Array<{ label: string; encoding: string; bom: BomKind }> = [
   { label: 'UTF-8', encoding: 'UTF-8', bom: 'none' },
@@ -124,6 +126,13 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
    */
   const [selection, setSelection] = useState<SelectionSnapshot | null>(null);
   const [formatting, setFormatting] = useState<EditorFormatting | null>(null);
+  /**
+   * 斜杠菜单的当前状态。
+   *
+   * 与 `selection` 并列而不是合成一个：两者的触发条件几乎互斥
+   * （斜杠要求光标塌缩，工具条要求有选中文字），合成一个反而要写分支。
+   */
+  const [slash, setSlash] = useState<SlashState | null>(null);
 
   const session = doc?.session ?? 0;
   /**
@@ -254,6 +263,7 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
     // 位置对了反而更糟，用户会以为它属于新文档
     setSelection(null);
     setFormatting(null);
+    setSlash(null);
   }, [kernelKey]);
 
   const handleEditorError = useCallback(
@@ -349,6 +359,7 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
             onReady={handleEditorReady}
             onCursorChange={setCursor}
             onSelectionChange={setSelection}
+            onSlashChange={setSlash}
             onError={handleEditorError}
           />
         ) : doc ? (
@@ -363,6 +374,10 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
         {selection !== null && formatting !== null && (
           <SelectionToolbar snapshot={selection} formatting={formatting} />
         )}
+
+        {/* 斜杠菜单与工具条同属浮层，理由相同。两者不会同时出现：
+            斜杠只在光标塌缩时触发，而工具条只在有选中文字时出现 */}
+        {slash !== null && formatting !== null && <SlashMenu state={slash} formatting={formatting} />}
       </main>
 
       <footer className="statusbar">

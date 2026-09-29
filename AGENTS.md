@@ -54,6 +54,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 字数 / 阅读时长 | `core/statistics.ts`（Word 口径，内核无关） |
 | **哪些文件算 Markdown** | `core/path.ts` 的 `MARKDOWN_EXTENSIONS` / `isMarkdownPath()`。**名单只有这一份**，四个地方在用它 |
 | 选中浮层工具条（格式按钮、浮层位置） | `ui/SelectionToolbar.tsx`（外壳画浮层）+ `modules/markdown/selection.ts`（内核报选区状态） |
+| 斜杠菜单（`/` 插入块） | `ui/SlashMenu.tsx`（外壳画菜单与键盘导航）+ `modules/markdown/selection.ts` 的 `describeSlash`（内核判断触发） |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
@@ -69,7 +70,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 2. 各内核按需实现（不实现的要能被外壳识别为「没有这个能力」）；
 3. 外壳只问契约，不问内核。
 
-已有三例可以照着看：
+已有四例可以照着看：
 
 - `EditorHandle.search` / `goToOutlineItem` —— 可选能力，**缺了显示为禁用**；
 - `EditorAdapter.sourceView` —— 源码视图，**不注册进注册表**
@@ -78,6 +79,12 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
   **缺了就不显示浮层**（不是禁用）。与上面两例的差别是刻意的：
   源码视图是「有，但这份文档用不上」，格式化是「这个内核根本没有」——
   一个纯文本编辑器弹出加粗按钮，用户点下去只会什么都没发生。
+- `EditorMountProps.onSlashChange` + `EditorFormatting.insertBlock` —— 斜杠菜单。
+  这里有一个容易做错的分工：**触发判定（`describeSlash`）必须留在内核**，
+  因为「光标在不在段落末尾」「有没有选中文字」是文档模型的问题；
+  **菜单长什么样、有哪些项、选中哪一项、键盘怎么走全在外壳**，
+  因为那是用户界面。`insertBlock` 与 `toggleBlock` 分开，是因为前者多一件事要做：
+  先删掉 `/query` —— 要删哪几个字符是文档坐标，只有内核知道。
 
 **反例**（不要这样做）：在外壳里写 `if (adapter.id === 'markdown')` 或
 `resolveAdapterById('code')`。那等于把内核知识漏进外壳，
@@ -86,12 +93,13 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 **另一条容易忘的**：内核里任何**绕过键盘事件**去改文档的能力，
 都必须自己给事务打上「这是用户发起的编辑」标记（`USER_EDIT_META`），
 否则文档不会变脏、用户按 `Ctrl+S` 写回磁盘的是改动**之前**的内容。
-已经踩过两次：查找替换（`setup.ts` 的 `replace` / `replaceAll`）、
-选中浮层工具条（`setup.ts` 的 `asUserEdit`）。斜杠菜单、表格操作、图片插入会再遇到。
+已经踩过三次：查找替换（`setup.ts` 的 `replace` / `replaceAll`）、
+选中浮层工具条与斜杠菜单（`setup.ts` 的 `asUserEdit` 统一包住）。
+表格操作、图片插入会再遇到 —— **新加一条这类能力时，先问自己打没打这个标记。**
 
 ---
 
-## 四、八个已经踩过的坑（省下你的两小时）
+## 四、十个已经踩过的坑（省下你的两小时）
 
 ### 1. Markdown 内核的「变更上报」不能用防抖
 
@@ -178,6 +186,43 @@ CSS 模块被替换成空实现，`?raw` 也拿不到内容 —— **测试假�
 
 （两条都记在 `App.test.tsx` 的 `clearSelection` 注释里，改那里之前先读它。）
 
+### 9. 浮层菜单的键盘必须挂在 `window` 的**捕获阶段**
+
+菜单打开时焦点**还在编辑器里**（用户正在打字），所以 `keydown` 的事件目标是
+contenteditable。ProseMirror 的 `handleKeyDown` 挂在 `view.dom` 上，
+在**冒泡路径上先到**：默认方式（`window` 冒泡）监听的话，等到我们收到回车时，
+ProseMirror 已经把段落拆开了 —— 结果是「插入了块，但也多出一个空行」。
+
+捕获阶段从 `window` 往下走，先于目标元素，所以能先一步
+`preventDefault()` + `stopPropagation()` 把这一下拿走。
+`stopPropagation` 还顺带拦住了外壳自己的全局快捷键（`App.tsx` 也在 `window` 上监听），
+否则 `Esc` 会顺手关掉查找栏。
+
+**配套的另一条**：菜单项按钮上要 `preventDefault` 掉 `mousedown`，
+否则浏览器先把焦点挪到按钮上、ProseMirror 的选区随之丢掉，
+菜单会在 `click` 到达之前被卸载 —— 表现成「按钮点不动」。
+（链接输入框相反：它必须能拿到焦点。）
+
+### 10. 测试里「打字」必须复现浏览器的链路，不能直接塞事务
+
+jsdom 没有真实键盘。直接往 `view.state` 里塞事务能造出文档状态，但会**绕过**
+整条输入链路（DOM 变更 → `MutationObserver` → `DOMObserver.flush()` →
+`readDOMChange` → `input` 事件 → `markdownEmitPlugin`）——
+而斜杠菜单、输入规则、变更上报全都挂在这条链上，绕过它测试就只验证了同义反复。
+
+正确做法在 `src/test/typing.ts`（`typeInto`），两个顺序不能反：
+
+1. **先改 DOM，让出一个宏任务，再派发 `input`。**
+   `MutationObserver` 的回调是微任务，ProseMirror 靠它把变更记进队列；
+   `input` 处理器只负责「立刻结算队列」。顺序反了队列是空的，
+   这次输入被**完全忽略而且不报错** —— 表现为「测试里打字没反应」。
+2. **之后还要等一帧。** 浮层上报是用 `requestAnimationFrame` 合并的
+   （拖选时每个 mousemove 都触发一次，逐次去量会强制布局），
+   `setTimeout` 走不到它。
+
+同理，**任何断言「内核上报了什么」的用例都要先等一帧** ——
+不等就会断言到上一个状态，那是假绿。
+
 ---
 
 ## 五、工作流
@@ -222,9 +267,10 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 多标签工作区、文件树、代码内核、命令面板、查找替换、大纲、主题。
 
 **Markdown 完善（P3.5，对标 horseMD）**：字数统计、源码模式切换（Ctrl+/）、
-**选中浮层工具条**已交付；斜杠菜单、表格 / 代码块增强、图片落盘、KaTeX、Mermaid、
-位置记忆待做。清单在 `ROADMAP.md` 的 P3.5。
-**前三项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木。
+**选中浮层工具条**、**斜杠菜单（`/` 插入块）**已交付；
+表格 / 代码块增强、图片落盘、KaTeX、Mermaid、位置记忆待做。
+清单在 `ROADMAP.md` 的 P3.5。
+**前四项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木。
 
 **最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V3**
 （Milkdown 长文档输入延迟 ≤ 50ms）。它的结论决定后续「Markdown 编辑体验怎么走」，

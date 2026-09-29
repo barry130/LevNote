@@ -1123,3 +1123,82 @@ body {
   border-color: var(--bamboo);
 }
 
+/* ---------------------------------------------------------------------------
+   斜杠菜单（空段落里打 `/`）
+   ---------------------------------------------------------------------------
+   与 `.selection-toolbar` 同一层级（`z-index: 30`）：两者都在编辑器之上、
+   在命令面板（100）之下，而且按触发条件不会同时出现。 */
+
+.slash-menu {
+  position: fixed;
+  z-index: 30;
+  width: 264px;
+  /* 九项各 28px + 内边距。超出就滚动，不把菜单撑到屏幕外 */
+  max-height: 292px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  /* 浮层自己不该被选中 */
+  user-select: none;
+}
+
+.slash-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: 13px/1 var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 键盘高亮与鼠标悬停是同一个状态，所以只认 `.highlighted` 一个类 ——
+   鼠标移入由组件写进 `highlighted`，不另设 `:hover`，
+   否则会出现「鼠标在一项上、键盘高亮在另一项上」的两处高亮 */
+.slash-item.highlighted {
+  background: var(--selection);
+  border-color: var(--bamboo);
+}
+
+.slash-item:focus-visible {
+  outline: 2px solid var(--bamboo);
+  outline-offset: 1px;
+}
+
+/* 图标位固定宽度：变宽会让每一项的标签起点参差不齐 */
+.slash-abbr {
+  flex: none;
+  width: 26px;
+  color: var(--bamboo);
+  font: 12px/1 var(--mono);
+  text-align: center;
+}
+
+.slash-label {
+  flex: none;
+}
+
+/* `margin-left: auto` 而不是一个 `<span class="grow">`：
+   `.grow` 在这个项目里是按父容器定义的（`.statusbar .grow` 等），
+   不是全局类，搬过来会静默失效 */
+.slash-hint {
+  margin-left: auto;
+  color: var(--slate);
+  font: 12px/1 var(--mono);
+}
+
+.slash-empty {
+  padding: 8px;
+  color: var(--slate);
+  font: 12px/1 var(--sans);
+}
+

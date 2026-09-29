@@ -1,6 +1,6 @@
 # 待验证条件与过程中被推迟的项
 
-状态：**核心决策已定**（见 `decisions/0005`–`0012`，共八条）。本文不再是「待决事项对比」，改为跟踪
+状态：**核心决策已定**（见 `decisions/0005`–`0016`）。本文不再是「待决事项对比」，改为跟踪
 **两件事**：① 已决策事项的出口条件（什么条件下要推翻它）；② 为收窄范围而推迟的功能项。
 
 决策的理由与对比已归档进 ADR，不要在这里重复论证。
@@ -25,8 +25,9 @@
 | 文本统计（字数 / 字符数 / 阅读时长） | `src/core/statistics.ts` | `statistics.test.ts`（20 条，按 Word 口径逐条钉住）；状态栏接线由 `App.test.tsx` 的「状态栏统计」（3 条）覆盖 |
 | 源码模式切换（Ctrl+/） | `src/core/editor/types.ts`（`sourceView`）+ `core/document/store.ts`（`ViewMode`）+ `ui/` | `store.test.ts` 的「视图模式」（7 条）+ `modules/wiring.test.ts`（5 条跨模块名单一致性）+ `App.test.tsx` 的「源码模式切换」（8 条内核交棒）。决策见 [ADR 0014](./decisions/0014-markdown-source-view.md) |
 | 选中浮层工具条（bubble menu） | `src/core/editor/types.ts`（`onSelectionChange` + `formatting`）+ `modules/markdown/selection.ts`（格式名翻译）+ `ui/SelectionToolbar.tsx` | `modules/markdown/formatting.test.ts`（13 条，走真实内核、断言序列化出来的 markdown）+ `App.test.tsx` 的「选中浮层工具条」（9 条，用真实 DOM 选区驱动）。决策见 [ADR 0015](./decisions/0015-selection-toolbar.md) |
+| 斜杠菜单（`/` 插入块） | `src/core/editor/types.ts`（`onSlashChange` + `insertBlock`）+ `modules/markdown/selection.ts`（`describeSlash`）+ `ui/SlashMenu.tsx` | `modules/markdown/slash.test.ts`（18 条，**逐字真的打字**驱动，覆盖六种触发条件 + 九个可插入块）+ `App.test.tsx` 的「斜杠菜单」（8 条，覆盖筛选 / 回车 / 上下键 / Esc / 无匹配 / 鼠标 / 切源码视图）。决策见 [ADR 0016](./decisions/0016-slash-menu.md) |
 
-合计 **385 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
+合计 **411 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
 
 > 其中 `eslint` 的「全绿」是 **2026-09-29 才真正成立**的：此前它虽然被写在这一行，
 > 但实际上是非阻塞的、且还有 33 项欠账。现在它是阻塞门禁，且配置里没有关掉的规则。
@@ -50,6 +51,7 @@
 | **i18n** | 现在只有中文，做 i18n 骨架需要先确定文案的组织方式 | **中高。这件事越晚做越贵** —— 每加一个功能就多一批散落的字符串。建议在 P3-B 的第 17 项做「骨架」而不是「翻译」 |
 | **选中浮层点到编辑器之外不会自己收起来** | 刻意为之：点浮层按钮必然先让编辑器失焦，一失焦就藏，按钮会在 `click` 到达之前消失（ADR 0015）。**不做，而不是没做** | 低。只会让浮层多留一会儿，不涉及数据。改法是监听 `.editor-area` 的 `blur` 并在 `relatedTarget` 落在浮层内部时放过 —— 但这个判断在 jsdom 里验证不了，容易写成「真机上偶发点不动」，所以等有人真的抱怨再说 |
 | **浮层的屏幕几何只有人眼能验** | `coordsAtPos()` 依赖布局引擎，jsdom 返回全 0（`src/test/jsdom-gaps.ts` 只能补成空矩形）。测试钉住的是「空选区返回 null」「不抛错」 | 低（但确实没验）。要在 `npm run desktop` 里目视确认：浮层摆在哪、会不会压住文字、贴边时有没有翻到下方。与 V3 同类 —— 测试环境的结论不能替代真机结论 |
+| **空段落套进容器后会序列化成 `<br />`** | Milkdown 的 `remarkPreserveEmptyLinePlugin` 把空段落序列化成一个 `<br />` 的 html 节点当**空行占位符**：mdast 里空段落序列化出来什么都没有，没有占位符的话「一个空引用」存盘再打开就消失了。**往返稳定**（`> <br />` → `> <br />`），只影响「插入了但一个字没打就保存」，打字（`> 甲`）之后占位符就没了 | 低。**不是 M4 引入的** —— 手敲 `> ` 触发输入规则就能造出同样产物。两条改法都有真实损失（关掉插件 = 放弃空行保留；只省掉纯占位符容器 = 空引用存盘后消失），所以现在不动。详见 [ADR 0016](./decisions/0016-slash-menu.md) 代价 2 |
 | **主包体积**（886 kB → 现在更大） | 桌面端从本地磁盘加载，与网页端性质不同 | 低。拆分方案已明确：`React.lazy` 加载内核，外壳首屏目标 < 200 kB |
 | **命令面板的拼音关键词要手工维护** | 每条命令手写 `keywords` | 低。命令数量还少（15 条）。超过 ~50 条时应改为自动生成拼音 |
 

@@ -24,6 +24,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { DocumentStore } from '../core/document/store.js';
 import { DEFAULT_SETTINGS, type ViewSettings } from '../core/settings.js';
 import { WorkspaceStore } from '../core/workspace/store.js';
+import { typeInto } from '../test/typing.js';
 import type {
   BomKind,
   DirEntry,
@@ -398,6 +399,44 @@ async function clickFormat(container: HTMLElement, label: string): Promise<void>
   if (button === null) throw new Error(`浮层上没有「${label}」`);
   await act(async () => {
     button.click();
+  });
+  await nextFrame();
+}
+
+function slashMenuOf(container: HTMLElement): HTMLElement | null {
+  return container.querySelector('.slash-menu');
+}
+
+/** 菜单项上的文字，按显示顺序。用来断言筛选结果，而不是断言「有没有渲染」。 */
+function slashLabels(container: HTMLElement): string[] {
+  return [...container.querySelectorAll('.slash-item .slash-label')].map((node) => node.textContent?.trim() ?? '');
+}
+
+/**
+ * 在编辑器里真的敲一串字。
+ *
+ * 走 DOM 变更 + `input` 事件，也就是浏览器里发生的事（细节见 `src/test/typing.ts`）。
+ * 之所以不满足于「直接调内核命令」：斜杠菜单的触发是**逐键推进**的，
+ * 绕过输入链路就跳过了「敲到第几个字时菜单出现」这段唯一容易写错的行为。
+ */
+async function typeInEditor(container: HTMLElement, text: string): Promise<void> {
+  const editable = editableOf(container);
+  await act(async () => {
+    await typeInto(editable, text);
+  });
+}
+
+/**
+ * 在编辑器上按一个键。
+ *
+ * 派发到 contenteditable 上而不是 `window`：真实使用中事件目标就是编辑器，
+ * 而斜杠菜单的键盘处理正是靠「在 `window` 的**捕获阶段**抢先拦下」来工作的
+ * （见 `SlashMenu.tsx` 的文件头）。派发到别处就测不到那条路径了。
+ */
+async function pressInEditor(container: HTMLElement, key: string): Promise<void> {
+  const editable = editableOf(container);
+  await act(async () => {
+    editable.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   });
   await nextFrame();
 }
@@ -987,5 +1026,175 @@ describe('选中浮层工具条', () => {
     await mounted.click('富文本');
     await selectText(mounted.container, 'abc');
     expect(toolbarOf(mounted.container)).not.toBeNull();
+  });
+});
+
+describe('斜杠菜单', () => {
+  /**
+   * 这一组打的是**从敲键盘到文件内容真的变了**这条完整链路：
+   *
+   * 打字 → 内核认出「处于斜杠触发状态」→ 上报筛选词与位置 → 外壳画菜单 →
+   * 键盘/鼠标选中一项 → 内核删掉 `/query` 再套块格式 → 外壳得知文档变脏。
+   *
+   * 两处最容易写坏、而且坏了不会报错的地方各有一条用例钉着：
+   * - **键盘必须能拦得住 ProseMirror**。菜单打开时焦点还在编辑器里，
+   *   Enter 若先被 ProseMirror 拿到，段落会被拆开 —— 结果就是「插入了块，
+   *   但也多出一个空行」。所以 `SlashMenu` 在 `window` 的捕获阶段监听；
+   *   用例直接断言「按 Enter 之后 `/代码` 没了、文档里是代码块」。
+   * - **Esc 只能收菜单，不能删用户打的字**。收起来之后不能立刻又弹回来
+   *   （`/表` 还在文档里，触发条件仍然成立），所以 `SlashMenu` 记住
+   *   「哪一段筛选词被收起过」。这条也各有一个断言。
+   */
+
+  it('空段落里打 `/` 弹出菜单，列出全部可插入的块', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    expect(slashMenuOf(mounted.container)).toBeNull();
+
+    await typeInEditor(mounted.container, '/');
+
+    const menu = slashMenuOf(mounted.container);
+    expect(menu).not.toBeNull();
+    // 与选中工具条同一条理由：放进内核挂载的那层容器会被内核挂载时抹掉
+    expect(menu?.parentElement?.classList.contains('editor-area')).toBe(true);
+    expect(slashLabels(mounted.container)).toEqual([
+      '正文',
+      '一级标题',
+      '二级标题',
+      '三级标题',
+      '无序列表',
+      '有序列表',
+      '引用',
+      '代码块',
+      '分隔线',
+    ]);
+  });
+
+  it('继续打字就是筛选；一个都不匹配时如实说「没有匹配的块」', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    await typeInEditor(mounted.container, '/代码');
+    expect(slashLabels(mounted.container)).toEqual(['代码块']);
+
+    await typeInEditor(mounted.container, 'zzz');
+    expect(slashLabels(mounted.container)).toEqual([]);
+    // 显示提示而不是「退化成显示全部」—— 后者会让用户以为筛选没生效
+    expect(mounted.container.querySelector('.slash-empty')).not.toBeNull();
+  });
+
+  it('回车插入高亮的那一项：`/代码` 从文档里消失、块真的进了文档、文档变脏', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    await typeInEditor(mounted.container, '/代码');
+    await pressInEditor(mounted.container, 'Enter');
+
+    const text = mounted.store.getSnapshot().doc?.text ?? '';
+    expect(text).not.toContain('/代码');
+    expect(text).toContain('```');
+    // 插完菜单要自己收起来（`/query` 没了，触发条件不再成立）
+    expect(slashMenuOf(mounted.container)).toBeNull();
+    // 这一条才是「不会静默丢数据」的保证：插入不经过键盘事件，
+    // 内核必须自己打 USER_EDIT_META，否则按 Ctrl+S 存回的是插入前的旧内容
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+  });
+
+  it('上下键换高亮项，回车插的是换过的那一项', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    await typeInEditor(mounted.container, '/');
+    await pressInEditor(mounted.container, 'ArrowDown');
+    // 第二项是「一级标题」
+    expect(mounted.container.querySelectorAll('.slash-item')[1]?.getAttribute('aria-selected')).toBe('true');
+
+    await pressInEditor(mounted.container, 'Enter');
+
+    expect(mounted.store.getSnapshot().doc?.text).toMatch(/^#\s*$/m);
+  });
+
+  /**
+   * Esc 的两半：**收得掉**，且**收起来之后不会立刻弹回来**。
+   *
+   * 第二半才是容易漏的：`/表` 还在文档里，内核下一帧仍然认为「处于斜杠触发状态」，
+   * 不记住「这段筛选词被收起过」的话菜单会原地复活，用户以为 Esc 坏了。
+   */
+  it('Esc 收起菜单但不删用户打的字，再打字菜单回来', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    await typeInEditor(mounted.container, '/表');
+    expect(slashMenuOf(mounted.container)).not.toBeNull();
+    const before = mounted.store.getSnapshot().doc?.text;
+
+    await pressInEditor(mounted.container, 'Escape');
+    expect(slashMenuOf(mounted.container)).toBeNull();
+    // 只是收起，一个字符都没改
+    expect(mounted.store.getSnapshot().doc?.text).toBe(before);
+
+    // 筛选词变了 = 用户又动了菜单，应该重新出现
+    await typeInEditor(mounted.container, '题');
+    expect(slashMenuOf(mounted.container)).not.toBeNull();
+  });
+
+  /**
+   * 没有匹配项时回车**不能被吞掉**。
+   *
+   * 用户打 `/zzz` 有两种可能：想搜一个不存在的块，或者就是想把 `/zzz` 当正文打出来。
+   * 两种情况下「按回车没反应」都是错的 —— 后一种还更常见。
+   * 放过这一下之后 ProseMirror 拆开段落，新段落是空的，触发条件不再成立，菜单自己收起来。
+   */
+  it('一个匹配项都没有时，回车换行而不是被吞掉', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    await typeInEditor(mounted.container, '/zzz');
+    expect(mounted.container.querySelector('.slash-empty')).not.toBeNull();
+
+    await pressInEditor(mounted.container, 'Enter');
+
+    // 断言的是**段落真的被拆开了**，而不是断言 markdown 文本 ——
+    // 拆与不拆序列化出来都是 `/zzz\n`（末尾那个空段落不进 markdown），
+    // 拿文本去断言等于什么都没验证
+    expect(mounted.container.querySelectorAll('.qm-editor .ProseMirror p')).toHaveLength(2);
+    expect(mounted.store.getSnapshot().doc?.text).toContain('/zzz');
+    expect(slashMenuOf(mounted.container)).toBeNull();
+  });
+
+  it('用鼠标点菜单项也能插入，且 mousedown 被拦下', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    await typeInEditor(mounted.container, '/引用');
+    const item = mounted.container.querySelector<HTMLButtonElement>('.slash-item');
+    expect(item).not.toBeNull();
+
+    // 不拦这一下，焦点会离开编辑器、选区丢失，菜单在 click 到达之前就被卸载
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    item?.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+
+    await act(async () => {
+      item?.click();
+    });
+    await nextFrame();
+
+    expect(mounted.store.getSnapshot().doc?.text).toMatch(/^>/m);
+    expect(slashMenuOf(mounted.container)).toBeNull();
+  });
+
+  it('切到源码视图后菜单消失 —— 底下坐着的是代码内核，它不报斜杠状态', async () => {
+    mounted = await mount((p) => p.put('note.md', '\n'));
+    await mounted.open('note.md');
+
+    await typeInEditor(mounted.container, '/表');
+    expect(slashMenuOf(mounted.container)).not.toBeNull();
+
+    await mounted.click('源码');
+
+    expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
+    expect(slashMenuOf(mounted.container)).toBeNull();
   });
 });

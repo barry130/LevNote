@@ -165,3 +165,62 @@ export function anchorOf(view: EditorView): SelectionRect | null {
     return null;
   }
 }
+
+/**
+ * 某个**光标位置**在视口里的矩形（塌缩，宽度通常为 0）。
+ *
+ * 与 `anchorOf` 分开是因为语义不同：那个是「选中了哪一块」，这个是「这个点在哪」。
+ * 斜杠菜单要的是后者 —— 它锚在段落内容起点上，那个位置根本没有选区。
+ */
+export function caretAnchorOf(view: EditorView, pos: number): SelectionRect | null {
+  try {
+    const rect = view.coordsAtPos(pos);
+    return {
+      top: rect.top,
+      left: rect.left,
+      bottom: rect.bottom,
+      right: rect.right,
+      width: rect.right - rect.left,
+      height: rect.bottom - rect.top,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 斜杠菜单
+// ---------------------------------------------------------------------------
+
+/**
+ * 斜杠触发：整段只有 `/` 加上一段**不含空白**的筛选词。
+ *
+ * 不允许筛选词里有空格是有意的：菜单项的筛选词都是单字（`标题`、`表格`…），
+ * 而一旦允许空格，用户写「一半 / 另一半」这种正文时就会莫名其妙弹出菜单 ——
+ * 那种「你以为在打字，它以为在选命令」的干扰比少一个功能更烦人。
+ */
+const SLASH_TRIGGER = /^\/(\S*)$/;
+
+/**
+ * 判断当前是不是在斜杠触发状态。是则返回 `/` 后面已输入的文字（可能为空串），
+ * 否则返回 `null`。
+ *
+ * 四个条件缺一不可：
+ * - 光标**塌缩**（有选中文字时用户是在选东西，不是在打命令）；
+ * - 所在文本块是**段落**（标题 / 代码块里不该弹菜单）；
+ * - 光标停在文本**末尾**（不然用户把光标移回中间时菜单还在，看着像卡住了）；
+ * - 整段匹配 `SLASH_TRIGGER`。
+ */
+export function describeSlash(state: EditorState): string | null {
+  const { selection } = state;
+  if (!selection.empty) return null;
+
+  const { $from } = selection;
+  if ($from.parent.type.name !== 'paragraph') return null;
+
+  const text = $from.parent.textContent;
+  if ($from.parentOffset !== text.length) return null;
+
+  const hit = SLASH_TRIGGER.exec(text);
+  return hit === null ? null : (hit[1] ?? '');
+}

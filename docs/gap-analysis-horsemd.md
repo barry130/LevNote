@@ -116,7 +116,7 @@ horseMD 的功能清单里有 **17 项**是轻墨完全没有的。按「是否�
 |---|---|---|
 | **内核覆盖** | 1/4 → 本次 2/4（Markdown + 代码）；思维导图与 draw.io 仍是空壳 | 产品的核心承诺（四类文档一等公民）目前只兑现了一半 |
 | **Markdown 编辑体验** | 轻墨手工组装 `@milkdown/kit`，没有块手柄、没有表格可视化编辑、没有斜杠菜单；horseMD 直接用 Crepe 白拿这些 | 这是 ADR 0004 的 **V4 待验证项**，也是「像不像 Typora」的关键 |
-| **Markdown 功能面** | 已补：字数统计（Word 口径）、源码模式切换（Ctrl+/）（ADR 0014）、**选中浮层工具条**（ADR 0015）；仍缺：斜杠菜单、表格可视化编辑、图片粘贴落盘、KaTeX / Mermaid | 前三条**都没有引入任何新依赖** —— 源码视图复用已有的代码内核，浮层用的是已经挂载的 `commonmark` / `gfm` 预设里的命令。清单与顺序见 `ROADMAP.md` 的 P3.5 |
+| **Markdown 功能面** | 已补：字数统计（Word 口径）、源码模式切换（Ctrl+/）（ADR 0014）、**选中浮层工具条**（ADR 0015）、**斜杠菜单 `/` 插入块**（ADR 0016）；仍缺：表格可视化编辑、代码块语言选择器 / 行号、图片粘贴落盘、KaTeX / Mermaid、位置记忆 | 前四条**都没有引入任何新依赖** —— 源码视图复用已有的代码内核，浮层与斜杠菜单用的都是已经挂载的 `commonmark` / `gfm` 预设里的命令。清单与顺序见 `ROADMAP.md` 的 P3.5 |
 | **性能证据** | V1–V4 四项验证**全部未执行**；`open-decisions.md` 里 V3 明确写着「仍未测」 | **这是最值得警惕的一处** |
 | **实时预览架构** | 无相关探索 | horseMD 已经在做 CM6 + Lezer 的 live-preview spike，实测 12.8 万汉字：解析 5.4ms、首屏 8ms、单键重解析 0.35ms，并明确写「确认 source-as-model 架构可行」 |
 | **Rust 侧能力** | `watch` / `search` / `drawio` / `export` 四个模块都是返回 `NOT_SUPPORTED` 的占位 | 外部改动检测目前靠「窗口重新获得焦点时比对 mtime」，是权宜之计 |
@@ -354,8 +354,8 @@ horseMD 只有 Markdown 一类文档。轻墨的 `docs/format-spec.md` 定义了
 > | 项 | 状态 |
 > |---|---|
 > | `tsc --noEmit` | ✅ 通过 |
-> | `vitest run` | ✅ **385 / 385 通过**（24 个文件） |
-> | `vite build` | ✅ 通过。但产物 **1,675.62 kB（gzip 558.41 kB）**，已超过 Vite 的 500 kB 警戒线 —— 归因与处理方向见 `ROADMAP.md` 第 18 项 |
+> | `vitest run` | ✅ **411 / 411 通过**（25 个文件） |
+> | `vite build` | ✅ 通过。但产物 **1,680.13 kB（gzip 559.55 kB）**，已超过 Vite 的 500 kB 警戒线 —— 归因与处理方向见 `ROADMAP.md` 第 18 项 |
 > | `npm run lint` | ✅ **0 问题**，且配置里没有任何被关掉的规则 |
 > | git | ✅ 已提交初始基线 `a224ec4`。**`.gitattributes` 已补** —— 本机 `core.autocrlf=true`，而 `tests/fixtures/` 是逐字节敏感的编码/行尾样本，不加保护时 `mixed-endings.txt` 会被从 10B 归一成 8B。已用 `-text` 保护，并**克隆一份后逐字节校验过 9 个样本** |
 > | 真实浏览器里的视觉确认 | ❌ **仍然只有人能做的**。编辑器排版与导出观感这一条从 P2 起就一直挂着，见 `open-decisions.md` |

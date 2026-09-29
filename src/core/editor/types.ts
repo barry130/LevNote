@@ -173,6 +173,39 @@ export interface SelectionSnapshot {
 }
 
 /**
+ * 斜杠菜单能插入的块。
+ *
+ * 刻意是**扁平的字符串**而不是 `{ block, level }` 那种结构：菜单项本身就要
+ * 一个稳定的 id（用来做 key、做筛选、写测试），而「标题几级」是菜单项的身份
+ * 而不是它的参数 —— `heading1` 和 `heading2` 是两个不同的条目，不是同一个条目
+ * 加不同参数。
+ */
+export type InsertableBlock =
+  | 'paragraph'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'blockquote'
+  | 'bulletList'
+  | 'orderedList'
+  | 'codeBlock'
+  | 'hr';
+
+/**
+ * 斜杠菜单的当前状态。
+ *
+ * 只在「一个空段落里、光标停在 `/` 打头的文字末尾」时非 null —— 这个触发条件
+ * 刻意收得很紧：松一点（比如允许段落里已经有别的文字）就会在用户正常打字时
+ * 反复弹出菜单，而那种「你以为在打字，它以为在选命令」的干扰比功能本身更烦人。
+ */
+export interface SlashState {
+  /** `/` 之后已经输入的文字，用来筛选菜单。可以为空串。 */
+  readonly query: string;
+  /** 菜单该出现在哪儿（视口坐标），取的是**段落内容起点**而不是光标位置。 */
+  readonly anchor: SelectionRect;
+}
+
+/**
  * 内核交回给外壳的**格式化命令面**。
  *
  * 与 `EditorSearch` 同一个套路：外壳只说「加粗」/「变成二级标题」，
@@ -197,6 +230,16 @@ export interface EditorFormatting {
   toggleInline(format: InlineFormat, value?: string): void;
   /** 切换块级格式。`level` 只有 `heading` 用得上（1–6，越界按 1 处理）。 */
   toggleBlock(format: BlockFormat, level?: number): void;
+  /**
+   * 插入一个块 —— 斜杠菜单的入口。
+   *
+   * 与 `toggleBlock` 分开是因为它多一件事要做：**先把 `/query` 那一段删掉**。
+   * 删文字和套格式必须由内核在一次调用里完成，外壳不该（也不能）自己去算
+   * 「要删哪几个字符」——那是文档坐标，只有内核知道。
+   *
+   * 当前不在斜杠触发状态时，它就等价于 `toggleBlock`（不会去删任何东西）。
+   */
+  insertBlock(block: InsertableBlock): void;
 }
 
 /**
@@ -241,6 +284,14 @@ export interface EditorMountProps {
    * 一失焦就藏，按钮会在 `click` 之前消失 —— 这是浮层菜单最经典的坑。
    */
   onSelectionChange?: (selection: SelectionSnapshot | null) => void;
+  /**
+   * 斜杠菜单的状态变化。可选 —— 不实现的内核，外壳就不显示斜杠菜单。
+   *
+   * 与 `onSelectionChange` 分开而不是合成一个回调，是因为两者的**生命周期不同**：
+   * 选区每次移动都变，而斜杠菜单只在「空段落里打了 `/`」这个很窄的条件下出现。
+   * 合成一个的话，外壳每次移动光标都要重新判断「要不要收菜单」。
+   */
+  onSlashChange?: (state: SlashState | null) => void;
   /** 编辑器报错（内核初始化失败等），交给外壳呈现。 */
   onError?: (error: Error) => void;
   readOnly?: boolean;

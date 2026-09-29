@@ -17,6 +17,7 @@ function MarkdownEditor({
   onReady,
   onCursorChange,
   onSelectionChange,
+  onSlashChange,
   onError,
   readOnly,
   placeholder,
@@ -31,6 +32,8 @@ function MarkdownEditor({
   onCursorChangeRef.current = onCursorChange;
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
+  const onSlashChangeRef = useRef(onSlashChange);
+  onSlashChangeRef.current = onSlashChange;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -57,6 +60,7 @@ function MarkdownEditor({
           onChange: (markdown) => onChangeRef.current(markdown),
           onCursorChange: (position) => onCursorChangeRef.current?.(position),
           onSelectionChange: (selection) => onSelectionChangeRef.current?.(selection),
+          onSlashChange: (state) => onSlashChangeRef.current?.(state),
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），

@@ -37,6 +37,7 @@ import type { Command } from '@milkdown/kit/prose/state';
 import { TextSelection } from '@milkdown/kit/prose/state';
 import {
   createCodeBlockCommand,
+  insertHrCommand,
   liftListItemCommand,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
@@ -59,6 +60,7 @@ import type {
   EditorFormatting,
   EditorSearch,
   SelectionSnapshot,
+  SlashState,
 } from '../../core/editor/types.js';
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
@@ -69,9 +71,10 @@ import {
   placeholderPlugin,
   selectionReporterPlugin,
   SILENT_META,
+  slashReporterPlugin,
   USER_EDIT_META,
 } from './plugin.js';
-import { activeLinkHref, resolveBlock } from './selection.js';
+import { activeLinkHref, describeSlash, resolveBlock } from './selection.js';
 
 /**
  * 编辑器与导出共用的版式类名。
@@ -100,6 +103,8 @@ export interface CreateMarkdownEditorOptions {
   onCursorChange?: (position: CursorPosition) => void;
   /** 选区变化。参数为 null 表示「现在不该有浮层工具条」（见契约注释）。 */
   onSelectionChange?: (selection: SelectionSnapshot | null) => void;
+  /** 斜杠菜单状态。参数为 null 表示「现在不该有斜杠菜单」。 */
+  onSlashChange?: (state: SlashState | null) => void;
 }
 
 export interface MarkdownEditorInstance {
@@ -291,6 +296,21 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
       return resolveBlock(view.state.selection.$from);
     });
 
+  /**
+   * 斜杠触发状态下的 `/query` 在文档里的范围；不在触发状态时返回 null。
+   *
+   * 这里**故意重新判断一次**（而不是让外壳把范围传进来）：文档坐标只有内核知道，
+   * 而且从外壳决定「用户点了哪一项」到内核真的执行，中间隔着一次 React 渲染 ——
+   * 那段时间里用户完全可能又敲了一个字。重新判断等于顺手做了一次乐观锁。
+   */
+  const slashRange = (): { from: number; to: number } | null =>
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      if (describeSlash(view.state) === null) return null;
+      const { $from } = view.state.selection;
+      return { from: $from.start(), to: $from.pos };
+    });
+
   const applyBlock = (format: BlockFormat, level?: number): void => {
     const now = currentBlock();
     if (now === null) return;
@@ -396,6 +416,56 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
         applyBlock(format, level);
       });
     },
+
+    insertBlock: (block) => {
+      asUserEdit(() => {
+        /**
+         * 先删掉 `/query`，再套块格式。
+         *
+         * 两步是两次 dispatch，但**不必担心变成两步撤销**：`prosemirror-history`
+         * 默认把 500ms 内的连续事务并成一个撤销组，这里两次之间隔着不到一帧。
+         * 如果改成「自己拼一条事务」，就得复刻 Milkdown 各命令内部的事务构造 ——
+         * 那正是「用命令而不是自己写 ProseMirror」要避免的事。
+         */
+        const range = slashRange();
+        if (range !== null && range.to > range.from) {
+          editor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            view.dispatch(view.state.tr.delete(range.from, range.to));
+          });
+        }
+
+        switch (block) {
+          case 'paragraph':
+            applyBlock('paragraph');
+            return;
+          case 'heading1':
+            applyBlock('heading', 1);
+            return;
+          case 'heading2':
+            applyBlock('heading', 2);
+            return;
+          case 'heading3':
+            applyBlock('heading', 3);
+            return;
+          case 'blockquote':
+            applyBlock('blockquote');
+            return;
+          case 'bulletList':
+            applyBlock('bulletList');
+            return;
+          case 'orderedList':
+            applyBlock('orderedList');
+            return;
+          case 'codeBlock':
+            applyBlock('codeBlock');
+            return;
+          case 'hr':
+            call(insertHrCommand.key);
+            return;
+        }
+      });
+    },
   };
 }
 
@@ -469,6 +539,7 @@ export async function createMarkdownEditor(
     .use(codeHighlightPlugin)
     .use(cursorReporterPlugin(() => options.onCursorChange))
     .use(selectionReporterPlugin(() => options.onSelectionChange))
+    .use(slashReporterPlugin(() => options.onSlashChange))
     .use($prose(() => placeholderPlugin(options.placeholder ?? '')))
     .use(
       $prose((ctx) => {
