@@ -6,32 +6,30 @@
  */
 
 import type { EditorAdapter } from '../../core/editor/types.js';
+import { isMarkdownPath } from '../../core/path.js';
+import { codeAdapter } from '../code/index.js';
 import { hasFrontMatter } from './frontmatter.js';
 import MarkdownEditor from './MarkdownEditor.js';
 
 export { hasFrontMatter };
 
-/**
- * 认定为 Markdown 的扩展名。
- *
- * 刻意**不含 `.mdx`**：MDX 里的 JSX 对 Milkdown 是语法错误，
- * 用 Markdown 内核打开会把 `import` / `<Component/>` 当成段落文本，
- * 一保存就把用户的 MDX 改坏了。`.mdx` 会落到纯文本兜底，至少不破坏内容。
- */
-const MARKDOWN_EXTENSIONS = new Set(['.md', '.markdown', '.mdown', '.mkd', '.mkdn', '.mdwn', '.mdtxt', '.mdtext']);
-
-function extensionOf(path: string): string {
-  const name = path.split(/[\\/]/).pop() ?? path;
-  const dot = name.lastIndexOf('.');
-  return dot <= 0 ? '' : name.slice(dot).toLowerCase();
-}
-
-
 export const markdownAdapter: EditorAdapter = {
   id: 'markdown',
   label: 'Markdown',
-  matches: (path) => MARKDOWN_EXTENSIONS.has(extensionOf(path)),
+  matches: isMarkdownPath,
   // 扩展名对得上，但内容是 front matter 文档 —— 交给纯文本内核，别毁人家元数据
   canHandle: (_path, text) => !hasFrontMatter(text),
+  /**
+   * 源码视图就是代码内核。
+   *
+   * 这是一个**模块间的依赖**（markdown → code），刻意保留：它描述的是一个
+   * 真实存在的关系 ——「Markdown 文档的源码形态，由代码内核来呈现」。
+   * 反过来写（让代码内核去声明「我是 Markdown 的源码视图」）是错的，
+   * 因为那是 Markdown 内核的属性，不是代码内核的属性。
+   *
+   * 方向不会成环：代码内核不认识 Markdown 内核，也不需要认识。
+   * 语法包也是现成的 —— `languageForPath('notes.md')` 给的就是 markdown。
+   */
+  sourceView: codeAdapter,
   Component: MarkdownEditor,
 };

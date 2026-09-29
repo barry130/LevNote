@@ -51,12 +51,30 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 快捷键、命令、命令面板 | `core/commands/`（能力清单在 `definitions.ts`） |
 | 查找替换的匹配语义 | `core/search/find.ts`（三个内核共用） |
 | 大纲提取 | `core/outline/outline.ts` |
+| 字数 / 阅读时长 | `core/statistics.ts`（Word 口径，内核无关） |
+| **哪些文件算 Markdown** | `core/path.ts` 的 `MARKDOWN_EXTENSIONS` / `isMarkdownPath()`。**名单只有这一份**，四个地方在用它 |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css` |
 | 某个面板 | `ui/DocumentPane.tsx` / `TabBar.tsx` / `Sidebar.tsx` / `FindPanel.tsx` … |
 | 文件读写、编码探测 | `src-tauri/src/fs/` |
+
+### 内核能力怎么加（不要破坏外壳的边界）
+
+外壳**不认识任何具体内核**。要给内核加一种能力，走这条路：
+
+1. 加在 `core/editor/types.ts` 的 `EditorAdapter` / `EditorHandle` 上（**契约**）；
+2. 各内核按需实现（不实现的要能被外壳识别为「没有这个能力」，并显示为**禁用**）；
+3. 外壳只问契约，不问内核。
+
+已有两例可以照着看：`EditorHandle.search` / `goToOutlineItem`（可选能力），
+以及 `EditorAdapter.sourceView`（源码视图 —— **不注册进注册表**，
+因为同一路径只能有一个内核答案，见 ADR 0014）。
+
+**反例**（不要这样做）：在外壳里写 `if (adapter.id === 'markdown')` 或
+`resolveAdapterById('code')`。那等于把内核知识漏进外壳，
+换内核时外壳要跟着改 —— 那正是这套抽象要避免的事。
 
 ---
 
@@ -95,10 +113,15 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 
 ### 4. 内核是异步创建的，句柄可能指向已销毁的实例
 
-Markdown 内核是 `await Editor.make()...create()`。换文件时新的内核还没就绪，
+Markdown 内核是 `await Editor.make()...create()`。换文件、**切视图**时新的内核还没就绪，
 而同步的 effect 已经跑了 —— 只凭「句柄存在」就往上写，会写到一个已经销毁的内核上。
 
-所以 `DocumentPane` 里有 `handleSessionRef`：句柄必须带上它属于哪一次会话。
+所以 `DocumentPane` 里有 `handleKeyRef`：句柄必须带上它属于**哪一次内核实例**，
+标识是 `会话号:视图模式`。
+
+> **别把它简化回 `会话号`。** 切视图时会话号**不变**，只用会话号的话，
+> 那一段异步窗口里旧句柄会被误认为「有效」。同一个标识也用在失败标记
+> （`failedKey`）上，因此一次内核启动失败不会把用户永久锁在兜底内核上。
 
 ### 5. vitest 默认 `css: false`，会让「CSS 是否真的内联」这类断言永远通过
 
@@ -155,6 +178,10 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 
 **已完成**：P0–P3 的大部分 —— 文档生命周期、Markdown 内核、自包含导出、
 多标签工作区、文件树、代码内核、命令面板、查找替换、大纲、主题。
+
+**Markdown 完善（P3.5，对标 horseMD）**：字数统计、**源码模式切换（Ctrl+/）** 已交付；
+选中工具条、斜杠菜单、表格 / 代码块增强、图片落盘、KaTeX、Mermaid、位置记忆待做。
+清单在 `ROADMAP.md` 的 P3.5。**前两项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木。
 
 **最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V3**
 （Milkdown 长文档输入延迟 ≤ 50ms）。它的结论决定后续「Markdown 编辑体验怎么走」，

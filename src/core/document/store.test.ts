@@ -375,6 +375,94 @@ describe('关闭', () => {
   });
 });
 
+describe('视图模式（富文本 / 源码）', () => {
+  /**
+   * 这一组守的核心不变量：**视图模式是「这次会话怎么看待这份文档」，
+   * 不是文档本身的属性**。所以它必须
+   * - 不影响 `isDirty`（切一下视图不该让文件变成「待保存」）；
+   * - 不被 `reload()` / `saveAs()` 这类只碰文档对象的操作重置。
+   * 后一条是最容易写错的：`reload()` 会重建文档对象，视图模式若住在里面就会被悄悄清掉。
+   */
+
+  it('新打开的文档默认在富文本视图', async () => {
+    provider.put('/p/a.md', '# 标题\n');
+    await store.open('/p/a.md');
+
+    expect(store.getSnapshot().viewMode).toBe('rich');
+  });
+
+  it('切换视图不改内容，也不算脏', async () => {
+    provider.put('/p/a.md', '# 标题\n');
+    await store.open('/p/a.md');
+
+    store.setViewMode('source');
+
+    const snapshot = store.getSnapshot();
+    expect(snapshot.viewMode).toBe('source');
+    expect(snapshot.doc?.text).toBe('# 标题\n');
+    expect(snapshot.status).toBe('clean');
+  });
+
+  it('reload 之后仍然停在源码视图 —— 视图模式不属于文档对象', async () => {
+    provider.put('/p/a.md', '# 标题\n');
+    await store.open('/p/a.md');
+    store.setViewMode('source');
+
+    provider.touchExternally('/p/a.md', '# 外部改过的标题\n');
+    await store.reload();
+
+    expect(store.getSnapshot().viewMode).toBe('source');
+    expect(store.getSnapshot().doc?.text).toBe('# 外部改过的标题\n');
+  });
+
+  it('另存为之后也保留视图模式', async () => {
+    provider.put('/p/a.md', '# 标题\n');
+    await store.open('/p/a.md');
+    store.setViewMode('source');
+
+    await store.saveAs();
+
+    expect(store.getSnapshot().viewMode).toBe('source');
+    expect(store.getSnapshot().doc?.displayName).toBe('a.md');
+  });
+
+  it('换一份文件时回到富文本视图', async () => {
+    provider.put('/p/a.md', '甲\n');
+    provider.put('/p/b.md', '乙\n');
+    await store.open('/p/a.md');
+    store.setViewMode('source');
+
+    await store.open('/p/b.md');
+
+    // 「打开一份文档」的默认期望是看到渲染后的样子。
+    // 沿用上一份文件的视图模式会让用户以为打开失败（看到的是一堆 Markdown 源码）。
+    expect(store.getSnapshot().viewMode).toBe('rich');
+  });
+
+  it('没有文档时静默忽略 —— 切视图是纯视图动作，不该在空标签页上报错', () => {
+    store.setViewMode('source');
+
+    expect(store.getSnapshot().viewMode).toBe('rich');
+    expect(store.getSnapshot().error).toBeNull();
+  });
+
+  it('设成同一个值时不通知订阅者（快照引用稳定）', async () => {
+    provider.put('/p/a.md', '甲\n');
+    await store.open('/p/a.md');
+
+    let notifications = 0;
+    const unsubscribe = store.subscribe(() => {
+      notifications += 1;
+    });
+    store.setViewMode('rich');
+    expect(notifications).toBe(0);
+
+    store.setViewMode('source');
+    expect(notifications).toBe(1);
+    unsubscribe();
+  });
+});
+
 describe('isDirty', () => {
   it('只看内容与行尾，不看编码（编码是写出时才生效的属性）', () => {
     const base = {

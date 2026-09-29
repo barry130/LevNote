@@ -53,7 +53,7 @@
 `npx vite build` 的实测产出（2026-09-29）：
 
 ```
-dist/assets/index-BJFEf3OL.js    1,666.96 kB │ gzip: 555.58 kB
+dist/assets/index-1dDekAx4.js    1,668.69 kB │ gzip: 556.31 kB
 dist/assets/index-Ba5UDY8g.css      18.63 kB │ gzip:   4.57 kB
 ```
 
@@ -162,6 +162,45 @@ lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，所以「`tsc` 通过」不等于
 第一次清尾时就在 `src/modules/markdown/setup.ts` 撞到过一次
 （TS 6 把闭包赋值后的变量收窄成 `never`，TS 7 正确得到 `number`），
 细节见第 20 项的记录。**遇到这种分歧，改写法，不要去赌哪个版本更聪明。**
+
+---
+
+## P3.5 · Markdown 完善（对标 horseMD 的功能清单）
+
+> **顺序纪律**：先把 Markdown 这一类做到「完美」，再动思维导图与 draw.io。
+> 功能参照 [`BND-1/horseMD`](https://github.com/BND-1/horseMD) 的清单，
+> 差距分析见 [`docs/gap-analysis-horsemd.md`](docs/gap-analysis-horsemd.md)。
+
+| # | 交付 | 状态 | 备注 |
+|---|---|---|---|
+| M1 | 字数统计（行 / 字 / 字符 / 阅读时长） | ✅ | Word 口径；`core/statistics.ts` + 状态栏 |
+| M2 | **源码模式切换（Ctrl+/）** | ✅ | ADR 0014。源码视图复用代码内核，**没有引入新依赖** |
+| M3 | 选中工具条（bubble menu） | ⏳ | 加粗 / 斜体 / 删除线 / 行内代码 / 标题 / 链接 |
+| M4 | 斜杠菜单（`/` 插入块） | ⏳ | 基于 `kit/plugin/slash`，菜单 UI 自绘以保持主题单一来源 |
+| M5 | 表格增强 + 代码块（语言选择器 / 行号） | ⏳ | `kit/component/table-block` + `code-block` |
+| M6 | 图片：粘贴落盘 + 相对路径解析 + 灯箱 | ⏳ | 与 P3 第 13 项同源 |
+| M7 | LaTeX 数学公式（KaTeX） | ⏳ | 新依赖；**必须内联 KaTeX 的 CSS 与字体**才能保证自包含导出 |
+| M8 | Mermaid 图表（懒加载 + 全屏查看） | ⏳ | 大依赖，必须动态 import，不能进主包 |
+| M9 | 文档位置记忆（光标 / 滚动）+ 设置页 | ⏳ | 与 P3 第 12、15 项同源 |
+
+**M1 / M2 已完成**，共同点是**没有引入任何新依赖** ——
+`@milkdown/kit` 已经带齐了大部分能力，M3–M5 同样不需要新包。
+只有 M7（KaTeX）与 M8（Mermaid）会真的加依赖，那两项要先解决「自包含导出」与
+「不拖累主包体积」这两个约束再动手。
+
+### M2 的收尾状态（源码模式，ADR 0014）
+
+- `EditorAdapter.sourceView` 让外壳不必知道源码视图底下是谁；
+- 源码视图**不注册进注册表**（同一路径只能有一个内核答案）；
+- `ViewMode` 住在 `StoreState`，所以 `reload()` / `saveAs()` 不会把它重置掉；
+- 内核实例标识从 `session` 扩成 `session:viewMode`，
+  顺带修掉「一次内核启动失败会把用户永久锁在兜底内核上」；
+- Markdown 扩展名名单从三处抄本收敛到 `core/path.ts`（源码视图是第四个需要它的地方）；
+- 测试：`path` +4、`store` +7、`modules/wiring` +5（跨模块的名单一致性断言）、
+  `App` +8（内核交棒、无损、切标签页不串台）。
+
+**尚未做、且只有人能做的**：在真实 WebView 里目视确认切视图时的观感
+（有没有闪一下、光标位置跳不跳）。逻辑上「内容无损」有测试钉住，但视觉过渡没有。
 
 ---
 

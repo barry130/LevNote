@@ -40,6 +40,43 @@ export function extensionOf(path: string): string {
 }
 
 /**
+ * 认定为 Markdown 的扩展名（含点，小写）。
+ *
+ * ## 为什么这份名单在 `core` 而不是某个模块里
+ *
+ * 有**四个**地方需要同一个答案：
+ * 1. Markdown 内核 —— 决定富文本视图归谁；
+ * 2. 代码内核 —— `.md` 的**源码视图**要有 markdown 语法着色；
+ * 3. 外壳 —— 决定哪些文档显示大纲面板；
+ * 4. 将来 —— 导出、引用解析之类。
+ *
+ * 抄四份的下场是「给 `.mdx` 加了一处、忘了另外三处」，而这类不一致
+ * 表现为「同一个文件在不同功能里被当成两种东西」，极难排查。
+ * 放在 `core` 之后，任何一处要改名单都必须改这一个地方。
+ *
+ * ## 为什么刻意**不含 `.mdx`**
+ *
+ * MDX 里的 JSX 对 Milkdown 是语法错误，用 Markdown 内核打开会把
+ * `import` / `<Component/>` 当成段落文本，一保存就把用户的 MDX 改坏了。
+ * `.mdx` 会落到纯文本兜底，至少不破坏内容。
+ */
+export const MARKDOWN_EXTENSIONS: ReadonlySet<string> = new Set([
+  '.md',
+  '.markdown',
+  '.mdown',
+  '.mkd',
+  '.mkdn',
+  '.mdwn',
+  '.mdtxt',
+  '.mdtext',
+]);
+
+/** 路径是否属于 Markdown 家族。大小写不敏感（`extensionOf` 已统一小写）。 */
+export function isMarkdownPath(path: string): boolean {
+  return MARKDOWN_EXTENSIONS.has(extensionOf(path));
+}
+
+/**
  * 取所在目录。
  *
  * 返回 `null` 表示「拿不到目录」，也就是**不能猜**：光秃秃的文件名

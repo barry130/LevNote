@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { BomKind, LineEndingName } from '../core/document/types.js';
-import type { ConflictChoice, DocumentStore } from '../core/document/store.js';
+import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
 import type { CursorPosition, EditorAdapter, EditorHandle } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
@@ -56,60 +56,115 @@ function encodingKey(encoding: string, bom: BomKind): string {
   return `other|${encoding}|${bom}`;
 }
 
+/**
+ * 面板向上汇报的「视图信息」。
+ *
+ * 外壳为什么需要它：工具栏上那个「源码 / 富文本」按钮既要判断**能不能切**，
+ * 又要显示**现在在哪一边**。这两件事都住在文档状态里，而外壳**刻意不订阅
+ * 文档状态** —— 它只订阅工作区，否则用户每敲一个字，整个外壳（侧栏、标签栏、
+ * 工具栏）都要跟着重渲染。所以由面板把外壳真正需要的两个字段报上来，
+ * 而不是让外壳去偷看某一份文档的内部状态。
+ *
+ * `adapter` 给的是**首选内核**（不考虑源码视图），这是刻意的：
+ * 切到源码模式之后，当前内核变成了代码内核，而代码内核自己没有 `sourceView` ——
+ * 若把「当前内核」报上去，按钮会在切过去的那一刻自己变成禁用，用户再也切不回来。
+ */
+export interface PaneViewInfo {
+  /** 首选内核。null 表示这份文档没有解析出内核（正常情况下不会发生）。 */
+  readonly adapter: EditorAdapter | null;
+  readonly viewMode: ViewMode;
+}
+
 export interface DocumentPaneProps {
   store: DocumentStore;
   wordWrap: boolean;
   /** 编辑器就绪时交出命令面；卸载或换文档时交回 null。 */
   onHandle: (handle: EditorHandle | null) => void;
-  /** 解析出的内核变化时通知外壳（状态栏之外的地方也可能要用）。 */
-  onAdapterChange?: (adapter: EditorAdapter | null) => void;
+  /** 首选内核或视图模式变化时通知外壳；卸载时以 null 撤回。 */
+  onViewInfoChange?: (info: PaneViewInfo | null) => void;
 }
 
-export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: DocumentPaneProps) {
+export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: DocumentPaneProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
-  const { doc, status, error, conflict, busy, notice } = state;
+  const { doc, status, error, conflict, busy, notice, viewMode } = state;
 
   const handleRef = useRef<EditorHandle | null>(null);
   /**
-   * `handleRef` 里这个句柄属于哪一次会话。
+   * `handleRef` 里这个句柄属于**哪一次内核实例**，形如 `会话号:视图模式`。
    *
-   * 必须有它：换文件时新的内核是**异步**创建的，而同步的 effect 会先跑。
-   * 只凭 `handleRef.current` 存在就往上写，会写到一个已经被销毁的旧内核上。
+   * 必须有它：换文件、切视图都会重建内核，而新的内核是**异步**创建的，
+   * 同步的 effect 会先跑。只凭 `handleRef.current` 存在就往上写，
+   * 会写到一个已经被销毁的旧内核上。
+   *
+   * 把「视图模式」也算进这个标识，是因为切视图时**会话号不变** ——
+   * 只用会话号的话，那一段异步窗口里 `handleRef` 会被误认为「有效」。
    */
-  const handleSessionRef = useRef<number | null>(null);
+  const handleKeyRef = useRef<string | null>(null);
   const lastReportedRef = useRef<string | null>(null);
   const lastPushedRef = useRef<string | null>(null);
 
   const [cursor, setCursor] = useState<CursorPosition | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
-  /** 内核启动失败的会话号。用会话号而不是布尔值，换文件后自然重新尝试富文本内核。 */
-  const [failedSession, setFailedSession] = useState<number | null>(null);
+  /** 内核启动失败的那一次实例标识。用标识而不是布尔值，换文件 / 切视图后自然重新尝试。 */
+  const [failedKey, setFailedKey] = useState<string | null>(null);
 
   const session = doc?.session ?? 0;
-  const kernelFailed = failedSession !== null && failedSession === session;
+  /**
+   * 这次内核实例的标识。
+   *
+   * 加上视图模式换来一个「自然重试」：一次「富文本内核起不来」不该把用户
+   * 永久锁在兜底内核上 —— 他至少该能切到源码视图，用代码内核把内容看全。
+   */
+  const kernelKey = `${session}:${viewMode}`;
+  const kernelFailed = failedKey !== null && failedKey === kernelKey;
 
   /**
-   * 选内核。
+   * 选内核（**首选内核**，与视图模式无关）。
    *
    * 依赖刻意只写 `session`：`canHandle` 关心的是文件开头（front matter 之类），
    * 与用户后续的编辑无关。若依赖写成 `doc.text`，每敲一个字都会重跑一次
    * 「注册表匹配 + front matter 探测」，没有任何意义。
+   *
+   * 之所以把「首选内核」单独算出来而不是直接算「用哪个」：外壳需要首选内核
+   * 才能回答「能不能切源码」，而切过去之后当前内核已经不是它了。
    */
-  const { adapter, downgraded } = useMemo(() => {
+  const { primary, downgraded } = useMemo(() => {
     const current = store.getSnapshot().doc;
-    if (!current) return { adapter: null, downgraded: false };
-    // 内核起不来时不把用户堵在「打不开」上：退回兜底内核，内容照常可读可改
-    if (kernelFailed) return { adapter: EDITOR_FALLBACK, downgraded: false };
+    if (!current) return { primary: null, downgraded: false };
     const byContent = resolveAdapter(current.path, EDITOR_FALLBACK, current.text);
     const byName = resolveAdapter(current.path, EDITOR_FALLBACK);
     // 扩展名认得、内容却让首选内核退位 —— 这是一次有理由的降级，必须告诉用户
-    return { adapter: byContent, downgraded: byContent.id !== byName.id };
+    return { primary: byContent, downgraded: byContent.id !== byName.id };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, store, kernelFailed]);
+  }, [session, store]);
+
+  /**
+   * 实际渲染用的内核。
+   *
+   * 优先级：**内核起不来 → 兜底** ＞ 源码模式 → 首选内核的 `sourceView` ＞ 首选内核。
+   * 「起不来」排在最前，因为一个创建失败的实例渲染不出任何东西，
+   * 而兜底内核至少保证内容可读可改 —— **打开文件绝不能失败**。
+   */
+  const adapter = useMemo(() => {
+    if (primary === null) return null;
+    if (kernelFailed) return EDITOR_FALLBACK;
+    if (viewMode === 'source') return primary.sourceView ?? primary;
+    return primary;
+  }, [primary, viewMode, kernelFailed]);
 
   useEffect(() => {
-    onAdapterChange?.(adapter);
-  }, [adapter, onAdapterChange]);
+    onViewInfoChange?.({ adapter: primary, viewMode });
+  }, [primary, viewMode, onViewInfoChange]);
+
+  /**
+   * 卸载时把视图信息撤回。
+   *
+   * 少了这一步，切标签页的那一帧工具栏会拿着**上一个标签页**的内核信息去决定
+   * 「能不能切源码」—— 表现为按钮闪一下（比如从 `.md` 切到 `.py` 时，
+   * 按钮先亮着再变灰）。React 会把这次清理与下一个面板的首次上报放在同一批里，
+   * 所以用户看不到中间态。
+   */
+  useEffect(() => () => onViewInfoChange?.(null), [onViewInfoChange]);
 
   // 卸载（换标签页 / 关标签页）时把命令面交回去，避免外壳握着一个已销毁的内核
   useEffect(() => () => onHandle(null), [onHandle]);
@@ -129,7 +184,10 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
   const handleEditorReady = useCallback(
     (handle: EditorHandle) => {
       handleRef.current = handle;
-      handleSessionRef.current = session;
+      handleKeyRef.current = kernelKey;
+      // 错误属于**上一个创建失败的实例**。新实例就绪说明界面已经能用了，
+      // 把过期错误留在横幅上，用户会以为「现在还是坏的」。
+      setEditorError(null);
       // 内核刚才是用 `doc.text` 挂载的，所以两边已经一致，不需要再推一次。
       // 同步这两个基准，是为了让下面那个 effect 不会在刚挂载时就误判成外部变更。
       const text = store.getSnapshot().doc?.text ?? '';
@@ -137,14 +195,14 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
       lastPushedRef.current = text;
       onHandle(handle);
     },
-    [session, store, onHandle],
+    [kernelKey, store, onHandle],
   );
 
   useEffect(() => {
     if (!doc) return;
     // 新内核还没就绪（或者启动失败了），此时 handleRef 里要么是空的、
-    // 要么指向上一份文档那个已经被销毁的实例，都不能碰
-    if (handleSessionRef.current !== session) return;
+    // 要么指向上一份文档 / 上一次视图那个已经被销毁的实例，都不能碰
+    if (handleKeyRef.current !== kernelKey) return;
     const handle = handleRef.current;
     if (!handle) return;
     // 内核自己报的：外壳这边已经把内容记下了，不要再推回去（回声）
@@ -154,19 +212,34 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
     // 走到这里说明 doc.text 是被**外部**改的：重新加载、冲突解决、或换文件
     handle.setValue(doc.text);
     lastPushedRef.current = doc.text;
-  }, [doc, session]);
+  }, [doc, session, kernelKey]);
 
   // 光标位置随文档切换重置，避免新文档还显示上一份的行列
   useEffect(() => {
     setCursor(null);
   }, [session]);
 
+  /**
+   * 换一次内核实例就清掉失败标记 —— 也就是**每次显式切视图都重试目标内核**。
+   *
+   * 少了这一步会留下一个永久失败标记：用户切到源码视图、再切回富文本，
+   * 看到的仍然是兜底内核，而且**没有任何解释**（错误横幅属于上一个实例，
+   * 早被撤掉了）。那是这个功能最糟的失败形态 —— 界面不对，还不说为什么。
+   * 重试一次的成本是一次内核创建，而用户已经明确表达了「我要看那一边」。
+   */
+  useEffect(() => {
+    setFailedKey(null);
+  }, [kernelKey]);
+
   const handleEditorError = useCallback(
     (thrown: Error) => {
       setEditorError(thrown.message);
-      setFailedSession(store.getSnapshot().doc?.session ?? null);
+      // 记的是**这一次实例**的标识，而不是「当下 store 里的 session」——
+      // 后者在切视图之后会指向另一个内核，把失败标记盖到它头上。
+      // （已经卸载的实例不会报错：`MarkdownEditor` 的 effect 里有 `disposed` 检查。）
+      setFailedKey(kernelKey);
     },
-    [store],
+    [kernelKey],
   );
 
   // 只依赖文本本身：光标移动、脏标记翻转之类不该触发重新统计
@@ -206,7 +279,7 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
           <span className="grow">
             这个文件的开头是 YAML front matter。用富文本内核打开会把 <code>---</code> 当成分隔线、
             把 <code>键: 值</code> 当成正文，保存时元数据就没了。
-            所以这个文件<strong>以「{adapter?.label ?? '纯文本'}」打开</strong>，内容不会有任何改动。
+            所以这个文件<strong>以「{primary?.label ?? '纯文本'}」打开</strong>，内容不会有任何改动。
           </span>
         </div>
       )}
@@ -238,9 +311,10 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
       <main className="editor-area">
         {doc && EditorComponent ? (
           <EditorComponent
-            // 只在换文件时重建内核：撤销栈、光标、滚动位置都该跟着换。
-            // 「另存为」换了路径但 session 不变，所以不会被重建 —— 否则光标会跳回开头。
-            key={session}
+            // 换文件、换视图都要重建内核：撤销栈、光标、滚动位置都该跟着换。
+            // 「另存为」换了路径但 session 与视图都不变，所以不会被重建 ——
+            // 否则用户刚改完按 Ctrl+Shift+S，光标会跳回开头。
+            key={kernelKey}
             initialValue={doc.text}
             path={doc.path}
             readOnly={doc.readonly}
@@ -267,6 +341,9 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
             <span className="sep">│</span>
             <span className="kernel" title="当前使用的编辑器内核">
               {adapter?.label ?? '无内核'}
+              {/* 源码模式下说明「这是谁的源码」：否则一份 .md 的状态栏写着
+                  「代码 / 文本」，用户会以为打开的文件不对 */}
+              {viewMode === 'source' && primary?.sourceView ? ` · ${primary.label} 源码` : ''}
             </span>
 
             <span className="sep">│</span>

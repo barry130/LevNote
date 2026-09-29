@@ -29,6 +29,7 @@ import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { EditorHandle } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
+import { isMarkdownPath } from '../core/path.js';
 import { askConfirm, isDesktop } from '../core/platform/index.js';
 import {
   defaultStorage,
@@ -43,7 +44,7 @@ import type { WorkspaceStore } from '../core/workspace/store.js';
 import { registerBuiltInEditors } from '../modules/index.js';
 import { Mark } from './brand.js';
 import { CommandPalette } from './CommandPalette.js';
-import { DocumentPane } from './DocumentPane.js';
+import { DocumentPane, type PaneViewInfo } from './DocumentPane.js';
 import { FindBar } from './FindBar.js';
 import { OutlinePanel } from './OutlinePanel.js';
 import { Sidebar } from './Sidebar.js';
@@ -66,6 +67,9 @@ const TOOLBAR: ReadonlyArray<{ id: string; label: string }> = [
   { id: 'file.saveAs', label: '另存为' },
   { id: 'file.exportHtml', label: '导出 HTML' },
   { id: 'file.reload', label: '重新加载' },
+  // 视图动作，不是文件动作 —— 但它是最常被点的开关之一，值得占一个位置。
+  // 文字由下面的渲染按当前视图模式决定（它是开关，不是按钮）。
+  { id: 'view.toggleSource', label: '源码' },
 ];
 
 export interface AppProps {
@@ -86,6 +90,15 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
 
   const [handle, setHandle] = useState<EditorHandle | null>(null);
   const handleRef = useRef<EditorHandle | null>(null);
+
+  /**
+   * 活动面板报上来的视图信息。
+   *
+   * 外壳**刻意不订阅文档 store**（那会让每次按键都重渲染整个外壳），
+   * 所以「能不能切源码」「现在在哪一边」这两件事由面板报上来。
+   * 没有活动面板时是 null。
+   */
+  const [paneInfo, setPaneInfo] = useState<PaneViewInfo | null>(null);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
@@ -130,6 +143,10 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
     setHandle(next);
   }, []);
 
+  const onViewInfoChange = useCallback((info: PaneViewInfo | null) => {
+    setPaneInfo(info);
+  }, []);
+
   const closeActiveTab = useCallback(() => {
     void (async () => {
       const current = workspace.activeTab;
@@ -155,10 +172,22 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
       setTheme: (preference: ThemePreference) => update({ theme: preference }),
       cycleTheme: () => update({ theme: cycleTheme(settings.theme) }),
       editor: () => handleRef.current,
+      // 「能不能切」问的是**首选内核**有没有声明源码视图，而不是路径后缀 ——
+      // 后缀判断会漏掉「富文本内核起不来、已退回兜底内核」这种情况
+      canToggleSourceView: () => paneInfo?.adapter?.sourceView !== undefined,
+      toggleSourceView: () => {
+        const store = workspace.activeStore;
+        if (store === null) return;
+        const snapshot = store.getSnapshot();
+        if (snapshot.doc === null) return;
+        // 只翻模式，不碰内容：两种视图共用 `doc.text` 这一份权威副本，
+        // 所以来回切是**无损**的 —— 这也是「外壳不认识内核」带来的好处之一
+        store.setViewMode(snapshot.viewMode === 'source' ? 'rich' : 'source');
+      },
       notify: (message, title) => provider.notify(message, title),
       closeActiveTab,
     }),
-    [closeActiveTab, provider, settings.outlineVisible, settings.sidebarVisible, settings.theme, update],
+    [closeActiveTab, paneInfo, provider, settings.outlineVisible, settings.sidebarVisible, settings.theme, update, workspace],
   );
 
   const context = useMemo<CommandContext>(() => ({ workspace, provider, ui }), [workspace, provider, ui]);
@@ -307,11 +336,12 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
    *
    * 判断放在外壳而不是内核：这是**产品决策**（哪些文件值得有大纲），
    * 不是内核能力。内核只需要实现 `goToOutlineItem`。
+   *
+   * 名单来自 `core/path.ts` —— 外壳**可以**知道「哪些文件是 Markdown」，
+   * 因为那是产品范围；它**不可以**知道「Markdown 用哪个内核渲染」，
+   * 那才是内核知识。两者很容易被混为一谈。
    */
-  const outlineEnabled = useMemo(() => {
-    if (activePath === null) return false;
-    return /\.(md|markdown|mdown|mkd|mkdn|mdwn|mdtxt|mdtext)$/i.test(activePath);
-  }, [activePath]);
+  const outlineEnabled = useMemo(() => activePath !== null && isMarkdownPath(activePath), [activePath]);
 
   const sidebarWidth = liveSidebarWidth ?? settings.sidebarWidth;
 
@@ -340,6 +370,9 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
           {TOOLBAR.map(({ id, label }) => {
             const command = registry.find(id);
             const enabled = command !== undefined && (command.enabled ? command.enabled(context) : true);
+            // 「源码」是一个**开关**，文字必须反映当前在哪一边 ——
+            // 固定写「源码」的话，切过去之后用户会以为再点一次还是切到源码
+            const text = id === 'view.toggleSource' && paneInfo?.viewMode === 'source' ? '富文本' : label;
             return (
               <button
                 key={id}
@@ -349,7 +382,7 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
                 title={command?.title ?? label}
                 onClick={() => runCommand(id)}
               >
-                {label}
+                {text}
               </button>
             );
           })}
@@ -417,6 +450,7 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
               store={activeStore}
               wordWrap={settings.wordWrap}
               onHandle={onHandle}
+              onViewInfoChange={onViewInfoChange}
             />
           ) : (
             <main className="editor-area">

@@ -33,6 +33,19 @@ export interface UiActions {
   cycleTheme(): void;
   /** 当前聚焦的编辑器命令面。没有内核就绪时为 null。 */
   editor(): EditorHandle | null;
+  /**
+   * 当前文档能不能切到源码视图。
+   *
+   * 判断依据是**当前文档的首选内核有没有声明 `sourceView`**
+   * （见 `EditorAdapter.sourceView`），而不是路径后缀 ——
+   * 后缀判断会漏掉「内核起不来、退回了兜底内核」这种情况，
+   * 那时点一下「源码模式」只会让界面闪一下，什么都不变。
+   *
+   * 外壳给不出答案时（没有活动文档）返回 false，命令随之显示为禁用。
+   */
+  canToggleSourceView(): boolean;
+  /** 在当前文档的富文本视图与源码视图之间切换。 */
+  toggleSourceView(): void;
   /** 弹一次提示（走平台对话框）。 */
   notify(message: string, title?: string): Promise<void>;
   /** 关闭当前标签页（内部会处理未保存确认）。 */

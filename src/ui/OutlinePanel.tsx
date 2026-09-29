@@ -13,6 +13,7 @@
 import { useMemo, useSyncExternalStore } from 'react';
 
 import type { DocumentStore } from '../core/document/store.js';
+import { emptyStoreState } from '../core/document/store.js';
 import { extractOutline, outlineDepths, type OutlineItem } from '../core/outline/outline.js';
 
 export interface OutlinePanelProps {
@@ -73,13 +74,6 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
 // 否则 `useSyncExternalStore` 每次渲染都会重新订阅并判定「有变化」，直接死循环。
 const NOOP_SUBSCRIBE = (): (() => void) => () => undefined;
 
-const EMPTY_SNAPSHOT_STATE = {
-  doc: null,
-  status: 'clean' as const,
-  error: null,
-  conflict: null,
-  providerKind: 'desktop' as const,
-  busy: false,
-  notice: '',
-};
+// 兜底快照从 store 同源取，不在这里手抄字段表（理由见 `emptyStoreState` 的注释）
+const EMPTY_SNAPSHOT_STATE = emptyStoreState();
 const EMPTY_SNAPSHOT = () => EMPTY_SNAPSHOT_STATE;

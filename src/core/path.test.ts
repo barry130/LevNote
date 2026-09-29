@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { basename, dirname, extensionOf, isInside, joinPath, segments, separatorOf, titleOf } from './path.js';
+import {
+  basename,
+  dirname,
+  extensionOf,
+  isInside,
+  isMarkdownPath,
+  joinPath,
+  MARKDOWN_EXTENSIONS,
+  segments,
+  separatorOf,
+  titleOf,
+} from './path.js';
 
 describe('basename / titleOf / extensionOf', () => {
   it('同时认 Windows 与 POSIX 两种分隔符', () => {
@@ -90,5 +101,38 @@ describe('segments / separatorOf', () => {
   it('分隔符按「出现过反斜杠」判断', () => {
     expect(separatorOf('C:\\a')).toBe('\\');
     expect(separatorOf('/a')).toBe('/');
+  });
+});
+
+/**
+ * 这份名单有四个使用者（Markdown 内核、代码内核的源码视图、外壳的大纲判断、
+ * 将来的引用解析），所以「它到底包含什么」值得逐条钉住 ——
+ * 尤其是它**不**包含什么，因为「多算一个」的后果是把用户的文件改坏。
+ */
+describe('Markdown 扩展名名单', () => {
+  it('名单里的每一个扩展名都被认出来，且大小写不敏感', () => {
+    for (const ext of MARKDOWN_EXTENSIONS) {
+      expect(isMarkdownPath(`笔记${ext}`), ext).toBe(true);
+    }
+    expect(isMarkdownPath('C:\\notes\\A.MDOWN')).toBe(true);
+    expect(isMarkdownPath('notes.Markdown')).toBe(true);
+  });
+
+  it('不把 .mdx 算进来 —— 它的 JSX 会让富文本内核改坏文件', () => {
+    expect(isMarkdownPath('component.mdx')).toBe(false);
+  });
+
+  it('不是「所有文本文件」', () => {
+    expect(isMarkdownPath('a.txt')).toBe(false);
+    expect(isMarkdownPath('a.md.bak')).toBe(false);
+    // 后缀相似但不是：`.markdownx` 不该被前缀匹配骗过去
+    expect(isMarkdownPath('a.markdownx')).toBe(false);
+  });
+
+  it('名为 .md 的隐藏文件不算 Markdown', () => {
+    // 与 extensionOf 的约定一致：`.gitignore` 是「没有主名的隐藏文件」，
+    // 不是一个扩展名为 `gitignore` 的文件。`.md` 同理。
+    expect(isMarkdownPath('.md')).toBe(false);
+    expect(extensionOf('.md')).toBe('');
   });
 });

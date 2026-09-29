@@ -20,6 +20,7 @@
  */
 
 import type { EditorAdapter } from '../../core/editor/types.js';
+import { extensionOf, MARKDOWN_EXTENSIONS } from '../../core/path.js';
 import CodeEditor from './CodeEditor.js';
 
 /**
@@ -29,10 +30,15 @@ import CodeEditor from './CodeEditor.js';
  * 那份是「用户可能想打开的文本类文件」（可以宽），
  * 这份是「交给 CodeMirror 处理」（必须保守，因为它决定用哪个内核）。
  * 两者的目标不同，合在一起会让其中一边被迫将就。
+ *
+ * 但 Markdown 那一段**必须**与 `core/path.ts` 共用同一份名单。两边不一致
+ * 会造成双重落空：Markdown 内核认为「这不是 .md」（于是退位），
+ * 代码内核也不认它（于是继续往下掉到纯文本）—— 用户拿到一个白底 textarea，
+ * 而两个内核的代码看上去都没写错。
  */
 const CODE_EXTENSIONS = new Set([
   // Markdown 源码形态（正常情况走 Markdown 内核，front matter 文件落到这里）
-  '.md', '.markdown', '.mdown', '.mkd', '.mkdn', '.mdwn', '.mdtxt', '.mdtext',
+  ...MARKDOWN_EXTENSIONS,
   // 配置与数据
   '.json', '.jsonc', '.yml', '.yaml', '.toml', '.ini', '.cfg', '.conf', '.env', '.csv', '.tsv',
   // Web
@@ -48,12 +54,6 @@ const CODE_EXTENSIONS = new Set([
   // 纯文本
   '.txt', '.text',
 ]);
-
-function extensionOf(path: string): string {
-  const name = path.split(/[\\/]/).pop() ?? path;
-  const dot = name.lastIndexOf('.');
-  return dot <= 0 ? '' : name.slice(dot).toLowerCase();
-}
 
 export const codeAdapter: EditorAdapter = {
   id: 'code',

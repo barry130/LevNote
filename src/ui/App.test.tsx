@@ -252,6 +252,26 @@ function statisticsOf(container: HTMLElement): string {
   return container.querySelector('.statusbar .statistics')?.textContent?.trim() ?? '';
 }
 
+/**
+ * 工具栏按钮。
+ *
+ * 与 `mounted.click` 不同，这里要的是**元素**而不是「点一下」——
+ * 「开关被禁用而不是被隐藏」这条断言必须能看到那个禁用按钮。
+ */
+function toolbarButton(container: HTMLElement, text: string): HTMLButtonElement | null {
+  const found = [...container.querySelectorAll<HTMLButtonElement>('.toolbar button')].find(
+    (item) => item.textContent?.trim() === text,
+  );
+  return found ?? null;
+}
+
+/** 内核实际渲染出的内容：富文本看 ProseMirror，源码看 CodeMirror。 */
+function renderedText(container: HTMLElement): string {
+  const rich = container.querySelector('.qm-editor .ProseMirror');
+  if (rich) return rich.textContent ?? '';
+  return container.querySelector('.qm-code .cm-content')?.textContent ?? '';
+}
+
 let mounted: Mounted | null = null;
 
 beforeEach(() => {
@@ -497,6 +517,150 @@ describe('自包含 HTML 导出', () => {
       root.unmount();
     });
     container.remove();
+  });
+});
+
+describe('源码模式切换', () => {
+  /**
+   * 这一组测的是**两个内核之间交棒**，而不是某一个内核。
+   *
+   * 切换视图的实现在外壳看来只有一句话：换掉 `EditorComponent`。
+   * 真正容易出事的地方全在接缝上 —— 换过去之后新内核有没有拿到当前内容、
+   * 旧内核被销毁后外壳会不会还往上写、这一下算不算「用户改了内容」。
+   * 所以断言全部围绕这三件事。
+   *
+   * 注：用例里用 `store.updateText()` 代替「在编辑器里敲字」。这不是偷懒 ——
+   * 内核的 `onChange` 回调里做的**就是**这一件事，两者是同一条路径。
+   * 真键盘输入那条路径由「脏标记」那一组覆盖。
+   */
+
+  const SOURCE = '# 标题\n\n正文 **加粗**。\n';
+
+  it('Markdown 文档默认在富文本视图，工具栏给出「源码」开关', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+
+    expect(mounted.container.querySelector('.qm-editor .ProseMirror')).not.toBeNull();
+    const button = toolbarButton(mounted.container, '源码');
+    expect(button).not.toBeNull();
+    expect(button?.disabled).toBe(false);
+  });
+
+  it('切到源码视图：换成代码内核、内容一字不差、且不算脏', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+
+    await mounted.click('源码');
+
+    // 富文本视图整个消失，换成 CodeMirror —— 是**替换**不是叠加
+    expect(mounted.container.querySelector('.ProseMirror')).toBeNull();
+    expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
+    // 源码视图看到的必须是**原始 Markdown**（连 `**` 这类语法标记一起），
+    // 而不是被富文本内核规范化之后的写法
+    expect(renderedText(mounted.container)).toContain('**加粗**');
+    // 状态栏要说清「这是谁的源码」，否则一份 .md 显示「代码 / 文本」很困惑
+    expect(kernelOf(mounted.container)).toBe('代码 / 文本 · Markdown 源码');
+    // 切视图是纯视图动作：内容没变，也不该变成待保存
+    expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
+    expect(statusOf(mounted.container)).toBe('已保存');
+    // 开关要翻面，否则用户不知道再点一次会切回去
+    expect(toolbarButton(mounted.container, '富文本')).not.toBeNull();
+    expect(toolbarButton(mounted.container, '源码')).toBeNull();
+  });
+
+  it('切回富文本视图，内容仍然一字不差', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+
+    await mounted.click('源码');
+    await mounted.click('富文本');
+
+    expect(mounted.container.querySelector('.qm-code')).toBeNull();
+    const prose = mounted.container.querySelector('.qm-editor .ProseMirror');
+    expect(prose).not.toBeNull();
+    expect(prose?.textContent).toContain('标题');
+    expect(prose?.textContent).toContain('加粗');
+    expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
+    expect(statusOf(mounted.container)).toBe('已保存');
+  });
+
+  it('切换后外壳写的是**新**内核，不是那个已经销毁的旧实例', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+    await mounted.click('源码');
+
+    // 走「外部改动」那条路径把内容推给当前内核。
+    // 若句柄标识没把视图模式算进去，这一步会被推到一个已销毁的富文本内核上，
+    // 而源码视图里什么都看不到。
+    await act(async () => {
+      mounted?.store.updateText('# 换过的标题\n');
+    });
+    await settle();
+
+    expect(renderedText(mounted.container)).toContain('换过的标题');
+    // 推过去之后基准要同步，否则下一次外部改动会被当成「已经推过了」而漏掉
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+  });
+
+  it('在源码视图里改的内容会带到富文本视图（两种视图共用一份权威副本）', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+
+    await mounted.click('源码');
+    await act(async () => {
+      mounted?.store.updateText('## 换过的标题\n\n新的一段。\n');
+    });
+    await settle();
+    await mounted.click('富文本');
+
+    const prose = mounted.container.querySelector('.qm-editor .ProseMirror');
+    expect(prose?.textContent).toContain('换过的标题');
+    expect(prose?.textContent).toContain('新的一段。');
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+  });
+
+  it('代码文档没有源码视图 —— 开关禁用而不是隐藏', async () => {
+    mounted = await mount((p) => p.put('main.py', 'print(1)\n'));
+    await mounted.open('main.py');
+
+    const button = toolbarButton(mounted.container, '源码');
+    // 隐藏会让用户以为功能不存在；禁用则明确告诉他「有，但这份文档用不上」
+    expect(button).not.toBeNull();
+    expect(button?.disabled).toBe(true);
+    expect(kernelOf(mounted.container)).toBe('代码 / 文本');
+  });
+
+  it('front matter 的 .md 已经就是源码形态，所以没有源码视图可切', async () => {
+    mounted = await mount((p) => p.put('note.md', '---\ntitle: 笔记\n---\n\n# 正文\n'));
+    await mounted.open('note.md');
+
+    expect(toolbarButton(mounted.container, '源码')?.disabled).toBe(true);
+  });
+
+  it('切标签页时视图模式跟着各自的文档走，不会串台', async () => {
+    mounted = await mount((p) => {
+      p.put('a.md', '# 甲\n');
+      p.put('b.md', '# 乙\n');
+    });
+
+    await mounted.open('a.md');
+    await mounted.click('源码');
+
+    await mounted.open('b.md');
+    // b 是新打开的文档，默认富文本 —— 不该继承 a 的源码模式
+    expect(mounted.container.querySelector('.ProseMirror')).not.toBeNull();
+    expect(toolbarButton(mounted.container, '源码')?.disabled).toBe(false);
+
+    const first = mounted.workspace.getSnapshot().tabs[0];
+    expect(first).toBeDefined();
+    await act(async () => {
+      mounted?.workspace.activate(first!.id);
+    });
+    await settle();
+
+    // 切回 a：它仍然停在源码视图
+    expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
+    expect(toolbarButton(mounted.container, '富文本')).not.toBeNull();
   });
 });
 

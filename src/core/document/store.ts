@@ -53,6 +53,25 @@ export interface ConflictInfo {
   detectedAt: number;
 }
 
+/**
+ * 视图模式。
+ *
+ * - `rich`：渲染后的视图（Markdown 内核）。新打开的文档默认在这里。
+ * - `source`：源码视图（由适配器的 `sourceView` 内核渲染）。
+ *
+ * ## 为什么它**不放在 `OpenDocument` 里**
+ *
+ * `OpenDocument` 描述的是**文件**（路径、编码、行尾、mtime），
+ * 而视图模式描述的是**这次编辑会话**。混在一起有两个具体后果：
+ * 一是 `reload()` 会走 `toDocument()` 重建文档对象，稍不注意就把视图模式
+ * 一起重置回富文本；二是 `isDirty` 的语义会被迫回答「视图模式算不算脏」，
+ * 而这个问题本身就不该被提出。
+ *
+ * 放进 `StoreState` 之后，它天然是**每标签页**的（一个标签页一个 store），
+ * 且 `reload` / `saveAs` 这类只碰文档对象的操作碰不到它。
+ */
+export type ViewMode = 'rich' | 'source';
+
 export interface StoreState {
   doc: OpenDocument | null;
   status: DocumentStatus;
@@ -65,10 +84,33 @@ export interface StoreState {
   busy: boolean;
   /** 状态栏的一句话反馈 */
   notice: string;
+  /** 当前看的是渲染后的视图还是源码。见 `ViewMode`。 */
+  viewMode: ViewMode;
 }
 
 export function isDirty(doc: OpenDocument): boolean {
   return doc.text !== doc.savedText || doc.lineEnding !== doc.savedLineEnding;
+}
+
+/**
+ * 「没有文档」时的状态快照。
+ *
+ * 导出它是为了让那些「store 可能为 null」的 UI（大纲面板）有一份**同源**的兜底，
+ * 而不是自己手抄一份字段表。手抄的那份在给 `StoreState` 加字段时不会报错，
+ * 只会在类型层面悄悄不同步 —— 实测：加 `viewMode` 时正是 `OutlinePanel` 里
+ * 那份手抄的常量先炸，说明「不同源」这件事是真会发生的，不只是理论问题。
+ */
+export function emptyStoreState(providerKind: ProviderKind = 'desktop'): StoreState {
+  return {
+    doc: null,
+    status: 'clean',
+    error: null,
+    conflict: null,
+    providerKind,
+    busy: false,
+    notice: '',
+    viewMode: 'rich',
+  };
 }
 
 export function basename(path: string): string {
@@ -112,15 +154,7 @@ export class DocumentStore {
 
   constructor(provider: DocumentProvider) {
     this.provider = provider;
-    this.state = {
-      doc: null,
-      status: 'clean',
-      error: null,
-      conflict: null,
-      providerKind: provider.kind,
-      busy: false,
-      notice: '',
-    };
+    this.state = emptyStoreState(provider.kind);
   }
 
   // React 的 useSyncExternalStore 需要 getSnapshot 返回稳定引用：
@@ -151,7 +185,7 @@ export class DocumentStore {
       return false;
     }
 
-    this.commit({ busy: true, error: null, conflict: null });
+    this.commit({ busy: true, error: null, conflict: null, viewMode: 'rich' });
     try {
       const file = await this.provider.readTextFile(path);
       const doc = toDocument(file, (this.sessionCounter += 1));
@@ -178,6 +212,21 @@ export class DocumentStore {
     const doc = this.state.doc;
     if (!doc || doc.text === text) return;
     this.commit({ doc: { ...doc, text } });
+  }
+
+  /**
+   * 切换视图模式（富文本 / 源码）。
+   *
+   * 刻意**不做任何「这个内核支持吗」的判断**：那是外壳的事，而且外壳能从
+   * `EditorAdapter.sourceView` 得到权威答案。store 只管记住用户选了哪一种 ——
+   * 让它去猜内核能力，等于把内核知识漏进了文档模型。
+   *
+   * 没有文档时静默忽略：切视图是纯视图动作，不该在空标签页上报错。
+   */
+  setViewMode(viewMode: ViewMode): void {
+    if (!this.state.doc) return;
+    if (this.state.viewMode === viewMode) return;
+    this.commit({ viewMode });
   }
 
   setEncoding(encoding: string): void {

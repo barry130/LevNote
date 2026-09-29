@@ -19,6 +19,7 @@
 | [0011](./0011-code-kernel-and-graceful-downgrade.md) | 代码内核用 CodeMirror 6；降级要掉到「次优」而不是「最底」 | 已采纳 |
 | [0012](./0012-command-registry.md) | 命令是能力的唯一清单：注册表 + 快捷键 + 命令面板 | 已采纳 |
 | [0013](./0013-lint-alongside-typescript-7.md) | 用 npm 别名让 TS6 与 TS7 并存，使 ESLint 能在 TypeScript 7 上运行 | 已采纳 |
+| [0014](./0014-markdown-source-view.md) | 源码模式：源码视图是适配器属性（不注册进注册表），视图模式住 `StoreState` | 已采纳 |
 
 ## 与其他文档的关系
 

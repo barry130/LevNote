@@ -47,6 +47,7 @@ import { tags as t } from '@lezer/highlight';
 
 import type { CursorPosition, EditorSearch } from '../../core/editor/types.js';
 import { stripInlineMarkup } from '../../core/outline/outline.js';
+import { isMarkdownPath } from '../../core/path.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions, type TextMatch } from '../../core/search/find.js';
 import { extensionOf } from '../../core/path.js';
 
@@ -89,6 +90,16 @@ export interface CodeEditorInstance {
  * 就让用户打不开文件。这也与产品的「轻」一致：不为长尾语言背几十个语法包的体积。
  */
 export function languageForPath(path: string): string {
+  /**
+   * Markdown 家族走 `core/path.ts` 的名单，而不是在这里逐个 `case`。
+   *
+   * 这条路径有两个入口：打开一个 `.md` 源码文件，以及**在 Markdown 文档里
+   * 切到源码视图**（见 `EditorAdapter.sourceView`）。后者尤其不能漏 ——
+   * 漏了 `.mdown` 的表现是「同一个文档，切到源码视图突然没有语法着色」，
+   * 用户会以为源码视图坏了。
+   */
+  if (isMarkdownPath(path)) return 'markdown';
+
   const ext = extensionOf(path);
   switch (ext) {
     case '.js':
@@ -115,9 +126,6 @@ export function languageForPath(path: string): string {
     case '.svg':
     case '.drawio':
       return 'xml';
-    case '.md':
-    case '.markdown':
-      return 'markdown';
     case '.py':
     case '.pyw':
       return 'python';

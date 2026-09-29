@@ -165,6 +165,23 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => ctx.ui.toggleOutline(),
   },
   {
+    id: 'view.toggleSource',
+    title: '切换源码模式',
+    category: '视图',
+    /**
+     * 与 horseMD 的「源码模式切换」同一个键位。
+     *
+     * `Ctrl+/` 在这里是安全的：`isAllowedInEditable` 放行带修饰键的快捷键，
+     * 而 `/` 本身不带修饰键时在编辑器里就是普通输入，不会被抢走。
+     */
+    keybinding: 'Mod+/',
+    keywords: ['source', 'markdown', 'yuanma', '源码', 'markdown source'],
+    // 只有首选内核声明了 `sourceView` 的文档才可用（目前是 Markdown）。
+    // 用禁用而不是隐藏：隐藏会让用户以为这个功能不存在。
+    enabled: (ctx) => ctx.ui.canToggleSourceView(),
+    run: (ctx) => ctx.ui.toggleSourceView(),
+  },
+  {
     id: 'view.cycleTheme',
     title: '切换主题',
     category: '视图',
