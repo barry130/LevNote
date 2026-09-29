@@ -89,6 +89,20 @@ export interface EditorHandle {
    */
   readonly formatting?: EditorFormatting;
   /**
+   * 可选：表格命令面。
+   *
+   * 与 `formatting` 并列而不是塞进去，理由见 `EditorTable` 的注释。
+   * 不实现时外壳不显示表格工具条，也不注册表格相关的命令。
+   */
+  readonly table?: EditorTable;
+  /**
+   * 可选：代码块命令面。
+   *
+   * 与 `table` 并列。不实现时外壳不显示语言选择器面板 ——
+   * 代码块本身仍然照常渲染，只是没法从富文本视图里改它的语言。
+   */
+  readonly codeBlock?: EditorCodeBlock;
+  /**
    * 可选：把光标移到某个标题处（大纲跳转）。
    *
    * 参数是「层级 + 标题文字」而不是「源文档行号」：行号只对
@@ -189,6 +203,7 @@ export type InsertableBlock =
   | 'bulletList'
   | 'orderedList'
   | 'codeBlock'
+  | 'table'
   | 'hr';
 
 /**
@@ -243,6 +258,113 @@ export interface EditorFormatting {
 }
 
 /**
+ * 光标所在表格的状态 —— 表格浮层工具条的输入。
+ *
+ * 只在「光标落在表格里」时非 null。与 `SlashState` 同理：触发条件收窄之后，
+ * 外壳不必每次移动光标都去判断要不要收浮层。
+ */
+export interface TableState {
+  /**
+   * **整张表格**在视口里的包围盒，浮层据此摆放。
+   *
+   * 取整张表而不是光标所在的单元格：用户心里的操作对象是表格，
+   * 浮层跟着单元格跑会在表格里跳来跳去。
+   */
+  readonly anchor: SelectionRect;
+  readonly rows: number;
+  readonly columns: number;
+  /** 光标所在单元格的对齐方式，用来点亮对应的对齐按钮。 */
+  readonly align: TableAlign;
+  /**
+   * 还能不能再删一行 / 一列。
+   *
+   * 表格至少要有一行（表头行），只剩一行时删行是无意义的。
+   * 把它报上来是为了让外壳**把按钮显示成禁用**，而不是给一个点了没反应的按钮 ——
+   * 后者是本项目一直在避免的形态。
+   */
+  readonly canDeleteRow: boolean;
+  readonly canDeleteColumn: boolean;
+}
+
+export type TableAlign = 'left' | 'center' | 'right';
+
+/**
+ * 表格操作。
+ *
+ * 用一个判别字符串而不是九个方法：外壳只说「在下面插一行」，
+ * 至于那一步在 ProseMirror 里叫什么、要不要先改选区，内核自己决定。
+ * 与 `InsertableBlock` 同理 —— 这些是**动作的身份**，不是参数。
+ */
+export type TableOperation =
+  | 'rowBefore'
+  | 'rowAfter'
+  | 'colBefore'
+  | 'colAfter'
+  | 'deleteRow'
+  | 'deleteColumn'
+  | 'deleteTable'
+  | 'exit';
+
+/**
+ * 内核交回给外壳的**表格命令面**。
+ *
+ * 与 `EditorFormatting` 分开而不是并进去：表格能力**只有支持表格的内核才有**，
+ * 而格式化能力是「所有富文本内核都该有」。混在一起会让「这个内核支持表格吗」
+ * 变成一个需要逐方法探测的问题。
+ */
+export interface EditorTable {
+  /** 光标在不在表格里。工具栏的显隐与命令的 `enabled` 都用它。 */
+  isActive(): boolean;
+  run(operation: TableOperation): void;
+  /** 设置光标所在单元格的对齐方式。 */
+  setAlign(align: TableAlign): void;
+}
+
+/**
+ * 代码块语言选择器的状态 —— 那个面板的输入。
+ *
+ * ## 为什么它是**点击触发**，而不是像表格那样「光标一进去就出现」
+ *
+ * 语言标签（代码块右上角那个 `js`）**常驻**在每一个代码块上，不管光标在哪 ——
+ * 那才是它的正常形态（Typora 也是这样）。既然标签一直都在，触发就是
+ * 「用户点了它」，而不是「光标在代码块里」。所以这个状态只在面板真的开着时非 null，
+ * 生命周期与 `TableState`（跟着光标走）不同。
+ *
+ * ## 为什么带 `language` 而不是让外壳自己去 DOM 里读
+ *
+ * 外壳拿不到 `code_block` 的 `attrs.language` —— 那是 ProseMirror 的文档模型，
+ * 外壳不认识它。而标签上显示的文字（`js` / `纯文本`）是**展示口径**，
+ * 不一定等于属性值（空串显示成「纯文本」）。两者都由内核给出，外壳只负责画。
+ */
+export interface CodeBlockState {
+  /** 面板该出现在哪儿（视口坐标），取的是语言标签的矩形。 */
+  readonly anchor: SelectionRect;
+  /** 代码块当前的语言标识；**空串表示未指定**（面板里显示成「纯文本」）。 */
+  readonly language: string;
+}
+
+/**
+ * 内核交回给外壳的**代码块命令面**。
+ *
+ * 与 `EditorTable` 并列而不是并进去，理由相同：只有支持代码块的内核才有它。
+ *
+ * 刻意**不暴露「第几个代码块」**：面板是内核打开的，它自己记着对应哪一个节点。
+ * 一旦把位置交给外壳，外壳就得替内核保管一个文档坐标 —— 而那个坐标会随着
+ * 用户在前面打字而失效，外壳既不知道什么时候失效，也没法自己修。
+ */
+export interface EditorCodeBlock {
+  /**
+   * 设置语言并关闭面板。
+   *
+   * **空串 = 清除语言**（回到 ```` ``` ```` 这种没有 info string 的围栏），
+   * 而不是「什么都不做」—— 面板上的「纯文本」那一项就是它。
+   */
+  setLanguage(language: string): void;
+  /** 关闭面板（Esc / 点面板外面 / 滚动）。 */
+  close(): void;
+}
+
+/**
  * 挂载一个内核所需的全部输入。
  *
  * **回调一律用属性签名**（`onChange: (v: string) => void`），不用方法简写
@@ -292,12 +414,40 @@ export interface EditorMountProps {
    * 合成一个的话，外壳每次移动光标都要重新判断「要不要收菜单」。
    */
   onSlashChange?: (state: SlashState | null) => void;
+  /**
+   * 表格状态变化。可选 —— 不实现的内核，外壳就不显示表格工具条。
+   *
+   * 与 `onSelectionChange` 分开，理由相同：表格工具条在**光标塌缩**时也要出现
+   * （用户点进某个单元格），而选中工具条只在有选中文字时出现。
+   */
+  onTableChange?: (state: TableState | null) => void;
+  /**
+   * 代码块语言选择器的状态变化。可选 —— 不实现的内核，外壳就不显示这个面板。
+   *
+   * 与 `onTableChange` 分开：那个跟着光标走，这个由**点击语言标签**触发
+   * （标签常驻在每个代码块上，与光标在不在里面无关，理由见 `CodeBlockState`）。
+   */
+  onCodeBlockChange?: (state: CodeBlockState | null) => void;
   /** 编辑器报错（内核初始化失败等），交给外壳呈现。 */
   onError?: (error: Error) => void;
   readOnly?: boolean;
   placeholder?: string;
   /** 视图偏好：软换行。不适用的内核忽略即可。 */
   wordWrap?: boolean;
+  /**
+   * 视图偏好：代码块是否显示行号。不适用的内核忽略即可。
+   *
+   * 与 `wordWrap` 同属「视图偏好」，但**用法不同**：软换行要内核真的换一种编辑行为，
+   * 而行号纯粹是画出来的东西。所以内核读它只为了**选一个类名**
+   * （`MarkdownEditor` 给 `.qm-editor` 挂上 `qm-no-line-numbers`），
+   * 行号槽本身照建不误、由 CSS 负责显隐。
+   *
+   * 这样做换来的是「改这个偏好不需要重建内核」：重建会丢掉光标、滚动位置与撤销栈，
+   * 而用户只是在面板上勾了一个框。代价是关掉行号时那一列 DOM 仍然存在 ——
+   * 每个行号是一个空 `div`，实测在几千行的代码块上仍是可忽略的开销；
+   * 若将来它真的成为瓶颈，重审条件是「把它挪进内核并强制重绘 NodeView」。
+   */
+  codeLineNumbers?: boolean;
 }
 
 export type EditorComponent = ComponentType<EditorMountProps>;

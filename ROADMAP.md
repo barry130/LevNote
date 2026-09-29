@@ -50,17 +50,20 @@
 
 ### 主包体积（第 18 项的起点数据）
 
-`npx vite build` 的实测产出（2026-09-29，M4 之后）：
+`npx vite build` 的实测产出（2026-09-29，M5 之后）：
 
 ```
-dist/assets/index-BU_XDXo0.js    1,680.13 kB │ gzip: 559.55 kB
-dist/assets/index-JNieFIhK.css      20.63 kB │ gzip:   4.91 kB
+dist/assets/index-KstM1k7N.js    1,695.08 kB │ gzip: 564.07 kB
+dist/assets/index-UQD5pg-Q.css      24.17 kB │ gzip:   5.35 kB
 ```
 
-> M3 结束时是 `1,675.62 kB / gzip 558.41 kB`（CSS `19.30 / 4.67`）。
-> M4 的增量是 **+4.51 kB / gzip +1.14 kB**（斜杠菜单组件 + 触发判定 + 菜单样式）。
-> **同样没有引入任何新依赖** —— 九个可插入的块全部走已经挂载的
-> `commonmark` / `gfm` 预设命令。
+> M4 结束时是 `1,680.13 kB / gzip 559.55 kB`（CSS `20.63 / 4.91`）。
+> **M5 的增量是 +14.95 kB / gzip +4.52 kB，CSS +3.54 kB / gzip +0.44 kB** ——
+> 比 M4 的 +4.51 kB 大，因为这一批是**两件事**（表格工具条 + 代码块
+> NodeView 与语言选择器），而且语言选择器自带一张约 35 种语言的
+> 中文名 + 拼音关键词表。
+> **仍然没有引入任何新依赖**（这一点在 M5 是刻意守住的 —— 官方组件会带进 Vue 3，
+> 见 ADR 0017）。
 
 **已经超过 Vite 的 500 kB 警戒线。** 这不是「要不要优化」的问题 —— 一个
 「轻量桌面编辑器」让 WebView 在启动时解析 1.7 MB JS，与定位直接冲突。
@@ -182,16 +185,103 @@ lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，所以「`tsc` 通过」不等于
 | M2 | **源码模式切换（Ctrl+/）** | ✅ | ADR 0014。源码视图复用代码内核，**没有引入新依赖** |
 | M3 | **选中工具条（bubble menu）** | ✅ | ADR 0015。内核只上报选区状态与屏幕位置，浮层由外壳画；**没有引入新依赖** |
 | M4 | **斜杠菜单（`/` 插入块）** | ✅ | ADR 0016。触发判定留在内核、菜单与键盘在外壳；**没有引入新依赖** |
-| M5 | 表格增强 + 代码块（语言选择器 / 行号） | ⏳ | `kit/component/table-block` + `code-block` |
+| M5 | 表格增强 + 代码块（语言选择器 / 行号） | ✅ | ADR 0017。**自研两半，不引入官方 Vue 版组件** |
 | M6 | 图片：粘贴落盘 + 相对路径解析 + 灯箱 | ⏳ | 与 P3 第 13 项同源 |
 | M7 | LaTeX 数学公式（KaTeX） | ⏳ | 新依赖；**必须内联 KaTeX 的 CSS 与字体**才能保证自包含导出 |
 | M8 | Mermaid 图表（懒加载 + 全屏查看） | ⏳ | 大依赖，必须动态 import，不能进主包 |
 | M9 | 文档位置记忆（光标 / 滚动）+ 设置页 | ⏳ | 与 P3 第 12、15 项同源 |
 
-**M1 – M4 已完成**，共同点是**没有引入任何新依赖** ——
-`@milkdown/kit` 已经带齐了大部分能力，M5 同样不需要新包。
+**M1 – M5 已完成**，共同点是**没有引入任何新依赖** ——
+`@milkdown/kit` 已经带齐了大部分能力，M5 也没有破例（**这是一个刻意的选择，见下**）。
 只有 M7（KaTeX）与 M8（Mermaid）会真的加依赖，那两项要先解决「自包含导出」与
 「不拖累主包体积」这两个约束再动手。
+
+### M5 的收尾状态（表格增强 + 代码块，ADR 0017）
+
+**先说一件在动手之前查清、并且改变了做法的事**：`ROADMAP` 原先写的是
+「用 `kit/component/table-block` + `code-block`」，但去读 `node_modules` 之后发现
+**`@milkdown/components` 是 Vue 3 的**。
+
+- 它的 peer 里明确要 `vue@^3.5.20`，`code-block` 的 NodeView 直接 `createApp(...)`，
+  还在 ProseMirror 的文档树里内嵌一个 **CodeMirror 6 实例**；
+- 还会顺带拉进 `@floating-ui/dom` / `clsx` / `dompurify` / `lodash-es` / `nanoid`，
+  以及 `plugin-diff`、`plugin-tooltip` —— 后两者在本项目里是**已经被 ADR 明确否掉的**。
+
+采用它意味着：项目里出现第二套 UI 框架、编辑器的高亮管线被换成另一条
+（导出用的还是 hljs，两边从此不同源）、以及一条被否过的依赖回归。
+**所以两半都自己写。** 完整取舍与四条重审条件在 ADR 0017。
+
+#### 表格（走装饰，不走 NodeView）
+
+三条结论是**读 Milkdown 源码 + 实测**得到的，都不是推测：
+
+1. **最小表格是 2 行**（`table_header_row` + 至少一个 `table_row`）。
+   空表头行在序列化时被**静默丢掉**（`tableHeaderRowSchema.toMarkdown` 里
+   `if (node.content.size === 0) return;`）—— 所以「插入表格」不能只给表头。
+2. **对齐是按列、且由表头决定的**：`tableSchema.toMarkdown` 用**第一行**的单元格
+   拼出对齐串，`keepTableAlignPlugin` 再把表头的 `alignment` 抄给同列的每个单元格。
+   因此「给某一列设对齐」必须**写整列**，只写光标所在格会在存盘时丢掉。
+3. `TableRole` 只有 `table | row | cell | header_cell`，**没有 `header_row`** ——
+   表头行和正文行共用 `row`。想按「这是第几行」判断必须自己数。
+
+界面侧：`describeTable()` 把光标处的表格状态（行列数、当前对齐、能不能删）
+算成纯数据交给外壳，`TableToolbar` 只负责画。**内核不认识 React，外壳不认识 ProseMirror。**
+
+#### 代码块（走 NodeView，因为行号需要真 DOM）
+
+行号做不到用行内装饰：装饰只能改字符的样式，造不出块边界，也点不中空行。
+语言标签同理 —— 它得**常驻在块上**，而不是随光标出现。
+
+NodeView 里有三处是**不能省的**，写错了会以很难查的方式坏掉：
+
+- **`contentDOM` 必须指向 `<code>`**，否则高亮装饰不会落进代码区（已用探针确认
+  装饰仍然照常落在自定义 `contentDOM` 内部 —— 这是选 NodeView 而不是换掉
+  高亮管线的前提）；
+- **`renderChrome()` 先比差再碰 DOM**：打字时行号会重算，但只有在**行数真的变了**
+  时才写 DOM。不然每敲一个字都产生一批 mutation；
+- **`ignoreMutation` 要把 `attributes` 一律放过**：我们自己改类名/属性，
+  不放过会被 ProseMirror 当成用户改文档。
+
+#### 顺手修掉一条会静默丢数据的路径
+
+语言选择器的**语言标签是个按钮，点它不产生键盘事件** ——
+与 M3 的浮层按钮、查找替换是同一个问题：内核的变更上报只在「刚发生过用户输入」
+的窗口内工作，所以 `setLanguage` 必须自己打 `USER_EDIT_META`。
+否则改完语言按 Ctrl+S，界面显示「已保存」，写回磁盘的是改语言之前的文本。
+
+同时加了一条**空操作守卫**：`setLanguage` 在语言没变时直接返回。
+`setNodeAttribute` 即使写入同值也会让文档变脏 —— 点一下「当前语言」那一行
+就把文件标成待保存，用户会以为误触了什么。
+
+#### 面板怎么拿到「改哪个块」
+
+面板**不持有文档坐标**。它拿到的是一次性的 `token` 加一个 `resolvePos()`，
+真正写之前才重新解析位置（ProseMirror 的 `getPos()`）。
+原因是 `setNodeAttribute` **不做类型检查**：位置一旦过期，它会把语言写到
+**另一个节点**上，而且**不报错**。
+
+> 这条是踩出来的：第一版存的是裸 `pos`，`setMarkdown` 换掉整篇文档之后，
+> 再设语言就写到了一个无关的段落上，测试表现为「什么都没发生」。
+> 改成 `resolvePos` 之后这个坑从设计上消失了。
+
+#### 视图偏好不重建内核
+
+「显示行号」是一个 **class 名**（`.qm-editor.qm-no-line-numbers`），
+行号槽照建不误、由 CSS 负责显隐。这样翻转开关**不会重建内核** ——
+光标、滚动位置、撤销栈全部保留。
+
+#### 测试
+
+- `modules/markdown/code-block.test.ts` **29 条**（`lineCount` 的口径、
+  NodeView 的 DOM 与 mutation 行为、面板的开关与写入）；
+- `modules/markdown/table.test.ts` **27 条**（`describeTable` 的六种光标位置、
+  对齐写整列、序列化往返）；
+- `App.test.tsx` 表格工具条 **12 条** + 代码块语言选择器 **14 条**；
+- `ui/floating.test.ts` **12 条（新建）** —— 浮层摆放算术此前内联在工具条与斜杠菜单里，
+  本次提取成纯函数，第一次有了单测；顺带加了 `horizontal: 'end'`（右对齐）。
+
+**尚未做、且只有人能做的**：面板在真实 WebView 里的几何（同 M3 / M4）——
+jsdom 没有布局引擎，`getBoundingClientRect()` 全是 0。
 
 ### M4 的收尾状态（斜杠菜单，ADR 0016）
 

@@ -38,6 +38,18 @@
   --qm-sans: 'Segoe UI', system-ui, -apple-system, 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
   --qm-mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, 'Sarasa Mono SC', 'Menlo', 'Courier New', monospace;
 
+  /*
+   * 代码的排版参数单独抽出来，是因为**编辑器的行号槽必须与代码逐行对齐**。
+   * 行号槽是编辑器独有的（导出没有行号），它不在这份文件里 ——
+   * 但它要和这里的字号、行高完全一致，否则第 2 行的号码会慢慢跑到第 3 行旁边。
+   * 两处都读同一组变量，就不会有一天只改了一边。
+   *
+   * 注意 `em` 是在**使用处**求值的：这两个值最终分别落在 `<code>` 与行号槽上，
+   * 而两者的父元素字号都是 `.qm-doc` 的字号，所以算出来一样大。
+   */
+  --qm-code-font-size: 0.86em;
+  --qm-code-line-height: 1.65;
+
   color: var(--qm-ink);
   font-family: var(--qm-sans);
   font-size: 15px;
@@ -219,8 +231,8 @@
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.86em;
-  line-height: 1.65;
+  font-size: var(--qm-code-font-size);
+  line-height: var(--qm-code-line-height);
   white-space: pre;
   tab-size: 2;
 }

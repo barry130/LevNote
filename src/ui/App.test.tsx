@@ -1067,6 +1067,7 @@ describe('斜杠菜单', () => {
       '有序列表',
       '引用',
       '代码块',
+      '表格',
       '分隔线',
     ]);
   });
@@ -1196,5 +1197,461 @@ describe('斜杠菜单', () => {
 
     expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
     expect(slashMenuOf(mounted.container)).toBeNull();
+  });
+});
+
+describe('表格工具条', () => {
+  /**
+   * 这一组打的是「光标在表格里 → 外壳画工具条 → 点一下 → 文件内容真的变了」。
+   *
+   * 与选中浮层 / 斜杠菜单同一条架构：**内核只报状态与几何，外壳画界面**。
+   * 所以这里要验两件事，缺一条这个功能都不成立：
+   * - 工具条出现/消失的**条件**完全由内核上报的状态决定（不是外壳猜的）；
+   * - 每一次点击都写进文档、并让文档变脏（少一步就是「点了没反应」或「保存丢改动」）。
+   */
+
+  /** 表头行 + 两行正文。 */
+  const TABLE = '| A | B | C |\n| - | - | - |\n| a | b | c |\n| d | e | f |\n';
+
+  function tableToolbarOf(container: HTMLElement): HTMLElement | null {
+    return container.querySelector('.table-toolbar');
+  }
+
+  /**
+   * 工具条上的按钮。
+   *
+   * 与 `mounted.click` 不同，这里要的是**元素**而不是「点一下」——
+   * 「按钮被禁用而不是被隐藏」这条断言必须能看到那个禁用按钮。
+   */
+  function tableButton(container: HTMLElement, label: string): HTMLButtonElement | null {
+    const found = [...container.querySelectorAll<HTMLButtonElement>('.table-toolbar .tt-btn')].find(
+      (item) => item.textContent?.trim() === label,
+    );
+    return found ?? null;
+  }
+
+  async function clickTableButton(container: HTMLElement, label: string): Promise<void> {
+    const button = tableButton(container, label);
+    if (button === null) throw new Error(`找不到表格工具条按钮：${label}`);
+    await act(async () => {
+      button.click();
+    });
+    await nextFrame();
+    await settle();
+  }
+
+  /**
+   * 文档里当前的表格行数（含分隔行）。
+   *
+   * 不从 DOM 数 `<tr>` —— 这里要断言的是**存出来的 markdown** 有几行，
+   * DOM 里有几行是另一回事（M5 踩过的坑：删表头行时两者会不一致）。
+   */
+  function markdownRows(): number {
+    const text = mounted?.store.getSnapshot().doc?.text ?? '';
+    return text.split('\n').filter((line) => line.trim().startsWith('|')).length;
+  }
+
+  it('光标在表格里时浮出工具条，并且是编辑器区域的兄弟节点', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+
+    const toolbar = tableToolbarOf(mounted.container);
+    expect(toolbar).not.toBeNull();
+    // 与选中工具条同一条理由：放进内核挂载的那层容器会被内核挂载时抹掉
+    expect(toolbar?.parentElement?.classList.contains('editor-area')).toBe(true);
+    expect(toolbar?.getAttribute('role')).toBe('toolbar');
+  });
+
+  it('打开表格不会让文档变脏 —— 工具条只是浮出来，没有改任何东西', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+
+    expect(tableToolbarOf(mounted.container)).not.toBeNull();
+    expect(statusOf(mounted.container)).toBe('已保存');
+  });
+
+  it('光标不在表格里时没有工具条', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文\n'));
+    await mounted.open('note.md');
+
+    expect(tableToolbarOf(mounted.container)).toBeNull();
+  });
+
+  it('切到源码视图后工具条消失 —— 底下坐着的是代码内核，它没有表格能力', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+    expect(tableToolbarOf(mounted.container)).not.toBeNull();
+
+    await mounted.click('源码');
+
+    expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
+    expect(tableToolbarOf(mounted.container)).toBeNull();
+  });
+
+  it('点「行↓」加一行，文档变脏', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+    expect(markdownRows()).toBe(4);
+
+    await clickTableButton(mounted.container, '行↓');
+
+    expect(markdownRows()).toBe(5);
+    // 这一条是「静默丢数据」的守门人：不报给外壳的话，按 Ctrl+S 存回磁盘的是加行之前的文件
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+  });
+
+  it('点「列→」加一列', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+
+    await clickTableButton(mounted.container, '列→');
+
+    const delimiter = (mounted.store.getSnapshot().doc?.text ?? '').split('\n')[1] ?? '';
+    expect(delimiter.split('|').filter((cell) => cell.trim() !== '')).toHaveLength(4);
+  });
+
+  it('点「中」把**整列**居中 —— 分隔行里出现 `:-:`', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+
+    await clickTableButton(mounted.container, '中');
+
+    const text = mounted.store.getSnapshot().doc?.text ?? '';
+    expect(text).toContain(':-:');
+    expect(tableButton(mounted.container, '中')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('只剩两行时「行✕」是禁用的，并且说明了原因', async () => {
+    mounted = await mount((p) => p.put('note.md', '| A | B |\n| - | - |\n| a | b |\n'));
+    await mounted.open('note.md');
+
+    const button = tableButton(mounted.container, '行✕');
+    // 禁用而不是隐藏：按钮消失会让「行↓」突然挪位，用户下一次会点错
+    expect(button).not.toBeNull();
+    expect(button?.disabled).toBe(true);
+    expect(button?.title).toContain('表头行');
+  });
+
+  it('只剩一列时「列✕」是禁用的', async () => {
+    mounted = await mount((p) => p.put('note.md', '| A |\n| - |\n| a |\n'));
+    await mounted.open('note.md');
+
+    const button = tableButton(mounted.container, '列✕');
+    expect(button).not.toBeNull();
+    expect(button?.disabled).toBe(true);
+  });
+
+  it('点「删表」之后表格从文档里没了，工具条也跟着消失', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+
+    await clickTableButton(mounted.container, '删表');
+
+    const text = mounted.store.getSnapshot().doc?.text ?? '';
+    expect(text).not.toContain('|');
+    expect(tableToolbarOf(mounted.container)).toBeNull();
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+  });
+
+  it('点「退出」把光标移到表格之后，工具条消失', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+
+    await clickTableButton(mounted.container, '退出');
+
+    expect(tableToolbarOf(mounted.container)).toBeNull();
+    // 表格本身还在 —— 「退出」只挪光标，不该动内容
+    expect(mounted.store.getSnapshot().doc?.text).toContain('| a | b | c |');
+  });
+
+  it('鼠标按下被拦下 —— 否则焦点离开编辑器，工具条会在 click 到达按钮之前消失', async () => {
+    mounted = await mount((p) => p.put('note.md', TABLE));
+    await mounted.open('note.md');
+
+    const button = tableButton(mounted.container, '行↓');
+    expect(button).not.toBeNull();
+
+    let prevented = false;
+    await act(async () => {
+      const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      button?.dispatchEvent(event);
+      prevented = event.defaultPrevented;
+    });
+
+    expect(prevented).toBe(true);
+    // 而且光标仍然在表格里，工具条还在
+    expect(tableToolbarOf(mounted.container)).not.toBeNull();
+  });
+});
+
+describe('代码块语言选择器', () => {
+  /**
+   * 这一组打的是「点代码块右上角那个语言标签 → 外壳画面板 → 选一个 → 文件内容真的变了」。
+   *
+   * 与表格工具条同一条架构（内核只报状态与几何，外壳画界面），但**触发方式相反**：
+   * 表格工具条跟着光标走，这个面板是点出来的 —— 语言标签常驻在每个代码块上。
+   * 所以这里要额外验一件事：**光标在代码块里不该弹出面板**。
+   */
+
+  /** 表头行 + 一行正文，语言是 js。 */
+  const CODE = '```js\nlet a = 1;\n```\n';
+
+  function pickerOf(container: HTMLElement): HTMLElement | null {
+    return container.querySelector('.cb-picker');
+  }
+
+  function badgeOf(container: HTMLElement): HTMLButtonElement {
+    const badge = container.querySelector<HTMLButtonElement>('.qm-cb-lang');
+    if (badge === null) throw new Error('找不到代码块的语言标签');
+    return badge;
+  }
+
+  function searchBox(container: HTMLElement): HTMLInputElement {
+    const input = container.querySelector<HTMLInputElement>('.cb-picker .cb-search');
+    if (input === null) throw new Error('找不到语言搜索框');
+    return input;
+  }
+
+  /** 面板里列出来的候选项文字（不含右侧的语言标识）。 */
+  function pickerRows(container: HTMLElement): string[] {
+    return [...container.querySelectorAll('.cb-picker .cb-item .cb-label')].map(
+      (item) => item.textContent?.trim() ?? '',
+    );
+  }
+
+  async function openPicker(container: HTMLElement): Promise<void> {
+    const badge = badgeOf(container);
+    await act(async () => {
+      badge.click();
+    });
+    await nextFrame();
+  }
+
+  /** 改搜索框的值。React 受控输入必须走原型上的原生 setter，理由见「点链接」那条用例。 */
+  async function search(container: HTMLElement, text: string): Promise<void> {
+    const input = searchBox(container);
+    await act(async () => {
+      const setNativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.bind(input);
+      setNativeValue?.(text);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await nextFrame();
+  }
+
+  async function pressKey(container: HTMLElement, key: string): Promise<void> {
+    const input = searchBox(container);
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    });
+    await nextFrame();
+  }
+
+  async function clickRow(container: HTMLElement, label: string): Promise<void> {
+    const row = [...container.querySelectorAll<HTMLButtonElement>('.cb-picker .cb-item')].find(
+      (item) => item.querySelector('.cb-label')?.textContent?.trim() === label,
+    );
+    if (!row) throw new Error(`找不到候选项：${label}`);
+    await act(async () => {
+      row.click();
+    });
+    await nextFrame();
+    await settle();
+  }
+
+  it('光标在代码块里也不会自己弹出面板 —— 它是点出来的', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+
+    // 代码块与语言标签都在，但面板没开
+    expect(mounted.container.querySelector('.qm-cb-lang')).not.toBeNull();
+    expect(pickerOf(mounted.container)).toBeNull();
+  });
+
+  it('点语言标签弹出面板，并且是编辑器区域的兄弟节点', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+
+    await openPicker(mounted.container);
+
+    const panel = pickerOf(mounted.container);
+    expect(panel).not.toBeNull();
+    // 与其余三个浮层同一条理由：放进内核挂载的那层容器会被内核挂载时抹掉
+    expect(panel?.parentElement?.classList.contains('editor-area')).toBe(true);
+    expect(panel?.getAttribute('role')).toBe('dialog');
+  });
+
+  it('打开面板不会让文档变脏 —— 它只是浮出来，没有改任何东西', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+
+    await openPicker(mounted.container);
+
+    expect(statusOf(mounted.container)).toBe('已保存');
+  });
+
+  it('列出候选语言，并把当前语言标出来', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    const rows = pickerRows(mounted.container);
+    expect(rows).toContain('纯文本');
+    expect(rows).toContain('JavaScript');
+    // ```` ```js ```` 的正式标识是 `javascript`，所以「当前」那一行是补出来的
+    expect(mounted.container.querySelector('.cb-item.current .cb-label')?.textContent?.trim()).toBe('js');
+  });
+
+  it('打字就是筛选', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    await search(mounted.container, 'rust');
+
+    expect(pickerRows(mounted.container)).toEqual(['Rust']);
+  });
+
+  it('输入 hljs 不认识的语言时，仍然能原样选它', async () => {
+    /*
+     * `mermaid` 是 M8 要用的语言，hljs 不认识它（`highlightCode` 会退回自动识别）。
+     * 面板不提供「原样使用」这一项的话，用户就被卡住了 ——
+     * 列表里找不到，也没有别的入口能写进去。
+     */
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    await search(mounted.container, 'mermaid');
+
+    expect(pickerRows(mounted.container)).toContain('使用 “mermaid”');
+
+    await clickRow(mounted.container, '使用 “mermaid”');
+
+    expect(mounted.store.getSnapshot().doc?.text).toContain('```mermaid');
+    expect(badgeOf(mounted.container).textContent?.trim()).toBe('mermaid');
+  });
+
+  it('选一个语言：文档真的变了、变脏了，面板也收起来', async () => {
+    mounted = await mount((p) => p.put('note.md', '```\nlet a = 1;\n```\n'));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    await clickRow(mounted.container, 'Rust');
+
+    expect(mounted.store.getSnapshot().doc?.text).toBe('```rust\nlet a = 1;\n```\n');
+    // 不报给外壳的话，按 Ctrl+S 存回磁盘的还是改之前那份
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+    expect(pickerOf(mounted.container)).toBeNull();
+  });
+
+  it('选「纯文本」清掉语言，围栏退回没有标识的样子', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    await clickRow(mounted.container, '纯文本');
+
+    expect(mounted.store.getSnapshot().doc?.text).toBe('```\nlet a = 1;\n```\n');
+    expect(badgeOf(mounted.container).textContent?.trim()).toBe('纯文本');
+  });
+
+  it('Esc 收起面板，不删也不改任何东西', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    await pressKey(mounted.container, 'Escape');
+
+    expect(pickerOf(mounted.container)).toBeNull();
+    expect(mounted.store.getSnapshot().doc?.text).toBe(CODE);
+    expect(statusOf(mounted.container)).toBe('已保存');
+  });
+
+  it('点面板外面收起面板', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    // 面板是 `container` 的后代，所以点在 `container` 上就是「点在外面」。
+    // 先取到局部常量：`mounted` 的类型是 `Mounted | null`，
+    // 在回调里 TS 收不回上面的收窄
+    const host = mounted.container;
+    await act(async () => {
+      host.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    });
+    await nextFrame();
+
+    expect(pickerOf(mounted.container)).toBeNull();
+  });
+
+  it('滚动编辑器会收起面板 —— 否则它会停在原地和标签分家', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    const scroller = mounted.container.querySelector('.qm-editor');
+    await act(async () => {
+      scroller?.dispatchEvent(new Event('scroll'));
+    });
+    await nextFrame();
+
+    expect(pickerOf(mounted.container)).toBeNull();
+  });
+
+  it('「显示行号」开关只改视图，不碰文档', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+
+    // 默认是开：行号槽在，而且没有那个关掉它的类名
+    expect(mounted.container.querySelectorAll('.qm-cb-num').length).toBe(1);
+    const editor = mounted.container.querySelector('.qm-editor');
+    expect(editor?.classList.contains('qm-no-line-numbers')).toBe(false);
+
+    await openPicker(mounted.container);
+    const toggle = mounted.container.querySelector<HTMLInputElement>('.cb-toggle input');
+    expect(toggle).not.toBeNull();
+    expect(toggle?.checked).toBe(true);
+
+    await act(async () => {
+      toggle?.click();
+    });
+    await nextFrame();
+
+    expect(editor?.classList.contains('qm-no-line-numbers')).toBe(true);
+    // 行号槽仍然在 DOM 里（只是不画了），而文档一个字都没变
+    expect(mounted.container.querySelectorAll('.qm-cb-num').length).toBe(1);
+    expect(mounted.store.getSnapshot().doc?.text).toBe(CODE);
+    expect(statusOf(mounted.container)).toBe('已保存');
+  });
+
+  it('切到源码视图后面板消失 —— 底下坐着的是代码内核，它没有代码块能力', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+    expect(pickerOf(mounted.container)).not.toBeNull();
+
+    await mounted.click('源码');
+
+    expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
+    expect(pickerOf(mounted.container)).toBeNull();
+  });
+
+  it('候选项拦掉 mousedown —— 否则焦点先离开输入框，面板会在 click 到达之前卸载', async () => {
+    mounted = await mount((p) => p.put('note.md', CODE));
+    await mounted.open('note.md');
+    await openPicker(mounted.container);
+
+    const row = mounted.container.querySelector<HTMLButtonElement>('.cb-picker .cb-item');
+    expect(row).not.toBeNull();
+
+    let prevented = false;
+    await act(async () => {
+      const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      row?.dispatchEvent(event);
+      prevented = event.defaultPrevented;
+    });
+
+    expect(prevented).toBe(true);
+    expect(pickerOf(mounted.container)).not.toBeNull();
   });
 });

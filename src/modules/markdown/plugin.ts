@@ -11,15 +11,16 @@ import type { Node as ProseNode } from '@milkdown/kit/prose/model';
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
 
-import type { CursorPosition, SelectionSnapshot, SlashState } from '../../core/editor/types.js';
+import type { CursorPosition, SelectionSnapshot, SlashState, TableState } from '../../core/editor/types.js';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { highlightCode } from '../../core/highlight/hljs.js';
-import { anchorOf, caretAnchorOf, describeSelection, describeSlash } from './selection.js';
+import { anchorOf, caretAnchorOf, describeSelection, describeSlash, describeTable } from './selection.js';
 
 const highlightKey = new PluginKey<DecorationSet>('qingmo-code-highlight');
 const cursorKey = new PluginKey('qingmo-cursor-reporter');
 const selectionKey = new PluginKey('qingmo-selection-reporter');
 const slashKey = new PluginKey('qingmo-slash-reporter');
+const tableKey = new PluginKey('qingmo-table-reporter');
 const emitKey = new PluginKey('qingmo-markdown-emit');
 const placeholderKey = new PluginKey('qingmo-placeholder');
 
@@ -255,6 +256,16 @@ export function slashReporterPlugin(getReporter: () => ((state: SlashState | nul
   );
 }
 
+/**
+ * 表格工具条的上报：整张表格的包围盒 + 行列数 + 对齐方式。
+ *
+ * 与选中工具条共用同一套骨架（`floatingReporterPlugin`），所以这里只有一行 ——
+ * 三处浮层的差别全在 `read` 里。这正是把骨架抽出来的收益。
+ */
+export function tableReporterPlugin(getReporter: () => ((state: TableState | null) => void) | undefined) {
+  return $prose(() => floatingReporterPlugin<TableState>(tableKey, describeTable, getReporter));
+}
+
 // ---------------------------------------------------------------------------
 // 变更上报
 // ---------------------------------------------------------------------------
@@ -306,6 +317,22 @@ export const USER_EDIT_META = 'qingmo-user-edit';
  * 打字、输入法上屏、粘贴、剪切、拖放、以及撤销/重做快捷键。
  * 其余一切（初始化、`setMarkdown`、trailing 补段落、任何插件自己的事务）都不上报。
  *
+ * ## `beforeinput` 不能省 —— 它是唯一能保证「早于事务」的那个事件
+ *
+ * 一开始这里只监听 `input`，结果**用户敲的第一个字存不进磁盘**：界面显示「已保存」，
+ * 文件里却没有那个字。原因是 ProseMirror **并不监听 `input` 事件** ——
+ * 它是靠 `MutationObserver` 读 DOM 变更、自己派发事务的。
+ * `input` 到达时那次事务可能早就派发完了（实测在 jsdom 里必然如此：
+ * MutationObserver 的回调是微任务，先于任何事件派发跑完），
+ * 于是 `armedByUser` 还是 false，这次输入被安静地丢掉。
+ *
+ * 而且它是**攒着的**：第一次丢掉之后 `arm()` 才把标志置上，
+ * 于是从第二次输入开始一切正常 —— 这种「只错第一次」的 bug 极难在人工测试里发现。
+ *
+ * `beforeinput` 按规范在**修改 DOM 之前**派发，所以它一定早于那次事务。
+ * `input` 保留着是因为它是补充（不是所有输入路径都发 `beforeinput`），
+ * 而且置一个布尔值是幂等的。
+ *
  * 这个规则还有个附带好处：上报是**同步**的（`state.apply` 在 `dispatch` 里跑），
  * 外壳拿到内容的时间和用户按键是同一个事件循环，不会出现「输入完 200ms 才变脏」的迟滞。
  */
@@ -325,6 +352,10 @@ export function markdownEmitPlugin(
     props: {
       // 全部返回 false = 只是旁听，不拦截事件，ProseMirror 自己的处理照常进行。
       handleDOMEvents: {
+        beforeinput: () => {
+          arm();
+          return false;
+        },
         input: () => {
           arm();
           return false;

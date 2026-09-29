@@ -18,9 +18,12 @@ function MarkdownEditor({
   onCursorChange,
   onSelectionChange,
   onSlashChange,
+  onTableChange,
+  onCodeBlockChange,
   onError,
   readOnly,
   placeholder,
+  codeLineNumbers = true,
 }: EditorMountProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
@@ -34,6 +37,10 @@ function MarkdownEditor({
   onSelectionChangeRef.current = onSelectionChange;
   const onSlashChangeRef = useRef(onSlashChange);
   onSlashChangeRef.current = onSlashChange;
+  const onTableChangeRef = useRef(onTableChange);
+  onTableChangeRef.current = onTableChange;
+  const onCodeBlockChangeRef = useRef(onCodeBlockChange);
+  onCodeBlockChangeRef.current = onCodeBlockChange;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -61,6 +68,8 @@ function MarkdownEditor({
           onCursorChange: (position) => onCursorChangeRef.current?.(position),
           onSelectionChange: (selection) => onSelectionChangeRef.current?.(selection),
           onSlashChange: (state) => onSlashChangeRef.current?.(state),
+          onTableChange: (state) => onTableChangeRef.current?.(state),
+          onCodeBlockChange: (state) => onCodeBlockChangeRef.current?.(state),
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），
@@ -79,6 +88,8 @@ function MarkdownEditor({
           toHtml: async () => created.toHtml(),
           search: created.search,
           formatting: created.formatting,
+          table: created.table,
+          codeBlock: created.codeBlock,
           goToOutlineItem: ({ level, text }) => created.goToHeading(level, text),
         };
         onReadyRef.current(handle);
@@ -96,7 +107,10 @@ function MarkdownEditor({
     // 外部内容变更一律走 handle.setValue，改这个组件的 key 才会重建。
   }, []);
 
-  return <div ref={mountRef} className="qm-editor" />;
+  // 行号的显隐只是一个类名：行号槽由 NodeView 建好之后不再变动，
+  // 关掉它只是让 CSS 不画。所以这个偏好**不需要**进上面那个 effect 的依赖表 ——
+  // 改它不会重建内核，光标、滚动位置、撤销栈都原样保留
+  return <div ref={mountRef} className={codeLineNumbers ? 'qm-editor' : 'qm-editor qm-no-line-numbers'} />;
 }
 
 export default MarkdownEditor;

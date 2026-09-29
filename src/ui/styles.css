@@ -1202,3 +1202,210 @@ body {
   font: 12px/1 var(--sans);
 }
 
+/* ---------------------------------------------------------------------------
+   表格工具条（光标落进表格时浮出）
+   ---------------------------------------------------------------------------
+   层级定在 **29**，比浮层工具条 / 斜杠菜单（30）低一层。
+
+   这个数字不是随手取的：表格工具条是**常驻**的（光标在表格里它就在），
+   而选中工具条和斜杠菜单是**用户此刻正在操作**的东西。两者的位置会重叠 ——
+   在一个三行小表格的格子里打 `/`，斜杠菜单会从格子往下伸、盖到表格下方的
+   工具条上。重叠时必须让用户正在用的那个在上面，否则菜单会被自己的工具条
+   压掉一半，而键盘高亮还在那一半里。 */
+
+.table-toolbar {
+  position: fixed;
+  z-index: 29;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  /* 浮层自己不该被选中 */
+  user-select: none;
+}
+
+.tt-row {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/* 比 `.st-btn` 矮 2px：这里两行共 11 个按钮，而它盖在表格上 */
+.tt-btn {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: 12px/1 var(--sans);
+  cursor: pointer;
+}
+
+.tt-btn:hover:not(:disabled) {
+  background: var(--surface-sunken);
+}
+
+.tt-btn:focus-visible {
+  outline: 2px solid var(--bamboo);
+  outline-offset: 1px;
+}
+
+/* 不能删的时候按钮**留在原地变灰**，而不是消失 ——
+   消失会让「行↓」在只剩一行时突然挪位，用户下一次就会点错 */
+.tt-btn:disabled {
+  color: var(--slate);
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 已生效的对齐方式：底色 + 描边，与 `.st-btn.active` 同一套语言 */
+.tt-btn.active {
+  background: var(--selection);
+  border-color: var(--bamboo);
+  color: var(--bamboo);
+}
+
+/* 对齐按钮是单个汉字，比 `行↑` 窄一点就够，但要比图标宽才不挤 */
+.tt-align {
+  min-width: 26px;
+}
+
+.tt-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--line-strong);
+}
+
+/* 尺寸用等宽字：`3 × 3` 变成 `10 × 10` 时不会左右抖 */
+.tt-size {
+  padding: 0 4px;
+  color: var(--slate);
+  font: 12px/1 var(--mono);
+}
+
+/* ---------------------------------------------------------------------------
+   代码块语言选择器（点代码块右上角那个语言标签）
+   ---------------------------------------------------------------------------
+   层级与表格工具条一样定在 **29**。两者不会同时出现 —— 代码块不能进表格，
+   所以表格里不会浮出这个面板；反过来，面板打开时用户也不可能正在表格里操作。
+
+   宽度比斜杠菜单窄一点：候选是「语言名 + 标识」两段短文本，264px 会留一大片空。 */
+
+.cb-picker {
+  position: fixed;
+  z-index: 29;
+  display: flex;
+  flex-direction: column;
+  width: 232px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  /* 浮层自己不该被选中 —— 但它里面有一个真输入框，所以只禁掉非输入部分 */
+  user-select: none;
+}
+
+.cb-search {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px/1 var(--sans);
+  /* 输入框里要能选中文字 */
+  user-select: text;
+}
+
+.cb-search:focus-visible {
+  outline: 2px solid var(--bamboo);
+  outline-offset: -1px;
+}
+
+/* 六项各 26px 就差不多占满一屏的 1/4。超出就滚动，不把面板撑到屏幕外 */
+.cb-list {
+  max-height: 208px;
+  margin-top: 6px;
+  overflow-y: auto;
+}
+
+.cb-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: 13px/1 var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 与斜杠菜单同一条规矩：键盘高亮与鼠标悬停是同一个状态，
+   只认 `.highlighted`，不另设 `:hover`，免得出现两处高亮 */
+.cb-item.highlighted {
+  background: var(--selection);
+  border-color: var(--bamboo);
+}
+
+.cb-item:focus-visible {
+  outline: 2px solid var(--bamboo);
+  outline-offset: 1px;
+}
+
+.cb-label {
+  flex: none;
+}
+
+/* 标识用等宽字右对齐：`JavaScript` 与 `js` 两行并排时，标识那一列才对得齐 */
+.cb-id {
+  margin-left: auto;
+  color: var(--slate);
+  font: 11px/1 var(--mono);
+}
+
+/* 当前语言：左侧一道品牌色竖条，而不是换底色 ——
+   换底色会和 `.highlighted` 的底色撞在一起，分不清哪个是「光标在这」 */
+.cb-item.current {
+  border-left: 2px solid var(--bamboo);
+  padding-left: 6px;
+}
+
+.cb-empty {
+  padding: 8px;
+  color: var(--slate);
+  font: 12px/1 var(--sans);
+}
+
+/* 行号开关。与候选列表之间画一条分隔线，免得被当成又一个候选项 */
+.cb-toggle {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+  padding: 7px 8px 1px;
+  border-top: 1px solid var(--line);
+  color: var(--slate);
+  font: 12px/1 var(--sans);
+  cursor: pointer;
+}
+
+.cb-toggle input {
+  margin: 0;
+  accent-color: var(--bamboo);
+}
+
+

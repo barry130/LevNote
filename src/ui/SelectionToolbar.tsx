@@ -29,11 +29,7 @@ import type {
   InlineFormat,
   SelectionSnapshot,
 } from '../core/editor/types.js';
-
-/** 浮层与视口边缘的最小距离。 */
-const MARGIN = 8;
-/** 浮层与选区之间的空隙。 */
-const GAP = 8;
+import { computeFloatingPlacement } from './floating.js';
 
 interface InlineButton {
   readonly format: Exclude<InlineFormat, 'link'>;
@@ -98,16 +94,15 @@ export function SelectionToolbar({ snapshot, formatting }: SelectionToolbarProps
 
     const { width, height } = node.getBoundingClientRect();
 
-    // 上方放不下就翻到下方。放不下通常是因为选区在第一行
-    const above = anchor.top - GAP - height >= MARGIN;
-    const preferredTop = above ? anchor.top - GAP - height : anchor.bottom + GAP;
-    const top = Math.min(Math.max(preferredTop, MARGIN), Math.max(MARGIN, window.innerHeight - MARGIN - height));
-
-    // 水平居中于选区，再夹进视口 —— 贴着左右边缘的选区不该把浮层推出去
-    const centered = anchor.left + anchor.width / 2 - width / 2;
-    const left = Math.min(Math.max(centered, MARGIN), Math.max(MARGIN, window.innerWidth - MARGIN - width));
-
-    setPlacement({ left, top });
+    // 优先摆在选区**上方**：下方是用户正在读的内容。摆放算术见 `floating.ts`
+    setPlacement(
+      computeFloatingPlacement(
+        anchor,
+        { width, height },
+        { vertical: 'above', horizontal: 'center' },
+        { width: window.innerWidth, height: window.innerHeight },
+      ),
+    );
   }, [anchor]);
 
   /**

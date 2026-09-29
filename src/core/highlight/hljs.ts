@@ -118,3 +118,18 @@ export function highlightCode(code: string, language?: string): HighlightResult 
 }
 
 export { hljs };
+
+/**
+ * hljs 认识的全部语言标识（`highlight.js/lib/common` 的约 35 种），已排序。
+ *
+ * 给语言选择器当候选列表用。**数据来自 hljs 而不是我们自己维护一张表** ——
+ * 自己维护的那张表会在某天和 `highlightCode` 真正认得的东西对不上，
+ * 于是用户从列表里选了一个语言，高亮却退回自动识别（`highlightCode` 对不认识的
+ * 语言就是这么做），而他看不出为什么。
+ *
+ * 排序用 `localeCompare` 而不是默认的码位序：语言标识全是 ASCII，
+ * 两种排法结果一样，但写 `localeCompare` 表达了「这是给人看的顺序」。
+ */
+export function supportedLanguages(): string[] {
+  return [...hljs.listLanguages()].sort((a, b) => a.localeCompare(b));
+}

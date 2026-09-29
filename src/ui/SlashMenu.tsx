@@ -38,10 +38,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 
 import { rankCommands } from '../core/commands/fuzzy.js';
 import type { EditorFormatting, InsertableBlock, SlashState } from '../core/editor/types.js';
+import { computeFloatingPlacement } from './floating.js';
 
-/** 菜单与视口边缘的最小距离。 */
-const MARGIN = 8;
-/** 菜单与光标所在行之间的空隙。 */
+/** 菜单与光标所在行之间的空隙。比工具条小一点 —— 菜单是「接着这一行」长出来的。 */
 const GAP = 6;
 
 interface SlashItem {
@@ -72,6 +71,7 @@ const SLASH_ITEMS: readonly SlashItem[] = [
   { block: 'orderedList', abbr: '1.', label: '有序列表', hint: '1. ', keywords: ['youxuliebiao', 'liebiao', 'ordered', 'ol', 'list'] },
   { block: 'blockquote', abbr: '❝', label: '引用', hint: '> ', keywords: ['yinyong', 'quote', 'blockquote'] },
   { block: 'codeBlock', abbr: '</>', label: '代码块', hint: '```', keywords: ['daimakuai', 'daima', 'code', 'fence'] },
+  { block: 'table', abbr: '▦', label: '表格', hint: '3 × 3', keywords: ['biaoge', 'biao', 'table', 'grid'] },
   { block: 'hr', abbr: '—', label: '分隔线', hint: '---', keywords: ['fengexian', 'fenge', 'hr', 'divider', 'rule'] },
 ];
 
@@ -120,16 +120,16 @@ export function SlashMenu({ state, formatting }: SlashMenuProps) {
 
     const { width, height } = node.getBoundingClientRect();
 
-    // 优先放在光标那一行的**下方**（这是斜杠菜单的常规位置），
-    // 下面放不下才翻到上方。与选中工具条相反 —— 那个默认在上方。
-    const below = anchor.bottom + GAP + height <= window.innerHeight - MARGIN;
-    const preferredTop = below ? anchor.bottom + GAP : anchor.top - GAP - height;
-    const top = Math.min(Math.max(preferredTop, MARGIN), Math.max(MARGIN, window.innerHeight - MARGIN - height));
-
-    // 左对齐光标，再夹进视口：贴着右边缘时菜单会整个推出去
-    const left = Math.min(Math.max(anchor.left, MARGIN), Math.max(MARGIN, window.innerWidth - MARGIN - width));
-
-    setPlacement({ left, top });
+    // 优先摆在光标那一行的**下方**（斜杠菜单的常规位置），放不下才翻上去。
+    // 与选中工具条相反 —— 那个默认在上方。摆放算术见 `floating.ts`
+    setPlacement(
+      computeFloatingPlacement(
+        anchor,
+        { width, height },
+        { vertical: 'below', horizontal: 'start', gap: GAP },
+        { width: window.innerWidth, height: window.innerHeight },
+      ),
+    );
   }, [visible, anchor]);
 
   /**

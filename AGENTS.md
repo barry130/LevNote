@@ -53,8 +53,11 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 大纲提取 | `core/outline/outline.ts` |
 | 字数 / 阅读时长 | `core/statistics.ts`（Word 口径，内核无关） |
 | **哪些文件算 Markdown** | `core/path.ts` 的 `MARKDOWN_EXTENSIONS` / `isMarkdownPath()`。**名单只有这一份**，四个地方在用它 |
+| **所有浮层摆在哪**（位置算术） | `ui/floating.ts` 的 `computeFloatingPlacement`（**纯函数**，12 条单测）。四个浮层共用：选中工具条（`center`/上）、斜杠菜单（`start`/下）、表格工具条（`center`/下）、代码块语言面板（`end`/下）。**改摆放规则改这里，不要在组件里再抄一份** —— 它被抄过两遍才提取出来的 |
 | 选中浮层工具条（格式按钮、浮层位置） | `ui/SelectionToolbar.tsx`（外壳画浮层）+ `modules/markdown/selection.ts`（内核报选区状态） |
 | 斜杠菜单（`/` 插入块） | `ui/SlashMenu.tsx`（外壳画菜单与键盘导航）+ `modules/markdown/selection.ts` 的 `describeSlash`（内核判断触发） |
+| 表格工具条（加行加列、对齐、删除） | `ui/TableToolbar.tsx` + `modules/markdown/table.ts` 的 `describeTable`（纯函数，把光标处的表格算成数据）。**对齐是按列的**，见坑 12 |
+| 代码块（行号 / 语言标签） | `modules/markdown/code-block-view.ts`（NodeView，**画在文档树里**）+ `ui/CodeBlockPicker.tsx`（外壳画语言面板） |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
@@ -70,7 +73,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 2. 各内核按需实现（不实现的要能被外壳识别为「没有这个能力」）；
 3. 外壳只问契约，不问内核。
 
-已有四例可以照着看：
+已有六例可以照着看：
 
 - `EditorHandle.search` / `goToOutlineItem` —— 可选能力，**缺了显示为禁用**；
 - `EditorAdapter.sourceView` —— 源码视图，**不注册进注册表**
@@ -85,6 +88,14 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
   **菜单长什么样、有哪些项、选中哪一项、键盘怎么走全在外壳**，
   因为那是用户界面。`insertBlock` 与 `toggleBlock` 分开，是因为前者多一件事要做：
   先删掉 `/query` —— 要删哪几个字符是文档坐标，只有内核知道。
+- `EditorMountProps.onTableChange` + `EditorHandle.table` —— 表格工具条。
+  `describeTable` 把「光标在哪一格、这张表几行几列、能不能删」算成纯数据，
+  外壳只负责画。**注意它的生命周期与浮层不同**：`TableState` 非 null 的含义是
+  「光标在表格里」，会跟着光标来去。
+- `EditorMountProps.onCodeBlockChange` + `EditorHandle.codeBlock` —— 代码块语言面板。
+  它的状态非 null 的含义是「**面板开着**」（点击触发），不是「光标在代码块里」。
+  另外注意这里**不是纯外壳画**：代码块的行号与语言标签是 NodeView 画进文档树的，
+  外壳只画那个弹出的面板。
 
 **反例**（不要这样做）：在外壳里写 `if (adapter.id === 'markdown')` 或
 `resolveAdapterById('code')`。那等于把内核知识漏进外壳，
@@ -93,13 +104,17 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 **另一条容易忘的**：内核里任何**绕过键盘事件**去改文档的能力，
 都必须自己给事务打上「这是用户发起的编辑」标记（`USER_EDIT_META`），
 否则文档不会变脏、用户按 `Ctrl+S` 写回磁盘的是改动**之前**的内容。
-已经踩过三次：查找替换（`setup.ts` 的 `replace` / `replaceAll`）、
-选中浮层工具条与斜杠菜单（`setup.ts` 的 `asUserEdit` 统一包住）。
-表格操作、图片插入会再遇到 —— **新加一条这类能力时，先问自己打没打这个标记。**
+
+已经踩过四次：查找替换（`setup.ts` 的 `replace` / `replaceAll`，逐个事务打标记）、
+选中浮层工具条与斜杠菜单（`asUserEdit`）、**表格的每一个操作**、
+**代码块改语言**。后三者的统一入口是 `withUserEdit(editor, run)` ——
+它临时替换 `view.dispatch`，给这期间派发的每个事务都盖上标记，`finally` 里还原。
+
+图片插入、Mermaid 预览这些还会再遇到 —— **新加一条这类能力时，先问自己打没打这个标记。**
 
 ---
 
-## 四、十个已经踩过的坑（省下你的两小时）
+## 四、十三个已经踩过的坑（省下你的两小时）
 
 ### 1. Markdown 内核的「变更上报」不能用防抖
 
@@ -210,18 +225,75 @@ jsdom 没有真实键盘。直接往 `view.state` 里塞事务能造出文档状
 `readDOMChange` → `input` 事件 → `markdownEmitPlugin`）——
 而斜杠菜单、输入规则、变更上报全都挂在这条链上，绕过它测试就只验证了同义反复。
 
-正确做法在 `src/test/typing.ts`（`typeInto`），两个顺序不能反：
+正确做法在 `src/test/typing.ts`（`typeInto`），**三个顺序不能乱**：
 
-1. **先改 DOM，让出一个宏任务，再派发 `input`。**
+1. **先派发 `beforeinput`，再改 DOM。** 这是浏览器的顺序，也是内核判定
+   「这次变更是用户干的」的**唯一可靠依据** —— 理由见坑 11。
+2. **改完 DOM 要先让出一个宏任务，再派发 `input`。**
    `MutationObserver` 的回调是微任务，ProseMirror 靠它把变更记进队列；
    `input` 处理器只负责「立刻结算队列」。顺序反了队列是空的，
    这次输入被**完全忽略而且不报错** —— 表现为「测试里打字没反应」。
-2. **之后还要等一帧。** 浮层上报是用 `requestAnimationFrame` 合并的
+3. **之后还要等一帧。** 浮层上报是用 `requestAnimationFrame` 合并的
    （拖选时每个 mousemove 都触发一次，逐次去量会强制布局），
    `setTimeout` 走不到它。
 
 同理，**任何断言「内核上报了什么」的用例都要先等一帧** ——
 不等就会断言到上一个状态，那是假绿。
+
+### 11. ProseMirror **不监听 `input`** —— 少一次 `beforeinput` 就静默丢字
+
+这一条是 M5 做表格测试时发现的**真实数据丢失缺陷**，不是测试问题。
+
+现象：**用户敲的第一个字存不进磁盘**。界面显示「已保存」，文件里却没有那个字。
+
+根因：ProseMirror 靠 `MutationObserver` 读 DOM 变更并**自己派发事务**，
+而 MutationObserver 的回调是**微任务**，会跑在任何事件派发之前。
+于是 `markdownEmitPlugin` 的 `armedByUser` 在 `input` 到达时**还是 false**，
+那次变更被当成「程序写入」安静丢掉。
+
+它最坏的地方是**只错第一次**：从第二次输入起一切正常（标志已经上膛），
+所以人工测试几乎不可能发现 —— 只有「打开文件 → 敲一个字 → 保存」
+这条最短路径会暴露它。
+
+修法：`plugin.ts` 的 `markdownEmitPlugin` 改为监听 **`beforeinput`**
+（按规范在 DOM 修改**之前**派发，因此一定早于那次事务），`input` 保留作补充
+（不是所有输入路径都发 `beforeinput`）。
+
+> **这个缺陷在 M3/M4 时就已经存在**，只是没有任何一条测试踩到它。
+> 结论：**「测试全绿」不等于「没有数据丢失」** —— 测试覆盖的是我们想到的路径。
+
+### 12. Milkdown 的表格 schema 有三条读文档读不出来的约束
+
+三条都是**实测**出来的，写错了不会报错，只会**静默丢内容**：
+
+1. **最小表格是 2 行**（`table_header_row` + 至少一个 `table_row`）。
+   空表头行在 schema 上**仍然合法**，但 `tableHeaderRowSchema.toMarkdown`
+   遇到空内容直接 `return` —— 于是「只有表头的表格」存盘后**一行都不剩**，
+   没有任何报错。所以删行的下限是 `map.height >= 3`，与光标在哪一行**无关**。
+2. **对齐是按列、且由表头决定的**。`tableSchema.toMarkdown` 用**第一行**的单元格
+   拼出对齐串，`keepTableAlignPlugin` 再把表头的 `alignment` 抄给同列的每一格。
+   所以「给某一列设对齐」必须**写整列** —— 只写光标所在那格，
+   下一次事务就被改回表头的值，用户会觉得「设了没生效」。
+3. **`TableRole` 里没有 `header_row`**（只有 `table | row | cell | header_cell`）。
+   表头行和正文行共用 `row`，想按「这是第几行」判断必须自己数。
+
+完整取舍见 [ADR 0017](docs/decisions/0017-m5-tables-and-code-blocks.md)。
+
+### 13. `setNodeAttribute` **不检查节点类型** —— 过期的位置会写到别的节点上
+
+`tr.setNodeAttribute(pos, 'language', lang)` 只认位置，不认节点是什么。
+位置一旦过期（面板开着的时候用户在别处打字、或者 `setMarkdown` 换掉了整篇文档），
+它会**安静地把属性写到另一个不相干的节点上**，而且不报错。
+
+所以 `CodeBlockChromeRequest` 里给的不是 `pos` 数字，而是
+`resolvePos: () => number | null` —— **写的那一刻现问**，拿不到就放弃。
+给函数就没有「记下的坐标过期」这个窗口。
+
+> 这条是踩出来的：第一版存的是裸 `pos`，`setMarkdown` 之后设语言写到了
+> 一个无关段落上，测试表现为「什么都没发生」，查起来像是面板没生效。
+>
+> **推广**：任何「面板 / 浮层持有文档坐标」的设计都要问一句 ——
+> 这段时间里文档会不会变？会的话就存函数，不要存数字。
 
 ---
 
@@ -267,16 +339,24 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 多标签工作区、文件树、代码内核、命令面板、查找替换、大纲、主题。
 
 **Markdown 完善（P3.5，对标 horseMD）**：字数统计、源码模式切换（Ctrl+/）、
-**选中浮层工具条**、**斜杠菜单（`/` 插入块）**已交付；
-表格 / 代码块增强、图片落盘、KaTeX、Mermaid、位置记忆待做。
+**选中浮层工具条**、**斜杠菜单（`/` 插入块）**、
+**表格可视化编辑 + 代码块语言选择器 / 行号**已交付；
+块手柄、图片落盘、KaTeX、Mermaid、位置记忆待做。
 清单在 `ROADMAP.md` 的 P3.5。
-**前四项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木。
+**前五项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木，
+表格与代码块是自研的（官方那套是 Vue 3，见 ADR 0017）。
+
+测试：**505 条前端 + 11 条 Rust**，`tsc` / `lint` / `vite build` 全绿。
+主包 1,695.08 kB（gzip 564.07 kB），已超 Vite 的 500 kB 警戒线 ——
+归因与拆分方案在 `ROADMAP.md` 第 18 项。
 
 **最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V3**
 （Milkdown 长文档输入延迟 ≤ 50ms）。它的结论决定后续「Markdown 编辑体验怎么走」，
 而且**只能在真实 WebView 里测**（jsdom 的耗时没有参考价值）。
 
 > **一条纪律**：`open-decisions.md` 里的 V1–V4 在没有结论之前，**不要再新增待验证项**。
+> 现状：V4（表格可视化编辑的成本）**已由 M5 回答** —— 自研可行、成本可接受；
+> V1 / V2 / V3 仍未跑。
 
 **空壳模块**（返回 `NOT_SUPPORTED`，等对应阶段落地）：
 `src-tauri/src/{watch,search,drawio}/mod.rs`。
@@ -292,4 +372,5 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 | 用 draw.io 的名称/图标做产品标识 | 商标约定（ADR 0005） |
 | 引入 GPL 系依赖 | 同上 |
 | 用 `.mindmap` 的完整内核 schema | 规范刻意只固定最小骨架，绑定内核等于让换内核时用户的文件失效 |
+| 引入 `@milkdown/components`（官方表格 / 代码块组件） | 它是 **Vue 3** 写的，会带进第二个 UI 框架并替换掉编辑器的高亮管线（编辑器与导出从此不同源）。理由与重审条件见 [ADR 0017](docs/decisions/0017-m5-tables-and-code-blocks.md) |
 | 为「可能被否的方案」先写代码 | 先跑验证。ADR 0005 的 R1 就是这么处理的 |

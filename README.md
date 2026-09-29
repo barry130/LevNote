@@ -6,7 +6,8 @@
 > 可以互相引用、互相嵌入、块级就地编辑。这是本项目的产品定位，不是「功能清单」。
 
 - **多标签 + 文件夹工作区**：一个窗口装下一个文件夹，每个打开的文件是一个标签页。
-- **所见即所得的 Markdown**（Milkdown / ProseMirror），支持 GFM、代码高亮、表格、任务列表。
+- **所见即所得的 Markdown**（Milkdown / ProseMirror）：GFM、代码高亮、表格、任务列表；
+  选中浮层工具条、`/` 斜杠菜单、表格可视化编辑、代码块语言选择器与行号。
 - **代码 / 文本**（CodeMirror 6）：语法着色、行号、折叠、括号匹配。
 - **自包含 HTML 导出**：单文件、内联 CSS 与图片、断网双击即开。
 - **绝不静默转码**：探测失败如实标记，写回原编码，BOM 与行尾是文件属性。
@@ -25,7 +26,7 @@
 npm install
 npm run desktop      # 真桌面版（Tauri 2，需要 Rust 工具链）
 npm run dev          # 只跑前端（浏览器预览，内存虚拟盘，用于调界面）
-npm run test         # 单元测试（339 条）
+npm run test         # 单元测试（505 条）
 npm run typecheck    # 类型检查
 npm run check        # 上面两条加 lint 一起跑 —— 提交前必须全绿
 npm run lint         # ESLint（类型感知）。**阻塞**，配置里没有关掉的规则

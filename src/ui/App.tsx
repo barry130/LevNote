@@ -449,6 +449,8 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
               key={activeId}
               store={activeStore}
               wordWrap={settings.wordWrap}
+              codeLineNumbers={settings.codeLineNumbers}
+              onToggleCodeLineNumbers={(next) => update({ codeLineNumbers: next })}
               onHandle={onHandle}
               onViewInfoChange={onViewInfoChange}
             />

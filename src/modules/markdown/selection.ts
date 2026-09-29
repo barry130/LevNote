@@ -11,9 +11,17 @@
 
 import type { ResolvedPos } from '@milkdown/kit/prose/model';
 import type { EditorState } from '@milkdown/kit/prose/state';
+import { findTable, selectedRect, tableNodeTypes } from '@milkdown/kit/prose/tables';
 import type { EditorView } from '@milkdown/kit/prose/view';
 
-import type { BlockFormat, InlineFormat, SelectionFormat, SelectionRect } from '../../core/editor/types.js';
+import type {
+  BlockFormat,
+  InlineFormat,
+  SelectionFormat,
+  SelectionRect,
+  TableAlign,
+  TableState,
+} from '../../core/editor/types.js';
 
 /**
  * ProseMirror 的 mark 名 → 外壳的行内格式。
@@ -136,7 +144,7 @@ export function describeSelection(state: EditorState): SelectionFormat | null {
 }
 
 /**
- * 选区在视口里的包围盒。
+ * 一段文档区间在视口里的包围盒。
  *
  * 取首尾两端各自的 `coordsAtPos` 再求并集，而不是只量起点：
  * 跨行的选区只量起点会让浮层压在文字上（起点在一行中间，浮层却按「整块」居中）。
@@ -145,15 +153,12 @@ export function describeSelection(state: EditorState): SelectionFormat | null {
  * 这是**有意的降级**：外壳会把浮层藏起来。把浮层定位到一个瞎猜的坐标上，
  * 比不显示更糟 —— 用户会以为工具条坏了。
  */
-export function anchorOf(view: EditorView): SelectionRect | null {
-  const { selection } = view.state;
-  if (selection.empty) return null;
-
+export function rectOfRange(view: EditorView, from: number, to: number): SelectionRect | null {
   try {
-    const start = view.coordsAtPos(selection.from);
+    const start = view.coordsAtPos(from);
     // `-1` 表示「取这个位置**之前**那一侧」：选到行首时该落在上一行行尾，
     // 不传的话会落到下一行开头，包围盒凭空多出一行高
-    const end = view.coordsAtPos(selection.to, -1);
+    const end = view.coordsAtPos(to, -1);
 
     const left = Math.min(start.left, end.left);
     const right = Math.max(start.right, end.right);
@@ -164,6 +169,13 @@ export function anchorOf(view: EditorView): SelectionRect | null {
   } catch {
     return null;
   }
+}
+
+/** 选区在视口里的包围盒；没有选中文字、或量不出来时返回 `null`。 */
+export function anchorOf(view: EditorView): SelectionRect | null {
+  const { selection } = view.state;
+  if (selection.empty) return null;
+  return rectOfRange(view, selection.from, selection.to);
 }
 
 /**
@@ -223,4 +235,75 @@ export function describeSlash(state: EditorState): string | null {
 
   const hit = SLASH_TRIGGER.exec(text);
   return hit === null ? null : (hit[1] ?? '');
+}
+
+// ---------------------------------------------------------------------------
+// 表格
+// ---------------------------------------------------------------------------
+
+/** 读出光标所在单元格的对齐方式；不在单元格里时按 `left`。 */
+function cellAlign(state: EditorState): TableAlign {
+  const types = tableNodeTypes(state.schema);
+  const { $from } = state.selection;
+
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    const node = $from.node(depth);
+    if (node.type !== types.cell && node.type !== types.header_cell) continue;
+    const value = node.attrs['alignment'];
+    return value === 'center' || value === 'right' ? value : 'left';
+  }
+  return 'left';
+}
+
+/**
+ * 光标所在表格的状态；不在表格里时返回 `null`。
+ *
+ * ## 为什么用 `findTable` + `selectedRect` 而不是自己走 `$from` 的祖先链
+ *
+ * 「光标在哪张表、第几行第几列」在**合并单元格**（`colspan` / `rowspan`）下
+ * 不是一次简单的祖先查找 —— 一个单元格可能横跨多列，行列号要靠 `TableMap`
+ * 的映射算。prosemirror-tables 的 `selectedRect` 就是干这个的，
+ * 自己重写一遍只会把合并单元格算错，而且错得很隐蔽（普通表格上完全看不出来）。
+ *
+ * ## 两个返回 null 的地方
+ *
+ * - `findTable` 找不到：光标不在表格里，正常情况；
+ * - `selectedRect` 抛错：表格结构损坏（单元格重叠、非矩形）时它会抛
+ *   `RangeError`。如实返回 null 而不是让一次光标移动把编辑器带崩 ——
+ *   「打开任何文件都不能失败」这条红线也适用于**改坏了的**表格。
+ */
+export function describeTable(view: EditorView): TableState | null {
+  const { state } = view;
+
+  const found = findTable(state.selection.$from);
+  if (found === null) return null;
+
+  let rect;
+  try {
+    rect = selectedRect(state);
+  } catch {
+    return null;
+  }
+
+  const map = rect.map;
+  // 表格节点的区间：`found.pos` 是节点**之前**的位置
+  const anchor = rectOfRange(view, found.pos, found.pos + found.node.nodeSize);
+  if (anchor === null) return null;
+
+  return {
+    anchor,
+    rows: map.height,
+    columns: map.width,
+    align: cellAlign(state),
+    /**
+     * 只剩两行就删不动了 —— Milkdown 的 gfm 表格 schema 是
+     * `table_header_row table_row+`，**表头行 + 至少一行正文**是硬要求。
+     * 报上去让外壳把按钮显示成禁用，而不是点了没反应。
+     *
+     * 注意这里**不区分光标在哪一行**：删表头行也是允许的（会由内核把下一行顶上来当表头），
+     * 所以判据只有行数。
+     */
+    canDeleteRow: map.height >= 3,
+    canDeleteColumn: map.width >= 2,
+  };
 }

@@ -20,18 +20,24 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { BomKind, LineEndingName } from '../core/document/types.js';
 import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
 import type {
+  CodeBlockState,
   CursorPosition,
   EditorAdapter,
+  EditorCodeBlock,
   EditorFormatting,
   EditorHandle,
+  EditorTable,
   SelectionSnapshot,
   SlashState,
+  TableState,
 } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
+import { CodeBlockPicker } from './CodeBlockPicker.js';
 import { SelectionToolbar } from './SelectionToolbar.js';
 import { SlashMenu } from './SlashMenu.js';
+import { TableToolbar } from './TableToolbar.js';
 
 const ENCODINGS: Array<{ label: string; encoding: string; bom: BomKind }> = [
   { label: 'UTF-8', encoding: 'UTF-8', bom: 'none' },
@@ -87,13 +93,23 @@ export interface PaneViewInfo {
 export interface DocumentPaneProps {
   store: DocumentStore;
   wordWrap: boolean;
+  /** 代码块是否显示行号。视图偏好，不写进文档。 */
+  codeLineNumbers: boolean;
+  onToggleCodeLineNumbers: (next: boolean) => void;
   /** 编辑器就绪时交出命令面；卸载或换文档时交回 null。 */
   onHandle: (handle: EditorHandle | null) => void;
   /** 首选内核或视图模式变化时通知外壳；卸载时以 null 撤回。 */
   onViewInfoChange?: (info: PaneViewInfo | null) => void;
 }
 
-export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: DocumentPaneProps) {
+export function DocumentPane({
+  store,
+  wordWrap,
+  codeLineNumbers,
+  onToggleCodeLineNumbers,
+  onHandle,
+  onViewInfoChange,
+}: DocumentPaneProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const { doc, status, error, conflict, busy, notice, viewMode } = state;
 
@@ -133,6 +149,24 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
    * （斜杠要求光标塌缩，工具条要求有选中文字），合成一个反而要写分支。
    */
   const [slash, setSlash] = useState<SlashState | null>(null);
+  /**
+   * 表格工具条的两份输入，与浮层工具条同构：当前表格状态 + 内核交出来的表格命令面。
+   *
+   * `table` 与 `formatting` 分成两个 state（而不是合成一个「命令面」对象），
+   * 是因为它们的**可用性不同**：表格能力只有支持表格的内核才有，
+   * 合成一个会让「这个内核支持表格吗」变成一个需要逐字段探测的问题。
+   */
+  const [table, setTable] = useState<TableState | null>(null);
+  const [tableOps, setTableOps] = useState<EditorTable | null>(null);
+  /**
+   * 代码块语言选择器的两份输入，与上面几组同构。
+   *
+   * 与前几组不同的是它的**触发方式**：表格工具条跟着光标走，而这个面板是
+   * 用户点代码块右上角的语言标签才打开的（那个标签常驻在每个代码块上）。
+   * 所以 `codeBlock` 非 null 的含义是「面板开着」，不是「光标在代码块里」。
+   */
+  const [codeBlock, setCodeBlock] = useState<CodeBlockState | null>(null);
+  const [codeBlockOps, setCodeBlockOps] = useState<EditorCodeBlock | null>(null);
 
   const session = doc?.session ?? 0;
   /**
@@ -222,6 +256,11 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
       // 只在内核真的交出了格式化能力时才留下它。纯文本兜底内核没有这个字段 ——
       // 那时浮层根本不出现，而不是出现一个点了没反应的
       setFormatting(handle.formatting ?? null);
+      // 同理：只有支持表格的内核才交出 `table`。外壳据此决定要不要画表格工具条，
+      // 而不是「画出来再禁用按钮」—— 后者会让纯文本内核里也浮出一条死工具条
+      setTableOps(handle.table ?? null);
+      // 同理：只有支持代码块语言的内核才交出 `codeBlock`
+      setCodeBlockOps(handle.codeBlock ?? null);
       onHandle(handle);
     },
     [kernelKey, store, onHandle],
@@ -264,6 +303,10 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
     setSelection(null);
     setFormatting(null);
     setSlash(null);
+    setTable(null);
+    setTableOps(null);
+    setCodeBlock(null);
+    setCodeBlockOps(null);
   }, [kernelKey]);
 
   const handleEditorError = useCallback(
@@ -354,12 +397,15 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
             path={doc.path}
             readOnly={doc.readonly}
             wordWrap={wordWrap}
+            codeLineNumbers={codeLineNumbers}
             placeholder="在这里写。支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档。"
             onChange={handleEditorChange}
             onReady={handleEditorReady}
             onCursorChange={setCursor}
             onSelectionChange={setSelection}
             onSlashChange={setSlash}
+            onTableChange={setTable}
+            onCodeBlockChange={setCodeBlock}
             onError={handleEditorError}
           />
         ) : doc ? (
@@ -378,6 +424,23 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
         {/* 斜杠菜单与工具条同属浮层，理由相同。两者不会同时出现：
             斜杠只在光标塌缩时触发，而工具条只在有选中文字时出现 */}
         {slash !== null && formatting !== null && <SlashMenu state={slash} formatting={formatting} />}
+
+        {/* 表格工具条与前两者不同的一点：它**会**和斜杠菜单同时出现
+            （光标在表格的某个格子里打 `/`）。这没关系 —— 两者在 CSS 里
+            差一层 z-index（29 对 30），斜杠菜单压在上面，不会被工具条遮住 */}
+        {table !== null && tableOps !== null && <TableToolbar state={table} table={tableOps} />}
+
+        {/* 语言选择器也是浮层。它会和表格工具条同时出现的情况只有一种：
+            表格的某个格子里写了代码块 —— 那不可能，代码块不能进表格。
+            所以这里不需要像表格工具条那样安排 z-index 的高低 */}
+        {codeBlock !== null && codeBlockOps !== null && (
+          <CodeBlockPicker
+            state={codeBlock}
+            codeBlock={codeBlockOps}
+            lineNumbers={codeLineNumbers}
+            onToggleLineNumbers={onToggleCodeLineNumbers}
+          />
+        )}
       </main>
 
       <footer className="statusbar">

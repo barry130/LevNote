@@ -33,8 +33,10 @@ import { trailing } from '@milkdown/kit/plugin/trailing';
 import { lift } from '@milkdown/kit/prose/commands';
 import type { Node as ProseNode } from '@milkdown/kit/prose/model';
 import { DOMSerializer } from '@milkdown/kit/prose/model';
-import type { Command } from '@milkdown/kit/prose/state';
+import type { Command, Transaction } from '@milkdown/kit/prose/state';
 import { TextSelection } from '@milkdown/kit/prose/state';
+import { deleteColumn, deleteTable, findTable, isInTable, selectedRect, TableMap, tableNodeTypes } from '@milkdown/kit/prose/tables';
+import type { EditorView } from '@milkdown/kit/prose/view';
 import {
   createCodeBlockCommand,
   insertHrCommand,
@@ -51,18 +53,33 @@ import {
   wrapInOrderedListCommand,
 } from '@milkdown/kit/preset/commonmark';
 import { commonmark } from '@milkdown/kit/preset/commonmark';
-import { gfm, toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm';
+import {
+  addColAfterCommand,
+  addColBeforeCommand,
+  addRowAfterCommand,
+  addRowBeforeCommand,
+  exitTable,
+  gfm,
+  insertTableCommand,
+  toggleStrikethroughCommand,
+} from '@milkdown/kit/preset/gfm';
 import { $prose } from '@milkdown/kit/utils';
 
 import type {
   BlockFormat,
+  CodeBlockState,
   CursorPosition,
+  EditorCodeBlock,
   EditorFormatting,
   EditorSearch,
+  EditorTable,
   SelectionSnapshot,
   SlashState,
+  TableAlign,
+  TableState,
 } from '../../core/editor/types.js';
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
+import { CODE_BLOCK, codeBlockChromePlugin, type CodeBlockChromeHandlers } from './code-block-view.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
 import {
   codeHighlightPlugin,
@@ -72,6 +89,7 @@ import {
   selectionReporterPlugin,
   SILENT_META,
   slashReporterPlugin,
+  tableReporterPlugin,
   USER_EDIT_META,
 } from './plugin.js';
 import { activeLinkHref, describeSlash, resolveBlock } from './selection.js';
@@ -105,6 +123,10 @@ export interface CreateMarkdownEditorOptions {
   onSelectionChange?: (selection: SelectionSnapshot | null) => void;
   /** 斜杠菜单状态。参数为 null 表示「现在不该有斜杠菜单」。 */
   onSlashChange?: (state: SlashState | null) => void;
+  /** 表格状态。参数为 null 表示「光标不在表格里，不该有表格工具条」。 */
+  onTableChange?: (state: TableState | null) => void;
+  /** 语言选择器状态。参数为 null 表示「面板没开着」。 */
+  onCodeBlockChange?: (state: CodeBlockState | null) => void;
 }
 
 export interface MarkdownEditorInstance {
@@ -115,6 +137,8 @@ export interface MarkdownEditorInstance {
   toHtml(): string;
   readonly search: EditorSearch;
   readonly formatting: EditorFormatting;
+  readonly table: EditorTable;
+  readonly codeBlock: EditorCodeBlock;
   /** 大纲跳转：定位到指定层级的指定标题。 */
   goToHeading(level: number, text: string): boolean;
   destroy(): Promise<void>;
@@ -231,6 +255,43 @@ function expand(text: string, pattern: RegExp | null, replacement: string, asReg
 }
 
 /**
+ * 把一次编辑标记成「用户发起的」。
+ *
+ * ## 少了这一步会**静默丢数据**
+ *
+ * `markdownEmitPlugin` 只在「刚发生过用户输入」的窗口内上报变更，而点工具条上的
+ * 按钮**不产生任何 `input` / `paste` 事件** —— 没有这个标记，加粗之后文档不会变脏，
+ * 用户按 Ctrl+S，写回磁盘的是加粗前的旧内容，而界面一直显示「已保存」。
+ *
+ * 这与 `USER_EDIT_META` 当初为「查找替换」加上的理由是**同一条**：
+ * 由用户动作触发、但不经过键盘事件的编辑，必须自己声明身份。
+ * 已经踩过三次 —— 查找替换、浮层格式化、斜杠菜单插入；表格操作是第四次。
+ *
+ * ## 为什么是临时换掉 `view.dispatch`
+ *
+ * 命令由 Milkdown 的 `CommandManager` 内部派发（`command(view.state, view.dispatch, view)`），
+ * 中间没有任何可以插进去的钩子，也没有 `dispatchTransaction` 选项被用到。
+ * 换掉再在 `finally` 里换回来，作用范围只有这一次同步调用 ——
+ * 不是全局补丁，也不会漏到别的派发路径上。`dispatch` 是实例上的可写属性
+ * （`prosemirror-view` 里声明为 `dispatch: (tr) => void`），所以这样做是合法的。
+ *
+ * 提到模块级是因为**表格操作也需要它**。做成两个各自独立的实现，
+ * 迟早只给其中一处修 bug —— 而这类 bug 的形态是「数据静默丢失」。
+ */
+function withUserEdit<T>(editor: Editor, run: () => T): T {
+  return editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx);
+    const original = view.dispatch;
+    view.dispatch = (tr) => original.call(view, tr.setMeta(USER_EDIT_META, true));
+    try {
+      return run();
+    } finally {
+      view.dispatch = original;
+    }
+  });
+}
+
+/**
  * 浮层工具条要用的格式化命令面。
  *
  * ## 为什么几乎全部走 Milkdown 命令，而不是直接用 ProseMirror
@@ -245,37 +306,8 @@ function expand(text: string, pattern: RegExp | null, replacement: string, asReg
  * 所以退回 prosemirror-commands 的 `lift`。这是唯一一处。
  */
 function createMarkdownFormatting(editor: Editor): EditorFormatting {
-  /**
-   * 把这一次格式化标记成「用户发起的编辑」。
-   *
-   * ## 少了这一步会**静默丢数据**
-   *
-   * `markdownEmitPlugin` 只在「刚发生过用户输入」的窗口内上报变更，而点工具条上的
-   * 按钮**不产生任何 `input` / `paste` 事件** —— 没有这个标记，加粗之后文档不会变脏，
-   * 用户按 Ctrl+S，写回磁盘的是加粗前的旧内容，而界面一直显示「已保存」。
-   *
-   * 这与 `USER_EDIT_META` 当初为「查找替换」加上的理由是**同一条**：
-   * 由用户动作触发、但不经过键盘事件的编辑，必须自己声明身份。
-   *
-   * ## 为什么是临时换掉 `view.dispatch`
-   *
-   * 命令由 Milkdown 的 `CommandManager` 内部派发（`command(view.state, view.dispatch, view)`），
-   * 中间没有任何可以插进去的钩子，也没有 `dispatchTransaction` 选项被用到。
-   * 换掉再在 `finally` 里换回来，作用范围只有这一次同步调用 ——
-   * 不是全局补丁，也不会漏到别的派发路径上。`dispatch` 是实例上的可写属性
-   * （`prosemirror-view` 里声明为 `dispatch: (tr) => void`），所以这样做是合法的。
-   */
-  const asUserEdit = <T>(run: () => T): T =>
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      const original = view.dispatch;
-      view.dispatch = (tr) => original.call(view, tr.setMeta(USER_EDIT_META, true));
-      try {
-        return run();
-      } finally {
-        view.dispatch = original;
-      }
-    });
+  /** 本文件内的短名字。实现见模块级的 `withUserEdit`。 */
+  const asUserEdit = <T>(run: () => T): T => withUserEdit(editor, run);
 
   /** 调一条 Milkdown 命令。返回它是否真的执行了（false = 当前选区不适用）。 */
   const call = <T>(key: CmdKey<T>, payload?: T): boolean =>
@@ -460,6 +492,11 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
           case 'codeBlock':
             applyBlock('codeBlock');
             return;
+          case 'table':
+            // 3 × 3（含表头行）。菜单项是「表格」而不是「3×3 表格」——
+            // 尺寸是最容易改的东西（加行加列就在工具条上），不值得为它多开三个菜单项
+            call(insertTableCommand.key, { row: 3, col: 3 });
+            return;
           case 'hr':
             call(insertHrCommand.key);
             return;
@@ -467,6 +504,311 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
       });
     },
   };
+}
+
+/**
+ * 表格命令面。
+ *
+ * ## 为什么与 `createMarkdownFormatting` 分成两个函数
+ *
+ * 表格能力**只有支持表格的内核才有**（`EditorHandle.table` 是可选的），
+ * 而格式化能力是所有富文本内核都该有的。混在一起会让「这个内核支持表格吗」
+ * 变成一个需要逐方法探测的问题。
+ *
+ * ## 加行 / 加列走 Milkdown 命令，删行自己重建，删列走 prosemirror-tables
+ *
+ * 三条路各走各的，每一条都是被实测逼出来的：
+ *
+ * - **加行 / 加列**：预设的 `AddRowAfter` 等不是直接转调 prosemirror-tables 的同名函数，
+ *   它多做了 `addRowWithAlignment` —— **把相邻单元格的对齐方式抄到新行 / 新列上**。
+ *   自己调底层函数不会报错，只会在「整列居中」的表格上悄悄多出一列左对齐的格子。
+ * - **删行**：不能用 `deleteRow`。Milkdown 的 gfm 表格 schema 是
+ *   `table_header_row table_row+`（见下），`deleteRow` 不知道这条约束，
+ *   删掉表头行之后留下的表格 schema 仍然合法（表头行的 content 是 `(table_header)*`），
+ *   但**序列化时那一行会被静默跳过**。实测：文档里 4 行、存下来只剩 2 行，
+ *   而且用户完全看不出少了哪两行。所以这里改成**重建表格节点**，见 `deleteTableRow`。
+ * - **删列**：`deleteColumn` 会按 `TableMap` 正确地处理 `colspan` 收缩，
+ *   而重建做不到这一点（`colspan` 是跨列的，删一列要把它从 2 改成 1 而不是删掉格子）。
+ *   行结构不会被它破坏 —— 每一行至少还剩一格，表头行也还在。
+ *
+ * ## 这条 schema 约束到底约束了什么
+ *
+ * `table_header_row table_row+` 的意思是：**一张表必须有表头行，且至少有一行正文**。
+ * 于是：
+ * - 表格最少 2 行 —— 「只剩 1 行」不是一种可表示的状态，删到 2 行就该停手；
+ * - 表头行不能凭空消失 —— 删掉它就得让下一行顶上（`asHeaderRow`）。
+ *
+ * 另外 `tableSchema.toMarkdown` 是用**第一行**的单元格决定分隔行的对齐的
+ * （`align.push(cell.attrs.alignment)`），所以「对齐」在 Markdown 里本质是**按列**的，
+ * 而且以表头行为准 —— 这也是 `setAlign` 必须整列一起改的原因。
+ */
+function createMarkdownTable(editor: Editor): EditorTable {
+  const call = <T>(key: CmdKey<T>, payload?: T): boolean =>
+    editor.action((ctx) => ctx.get(commandsCtx).call(key, payload));
+
+  /** 直接跑一条 ProseMirror 命令。只给删列 / 删表用，理由见上。 */
+  const runRaw = (command: Command): boolean =>
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      return command(view.state, view.dispatch, view);
+    });
+
+  return {
+    isActive: () => editor.action((ctx) => isInTable(ctx.get(editorViewCtx).state)),
+
+    run: (operation) => {
+      const snap = snapshotTable(editor);
+      if (snap === null) return;
+
+      switch (operation) {
+        case 'rowBefore':
+          withUserEdit(editor, () => call(addRowBeforeCommand.key));
+          return;
+        case 'rowAfter':
+          withUserEdit(editor, () => call(addRowAfterCommand.key));
+          return;
+        case 'colBefore':
+        case 'colAfter': {
+          const insertBefore = operation === 'colBefore';
+          // 参考列的对齐要在**插入之前**记下来：插入之后那一列的位置就变了
+          const align = headerAlignmentAt(snap);
+          withUserEdit(editor, () => {
+            call(insertBefore ? addColBeforeCommand.key : addColAfterCommand.key);
+            // 预设只给**加行**抄对齐（`addRowWithAlignment`），加列没有这一步 ——
+            // 不补上的话，一张整列居中的表格里新加的列会是左对齐的。
+            // 行与列在这里应该一致，否则「居中的表格加一列」会得到一个斑驳的结果
+            editor.action((ctx) => {
+              const view = ctx.get(editorViewCtx);
+              const after = snapshotFrom(view);
+              if (after === null) return;
+              writeColumnAlign(view, after, insertBefore ? snap.col : snap.col + 1, align);
+            });
+          });
+          return;
+        }
+        case 'deleteRow':
+          // 删完只剩 1 行 —— 那张表没法表示，按钮那边也已经是禁用的
+          if (snap.rows < 3) return;
+          deleteTableRow(editor, snap);
+          return;
+        case 'deleteColumn':
+          if (snap.columns < 2) return;
+          deleteTableColumn(editor, snap);
+          return;
+        case 'deleteTable':
+          withUserEdit(editor, () => runRaw(deleteTable));
+          return;
+        case 'exit':
+          withUserEdit(editor, () => call(exitTable.key));
+          return;
+      }
+    },
+
+    setAlign: (align: TableAlign) => {
+      withUserEdit(editor, () => {
+        editor.action((ctx) => {
+          const view = ctx.get(editorViewCtx);
+          const snap = snapshotFrom(view);
+          if (snap === null) return;
+          writeColumnAlign(view, snap, snap.col, align);
+        });
+      });
+    },
+  };
+}
+
+/** 光标所在表格的一次性快照。不在表格里（或表格结构损坏）时返回 null。 */
+interface TableSnapshot {
+  readonly table: ProseNode;
+  /** 表格节点**之前**的位置 —— `replaceWith` 的区间起点。 */
+  readonly from: number;
+  /** 光标所在的行 / 列（0 基，表头行是第 0 行）。 */
+  readonly row: number;
+  readonly col: number;
+  readonly rows: number;
+  readonly columns: number;
+}
+
+/**
+ * 取一次快照。
+ *
+ * 每个操作**开头取一次**、之后全部基于它算 —— 不在循环里反复读 `view.state`：
+ * 事务是攒着一次性派发的，中间态不存在于任何地方，反复读只会读到同一个旧值。
+ */
+function snapshotTable(editor: Editor): TableSnapshot | null {
+  return editor.action((ctx) => snapshotFrom(ctx.get(editorViewCtx)));
+}
+
+/** 快照的纯函数形态：同一个操作里第二次取快照时用得上（`view` 已经换了）。 */
+function snapshotFrom(view: EditorView): TableSnapshot | null {
+  const { state } = view;
+  const found = findTable(state.selection.$from);
+  if (found === null) return null;
+
+  let rect;
+  try {
+    rect = selectedRect(state);
+  } catch {
+    // 表格结构损坏（单元格重叠 / 非矩形）时 `selectedRect` 会抛 RangeError。
+    // 如实返回 null 而不是让一次按钮点击把编辑器带崩
+    return null;
+  }
+
+  return {
+    table: found.node,
+    from: found.pos,
+    row: rect.top,
+    col: rect.left,
+    rows: rect.map.height,
+    columns: rect.map.width,
+  };
+}
+
+/**
+ * 把某一列**所有**单元格的对齐方式写成 `align`。
+ *
+ * 为什么是整列而不是光标那一格，见 `setAlign` 的注释。`col` 越界时什么都不做。
+ *
+ * 位置换算：`TableMap.positionAt` 给的是**相对表格内容起点**的偏移，
+ * 而 `snap.from` 是表格**之前**的位置，所以单元格的绝对位置是 `from + 1 + rel`。
+ */
+function writeColumnAlign(view: EditorView, snap: TableSnapshot, col: number, align: string): void {
+  if (col < 0 || col >= snap.columns) return;
+
+  const tr = view.state.tr;
+  const map = TableMap.get(snap.table);
+  let changed = false;
+
+  for (let row = 0; row < map.height; row += 1) {
+    const rel = map.positionAt(row, col, snap.table);
+    if (rel < 0) continue;
+    const pos = snap.from + 1 + rel;
+    const cell = view.state.doc.nodeAt(pos);
+    if (cell === null || cell.attrs['alignment'] === align) continue;
+    tr.setNodeMarkup(pos, undefined, { ...cell.attrs, alignment: align });
+    changed = true;
+  }
+
+  if (changed) view.dispatch(tr);
+}
+
+/** 表头行里第 `snap.col` 列那个单元格的对齐方式（读不到就按空串）。 */
+function headerAlignmentAt(snap: TableSnapshot): string {
+  const header = snap.table.child(0);
+  let col = 0;
+  for (let i = 0; i < header.childCount; i += 1) {
+    const cell = header.child(i);
+    if (col === snap.col) return String(cell.attrs['alignment'] ?? '');
+    col += Number(cell.attrs['colspan'] ?? 1);
+  }
+  return '';
+}
+
+/**
+ * 跑一条「只能通过 `dispatch` 交回结果」的命令，把那个事务截下来自己派发。
+ *
+ * 命令没有派发（返回 false，也就是当前选区不适用）时返回 null。
+ */
+function takeTransaction(run: (dispatch: (tr: Transaction) => void) => boolean): Transaction | null {
+  let captured: Transaction | null = null;
+  if (!run((tr) => {
+    captured = tr;
+  })) {
+    return null;
+  }
+  return captured;
+}
+
+/**
+ * 删掉表格里的一行 —— **重建表格节点**，而不是调 prosemirror-tables 的 `deleteRow`。
+ *
+ * 重建一次把两件事做对：
+ * - 删掉目标行；
+ * - 若删的是表头行，把顶上来的那一行**转成表头行**。
+ *
+ * 单元格节点是**原样搬过去**的（内容、marks、`colspan` / `rowspan` 都保留），
+ * 所以这不是「重新造一张表」，只是拿掉一行、必要时换一个行的类型。
+ *
+ * ## 表头行的类型为什么从表格自身取，而不是 `tableNodeTypes(...).row`
+ *
+ * `TableRole` 只有 `table` / `row` / `cell` / `header_cell` 四种 ——
+ * **表头行与普通行共用 `row` 这个角色**，所以 `tableNodeTypes(schema).row`
+ * 给的是「schema 里最后注册的那个 row」，可能是普通行也可能是表头行。
+ * 表格的第 0 行按 schema（`table_header_row table_row+`）一定是表头行，
+ * 从它身上取类型是唯一可靠的来源。
+ */
+function deleteTableRow(editor: Editor, snap: TableSnapshot): void {
+  withUserEdit(editor, () => {
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const headerRowType = snap.table.child(0).type;
+      const headerCellType = tableNodeTypes(view.state.schema).header_cell;
+
+      const rows: ProseNode[] = [];
+      snap.table.forEach((row, _offset, index) => {
+        if (index === snap.row) return;
+
+        // 删的是表头行 → 顶上来的那一行必须变成表头行。
+        // 少了这一步，新的第 0 行会是普通行，序列化时整行被静默跳过
+        if (snap.row === 0 && index === 1) {
+          const cells: ProseNode[] = [];
+          row.forEach((cell) => {
+            cells.push(headerCellType.create(cell.attrs, cell.content, cell.marks));
+          });
+          rows.push(headerRowType.create(row.attrs, cells, row.marks));
+          return;
+        }
+
+        rows.push(row);
+      });
+
+      const next = snap.table.type.create(snap.table.attrs, rows, snap.table.marks);
+      const tr = view.state.tr.replaceWith(snap.from, snap.from + snap.table.nodeSize, next);
+      keepCaretInTable(tr, next, snap);
+      view.dispatch(tr);
+    });
+  });
+}
+
+/**
+ * 删掉光标所在的那一列。
+ *
+ * 这里**用** prosemirror-tables 的 `deleteColumn`，但把它的出口截下来 ——
+ * 因为它会把光标映射到**表格之外**（被删掉的正是光标所在的那一格），
+ * 工具条会跟着一起消失，用户下一眼看到的就是「点了一下，条没了」。
+ *
+ * 为什么删列不自己重建：`deleteColumn` 会按 `TableMap` 正确地**收缩 `colspan`**
+ * （跨两列的格子要变成跨一列，而不是被删掉）。重建做不到这件事，
+ * 而做错的表现是**静默丢内容**。
+ */
+function deleteTableColumn(editor: Editor, snap: TableSnapshot): void {
+  withUserEdit(editor, () => {
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const tr = takeTransaction((dispatch) => deleteColumn(view.state, dispatch));
+      if (tr === null) return;
+
+      const next = tr.doc.nodeAt(snap.from);
+      if (next !== null && next.type === snap.table.type) keepCaretInTable(tr, next, snap);
+
+      view.dispatch(tr);
+    });
+  });
+}
+
+/**
+ * 把事务的选区放回表格里 —— 同一行、同一列，越界就夹到新的边界上。
+ *
+ * 删除操作会把光标映射到表格外面（它所在的那一格没了）。不修的话工具条会消失，
+ * 而「删掉一行之后还想再删一行」是最自然的连续操作。
+ */
+function keepCaretInTable(tr: Transaction, table: ProseNode, snap: TableSnapshot): void {
+  const map = TableMap.get(table);
+  const row = Math.min(snap.row, map.height - 1);
+  const col = Math.min(snap.col, map.width - 1);
+  const rel = map.positionAt(row, col, table);
+  // `+ 2` = 表格内容起点（+1）再进一格到单元格内容
+  if (rel >= 0) tr.setSelection(TextSelection.near(tr.doc.resolve(snap.from + rel + 2), 1));
 }
 
 /**
@@ -500,6 +842,103 @@ function findHeadingPos(doc: ProseNode, level: number, text: string): number | n
   return found;
 }
 
+// ---------------------------------------------------------------------------
+// 代码块（语言选择器）
+// ---------------------------------------------------------------------------
+
+/**
+ * 语言选择器的状态。**两半共享同一个对象**：
+ *
+ * - `handlers` 交给 NodeView 调 —— 插件必须在编辑器创建**之前**装好；
+ * - `commands` 交给外壳调 —— 它要写文档，得等编辑器创建出来。
+ *
+ * 用一个可变对象把两半连起来，是因为它们的创建时机天然错开。中间那段
+ * 「编辑器正在创建」的时间里面板不可能被打开（还没有 DOM 可以点）。
+ *
+ * `target` 存的是**视图实例**（`token`）与一个**现算位置的函数**，而不是一个坐标数字：
+ * 面板开着的时候用户完全可能在别处打字，记下的坐标就指向了别的节点。
+ * 「面板还是不是属于同一个代码块」只有实例身份说得准，而「它在哪」得现问。
+ */
+interface CodeBlockPicker {
+  target: { token: unknown; resolvePos: () => number | null } | null;
+  readonly notify: (state: CodeBlockState | null) => void;
+}
+
+/**
+ * 语言标签被点开 / 所在的代码块消失时要做的事。
+ *
+ * 与命令面分成两个函数，是因为创建时机不同（见 `CodeBlockPicker`）。
+ */
+function codeBlockPickerHandlers(picker: CodeBlockPicker): CodeBlockChromeHandlers {
+  return {
+    openPicker: (request) => {
+      picker.target = { token: request.token, resolvePos: request.resolvePos };
+      picker.notify({ anchor: request.anchor, language: request.language });
+    },
+    closePicker: (token) => {
+      // 只有**面板正对着的那个**代码块消失时才关。删掉别的代码块不该把面板带走 ——
+      // 用户可能正打算给手里这个换个语言
+      if (picker.target === null || picker.target.token !== token) return;
+      picker.target = null;
+      picker.notify(null);
+    },
+  };
+}
+
+/**
+ * 代码块命令面。
+ *
+ * ## 为什么 `setLanguage` 要自己拼一条事务，而不是调
+ * `updateCodeBlockLanguageCommand`
+ *
+ * 预设确实给了这条命令（`{ pos, language }`），但它内部就是
+ * `tr.setNodeAttribute(pos, 'language', language)`，而且**不做任何校验**。
+ * 面板开着的时候用户完全可能在别处打字：位置会漂，甚至那个代码块已经被删掉了。
+ * 位置对不上时 `setNodeAttribute` 会把语言写到**另一个**节点上，不报错也不生效 ——
+ * 典型的静默错。所以这里自己写，好在写之前核一次「那个位置上还是一个代码块吗」。
+ *
+ * 位置是**现问的**（`target.resolvePos()`），不是面板打开时记下的那个数字。
+ */
+function createMarkdownCodeBlock(editor: Editor, picker: CodeBlockPicker): EditorCodeBlock {
+  const close = (): void => {
+    if (picker.target === null) return;
+    picker.target = null;
+    picker.notify(null);
+  };
+
+  return {
+    setLanguage: (language) => {
+      const target = picker.target;
+      // 先关面板再改文档：面板一关，外壳那次渲染就已经不再指向旧状态了
+      close();
+      if (target === null) return;
+
+      const pos = target.resolvePos();
+      // 那个代码块已经不在了（被删掉、或整篇被替换）。什么都不做 ——
+      // 写错地方比不写更糟
+      if (pos === null) return;
+
+      withUserEdit(editor, () => {
+        editor.action((ctx) => {
+          const view = ctx.get(editorViewCtx);
+          const node = view.state.doc.nodeAt(pos);
+          // 二次确认。`resolvePos` 给的位置按说是准的，但这里是最后一道闸：
+          // 万一它因为任何原因对不上，宁可什么都不做
+          if (node === null || node.type.name !== CODE_BLOCK) return;
+          // 语言没变就什么都不做。`setNodeAttribute` **即使写的是同一个值**
+          // 也会造出一个新节点、产生一次 docChanged —— 于是用户在面板上点了
+          // 一下「当前就是这个」的那一项，文档就莫名其妙变脏了
+          const current = node.attrs['language'];
+          if ((typeof current === 'string' ? current : '') === language) return;
+          view.dispatch(view.state.tr.setNodeAttribute(pos, 'language', language));
+        });
+      });
+    },
+
+    close,
+  };
+}
+
 export async function createMarkdownEditor(
   options: CreateMarkdownEditorOptions,
 ): Promise<MarkdownEditorInstance> {
@@ -510,6 +949,21 @@ export async function createMarkdownEditor(
    * 外壳在窗口关闭、`beforeunload` 这类时机需要同步拿到内容，异步拿不到。
    */
   let current = options.defaultValue;
+
+  /**
+   * 语言选择器的共享状态。**必须在 `Editor.make()` 之前建好** ——
+   * NodeView 插件是在 `.use()` 里装上去的，那时编辑器还不存在。
+   */
+  const picker: CodeBlockPicker = {
+    target: null,
+    notify: (state) => options.onCodeBlockChange?.(state),
+  };
+
+  /**
+   * 建一次就固定下来。传给插件的是「取它的函数」——
+   * 这样插件拿到的是同一个对象，而不是每次调用都新建一个。
+   */
+  const codeBlockHandlers = codeBlockPickerHandlers(picker);
 
   const editor = await Editor.make()
     .config((ctx) => {
@@ -537,9 +991,11 @@ export async function createMarkdownEditor(
     .use(cursor)
     .use(trailing)
     .use(codeHighlightPlugin)
+    .use(codeBlockChromePlugin(() => codeBlockHandlers))
     .use(cursorReporterPlugin(() => options.onCursorChange))
     .use(selectionReporterPlugin(() => options.onSelectionChange))
     .use(slashReporterPlugin(() => options.onSlashChange))
+    .use(tableReporterPlugin(() => options.onTableChange))
     .use($prose(() => placeholderPlugin(options.placeholder ?? '')))
     .use(
       $prose((ctx) => {
@@ -634,6 +1090,10 @@ export async function createMarkdownEditor(
     search: createMarkdownSearch(editor),
 
     formatting: createMarkdownFormatting(editor),
+
+    table: createMarkdownTable(editor),
+
+    codeBlock: createMarkdownCodeBlock(editor, picker),
 
     /**
      * 大纲跳转：按「层级 + 标题文字」在文档树里找标题节点。

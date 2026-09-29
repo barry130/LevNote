@@ -54,6 +54,112 @@
 
 /* 拖入文件时的高亮由外壳的 `.shell.dragging` 负责，这里不重复 */
 
+/* ------------------------------------------------------------------ 代码块 */
+
+/*
+ * 代码块在编辑器里由 NodeView 接管（见 `code-block-view.ts`），DOM 是
+ *
+ *   <div class="qm-cb">
+ *     <div class="qm-cb-gutter">…</div>     行号槽
+ *     <pre class="qm-cb-pre"><code class="qm-cb-code">…</code></pre>
+ *     <button class="qm-cb-lang">js</button>
+ *   </div>
+ *
+ * 与导出的 `<pre data-language><code>` 不是同一棵树，但**观感必须一致** ——
+ * 所以下面这些值全部照抄 `document-styles.css` 里 `.qm-doc pre` 那一组。
+ * 那一条是导出的定义，这一条是编辑器为了让出行号槽而重排的版本。
+ */
+.qm-editor .qm-cb {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  margin: 0 0 1em;
+  background: var(--qm-code-bg);
+  border: 1px solid var(--qm-line);
+  border-radius: 8px;
+  /* 让内部 `<pre>` 的横向滚动条也待在圆角里 */
+  overflow: hidden;
+}
+
+/*
+ * 内层 `<pre>` 现在只是「NodeView 里的一层容器」，外面那个 `.qm-cb` 才是框。
+ * 所以要把 `.qm-doc pre` 给它的背景、边框、内边距全部退掉。
+ *
+ * 选择器刻意写成 `.qm-editor .qm-cb > pre`（比 `.qm-doc pre` 高一档），
+ * 靠的是优先级而不是 `!important` —— 后者会让将来想覆盖它的人无从下手。
+ */
+.qm-editor .qm-cb > pre {
+  flex: 1 1 auto;
+  /* 不加这个，长代码会把 flex 项撑宽、把行号槽挤出可视区 */
+  min-width: 0;
+  margin: 0;
+  padding: 0.85em 1em;
+  background: none;
+  border: none;
+  border-radius: 0;
+  overflow-x: auto;
+}
+
+.qm-editor .qm-cb-gutter {
+  flex: 0 0 auto;
+  padding: 0.85em 0.55em 0.85em 0.9em;
+  border-right: 1px solid var(--qm-line-soft);
+  color: var(--qm-slate);
+  font-family: var(--qm-mono);
+  /* 与代码用同一组排版参数 —— 行号要一行对一行地贴住代码 */
+  font-size: var(--qm-code-font-size);
+  line-height: var(--qm-code-line-height);
+  text-align: right;
+  opacity: 0.6;
+  /*
+   * 行号不该被选中。它虽然在 `contenteditable` 里面，但标了
+   * `contenteditable="false"`，所以不会被写进文档；不加这一条的话，
+   * 用户全选复制时剪贴板里会多出一列数字 —— 而那是最容易被当成「软件坏了」的事。
+   */
+  user-select: none;
+}
+
+.qm-editor .qm-cb-num {
+  display: block;
+}
+
+/* 关掉行号时整条槽直接不画。DOM 还在，只是不占位、不可见 */
+.qm-editor.qm-no-line-numbers .qm-cb-gutter {
+  display: none;
+}
+
+/*
+ * 语言标签。摆法与配色**照抄导出的 `pre[data-language]::after`**
+ * （同样贴在右上角、同样的字号与圆角、同样 lowercase）——
+ * 导出用伪元素是因为那份 HTML 里不该多出一个不可交互的按钮，
+ * 编辑器用真按钮是因为它要能点开语言选择器。
+ */
+.qm-editor .qm-cb-lang {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.15em 0.6em;
+  border: none;
+  border-radius: 0 7px 0 7px;
+  background: var(--qm-line-soft);
+  color: var(--qm-slate);
+  font-family: var(--qm-mono);
+  font-size: 0.7em;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+.qm-editor .qm-cb-lang:hover {
+  color: var(--qm-ink);
+}
+
+.qm-editor .qm-cb-lang:focus-visible {
+  outline: 2px solid var(--qm-bamboo);
+  outline-offset: -2px;
+}
+
 /* 表格边框在编辑器里容易被光标遮住，给选中单元格一点反馈 */
 .qm-editor .ProseMirror .selectedCell::after {
   content: '';

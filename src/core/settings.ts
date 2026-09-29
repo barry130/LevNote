@@ -22,6 +22,19 @@ export interface ViewSettings {
   readonly outlineVisible: boolean;
   /** 代码 / 纯文本内核是否软换行。Markdown 内核不适用。 */
   readonly wordWrap: boolean;
+  /**
+   * Markdown 的代码块是否显示行号。
+   *
+   * 默认**开**。这是一个取舍：Typora 默认关（代码块里多一列数字，
+   * 短代码片段看着会重一些）。选开的理由是它更容易被发现 ——
+   * 关掉是「看不见但可以打开」，打开是「看得见但可以关掉」，
+   * 而后者对第一次用的人友好得多。开关就在代码块右上角那个语言标签点开的面板里，
+   * 关掉只要一次点击。
+   *
+   * 重审条件：如果收到「代码块太吵」这类反馈明显多过「行号好用」，
+   * 就把默认值翻过来。
+   */
+  readonly codeLineNumbers: boolean;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -30,6 +43,7 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   sidebarVisible: true,
   outlineVisible: false,
   wordWrap: false,
+  codeLineNumbers: true,
 };
 
 export const SIDEBAR_MIN_WIDTH = 160;
@@ -82,6 +96,7 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     sidebarVisible: asBoolean(record['sidebarVisible'], DEFAULT_SETTINGS.sidebarVisible),
     outlineVisible: asBoolean(record['outlineVisible'], DEFAULT_SETTINGS.outlineVisible),
     wordWrap: asBoolean(record['wordWrap'], DEFAULT_SETTINGS.wordWrap),
+    codeLineNumbers: asBoolean(record['codeLineNumbers'], DEFAULT_SETTINGS.codeLineNumbers),
   };
 }
 

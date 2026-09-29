@@ -26,8 +26,9 @@
 | 源码模式切换（Ctrl+/） | `src/core/editor/types.ts`（`sourceView`）+ `core/document/store.ts`（`ViewMode`）+ `ui/` | `store.test.ts` 的「视图模式」（7 条）+ `modules/wiring.test.ts`（5 条跨模块名单一致性）+ `App.test.tsx` 的「源码模式切换」（8 条内核交棒）。决策见 [ADR 0014](./decisions/0014-markdown-source-view.md) |
 | 选中浮层工具条（bubble menu） | `src/core/editor/types.ts`（`onSelectionChange` + `formatting`）+ `modules/markdown/selection.ts`（格式名翻译）+ `ui/SelectionToolbar.tsx` | `modules/markdown/formatting.test.ts`（13 条，走真实内核、断言序列化出来的 markdown）+ `App.test.tsx` 的「选中浮层工具条」（9 条，用真实 DOM 选区驱动）。决策见 [ADR 0015](./decisions/0015-selection-toolbar.md) |
 | 斜杠菜单（`/` 插入块） | `src/core/editor/types.ts`（`onSlashChange` + `insertBlock`）+ `modules/markdown/selection.ts`（`describeSlash`）+ `ui/SlashMenu.tsx` | `modules/markdown/slash.test.ts`（18 条，**逐字真的打字**驱动，覆盖六种触发条件 + 九个可插入块）+ `App.test.tsx` 的「斜杠菜单」（8 条，覆盖筛选 / 回车 / 上下键 / Esc / 无匹配 / 鼠标 / 切源码视图）。决策见 [ADR 0016](./decisions/0016-slash-menu.md) |
+| 表格增强 + 代码块（语言选择器 / 行号） | `src/core/editor/types.ts`（`onTableChange` / `onCodeBlockChange` + `EditorTable` / `EditorCodeBlock`）+ `modules/markdown/table.ts`、`code-block-view.ts`（NodeView）+ `ui/TableToolbar.tsx`、`CodeBlockPicker.tsx` | `modules/markdown/table.test.ts`（27 条）+ `code-block.test.ts`（29 条）+ `App.test.tsx` 的「表格工具条」（12 条）与「代码块语言选择器」（14 条）+ `ui/floating.test.ts`（12 条，**新建** —— 浮层算术提取成纯函数后第一次有测试）。**两半都自研** —— 官方组件是 Vue 3 的，理由与重审条件见 [ADR 0017](./decisions/0017-m5-tables-and-code-blocks.md) |
 
-合计 **411 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
+合计 **505 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
 
 > 其中 `eslint` 的「全绿」是 **2026-09-29 才真正成立**的：此前它虽然被写在这一行，
 > 但实际上是非阻塞的、且还有 33 项欠账。现在它是阻塞门禁，且配置里没有关掉的规则。
@@ -54,6 +55,8 @@
 | **空段落套进容器后会序列化成 `<br />`** | Milkdown 的 `remarkPreserveEmptyLinePlugin` 把空段落序列化成一个 `<br />` 的 html 节点当**空行占位符**：mdast 里空段落序列化出来什么都没有，没有占位符的话「一个空引用」存盘再打开就消失了。**往返稳定**（`> <br />` → `> <br />`），只影响「插入了但一个字没打就保存」，打字（`> 甲`）之后占位符就没了 | 低。**不是 M4 引入的** —— 手敲 `> ` 触发输入规则就能造出同样产物。两条改法都有真实损失（关掉插件 = 放弃空行保留；只省掉纯占位符容器 = 空引用存盘后消失），所以现在不动。详见 [ADR 0016](./decisions/0016-slash-menu.md) 代价 2 |
 | **主包体积**（886 kB → 现在更大） | 桌面端从本地磁盘加载，与网页端性质不同 | 低。拆分方案已明确：`React.lazy` 加载内核，外壳首屏目标 < 200 kB |
 | **命令面板的拼音关键词要手工维护** | 每条命令手写 `keywords` | 低。命令数量还少（15 条）。超过 ~50 条时应改为自动生成拼音 |
+| **代码块语言的中文名 / 拼音关键词是手工的** | 候选列表来自 `supportedLanguages()`（直接读 highlight.js 的 `listLanguages()`，不会过期），但**中文名与拼音是手写的一张表**。新增语言只会显示成英文 id，**不会坏**，只是不友好 | 低。这张表的规模由 `highlight.js/lib/common` 的 36 种语言决定，是**固定集合**，不随我们的代码增长。真需要时按语言 id 的常见程度补 |
+| **代码块语言面板的屏幕几何只有人眼能验** | 同 M3 / M4：`getBoundingClientRect()` 在 jsdom 里全是 0 | 低（但确实没验）。面板要**右对齐到语言标签的右边缘**（`horizontal: 'end'`），贴右边缘时会被夹回视口 —— 夹取逻辑有单测，观感要在 `npm run desktop` 里看 |
 
 ---
 
@@ -113,13 +116,36 @@
 | V1 | draw.io `viewer.min.js` 能否**独立**渲染 | 能否独立运行（不依赖完整 bundle）；能否正确渲染我们样本里的**多页**与**压缩变体** `.drawio`；viewer + 必要 stencils 实测体积 | 不能独立 → 退化为「连 viewer 也按需下载」；体积 > 6 MB → 重估是否值得内置 | P5 | 未开始 |
 | V2 | mind-elixir 500 节点压测 | 输入到反馈 ≤ 50ms；`.mindmap` 读写与 §7.1 骨架的对齐损耗 | 卡顿或停更 → **自研**；XMind 往返成刚需 → 迁 simple-mind-map | P4 | 未开始 |
 | V3 | Milkdown 长文档输入延迟 | 1 万字以上文档，输入延迟 ≤ 50ms | 超出 → 改为分栏预览方案（保守但更不像 Typora） | 回填 0004 | **仍未测**（需要真实浏览器，jsdom 的耗时没有参考价值） |
-| V4 | Milkdown 表格可视化编辑的成本 | 达到「像 Typora 一样编表格」需要多少人日 | 明显超出预算 → 评估改用 `@milkdown/crepe`（开箱含块手柄与表格 UI），代价是控制力下降 | P2 收尾 | 未开始 |
+| V4 | Milkdown 表格可视化编辑的成本 | 达到「像 Typora 一样编表格」需要多少人日 | 明显超出预算 → 评估改用 `@milkdown/crepe`（开箱含块手柄与表格 UI），代价是控制力下降 | P2 收尾 | ✅ **已由 M5 回答**，见下 |
 
 **V1 与 V2 是各自阶段的开工前置**，应在动手写代码之前先做，避免为可能被否的方案投入沉没成本。
 
 **V3 是唯一一项「推迟了但会反噬」的验证** —— 它的结论要回填 ADR 0004，
 而 0004 的待定状态会一直挂着。V3 无法在 jsdom 里做（jsdom 的渲染耗时与真实 WebView 无关），
 必须先用 `npm run desktop` 跑起来、拿一份 1 万字以上的真实文档手动测。
+
+### V4 的结论（2026-09-29，M5 落地时得出）
+
+**结论：成本可接受，自研；不评估 Crepe。**
+
+M5 已经把表格的可视化编辑做出来了（加行加列、删行删列、设对齐、插入最小表格），
+实现是「一个纯函数 `describeTable()` + 一个 React 工具条 + 装饰层」，
+**没有引入任何新依赖**。也就是说 V4 原本担心的「成本明显超出预算」并没有发生 ——
+真正的成本不在 UI，而在**读懂 Milkdown 的表格 schema**（见下）。
+
+同时，「改用 `@milkdown/crepe`」这个备选分支**被 ADR 0017 关闭了**：
+Crepe 开箱的表格 UI 正是建立在 `@milkdown/components` 上的，而那是 Vue 3。
+采纳它等于采纳 ADR 0017 已经否掉的那条路（第二套 UI 框架 + 高亮管线分叉）。
+
+三条在实现过程中**实测**到的、读文档读不出来的约束（已写进 ADR 0017）：
+
+1. 最小表格是 **2 行**（表头行 + 至少一个正文行）；**空表头行会在序列化时被静默丢掉**；
+2. 对齐是**按列、且由表头决定**的 —— 设对齐必须**写整列**，只写光标所在格会在存盘时丢；
+3. `TableRole` 里**没有 `header_row`**，表头行与正文行共用 `row`。
+
+**仍未做、且属于 V4 范围的剩余部分**：鼠标拖拽改列宽、表格悬浮 `+` 按钮、
+单元格内快捷导航（Tab 跳格是 ProseMirror 自带，跨行插入未做）。
+这些**不需要新的内核能力**，是纯交互层的增量，可以随时补 —— 所以不再挂着一个待验证项。
 
 ---
 
@@ -189,6 +215,14 @@ B3 / B4 是原规划就指出「应尽早启动申请」的事项 —— 它们�
 | 思维导图内核 | **mind-elixir**，精确锁定 `5.15.1`（npm `latest` 标签是坏的） | [0007](./decisions/0007-mindmap-core-choice.md) |
 | 范围与排序 | 按「小投入」执行；**P2 = Markdown 内核 + 自包含 HTML 导出** | [0008](./decisions/0008-scope-and-order.md) |
 | Markdown 打开路径 | mdast 规整 null（否则无标题图片整张丢失）+ front matter 文件降级纯文本 | [0009](./decisions/0009-markdown-open-guards.md) |
+| 多标签工作区 | 内核跟着标签页走（切换时重建）；外壳不持有任何文档字段 | [0010](./decisions/0010-multi-tab-workspace.md) |
+| 代码内核与降级 | CodeMirror 6；「降级到次优」而不是「降级到最差」 | [0011](./decisions/0011-code-kernel-and-graceful-downgrade.md) |
+| 命令注册表 | 命令只有一个来源；面板由注册表生成，不会过期 | [0012](./decisions/0012-command-registry.md) |
+| 双编译器（TS 6 + TS 7） | lint 跑 TS 6、`tsc` 跑 TS 7；**两条都要跑** | [0013](./decisions/0013-lint-alongside-typescript-7.md) |
+| Markdown 源码视图 | 复用代码内核，不注册进注册表；`ViewMode` 住在 `StoreState` | [0014](./decisions/0014-markdown-source-view.md) |
+| 选中浮层工具条 | 内核只上报「选区是什么格式、在屏幕哪儿」，浮层由外壳画 | [0015](./decisions/0015-selection-toolbar.md) |
+| 斜杠菜单 | 触发判定留在内核、菜单与键盘在外壳；**Esc 只收菜单不删字** | [0016](./decisions/0016-slash-menu.md) |
+| M5 表格与代码块 | **自研两半，不用官方 Vue 版组件**；表格走装饰、代码块走 NodeView | [0017](./decisions/0017-m5-tables-and-code-blocks.md) |
 
 ---
 
