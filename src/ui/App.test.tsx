@@ -272,6 +272,136 @@ function renderedText(container: HTMLElement): string {
   return container.querySelector('.qm-code .cm-content')?.textContent ?? '';
 }
 
+/**
+ * 等一帧。
+ *
+ * 选区上报是用 `requestAnimationFrame` 合并的（拖动选择时每个 mousemove 都会
+ * 触发一次，逐次去量会强制布局、把拖选拖成幻灯片）。所以这里必须真的等一帧，
+ * 而不是 `settle()` 那三轮 `setTimeout(0)` —— 那三轮根本走不到 rAF。
+ */
+async function nextFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => resolve(undefined));
+    });
+  });
+}
+
+/**
+ * 在编辑器里选中一段文字。
+ *
+ * 走**真实的 DOM 选区**再派发 `selectionchange`，而不是去够 ProseMirror 的内部对象。
+ * 这正是浏览器里发生的事，所以顺带验证了「ProseMirror 认这个选区」这一步 ——
+ * 直接构造 `TextSelection` 会跳过它，而跳过的恰恰是最容易坏的一环。
+ *
+ * 同时认两种内核的 contenteditable：`.ProseMirror`（富文本）与 `.cm-content`（代码）。
+ * 测试「代码内核没有浮层」时需要在 CodeMirror 里真的选中一段文字，
+ * 否则那条用例会退化成「没选区所以没浮层」，什么都没验证到。
+ */
+function editableOf(container: HTMLElement): HTMLElement {
+  const root = container.querySelector<HTMLElement>('.qm-editor .ProseMirror, .qm-code .cm-content');
+  if (root === null) throw new Error('没有找到可编辑区 —— 用例是不是忘了先 open？');
+  return root;
+}
+
+async function selectText(container: HTMLElement, needle: string): Promise<void> {
+  const editable = editableOf(container);
+  editable.focus();
+
+  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT);
+  let hit: { node: Text; offset: number } | null = null;
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const offset = node.data.indexOf(needle);
+    if (offset >= 0) {
+      hit = { node, offset };
+      break;
+    }
+  }
+  if (hit === null) throw new Error(`编辑器里找不到「${needle}」`);
+
+  const range = document.createRange();
+  range.setStart(hit.node, hit.offset);
+  range.setEnd(hit.node, hit.offset + needle.length);
+  const selection = window.getSelection();
+  if (selection === null) throw new Error('测试环境没有 Selection');
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  await act(async () => {
+    document.dispatchEvent(new Event('selectionchange'));
+  });
+  await nextFrame();
+}
+
+/**
+ * 把选区收起来 —— 模拟「用户点了一下，光标塌缩」。
+ *
+ * ## 两个都必须做对，少一个这条用例就变成假绿
+ *
+ * 1. **不能只 `removeAllRanges()`**。那样 ProseMirror 会看到「焦点不在自己身上」，
+ *    直接跳过这次 `selectionchange`，连事务都不派发 —— 内核根本不知道选区没了。
+ *    浏览器里用户点掉选中时，给的是「编辑器里一个塌缩的光标」，这里必须复现那一步。
+ *
+ * 2. **塌缩点不能落在文档最开头**。ProseMirror 的 `DOMObserver.flush()` 里有一条：
+ *    若「刚获得焦点 200ms 内」+「选区塌缩」+「塌缩到了 `Selection.near(doc.resolve(0))`」，
+ *    它认定这是**浏览器自作主张把选区重置到了文档开头**，于是把 state 里的选区
+ *    **写回 DOM**、丢弃这次塌缩。这是真实浏览器里存在的现象，PM 处理得对；
+ *    但我们的测试如果正好塌缩到那里，就会看到「选了、取消了、浮层还在」，
+ *    然后去怀疑一个根本没坏的实现。所以这里塌缩到词尾。
+ */
+async function clearSelection(container: HTMLElement, after: string): Promise<void> {
+  const editable = editableOf(container);
+
+  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT);
+  let hit: { node: Text; offset: number } | null = null;
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const offset = node.data.indexOf(after);
+    if (offset >= 0) {
+      hit = { node, offset };
+      break;
+    }
+  }
+  if (hit === null) throw new Error(`可编辑区里找不到「${after}」`);
+
+  const range = document.createRange();
+  range.setStart(hit.node, hit.offset + after.length);
+  range.collapse(true);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+
+  await act(async () => {
+    document.dispatchEvent(new Event('selectionchange'));
+  });
+  await nextFrame();
+}
+
+function toolbarOf(container: HTMLElement): HTMLElement | null {
+  return container.querySelector('.selection-toolbar');
+}
+
+/**
+ * 浮层上的按钮。
+ *
+ * 按 `aria-label` 找而不是按文字 —— 按钮上写的是 `B` / `I` / `•` 这类符号，
+ * 文字会随样式调整，而 `aria-label` 是给读屏用的、不该跟着改。
+ */
+function formatButton(container: HTMLElement, label: string): HTMLButtonElement | null {
+  return container.querySelector<HTMLButtonElement>(`.selection-toolbar button[aria-label="${label}"]`);
+}
+
+/** 点浮层上的某个格式按钮，并等一帧让内核把新状态报回来。 */
+async function clickFormat(container: HTMLElement, label: string): Promise<void> {
+  const button = formatButton(container, label);
+  if (button === null) throw new Error(`浮层上没有「${label}」`);
+  await act(async () => {
+    button.click();
+  });
+  await nextFrame();
+}
+
 let mounted: Mounted | null = null;
 
 beforeEach(() => {
@@ -705,5 +835,157 @@ describe('状态栏统计', () => {
     });
     await settle();
     expect(statisticsOf(mounted.container)).toBe('1 行 · 1 字 · 1 字符 · 约 1 分钟');
+  });
+});
+
+describe('选中浮层工具条', () => {
+  /**
+   * 这一组打的是**三件事的接缝**，每一件单独测都测不出问题：
+   *
+   * 1. 内核能不能把「选了什么格式、选区在屏幕哪儿」报上来；
+   * 2. 外壳能不能据此画出一个位置正确、状态正确的浮层；
+   * 3. 点浮层上的按钮，能不能真的改到文档、并且**让外壳知道文档改了**。
+   *
+   * 第 3 条里最后半句是重点：点按钮不产生任何键盘事件，如果格式化不打
+   * `USER_EDIT_META`，文档不会变脏，用户按 Ctrl+S 写回磁盘的是格式化**之前**的内容。
+   * 这是「静默丢数据」，所以这里专门断言状态栏变成了「有未保存的改动」。
+   */
+
+  it('没有选中文字时没有浮层', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n\n正文 abc 结尾\n'));
+    await mounted.open('note.md');
+
+    // 刚打开时没有选区
+    expect(toolbarOf(mounted.container)).toBeNull();
+
+    // 选中再取消，浮层要跟着收起来
+    await selectText(mounted.container, 'abc');
+    expect(toolbarOf(mounted.container)).not.toBeNull();
+    await clearSelection(mounted.container, 'abc');
+    expect(toolbarOf(mounted.container)).toBeNull();
+  });
+
+  it('选中文字后浮层出现，并列出全部格式按钮', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文 abc 结尾\n'));
+    await mounted.open('note.md');
+    await selectText(mounted.container, 'abc');
+
+    const toolbar = toolbarOf(mounted.container);
+    expect(toolbar).not.toBeNull();
+    // 浮层是编辑器区域的**兄弟**节点，不是子节点 ——
+    // 放进内核挂载的那层容器会被内核在挂载时抹掉
+    expect(toolbar?.parentElement?.classList.contains('editor-area')).toBe(true);
+
+    for (const label of ['加粗（Ctrl+B）', '斜体（Ctrl+I）', '删除线', '行内代码', '链接', '一级标题', '代码块']) {
+      expect(formatButton(mounted.container, label), label).not.toBeNull();
+    }
+  });
+
+  it('浮层按钮拦掉 mousedown —— 不拦的话焦点离开编辑器，选区丢失，按钮点不动', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文 abc 结尾\n'));
+    await mounted.open('note.md');
+    await selectText(mounted.container, 'abc');
+
+    const button = formatButton(mounted.container, '加粗（Ctrl+B）');
+    expect(button).not.toBeNull();
+    const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    button?.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('点「加粗」：文档真的变了、变脏了，按钮也亮起来了', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文 abc 结尾\n'));
+    await mounted.open('note.md');
+
+    // 未加粗时按钮不该是生效态
+    await selectText(mounted.container, 'abc');
+    expect(formatButton(mounted.container, '加粗（Ctrl+B）')?.getAttribute('aria-pressed')).toBe('false');
+
+    await clickFormat(mounted.container, '加粗（Ctrl+B）');
+
+    expect(mounted.store.getSnapshot().doc?.text).toContain('**abc**');
+    // 这一条才是「不会静默丢数据」的保证
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+    // 点完之后按钮要变成生效态。文档变了但选区没动 ——
+    // 内核如果只在选区变化时上报，这里会停在旧的高亮上
+    expect(formatButton(mounted.container, '加粗（Ctrl+B）')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('选区里本来就有加粗时，按钮一出现就是生效态', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文 **abc** 结尾\n'));
+    await mounted.open('note.md');
+    await selectText(mounted.container, 'abc');
+
+    expect(formatButton(mounted.container, '加粗（Ctrl+B）')?.getAttribute('aria-pressed')).toBe('true');
+    expect(formatButton(mounted.container, '斜体（Ctrl+I）')?.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('点「二级标题」把整个块变成标题', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文 abc 结尾\n'));
+    await mounted.open('note.md');
+    await selectText(mounted.container, 'abc');
+
+    await clickFormat(mounted.container, '二级标题');
+
+    expect(mounted.store.getSnapshot().doc?.text).toContain('## 正文 abc 结尾');
+    expect(formatButton(mounted.container, '二级标题')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('点「链接」弹出地址输入，回车把链接写进文档', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文 abc 结尾\n'));
+    await mounted.open('note.md');
+    await selectText(mounted.container, 'abc');
+
+    await clickFormat(mounted.container, '链接');
+
+    const input = mounted.container.querySelector<HTMLInputElement>('.st-link-input');
+    expect(input).not.toBeNull();
+
+    await act(async () => {
+      if (input === null) return;
+      // React 受控输入：直接改 `input.value` 不会触发 onChange ——
+      // React 在元素上挂了一个 value tracker，看到值没变就把事件吞掉。
+      // 必须走原型上的原生 setter 绕过它。
+      // `.bind(input)` 是顺手做的：`.set` 是方法，拆下来单传会丢 `this`
+      const setNativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.bind(input);
+      setNativeValue?.('https://example.com');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    await nextFrame();
+
+    expect(mounted.store.getSnapshot().doc?.text).toContain('[abc](https://example.com)');
+  });
+
+  /**
+   * 代码 / 纯文本内核没有格式化能力。
+   *
+   * 这里要的是「**不出现**」而不是「出现但禁用」—— 与工具栏上那个「源码」按钮相反。
+   * 区别在于：源码视图是「有，但这份文档用不上」，格式化是「这个内核根本没有」。
+   * 一个纯文本编辑器弹出加粗按钮，用户点下去只会什么都没发生。
+   */
+  it('代码内核的文档不显示浮层', async () => {
+    mounted = await mount((p) => p.put('main.py', 'print("abc")\n'));
+    await mounted.open('main.py');
+
+    expect(kernelOf(mounted.container)).toBe('代码 / 文本');
+    await selectText(mounted.container, 'abc');
+    expect(toolbarOf(mounted.container)).toBeNull();
+  });
+
+  it('切到源码模式后浮层消失，切回富文本又能用', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文 abc 结尾\n'));
+    await mounted.open('note.md');
+    await selectText(mounted.container, 'abc');
+    expect(toolbarOf(mounted.container)).not.toBeNull();
+
+    await mounted.click('源码');
+    // 源码视图底下坐着代码内核，它没有格式化能力
+    expect(toolbarOf(mounted.container)).toBeNull();
+
+    await mounted.click('富文本');
+    await selectText(mounted.container, 'abc');
+    expect(toolbarOf(mounted.container)).not.toBeNull();
   });
 });

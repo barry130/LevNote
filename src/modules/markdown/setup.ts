@@ -16,6 +16,7 @@
 
 import {
   Editor,
+  commandsCtx,
   defaultValueCtx,
   editorViewCtx,
   editorViewOptionsCtx,
@@ -24,18 +25,41 @@ import {
   rootCtx,
   serializerCtx,
 } from '@milkdown/kit/core';
+import type { CmdKey } from '@milkdown/kit/core';
 import { clipboard } from '@milkdown/kit/plugin/clipboard';
 import { cursor } from '@milkdown/kit/plugin/cursor';
 import { history } from '@milkdown/kit/plugin/history';
 import { trailing } from '@milkdown/kit/plugin/trailing';
+import { lift } from '@milkdown/kit/prose/commands';
 import type { Node as ProseNode } from '@milkdown/kit/prose/model';
 import { DOMSerializer } from '@milkdown/kit/prose/model';
+import type { Command } from '@milkdown/kit/prose/state';
 import { TextSelection } from '@milkdown/kit/prose/state';
+import {
+  createCodeBlockCommand,
+  liftListItemCommand,
+  toggleEmphasisCommand,
+  toggleInlineCodeCommand,
+  toggleLinkCommand,
+  toggleStrongCommand,
+  turnIntoTextCommand,
+  updateLinkCommand,
+  wrapInBlockquoteCommand,
+  wrapInBulletListCommand,
+  wrapInHeadingCommand,
+  wrapInOrderedListCommand,
+} from '@milkdown/kit/preset/commonmark';
 import { commonmark } from '@milkdown/kit/preset/commonmark';
-import { gfm } from '@milkdown/kit/preset/gfm';
+import { gfm, toggleStrikethroughCommand } from '@milkdown/kit/preset/gfm';
 import { $prose } from '@milkdown/kit/utils';
 
-import type { CursorPosition, EditorSearch } from '../../core/editor/types.js';
+import type {
+  BlockFormat,
+  CursorPosition,
+  EditorFormatting,
+  EditorSearch,
+  SelectionSnapshot,
+} from '../../core/editor/types.js';
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
 import {
@@ -43,9 +67,11 @@ import {
   cursorReporterPlugin,
   markdownEmitPlugin,
   placeholderPlugin,
+  selectionReporterPlugin,
   SILENT_META,
   USER_EDIT_META,
 } from './plugin.js';
+import { activeLinkHref, resolveBlock } from './selection.js';
 
 /**
  * 编辑器与导出共用的版式类名。
@@ -72,6 +98,8 @@ export interface CreateMarkdownEditorOptions {
   /** 内容变化。**由 `setMarkdown` 触发的变化不会回调到这里**（避免回声）。 */
   onChange: (markdown: string) => void;
   onCursorChange?: (position: CursorPosition) => void;
+  /** 选区变化。参数为 null 表示「现在不该有浮层工具条」（见契约注释）。 */
+  onSelectionChange?: (selection: SelectionSnapshot | null) => void;
 }
 
 export interface MarkdownEditorInstance {
@@ -81,6 +109,7 @@ export interface MarkdownEditorInstance {
   /** 语义 HTML 片段，不含 `<html>` / `<head>`。 */
   toHtml(): string;
   readonly search: EditorSearch;
+  readonly formatting: EditorFormatting;
   /** 大纲跳转：定位到指定层级的指定标题。 */
   goToHeading(level: number, text: string): boolean;
   destroy(): Promise<void>;
@@ -197,6 +226,180 @@ function expand(text: string, pattern: RegExp | null, replacement: string, asReg
 }
 
 /**
+ * 浮层工具条要用的格式化命令面。
+ *
+ * ## 为什么几乎全部走 Milkdown 命令，而不是直接用 ProseMirror
+ *
+ * 命令注册在 `commandsCtx` 里，是 Milkdown 与它各预设之间的**唯一接口**。
+ * 自己写 `setBlockType(schema.nodes.heading, {level})` 看着更直接，但会把
+ * 预设内部的取舍（标题 id 同步、列表序号同步、块引用容器类型）绕过去 ——
+ * 那些是 `withMeta` 之外的插件在 `appendTransaction` 里做的，绕过它们不会报错，
+ * 只会在某个具体文档上悄悄少做一件事。
+ *
+ * 只有「从引用里脱身」是个例外：预设没给这个命令（它只有 `wrapInBlockquote`），
+ * 所以退回 prosemirror-commands 的 `lift`。这是唯一一处。
+ */
+function createMarkdownFormatting(editor: Editor): EditorFormatting {
+  /**
+   * 把这一次格式化标记成「用户发起的编辑」。
+   *
+   * ## 少了这一步会**静默丢数据**
+   *
+   * `markdownEmitPlugin` 只在「刚发生过用户输入」的窗口内上报变更，而点工具条上的
+   * 按钮**不产生任何 `input` / `paste` 事件** —— 没有这个标记，加粗之后文档不会变脏，
+   * 用户按 Ctrl+S，写回磁盘的是加粗前的旧内容，而界面一直显示「已保存」。
+   *
+   * 这与 `USER_EDIT_META` 当初为「查找替换」加上的理由是**同一条**：
+   * 由用户动作触发、但不经过键盘事件的编辑，必须自己声明身份。
+   *
+   * ## 为什么是临时换掉 `view.dispatch`
+   *
+   * 命令由 Milkdown 的 `CommandManager` 内部派发（`command(view.state, view.dispatch, view)`），
+   * 中间没有任何可以插进去的钩子，也没有 `dispatchTransaction` 选项被用到。
+   * 换掉再在 `finally` 里换回来，作用范围只有这一次同步调用 ——
+   * 不是全局补丁，也不会漏到别的派发路径上。`dispatch` 是实例上的可写属性
+   * （`prosemirror-view` 里声明为 `dispatch: (tr) => void`），所以这样做是合法的。
+   */
+  const asUserEdit = <T>(run: () => T): T =>
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const original = view.dispatch;
+      view.dispatch = (tr) => original.call(view, tr.setMeta(USER_EDIT_META, true));
+      try {
+        return run();
+      } finally {
+        view.dispatch = original;
+      }
+    });
+
+  /** 调一条 Milkdown 命令。返回它是否真的执行了（false = 当前选区不适用）。 */
+  const call = <T>(key: CmdKey<T>, payload?: T): boolean =>
+    editor.action((ctx) => ctx.get(commandsCtx).call(key, payload));
+
+  /** 直接跑一条 ProseMirror 命令。只给 `lift` 用，理由见上。 */
+  const runRaw = (command: Command): boolean =>
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      return command(view.state, view.dispatch, view);
+    });
+
+  const currentBlock = (): { block: BlockFormat; headingLevel: number | null } | null =>
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      // 用 $from 而不是 describeSelection：后者在光标塌缩时返回 null，
+      // 而「光标在标题里、没选中文字」也是合法的格式化场景
+      return resolveBlock(view.state.selection.$from);
+    });
+
+  const applyBlock = (format: BlockFormat, level?: number): void => {
+    const now = currentBlock();
+    if (now === null) return;
+    switch (format) {
+      case 'paragraph': {
+        // 不能只调 setBlockType(paragraph)：在列表 / 引用里，文本块**本来就已经是**
+        // 段落，命令会「成功但什么都没改」，用户看到的是点了没反应。
+        // 所以先把自己从容器里提出来。
+        if (now.block === 'bulletList' || now.block === 'orderedList') {
+          call(liftListItemCommand.key);
+          return;
+        }
+        if (now.block === 'blockquote') {
+          runRaw(lift);
+          return;
+        }
+        call(turnIntoTextCommand.key);
+        return;
+      }
+
+      case 'heading': {
+        // 已经是这一级 → 取消（回到正文）。原地不动会让按钮看起来点坏了
+        const wanted = level ?? 1;
+        if (now.block === 'heading' && now.headingLevel === wanted) {
+          call(turnIntoTextCommand.key);
+          return;
+        }
+        call(wrapInHeadingCommand.key, wanted);
+        return;
+      }
+
+      case 'blockquote':
+        if (now.block === 'blockquote') {
+          runRaw(lift);
+          return;
+        }
+        call(wrapInBlockquoteCommand.key);
+        return;
+
+      case 'bulletList':
+        if (now.block === 'bulletList') {
+          call(liftListItemCommand.key);
+          return;
+        }
+        call(wrapInBulletListCommand.key);
+        return;
+
+      case 'orderedList':
+        if (now.block === 'orderedList') {
+          call(liftListItemCommand.key);
+          return;
+        }
+        call(wrapInOrderedListCommand.key);
+        return;
+
+      case 'codeBlock':
+        // 代码块是终态，没有「取消」这一说 —— 退出的方式是再按一次「正文」
+        if (now.block === 'codeBlock') return;
+        call(createCodeBlockCommand.key);
+        return;
+    }
+  };
+
+  return {
+    toggleInline: (format, value) => {
+      asUserEdit(() => {
+        switch (format) {
+          case 'strong':
+            call(toggleStrongCommand.key);
+            return;
+          case 'emphasis':
+            call(toggleEmphasisCommand.key);
+            return;
+          case 'strikethrough':
+            call(toggleStrikethroughCommand.key);
+            return;
+          case 'inlineCode':
+            call(toggleInlineCodeCommand.key);
+            return;
+
+          case 'link': {
+            const href = value?.trim() ?? '';
+            const existing = editor.action((ctx) => activeLinkHref(ctx.get(editorViewCtx).state));
+
+            // 没给地址：只处理「去掉」。不在链接里就什么都不做 —— 内核不替用户猜地址
+            if (href === '') {
+              if (existing !== null) call(toggleLinkCommand.key);
+              return;
+            }
+            // 已经在链接里就改地址（`updateLinkCommand` 会保留原有的 title），
+            // 否则直接加上。用 toggleMark 去改地址是不行的：它看到「已有该 mark」
+            // 会执行**移除**，用户的链接会莫名其妙消失。
+            if (existing !== null) call(updateLinkCommand.key, { href });
+            else call(toggleLinkCommand.key, { href });
+            return;
+          }
+        }
+      });
+    },
+
+    toggleBlock: (format, level) => {
+      asUserEdit(() => {
+        applyBlock(format, level);
+      });
+    },
+  };
+}
+
+/**
  * 在文档树里找第一个「层级 + 标题文字」都匹配的标题，返回它的位置；找不到返回 `null`。
  *
  * **为什么单独拆成函数**（而不是在调用处就地写 `let found` + 回调里赋值）：
@@ -265,6 +468,7 @@ export async function createMarkdownEditor(
     .use(trailing)
     .use(codeHighlightPlugin)
     .use(cursorReporterPlugin(() => options.onCursorChange))
+    .use(selectionReporterPlugin(() => options.onSelectionChange))
     .use($prose(() => placeholderPlugin(options.placeholder ?? '')))
     .use(
       $prose((ctx) => {
@@ -357,6 +561,8 @@ export async function createMarkdownEditor(
       }),
 
     search: createMarkdownSearch(editor),
+
+    formatting: createMarkdownFormatting(editor),
 
     /**
      * 大纲跳转：按「层级 + 标题文字」在文档树里找标题节点。

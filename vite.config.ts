@@ -29,6 +29,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['packages/**/*.test.ts', 'packages/**/*.test.tsx', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // 补 jsdom 缺失的 DOM 接口（`getClientRects` 等）。ProseMirror 的
+    // `scrollIntoView()` 依赖它们，不补的话「查找跳转 / 工具条格式化」这类
+    // 用例会在一个与被测代码无关的地方抛错。细节见该文件头部。
+    setupFiles: ['./src/test/jsdom-gaps.ts'],
     // 导出路径要验证「版式 CSS 被内联进单文件 HTML」，而这条链路走的是
     // `import styles from './document-styles.css?raw'`。vitest 默认 css:false，
     // 会把 CSS 模块替换成空实现，`?raw` 也拿不到内容 —— 测试会假绿。

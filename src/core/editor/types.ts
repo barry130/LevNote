@@ -81,6 +81,14 @@ export interface EditorHandle {
    */
   readonly search?: EditorSearch;
   /**
+   * 可选：格式化命令面（浮层工具条用）。
+   *
+   * 不实现时外壳**不显示**浮层工具条 —— 与 `sourceView` 的处理不同：
+   * 那个是「有但这份文档用不上」（禁用），这个是「这个内核没有这个能力」。
+   * 一个纯文本内核弹出加粗按钮，用户点下去只会什么都没发生。
+   */
+  readonly formatting?: EditorFormatting;
+  /**
    * 可选：把光标移到某个标题处（大纲跳转）。
    *
    * 参数是「层级 + 标题文字」而不是「源文档行号」：行号只对
@@ -97,6 +105,98 @@ export interface EditorHandle {
 export interface CursorPosition {
   line: number;
   column: number;
+}
+
+// ---------------------------------------------------------------------------
+// 选区格式（浮层工具条的输入）
+// ---------------------------------------------------------------------------
+
+/**
+ * 选区在**视口坐标系**里的矩形 —— 与 `getBoundingClientRect()` 同一套坐标。
+ *
+ * 为什么是「视口坐标」而不是「相对编辑器容器的坐标」：内核能拿到的只有
+ * `coordsAtPos()`，它给的就是视口坐标。若要换算成容器坐标，内核就得知道
+ * 容器是谁、它滚动到哪里 —— 那是外壳的布局知识，内核不该有。
+ * 外壳用 `position: fixed` 摆放浮层，视口坐标可以直接用，一次换算都不需要。
+ *
+ * 刻意是**快照**（普通数字字段）而不是 `DOMRect`：`DOMRect` 的字段是活取值，
+ * 拿到之后再被布局改动就会变；而且它没法在测试里当普通对象断言。
+ */
+export interface SelectionRect {
+  readonly top: number;
+  readonly left: number;
+  readonly bottom: number;
+  readonly right: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * 行内格式。
+ *
+ * 这里是**外壳的语言**，不是任何内核的 mark 名。Milkdown 把删除线叫
+ * `strike_through`、把行内代码叫 `inlineCode`，将来换成别的内核名字还会变 ——
+ * 那层翻译住在内核自己的映射表里（`modules/markdown/selection.ts`），
+ * 外壳只认这五个词。
+ */
+export type InlineFormat = 'strong' | 'emphasis' | 'strikethrough' | 'inlineCode' | 'link';
+
+/** 块级格式。`heading` 需要配一个 1–6 的层级。 */
+export type BlockFormat = 'paragraph' | 'heading' | 'blockquote' | 'bulletList' | 'orderedList' | 'codeBlock';
+
+/** 选区**当前**的格式。工具条据此把对应的按钮显示成「已生效」。 */
+export interface SelectionFormat {
+  /**
+   * 选区内**每一个字符都带有**的行内格式。
+   *
+   * 用「全部都有」而不是「起点有」：选中 `普通**加粗**` 时按钮不该亮 ——
+   * 亮着会让人以为点一下是「取消加粗」，而实际上会变成整段加粗。
+   */
+  readonly inline: ReadonlySet<InlineFormat>;
+  /** 选区起点所在的块。列表 / 引用里返回**容器**，不是容器里的段落。 */
+  readonly block: BlockFormat;
+  /** `block === 'heading'` 时的层级；其余情况为 null。 */
+  readonly headingLevel: number | null;
+  /**
+   * 选区所在链接的地址；不在链接里时为 null。
+   *
+   * 单独给一个字段而不是让外壳去猜：工具条上的链接按钮要**回填**现有地址，
+   * 否则用户想把 `http://` 改成 `https://` 就只能先删掉再重加。
+   */
+  readonly linkHref: string | null;
+}
+
+/** 内核上报的一次选区快照。`format` 与 `anchor` 必须同时有效，所以打成一包。 */
+export interface SelectionSnapshot {
+  readonly format: SelectionFormat;
+  readonly anchor: SelectionRect;
+}
+
+/**
+ * 内核交回给外壳的**格式化命令面**。
+ *
+ * 与 `EditorSearch` 同一个套路：外壳只说「加粗」/「变成二级标题」，
+ * 至于这一步在 ProseMirror 里是 `setBlockType` 还是别的什么，外壳不知道也不该知道。
+ *
+ * 两个方法都是 **toggle** 语义 —— 用户点第二下就该回到原样。
+ * 「已经是这个格式了」时再调用一次，结果必须是取消它，而不是原地不动：
+ * 原地不动会让按钮看起来点坏了。
+ */
+export interface EditorFormatting {
+  /**
+   * 切换行内格式。
+   *
+   * `value` 只有 `link` 用得上，链接的规则比其余四个多一层「指向哪」：
+   *
+   * - 给了非空 `value`：已经在链接里就**改地址**，不在就**加上**；
+   * - 没给（或给了空串）：在链接里就**去掉**；不在就**什么都不做** ——
+   *   地址得由用户给，内核不替他猜一个。
+   *
+   * 其余四个格式忽略 `value`。
+   */
+  toggleInline(format: InlineFormat, value?: string): void;
+  /** 切换块级格式。`level` 只有 `heading` 用得上（1–6，越界按 1 处理）。 */
+  toggleBlock(format: BlockFormat, level?: number): void;
 }
 
 /**
@@ -130,6 +230,17 @@ export interface EditorMountProps {
    * 外壳会自动隐藏状态栏里的行列显示，而不是显示一个假的 1:1。
    */
   onCursorChange?: (position: CursorPosition) => void;
+  /**
+   * 选区变化。可选 —— 不实现的内核，外壳就不显示浮层工具条。
+   *
+   * 参数为 `null` 表示「现在不该有浮层」，两种情况都归到它：
+   * 一是没有选中文字（光标塌缩），二是内核量不出选区在屏幕上的位置。
+   * 后者是**有意的降级**：藏起来好过把浮层定位到一个瞎猜的坐标上。
+   *
+   * 内核**不要**在编辑器失焦时上报 null。用户点工具条上的按钮必然先失焦，
+   * 一失焦就藏，按钮会在 `click` 之前消失 —— 这是浮层菜单最经典的坑。
+   */
+  onSelectionChange?: (selection: SelectionSnapshot | null) => void;
   /** 编辑器报错（内核初始化失败等），交给外壳呈现。 */
   onError?: (error: Error) => void;
   readOnly?: boolean;

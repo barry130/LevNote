@@ -1028,3 +1028,98 @@ body {
   border: 2px dashed var(--bamboo);
   border-radius: 10px;
 }
+
+/* ------------------------------------------------------- 选中浮层工具条 */
+
+/*
+ * 层级定在 30：要盖住查找栏（20）—— 它和浮层可能同时出现，
+ * 而浮层离选区更近、更需要被看到；但必须**低于**命令面板（100），
+ * 否则面板弹出时浮层会浮在遮罩之上，看起来像卡住了。
+ */
+.selection-toolbar {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  /* 浮层自己不该被选中：拖过它会把选区换成一堆按钮文字 */
+  user-select: none;
+}
+
+.st-row {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.st-btn {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: 12px/1 var(--sans);
+  cursor: pointer;
+}
+
+.st-btn:hover {
+  background: var(--surface-sunken);
+}
+
+.st-btn:focus-visible {
+  outline: 2px solid var(--bamboo);
+  outline-offset: 1px;
+}
+
+/* 已生效的格式：底色 + 描边，不只靠颜色 —— 深色模式下纯色差不够明显 */
+.st-btn.active {
+  background: var(--selection);
+  border-color: var(--bamboo);
+  color: var(--bamboo);
+}
+
+/* 按钮上的字形本身要能说明它是什么，否则用户得逐个悬停看提示 */
+.st-strong {
+  font-weight: 700;
+}
+
+.st-emphasis {
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.st-strikethrough {
+  text-decoration: line-through;
+}
+
+.st-inlineCode {
+  font-family: var(--mono);
+}
+
+.st-block {
+  min-width: 30px;
+}
+
+.st-link-input {
+  width: 190px;
+  height: 26px;
+  padding: 0 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 12px/1 var(--mono);
+  outline: none;
+}
+
+.st-link-input:focus {
+  border-color: var(--bamboo);
+}
+

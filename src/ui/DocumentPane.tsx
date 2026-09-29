@@ -19,10 +19,17 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 
 import type { BomKind, LineEndingName } from '../core/document/types.js';
 import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
-import type { CursorPosition, EditorAdapter, EditorHandle } from '../core/editor/types.js';
+import type {
+  CursorPosition,
+  EditorAdapter,
+  EditorFormatting,
+  EditorHandle,
+  SelectionSnapshot,
+} from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
+import { SelectionToolbar } from './SelectionToolbar.js';
 
 const ENCODINGS: Array<{ label: string; encoding: string; bom: BomKind }> = [
   { label: 'UTF-8', encoding: 'UTF-8', bom: 'none' },
@@ -107,6 +114,16 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
   const [editorError, setEditorError] = useState<string | null>(null);
   /** 内核启动失败的那一次实例标识。用标识而不是布尔值，换文件 / 切视图后自然重新尝试。 */
   const [failedKey, setFailedKey] = useState<string | null>(null);
+
+  /**
+   * 浮层工具条的两份输入：当前选区，和内核交出来的格式化命令面。
+   *
+   * 都放在 state 里而不是只留 ref：它们直接决定**画什么**。
+   * 分开两个 state 是因为它们的生命周期不同 ——
+   * 选区每次移动都换，命令面一个内核实例只有一个。
+   */
+  const [selection, setSelection] = useState<SelectionSnapshot | null>(null);
+  const [formatting, setFormatting] = useState<EditorFormatting | null>(null);
 
   const session = doc?.session ?? 0;
   /**
@@ -193,6 +210,9 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
       const text = store.getSnapshot().doc?.text ?? '';
       lastReportedRef.current = text;
       lastPushedRef.current = text;
+      // 只在内核真的交出了格式化能力时才留下它。纯文本兜底内核没有这个字段 ——
+      // 那时浮层根本不出现，而不是出现一个点了没反应的
+      setFormatting(handle.formatting ?? null);
       onHandle(handle);
     },
     [kernelKey, store, onHandle],
@@ -229,6 +249,11 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
    */
   useEffect(() => {
     setFailedKey(null);
+    // 换内核实例 = 换了一份文档或换了一边视图，上一个实例报上来的选区与命令面
+    // 都已经失效。不清的话，切标签页的那一帧会拿旧选区画出一个位置正确的浮层 ——
+    // 位置对了反而更糟，用户会以为它属于新文档
+    setSelection(null);
+    setFormatting(null);
   }, [kernelKey]);
 
   const handleEditorError = useCallback(
@@ -323,6 +348,7 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
             onChange={handleEditorChange}
             onReady={handleEditorReady}
             onCursorChange={setCursor}
+            onSelectionChange={setSelection}
             onError={handleEditorError}
           />
         ) : doc ? (
@@ -331,6 +357,12 @@ export function DocumentPane({ store, wordWrap, onHandle, onViewInfoChange }: Do
             <p>这不应该发生 —— 纯文本兜底内核会处理任何文件。请把这份文件路径反馈给开发者。</p>
           </div>
         ) : null}
+
+        {/* 浮层是编辑器区域的兄弟节点，不是子节点 —— 内核挂载时会替换掉自己那层容器的内容，
+            放进同一层会被它抹掉。`position: fixed` 让它脱离 flex 布局，不会撑开高度 */}
+        {selection !== null && formatting !== null && (
+          <SelectionToolbar snapshot={selection} formatting={formatting} />
+        )}
       </main>
 
       <footer className="statusbar">

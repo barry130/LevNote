@@ -53,6 +53,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 大纲提取 | `core/outline/outline.ts` |
 | 字数 / 阅读时长 | `core/statistics.ts`（Word 口径，内核无关） |
 | **哪些文件算 Markdown** | `core/path.ts` 的 `MARKDOWN_EXTENSIONS` / `isMarkdownPath()`。**名单只有这一份**，四个地方在用它 |
+| 选中浮层工具条（格式按钮、浮层位置） | `ui/SelectionToolbar.tsx`（外壳画浮层）+ `modules/markdown/selection.ts`（内核报选区状态） |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
@@ -65,20 +66,32 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 外壳**不认识任何具体内核**。要给内核加一种能力，走这条路：
 
 1. 加在 `core/editor/types.ts` 的 `EditorAdapter` / `EditorHandle` 上（**契约**）；
-2. 各内核按需实现（不实现的要能被外壳识别为「没有这个能力」，并显示为**禁用**）；
+2. 各内核按需实现（不实现的要能被外壳识别为「没有这个能力」）；
 3. 外壳只问契约，不问内核。
 
-已有两例可以照着看：`EditorHandle.search` / `goToOutlineItem`（可选能力），
-以及 `EditorAdapter.sourceView`（源码视图 —— **不注册进注册表**，
-因为同一路径只能有一个内核答案，见 ADR 0014）。
+已有三例可以照着看：
+
+- `EditorHandle.search` / `goToOutlineItem` —— 可选能力，**缺了显示为禁用**；
+- `EditorAdapter.sourceView` —— 源码视图，**不注册进注册表**
+  （同一路径只能有一个内核答案，见 ADR 0014），缺了显示为禁用；
+- `EditorHandle.formatting` + `EditorMountProps.onSelectionChange` —— 选中浮层工具条，
+  **缺了就不显示浮层**（不是禁用）。与上面两例的差别是刻意的：
+  源码视图是「有，但这份文档用不上」，格式化是「这个内核根本没有」——
+  一个纯文本编辑器弹出加粗按钮，用户点下去只会什么都没发生。
 
 **反例**（不要这样做）：在外壳里写 `if (adapter.id === 'markdown')` 或
 `resolveAdapterById('code')`。那等于把内核知识漏进外壳，
 换内核时外壳要跟着改 —— 那正是这套抽象要避免的事。
 
+**另一条容易忘的**：内核里任何**绕过键盘事件**去改文档的能力，
+都必须自己给事务打上「这是用户发起的编辑」标记（`USER_EDIT_META`），
+否则文档不会变脏、用户按 `Ctrl+S` 写回磁盘的是改动**之前**的内容。
+已经踩过两次：查找替换（`setup.ts` 的 `replace` / `replaceAll`）、
+选中浮层工具条（`setup.ts` 的 `asUserEdit`）。斜杠菜单、表格操作、图片插入会再遇到。
+
 ---
 
-## 四、六个已经踩过的坑（省下你的两小时）
+## 四、八个已经踩过的坑（省下你的两小时）
 
 ### 1. Markdown 内核的「变更上报」不能用防抖
 
@@ -136,6 +149,35 @@ CSS 模块被替换成空实现，`?raw` 也拿不到内容 —— **测试假�
 还有 `tauri-build` 生成的 `resource.lib`。`cargo check` 不链接所以看不出来。
 **用 `cargo clean -p qingmo`，不要手删 cargo 的输出目录。**
 
+### 7. jsdom 缺三个 DOM 接口，报错位置与被测代码无关
+
+`Range.prototype.getClientRects`、`Range.prototype.getBoundingClientRect`、
+`HTMLElement.prototype.scrollIntoView` **在 jsdom 30 里都没有**
+（`Element.prototype.getClientRects` 倒是有）。
+
+不补的话，任何触发 ProseMirror `scrollIntoView()` 的操作 —— 查找跳转、
+浮层工具条格式化 —— 都会抛 `target.getClientRects is not a function`，
+栈顶停在 `prosemirror-view` 里，**看起来像编辑器坏了**。
+补丁在 `src/test/jsdom-gaps.ts`（`vite.config.ts` 的 `test.setupFiles` 全局加载）。
+它只补缺口、不覆盖 jsdom 已有的实现 —— 否则将来 jsdom 补上了，
+我们反而用一个更假的版本盖掉它，而且没人会注意到。
+
+### 8. 在测试里造 ProseMirror 选区，有两个坑
+
+写「选中文字」的测试时走**真实 DOM 选区** + `document.dispatchEvent(new Event('selectionchange'))`
+是对的（这正是浏览器里发生的事）。但有两处会让用例**假绿**：
+
+1. **不能只 `selection.removeAllRanges()`**。ProseMirror 会看到「焦点不在自己身上」，
+   直接跳过这次事件，连事务都不派发 —— 内核根本不知道选区没了。
+   要模拟「用户点掉选中」，得在编辑器里放一个**塌缩的光标**。
+2. **塌缩点不能落在文档最开头**。`DOMObserver.flush()` 里有一条：若「刚获得焦点 200ms 内」
+   +「选区塌缩」+「塌缩到 `Selection.near(doc.resolve(0))`」，它认定这是**浏览器自作主张
+   把选区重置到了文档开头**，于是把 state 里的选区写回 DOM、丢弃这次塌缩。
+   这是真实存在的浏览器行为，PM 处理得对；但测试正好踩上就会看到
+   「选了、取消了、浮层还在」，然后去怀疑一个根本没坏的实现。
+
+（两条都记在 `App.test.tsx` 的 `clearSelection` 注释里，改那里之前先读它。）
+
 ---
 
 ## 五、工作流
@@ -179,9 +221,10 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 **已完成**：P0–P3 的大部分 —— 文档生命周期、Markdown 内核、自包含导出、
 多标签工作区、文件树、代码内核、命令面板、查找替换、大纲、主题。
 
-**Markdown 完善（P3.5，对标 horseMD）**：字数统计、**源码模式切换（Ctrl+/）** 已交付；
-选中工具条、斜杠菜单、表格 / 代码块增强、图片落盘、KaTeX、Mermaid、位置记忆待做。
-清单在 `ROADMAP.md` 的 P3.5。**前两项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木。
+**Markdown 完善（P3.5，对标 horseMD）**：字数统计、源码模式切换（Ctrl+/）、
+**选中浮层工具条**已交付；斜杠菜单、表格 / 代码块增强、图片落盘、KaTeX、Mermaid、
+位置记忆待做。清单在 `ROADMAP.md` 的 P3.5。
+**前三项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木。
 
 **最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V3**
 （Milkdown 长文档输入延迟 ≤ 50ms）。它的结论决定后续「Markdown 编辑体验怎么走」，

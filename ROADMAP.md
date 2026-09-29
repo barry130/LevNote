@@ -50,12 +50,17 @@
 
 ### 主包体积（第 18 项的起点数据）
 
-`npx vite build` 的实测产出（2026-09-29）：
+`npx vite build` 的实测产出（2026-09-29，M3 之后）：
 
 ```
-dist/assets/index-1dDekAx4.js    1,668.69 kB │ gzip: 556.31 kB
-dist/assets/index-Ba5UDY8g.css      18.63 kB │ gzip:   4.57 kB
+dist/assets/index-CY5yccMx.js     1,675.62 kB │ gzip: 558.41 kB
+dist/assets/index-Dd5rzuXk.css       19.30 kB │ gzip:   4.67 kB
 ```
+
+> M2 结束时是 `1,668.69 kB / gzip 556.31 kB`。M3 的增量是 **+6.93 kB / gzip +2.10 kB**
+> （浮层组件 + 选区翻译 + 浮层样式）。**没有引入任何新依赖** ——
+> M3 用到的那些 Milkdown 命令来自已经挂载的 `commonmark` / `gfm` 预设，
+> `prosemirror-commands` 也早就在包里了。
 
 **已经超过 Vite 的 500 kB 警戒线。** 这不是「要不要优化」的问题 —— 一个
 「轻量桌面编辑器」让 WebView 在启动时解析 1.7 MB JS，与定位直接冲突。
@@ -175,7 +180,7 @@ lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，所以「`tsc` 通过」不等于
 |---|---|---|---|
 | M1 | 字数统计（行 / 字 / 字符 / 阅读时长） | ✅ | Word 口径；`core/statistics.ts` + 状态栏 |
 | M2 | **源码模式切换（Ctrl+/）** | ✅ | ADR 0014。源码视图复用代码内核，**没有引入新依赖** |
-| M3 | 选中工具条（bubble menu） | ⏳ | 加粗 / 斜体 / 删除线 / 行内代码 / 标题 / 链接 |
+| M3 | **选中工具条（bubble menu）** | ✅ | ADR 0015。内核只上报选区状态与屏幕位置，浮层由外壳画；**没有引入新依赖** |
 | M4 | 斜杠菜单（`/` 插入块） | ⏳ | 基于 `kit/plugin/slash`，菜单 UI 自绘以保持主题单一来源 |
 | M5 | 表格增强 + 代码块（语言选择器 / 行号） | ⏳ | `kit/component/table-block` + `code-block` |
 | M6 | 图片：粘贴落盘 + 相对路径解析 + 灯箱 | ⏳ | 与 P3 第 13 项同源 |
@@ -183,10 +188,33 @@ lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，所以「`tsc` 通过」不等于
 | M8 | Mermaid 图表（懒加载 + 全屏查看） | ⏳ | 大依赖，必须动态 import，不能进主包 |
 | M9 | 文档位置记忆（光标 / 滚动）+ 设置页 | ⏳ | 与 P3 第 12、15 项同源 |
 
-**M1 / M2 已完成**，共同点是**没有引入任何新依赖** ——
-`@milkdown/kit` 已经带齐了大部分能力，M3–M5 同样不需要新包。
+**M1 / M2 / M3 已完成**，共同点是**没有引入任何新依赖** ——
+`@milkdown/kit` 已经带齐了大部分能力，M4 / M5 同样不需要新包。
 只有 M7（KaTeX）与 M8（Mermaid）会真的加依赖，那两项要先解决「自包含导出」与
 「不拖累主包体积」这两个约束再动手。
+
+### M3 的收尾状态（选中浮层工具条，ADR 0015）
+
+- 契约加了 `onSelectionChange`（内核 → 外壳）与 `EditorHandle.formatting`（外壳 → 内核），
+  两侧都是**可选能力**，缺了就不显示浮层（不是禁用 —— 与 `sourceView` 相反）；
+- 浮层是 `.editor-area` 的**兄弟**节点，用 `position: fixed` + 视口坐标摆放，
+  上方放不下自动翻到下方、水平夹进视口；
+- 格式名在外壳与内核之间翻译一次（`modules/markdown/selection.ts`），
+  外壳只认 `strong / emphasis / strikethrough / inlineCode / link` 这五个词 ——
+  顺带钉住 gfm 的删除线叫 `strike_through`（下划线写法）这个容易写错的细节；
+- 选区上报用 `requestAnimationFrame` 合并，并且**文档变了也要重量**
+  （点「加粗」不移动选区，只看选区的话按钮会停在旧的高亮上）；
+- **修掉一条会静默丢数据的路径**：浮层按钮不产生 `input` 事件，
+  格式化事务必须自己打 `USER_EDIT_META`，否则文档不变脏、Ctrl+S 写回的是格式化之前的文本；
+- 测试基础设施补了 jsdom 缺的三个 DOM 接口（`Range.getClientRects` /
+  `Range.getBoundingClientRect` / `HTMLElement.scrollIntoView`），
+  否则任何触发 `scrollIntoView()` 的用例都会在一个与被测代码无关的地方抛错；
+- 测试：`modules/markdown/formatting` +13（走真实内核，断言序列化出来的 markdown）、
+  `App` +9（用真实 DOM 选区驱动，覆盖出现 / 消失 / 生效态 / 变脏 / 能力缺失）。
+
+**尚未做、且只有人能做的**：浮层在真实 WebView 里的几何 ——
+`coordsAtPos()` 在 jsdom 里没有布局引擎，所以「摆在哪、会不会压住文字、贴边时有没有翻边」
+只能靠人眼看。这一条与 V3 同类。
 
 ### M2 的收尾状态（源码模式，ADR 0014）
 

@@ -16,6 +16,7 @@ function MarkdownEditor({
   onChange,
   onReady,
   onCursorChange,
+  onSelectionChange,
   onError,
   readOnly,
   placeholder,
@@ -28,6 +29,8 @@ function MarkdownEditor({
   onChangeRef.current = onChange;
   const onCursorChangeRef = useRef(onCursorChange);
   onCursorChangeRef.current = onCursorChange;
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -53,6 +56,7 @@ function MarkdownEditor({
           placeholder: placeholderRef.current,
           onChange: (markdown) => onChangeRef.current(markdown),
           onCursorChange: (position) => onCursorChangeRef.current?.(position),
+          onSelectionChange: (selection) => onSelectionChangeRef.current?.(selection),
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），
@@ -70,6 +74,7 @@ function MarkdownEditor({
           // 语义 HTML 片段。Milkdown 能给出结构，所以这里返回字符串而不是 null
           toHtml: async () => created.toHtml(),
           search: created.search,
+          formatting: created.formatting,
           goToOutlineItem: ({ level, text }) => created.goToHeading(level, text),
         };
         onReadyRef.current(handle);

@@ -11,11 +11,13 @@ import type { Node as ProseNode } from '@milkdown/kit/prose/model';
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
 
-import type { CursorPosition } from '../../core/editor/types.js';
+import type { CursorPosition, SelectionSnapshot } from '../../core/editor/types.js';
 import { highlightCode } from '../../core/highlight/hljs.js';
+import { anchorOf, describeSelection } from './selection.js';
 
 const highlightKey = new PluginKey<DecorationSet>('qingmo-code-highlight');
 const cursorKey = new PluginKey('qingmo-cursor-reporter');
+const selectionKey = new PluginKey('qingmo-selection-reporter');
 const emitKey = new PluginKey('qingmo-markdown-emit');
 const placeholderKey = new PluginKey('qingmo-placeholder');
 
@@ -98,6 +100,120 @@ export function cursorReporterPlugin(getReporter: () => ((position: CursorPositi
             // 只有选择真正变了才上报，避免每次输入都触发一次无关的状态更新。
             update: (view, prevState) => {
               if (view.state.selection !== prevState.selection) report(view);
+            },
+          };
+        },
+      }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 选区上报（浮层工具条）
+// ---------------------------------------------------------------------------
+
+/**
+ * 把「量一次选区」推迟到这一帧画完。
+ *
+ * 为什么必须推迟：`coordsAtPos` 会强制浏览器立刻结算布局。它被调用的位置是
+ * ProseMirror 的 `view.update`，也就是**事务派发的过程中** —— 此时布局是脏的，
+ * 在这里读一次就会触发一次同步重排，而拖选时每个 mousemove 都要走一遍，
+ * 结果是拖选手感直接垮掉。
+ *
+ * 顺带把一帧内的多次请求合并成一次：拖选时 ProseMirror 可能在一次事件里
+ * 派发多条事务（输入规则、追加事务），逐条去量纯属浪费。
+ *
+ * jsdom 不保证提供 `requestAnimationFrame`，所以有一条同步兜底 ——
+ * 与 `core/theme/theme.ts` 对 `matchMedia` 的处理是同一条规矩：
+ * 环境缺什么就在缺的地方兜住，而不是让整个模块挂掉。
+ */
+function createFrameScheduler(run: () => void): { schedule: () => void; cancel: () => void } {
+  if (typeof requestAnimationFrame !== 'function') {
+    return { schedule: run, cancel: () => undefined };
+  }
+
+  let frame = 0;
+  return {
+    schedule: () => {
+      if (frame !== 0) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        run();
+      });
+    },
+    cancel: () => {
+      if (frame !== 0) cancelAnimationFrame(frame);
+      frame = 0;
+    },
+  };
+}
+
+/**
+ * 选区上报。
+ *
+ * 与 `cursorReporterPlugin` 一样用「取回调的函数」而不是直接传回调 ——
+ * 插件实例在编辑器创建时就固定了，而 React 每次渲染都会换一个新的回调函数。
+ *
+ * ## 为什么还要监听滚动
+ *
+ * 滚动**不改变选区**，但会改变选区在屏幕上的位置。只在 selection 变化时上报的话，
+ * 用户选中一段文字再滚动，浮层会留在原地和文字分家 —— 看起来像浮层飘走了。
+ *
+ * ## 为什么不在失焦时上报 null
+ *
+ * 用户点工具条上的按钮，浏览器会先把焦点从编辑器挪走。一失焦就上报 null，
+ * 浮层会在 `click` 事件到达按钮之前被卸载 —— 表现为「按钮点不动」。
+ * 所以这里只在**选区塌缩**（用户点掉了选中）时上报 null。
+ */
+export function selectionReporterPlugin(
+  getReporter: () => ((selection: SelectionSnapshot | null) => void) | undefined,
+) {
+  return $prose(
+    () =>
+      new Plugin({
+        key: selectionKey,
+        view: (editorView) => {
+          const scheduler = createFrameScheduler(() => {
+            const report = getReporter();
+            if (!report) return;
+            const format = describeSelection(editorView.state);
+            if (format === null) {
+              report(null);
+              return;
+            }
+            // 位置量不出来时也报 null（藏起浮层），而不是把 `anchor` 塞成 null
+            // 让外壳去处理 —— 契约里 `SelectionSnapshot.anchor` 是必有的，
+            // 「有没有位置」和「有没有选区」是同一个问题的两面
+            const anchor = anchorOf(editorView);
+            report(anchor === null ? null : { format, anchor });
+          });
+
+          // 滚动容器是 contenteditable 的父节点（`.qm-editor`，见 markdown.css）。
+          // 用 parentElement 而不是写死类名：类名改了这里不该跟着坏。
+          const scroller = editorView.dom.parentElement;
+          scroller?.addEventListener('scroll', scheduler.schedule, { passive: true });
+
+          scheduler.schedule();
+
+          return {
+            update: (view, prevState) => {
+              // 第二个参数是**上一个 state**，不是上一个 view —— 这一点容易写错。
+              //
+              // 三件事都会让浮层的内容过时，缺一不可：
+              // - 选区变了：位置和「选中了什么」都变了；
+              // - `storedMarks` 变了：切换格式后还没打字时，格式存在这里；
+              // - **文档变了**：点工具条上的「加粗」**不会移动选区**，
+              //   只是给选区里的文字加了一个 mark —— 只看选区的话，
+              //   按钮会在点完之后一直停在旧的高亮上，用户以为没生效。
+              //   这里比的是对象标识（O(1)），不是 `doc.eq()`（O(文档长度)）。
+              const stale =
+                view.state.selection !== prevState.selection ||
+                view.state.storedMarks !== prevState.storedMarks ||
+                view.state.doc !== prevState.doc;
+              if (stale) scheduler.schedule();
+            },
+            destroy: () => {
+              scheduler.cancel();
+              scroller?.removeEventListener('scroll', scheduler.schedule);
             },
           };
         },

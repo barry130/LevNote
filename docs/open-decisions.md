@@ -24,8 +24,9 @@
 | 错误收敛（`asAppError` / `AppError`） | `src/core/document/types.ts` | `types.test.ts`（9 条，含「抛字符串 / `null` / 对象也不能让它自己崩」） |
 | 文本统计（字数 / 字符数 / 阅读时长） | `src/core/statistics.ts` | `statistics.test.ts`（20 条，按 Word 口径逐条钉住）；状态栏接线由 `App.test.tsx` 的「状态栏统计」（3 条）覆盖 |
 | 源码模式切换（Ctrl+/） | `src/core/editor/types.ts`（`sourceView`）+ `core/document/store.ts`（`ViewMode`）+ `ui/` | `store.test.ts` 的「视图模式」（7 条）+ `modules/wiring.test.ts`（5 条跨模块名单一致性）+ `App.test.tsx` 的「源码模式切换」（8 条内核交棒）。决策见 [ADR 0014](./decisions/0014-markdown-source-view.md) |
+| 选中浮层工具条（bubble menu） | `src/core/editor/types.ts`（`onSelectionChange` + `formatting`）+ `modules/markdown/selection.ts`（格式名翻译）+ `ui/SelectionToolbar.tsx` | `modules/markdown/formatting.test.ts`（13 条，走真实内核、断言序列化出来的 markdown）+ `App.test.tsx` 的「选中浮层工具条」（9 条，用真实 DOM 选区驱动）。决策见 [ADR 0015](./decisions/0015-selection-toolbar.md) |
 
-合计 **363 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
+合计 **385 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
 
 > 其中 `eslint` 的「全绿」是 **2026-09-29 才真正成立**的：此前它虽然被写在这一行，
 > 但实际上是非阻塞的、且还有 33 项欠账。现在它是阻塞门禁，且配置里没有关掉的规则。
@@ -47,6 +48,8 @@
 | **切标签页会重建编辑器内核** | 正确性优先：让内核跟着标签页走比在同一个面板里换内核安全得多（ADR 0010） | 中。代价是撤销栈、光标、滚动位置在切换时丢失。改法（全部挂载 + CSS 隐藏）需要先实测内存占用，尤其是一份 10 万字文档 |
 | **切视图也会重建内核** | 同一个理由（ADR 0014）。两种视图共用 `doc.text` 一份权威副本，所以**内容**无损；丢的是撤销栈、光标与滚动位置 | 中。horseMD 明确把「切源码模式保留滚动位置」当卖点，所以这一条迟早要补。难点是**坐标翻译**：源码偏移 → ProseMirror 位置需要序列化器的逆映射，而它一旦不精确就会「跳到错的地方」——按本项目一贯的取舍（跳错比不跳更伤人），**宁可不做也不做错**。廉价的近似（按滚动比例）可以后续单独评估 |
 | **i18n** | 现在只有中文，做 i18n 骨架需要先确定文案的组织方式 | **中高。这件事越晚做越贵** —— 每加一个功能就多一批散落的字符串。建议在 P3-B 的第 17 项做「骨架」而不是「翻译」 |
+| **选中浮层点到编辑器之外不会自己收起来** | 刻意为之：点浮层按钮必然先让编辑器失焦，一失焦就藏，按钮会在 `click` 到达之前消失（ADR 0015）。**不做，而不是没做** | 低。只会让浮层多留一会儿，不涉及数据。改法是监听 `.editor-area` 的 `blur` 并在 `relatedTarget` 落在浮层内部时放过 —— 但这个判断在 jsdom 里验证不了，容易写成「真机上偶发点不动」，所以等有人真的抱怨再说 |
+| **浮层的屏幕几何只有人眼能验** | `coordsAtPos()` 依赖布局引擎，jsdom 返回全 0（`src/test/jsdom-gaps.ts` 只能补成空矩形）。测试钉住的是「空选区返回 null」「不抛错」 | 低（但确实没验）。要在 `npm run desktop` 里目视确认：浮层摆在哪、会不会压住文字、贴边时有没有翻到下方。与 V3 同类 —— 测试环境的结论不能替代真机结论 |
 | **主包体积**（886 kB → 现在更大） | 桌面端从本地磁盘加载，与网页端性质不同 | 低。拆分方案已明确：`React.lazy` 加载内核，外壳首屏目标 < 200 kB |
 | **命令面板的拼音关键词要手工维护** | 每条命令手写 `keywords` | 低。命令数量还少（15 条）。超过 ~50 条时应改为自动生成拼音 |
 
@@ -61,7 +64,7 @@
 | 编辑器适配层契约 | `src/core/editor/` | `registry.test.ts`（9 条：兜底、`canHandle` 否决与抛错、优先级） |
 | Markdown 内核（Milkdown 7.22.2） | `src/modules/markdown/` | `markdown-core.test.ts`（46 条广谱语料 + 规范化行为） |
 | 自包含 HTML 导出 | `src/core/export/` | `inline-html.test.ts`（16 条）+ `App.test.tsx` 端到端 |
-| 外壳接线与导出入口 | `src/ui/App.tsx` | `App.test.tsx`（18 条，含 StrictMode 双调用） |
+| 外壳接线与导出入口 | `src/ui/App.tsx` | `App.test.tsx`（38 条，含 StrictMode 双调用、源码模式、选中浮层工具条） |
 | Rust 二进制读取命令 | `src-tauri/src/fs/mod.rs` | `cargo test`（11 条） |
 
 合计 **162 条前端测试 + 11 条 Rust 测试**，`tsc` / `vite build` / `cargo check` 全绿。
