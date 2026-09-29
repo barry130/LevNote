@@ -248,6 +248,10 @@ function kernelOf(container: HTMLElement): string {
   return container.querySelector('.statusbar .kernel')?.textContent?.trim() ?? '';
 }
 
+function statisticsOf(container: HTMLElement): string {
+  return container.querySelector('.statusbar .statistics')?.textContent?.trim() ?? '';
+}
+
 let mounted: Mounted | null = null;
 
 beforeEach(() => {
@@ -493,5 +497,49 @@ describe('自包含 HTML 导出', () => {
       root.unmount();
     });
     container.remove();
+  });
+});
+
+describe('状态栏统计', () => {
+  /**
+   * 这里守的是**接线**，不是算法 —— 算法在 `core/statistics.test.ts` 里按口径逐条钉过。
+   * 分开测是因为两者的失败原因完全不同：算法错是「数错了」，
+   * 接线错是「压根没显示」或者「显示的是别的文档的数」。
+   */
+
+  it('打开文档后显示行数 / 字数 / 字符数 / 阅读时长', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n\n正文\n'));
+    await mounted.open('note.md');
+
+    expect(statisticsOf(mounted.container)).toBe('4 行 · 4 字 · 5 字符 · 约 1 分钟');
+  });
+
+  it('空文档不显示「约 0 分钟」', async () => {
+    mounted = await mount((p) => p.put('empty.md', ''));
+    await mounted.open('empty.md');
+
+    expect(statisticsOf(mounted.container)).toBe('1 行 · 0 字 · 0 字符');
+  });
+
+  it('统计跟着活动文档走 —— 它不是全局缓存的', async () => {
+    mounted = await mount((p) => {
+      p.put('a.md', '短');
+      p.put('b.md', '短\n长\n');
+    });
+
+    await mounted.open('a.md');
+    expect(statisticsOf(mounted.container)).toBe('1 行 · 1 字 · 1 字符 · 约 1 分钟');
+
+    await mounted.open('b.md');
+    expect(statisticsOf(mounted.container)).toBe('3 行 · 2 字 · 2 字符 · 约 1 分钟');
+
+    // 切回第一个标签，统计必须跟着回到第一份文档
+    const first = mounted.workspace.getSnapshot().tabs[0];
+    expect(first).toBeDefined();
+    await act(async () => {
+      mounted?.workspace.activate(first!.id);
+    });
+    await settle();
+    expect(statisticsOf(mounted.container)).toBe('1 行 · 1 字 · 1 字符 · 约 1 分钟');
   });
 });

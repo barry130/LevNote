@@ -21,6 +21,7 @@ import type { BomKind, LineEndingName } from '../core/document/types.js';
 import type { ConflictChoice, DocumentStore } from '../core/document/store.js';
 import type { CursorPosition, EditorAdapter, EditorHandle } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
+import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
 
 const ENCODINGS: Array<{ label: string; encoding: string; bom: BomKind }> = [
@@ -168,11 +169,9 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
     [store],
   );
 
-  const stats = useMemo(() => {
-    if (!doc) return null;
-    const lines = doc.text === '' ? 1 : doc.text.split('\n').length;
-    return { lines, chars: doc.text.length };
-  }, [doc]);
+  // 只依赖文本本身：光标移动、脏标记翻转之类不该触发重新统计
+  const docText = doc?.text;
+  const stats = useMemo(() => (docText === undefined ? null : analyze(docText)), [docText]);
 
   const activeEncodingKey = doc ? encodingKey(doc.encoding, doc.bom) : '';
 
@@ -320,8 +319,11 @@ export function DocumentPane({ store, wordWrap, onHandle, onAdapterChange }: Doc
               </>
             )}
             <span className="sep">│</span>
-            <span>
-              {stats?.lines} 行 · {stats?.chars} 字符
+            <span
+              className="statistics"
+              title="字数按 Microsoft Word 的口径：中日韩文字与标点各算一字，拉丁文按词计"
+            >
+              {stats ? formatStatistics(stats) : ''}
             </span>
             {doc.readonly && (
               <>

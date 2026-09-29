@@ -23,7 +23,7 @@
 | 导出动作抽出 | `src/core/export/export-document.ts` | `export-document.test.ts`（5 条） |
 | 错误收敛（`asAppError` / `AppError`） | `src/core/document/types.ts` | `types.test.ts`（9 条，含「抛字符串 / `null` / 对象也不能让它自己崩」） |
 
-合计 **316 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
+合计 **339 条前端测试**（P2 结束时是 162 条），`tsc` / `eslint` / `vite build` 全绿。
 
 > 其中 `eslint` 的「全绿」是 **2026-09-29 才真正成立**的：此前它虽然被写在这一行，
 > 但实际上是非阻塞的、且还有 33 项欠账。现在它是阻塞门禁，且配置里没有关掉的规则。

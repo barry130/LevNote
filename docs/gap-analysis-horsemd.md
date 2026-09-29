@@ -353,7 +353,7 @@ horseMD 只有 Markdown 一类文档。轻墨的 `docs/format-spec.md` 定义了
 > | 项 | 状态 |
 > |---|---|
 > | `tsc --noEmit` | ✅ 通过 |
-> | `vitest run` | ✅ **316 / 316 通过**（21 个文件） |
+> | `vitest run` | ✅ **339 / 339 通过**（21 个文件） |
 > | `vite build` | ✅ 通过。但产物 **1,666.96 kB（gzip 555.58 kB）**，已超过 Vite 的 500 kB 警戒线 —— 归因与处理方向见 `ROADMAP.md` 第 18 项 |
 > | `npm run lint` | ✅ **0 问题**，且配置里没有任何被关掉的规则 |
 > | git | ✅ 已提交初始基线 `a224ec4`。**`.gitattributes` 已补** —— 本机 `core.autocrlf=true`，而 `tests/fixtures/` 是逐字节敏感的编码/行尾样本，不加保护时 `mixed-endings.txt` 会被从 10B 归一成 8B。已用 `-text` 保护，并**克隆一份后逐字节校验过 9 个样本** |

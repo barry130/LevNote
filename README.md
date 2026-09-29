@@ -25,7 +25,7 @@
 npm install
 npm run desktop      # 真桌面版（Tauri 2，需要 Rust 工具链）
 npm run dev          # 只跑前端（浏览器预览，内存虚拟盘，用于调界面）
-npm run test         # 单元测试（316 条）
+npm run test         # 单元测试（339 条）
 npm run typecheck    # 类型检查
 npm run check        # 上面两条加 lint 一起跑 —— 提交前必须全绿
 npm run lint         # ESLint（类型感知）。**阻塞**，配置里没有关掉的规则
