@@ -203,6 +203,7 @@ export type InsertableBlock =
   | 'bulletList'
   | 'orderedList'
   | 'codeBlock'
+  | 'mathBlock'
   | 'table'
   | 'hr';
 

@@ -71,6 +71,7 @@ const SLASH_ITEMS: readonly SlashItem[] = [
   { block: 'orderedList', abbr: '1.', label: '有序列表', hint: '1. ', keywords: ['youxuliebiao', 'liebiao', 'ordered', 'ol', 'list'] },
   { block: 'blockquote', abbr: '❝', label: '引用', hint: '> ', keywords: ['yinyong', 'quote', 'blockquote'] },
   { block: 'codeBlock', abbr: '</>', label: '代码块', hint: '```', keywords: ['daimakuai', 'daima', 'code', 'fence'] },
+  { block: 'mathBlock', abbr: '∑', label: '数学公式', hint: '$$', keywords: ['shuxue', 'gongshi', 'math', 'latex', 'tex', 'katex', 'formula', 'equation'] },
   { block: 'table', abbr: '▦', label: '表格', hint: '3 × 3', keywords: ['biaoge', 'biao', 'table', 'grid'] },
   { block: 'hr', abbr: '—', label: '分隔线', hint: '---', keywords: ['fengexian', 'fenge', 'hr', 'divider', 'rule'] },
 ];

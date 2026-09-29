@@ -14,7 +14,8 @@
  * 再把版式内联进去。三条来源各管一段，互不重叠。
  */
 
-import { inlineAssets, type InlineReport } from './inline-html.js';
+import { inlineAssets, renderMath, type InlineReport } from './inline-html.js';
+import { buildMathStyles, type MathStyleIo } from './katex-css.js';
 
 import documentStyles from './document-styles.css?raw';
 
@@ -33,11 +34,33 @@ export interface SelfContainedExportOptions {
   baseDir: string | null;
   /** 按字节读文件的能力。省略表示平台不支持，图片会标注为未内联。 */
   readBinaryFile?: (path: string) => Promise<ArrayBuffer>;
+  /**
+   * 取 KaTeX 的 CSS 与字体。省略表示用真实实现（打包产物里的那份）。
+   *
+   * 做成可注入的只有一个理由：**测试不该依赖打包产物**。真实实现走
+   * `import.meta.glob` + `fetch`，那两样在单测环境里没有意义，
+   * 而「内联后的 CSS 长什么样」这件事必须被钉住。
+   */
+  mathIo?: MathStyleIo;
+}
+
+export interface ExportReport extends InlineReport {
+  /**
+   * 内联进导出文件的公式字体文件数。0 表示文档里没有公式。
+   *
+   * 三个字段都不是 `readonly`：它们是在「确认文档里真的有公式」之后
+   * 才被填上的，而那个判断要在 `inlineAssets` 跑完之后才做得了。
+   */
+  mathFonts: number;
+  /** 没能内联的公式字体文件数。大于 0 时导出提示必须说出来。 */
+  missingMathFonts: number;
+  /** 内联进去的公式样式（含字体）有多少字节。用来如实告诉用户文件为什么变大了。 */
+  mathStyleBytes: number;
 }
 
 export interface SelfContainedExport {
   html: string;
-  report: InlineReport;
+  report: ExportReport;
 }
 
 function escapeHtml(text: string): string {
@@ -113,14 +136,57 @@ export async function buildSelfContainedHtml(options: SelfContainedExportOptions
     root.appendChild(pre);
   }
 
-  const report = await inlineAssets(root, {
-    baseDir: options.baseDir,
-    readBinaryFile: options.readBinaryFile,
-  });
+  const report: ExportReport = {
+    ...(await inlineAssets(root, {
+      baseDir: options.baseDir,
+      readBinaryFile: options.readBinaryFile,
+    })),
+    mathFonts: 0,
+    missingMathFonts: 0,
+    mathStyleBytes: 0,
+  };
+
+  /**
+   * 公式：渲染 + 内联字体。
+   *
+   * **先看有没有公式再决定要不要做**。带上字体的 KaTeX 样式有 300 KB 上下，
+   * 一篇没有公式的文档一个字节都不该多出来 —— 所以这里用
+   * `querySelector` 探一下，而不是无条件地拼一份样式出来。
+   *
+   * 探测放在**渲染之前**：`renderMath` 会把壳的内容换掉，但 `data-tex`
+   * 属性仍在，所以先后都探得到；放在前面是为了「没有公式时连渲染都不做」。
+   */
+  const hasMath = root.querySelector('[data-tex]') !== null;
+  let mathCss = '';
+
+  if (hasMath) {
+    await renderMath(root, report);
+
+    const styles = await buildMathStyles(options.mathIo);
+    mathCss = styles.css;
+    report.mathFonts = styles.inlinedFonts;
+    report.missingMathFonts = styles.missingFonts;
+    report.mathStyleBytes = byteLength(styles.css);
+  }
 
   // innerHTML 会丢掉根元素的 class，所以取它的内容再套一层
   const body = root.innerHTML;
   const title = escapeHtml(options.title);
+
+  /**
+   * 公式样式单独一个 `<style>`，并且排在版式之前。
+   *
+   * 分开是为了让「这份导出为什么大」一眼可查 —— 版式那份只有几 KB，
+   * 剩下三百 KB 全是 KaTeX 的字体。顺序上放在前面，与我们自己的
+   * `.qm-doc .qm-math*` 规则形成「先给框架、再给版式」的层次。
+   */
+  const mathStyleTag =
+    mathCss === ''
+      ? ''
+      : `
+<style>
+${mathCss}
+</style>`;
 
   const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -128,7 +194,7 @@ export async function buildSelfContainedHtml(options: SelfContainedExportOptions
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="轻墨 (qingmo)">
-<title>${title}</title>
+<title>${title}</title>${mathStyleTag}
 <style>
 ${PAGE_STYLES}
 </style>
@@ -147,4 +213,16 @@ ${body}
 `;
 
   return { html, report };
+}
+
+/**
+ * 一段文本按 UTF-8 算有多少字节。
+ *
+ * 不能直接用 `text.length`：那是**码元**个数，中文一个字算 1，而它在文件里
+ * 占 3 个字节。导出的公式样式里 ASCII 占绝大多数，但字体是 base64、
+ * 说明文字是中文 —— 报一个偏小的数字，用户会觉得「提示里说 300 KB，
+ * 文件怎么大了 400 KB」。`TextEncoder` 在所有目标环境里都有。
+ */
+function byteLength(text: string): number {
+  return new TextEncoder().encode(text).length;
 }

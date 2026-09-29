@@ -8,6 +8,17 @@
 
 @import '../../core/export/document-styles.css';
 
+/*
+ * KaTeX 自己的样式表。**必须放在这里，不能放进 `document-styles.css`** ——
+ * 后者是用 `?raw` 原样内联进导出 HTML 的，里面的 `@import` 不会被处理，
+ * 导出文件会去引用一个不存在的路径。导出那条路径由
+ * `core/export/katex-css.ts` 自己拼一份（把 woff2 字体也内联成 data URI）。
+ *
+ * 字体文件由 Vite 变成独立资源，浏览器**只在真的用得上时**才去取 ——
+ * 也就是说，一篇没有公式的文档一个字体字节都不会下载。
+ */
+@import 'katex/dist/katex.min.css';
+
 .qm-editor {
   position: relative;
   height: 100%;
@@ -254,4 +265,91 @@
   border: 1px dashed var(--line-strong, #c6d3cd);
   border-radius: 6px;
   background: var(--surface-sunken, #eef3f0);
+}
+
+/* ------------------------------------------------------------------ 公式 */
+
+/*
+ * 公式的**编辑器专属**部分：可点、可原位编辑、渲染中/失败三种状态。
+ * 「公式本身长什么样」在 `document-styles.css` 里，与导出共用。
+ */
+
+/* 点一下进入编辑 —— 光标必须是手，否则没人知道这里可以点 */
+.qm-editor .qm-math {
+  cursor: pointer;
+}
+
+/* 悬停时给一点点底：公式是原子节点，没有别的办法提示「这里是一整块」 */
+.qm-editor .qm-math-inline:hover {
+  background: var(--surface-sunken, #eef3f0);
+  border-radius: 3px;
+}
+
+.qm-editor .qm-math-block:hover {
+  background: var(--surface-sunken, #eef3f0);
+  border-radius: 6px;
+}
+
+/*
+ * 渲染中。KaTeX 是**动态加载**的，第一次出现公式时要等一个 chunk ——
+ * 这段时间里不能什么都不画（空白看起来像「公式没了」）。
+ */
+.qm-editor .qm-math.is-loading {
+  color: var(--slate, #7a8690);
+  font-size: 0.9em;
+}
+
+/* 编辑态：根元素不再是「一块公式」，而是一个输入框 */
+.qm-editor .qm-math.is-editing {
+  cursor: text;
+  background: var(--surface-sunken, #eef3f0);
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
+.qm-editor .qm-math-input {
+  font-family: var(--mono, 'Cascadia Mono', Consolas, monospace);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink, #16302a);
+  background: var(--surface, #fff);
+  border: 1px solid var(--moss, #b4d4c6);
+  border-radius: 4px;
+  padding: 2px 6px;
+  /* 宽度自适应父级，但不小于一个能看见光标的小框 */
+  width: 100%;
+  min-width: 6em;
+  outline: none;
+  resize: vertical;
+}
+
+/* 块级公式的输入框在编辑态下独占一行，行内公式的输入框跟着文字走 */
+.qm-editor .qm-math-block.is-editing {
+  text-align: left;
+}
+
+.qm-editor .qm-math-block .qm-math-input {
+  display: block;
+}
+
+.qm-editor .qm-math-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--slate, #7a8690);
+}
+
+/* 校验没过时的原因。用品牌红，和普通提示区分开 */
+.qm-editor .qm-math-hint.is-error {
+  color: var(--vermilion, #d1543a);
+}
+
+/* 渲染失败时，输入框和源码块都还能点进去改 */
+.qm-editor .qm-math.is-failed {
+  cursor: text;
+}
+
+.qm-editor .qm-math.is-empty {
+  cursor: text;
 }

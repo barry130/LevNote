@@ -83,6 +83,14 @@ import type {
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
 import { CODE_BLOCK, codeBlockChromePlugin, type CodeBlockChromeHandlers } from './code-block-view.js';
 import { IMAGE, imageViewPlugin } from './image-view.js';
+import {
+  mathBlockInputRule,
+  mathBlockSchema,
+  mathInlineInputRule,
+  mathInlineSchema,
+  mathRemarkPlugin,
+} from './math.js';
+import { mathViewPlugin } from './math-view.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
 import {
   codeHighlightPlugin,
@@ -367,6 +375,57 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
       return { from: $from.start(), to: $from.pos };
     });
 
+  /**
+   * 在光标处放一个**空的块级公式**，然后让 NodeView 自己接管 ——
+   * 空公式的 NodeView 会直接进入编辑态，用户看到的就是一个等着打字的输入框。
+   *
+   * ## 为什么不用 `setBlockType`
+   *
+   * `setBlockType` 换完之后选区会被映射到新节点**内部**，而公式块是原子、
+   * 没有内容 —— 那个位置在 schema 里不成立。这里改成「替换 + 显式指定
+   * 新选区」，位置是自己算的，不依赖映射的结果。
+   *
+   * ## 段落里有文字时**插在后面**，绝不替换
+   *
+   * 无条件 `replaceWith(段落前, 段落后, …)` 会把整段文字**静默吃掉**：
+   * 用户在 `前文` 后面敲 `/公式` 选菜单，结果是 `前文` 不见了，而且没有任何
+   * 报错。斜杠菜单的既有约定是「不在触发状态时一个字符都不删」
+   * （见 `slash.test.ts`），其它块（表格、代码块、分隔线）都遵守它 ——
+   * 公式块没有理由例外。
+   *
+   * 所以分两种情形：
+   *
+   * - 段落是**空的**（空行上敲 `/公式`、或 `insertBlock` 刚把 `/公式` 删掉）
+   *   → 整块换成公式；
+   * - 段落里有文字 → 公式插在段落**之后**，一个字都不动。
+   *
+   * 新选区取 `near(..., 1)`（向前偏）：公式块后面没有内容时它会落到
+   * 下一个可放光标的位置上，而 `@milkdown/plugin-trailing` 会在文档以
+   * 公式块结尾时补一个空段落 —— 两者合起来，光标总是有地方可去。
+   */
+  const insertMathBlock = (): void => {
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const { $from } = view.state.selection;
+      // 不在文本块里（例如光标落在表格上）就什么都不做。
+      // 猜一个位置去放公式，比不响应更糟
+      if (!$from.parent.isTextblock) return;
+
+      const node = mathBlockSchema.type(ctx).create();
+      const start = $from.before();
+      const end = $from.after();
+      const empty = $from.parent.content.size === 0;
+
+      const tr = empty
+        ? view.state.tr.replaceWith(start, end, node)
+        : // 插在段落之后：`replaceWith` 的起止相同就是「插入」
+          view.state.tr.replaceWith(end, end, node);
+      const after = empty ? start + node.nodeSize : end + node.nodeSize;
+      tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(after, tr.doc.content.size)), 1));
+      view.dispatch(tr);
+    });
+  };
+
   const applyBlock = (format: BlockFormat, level?: number): void => {
     const now = currentBlock();
     if (now === null) return;
@@ -515,6 +574,9 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
             return;
           case 'codeBlock':
             applyBlock('codeBlock');
+            return;
+          case 'mathBlock':
+            insertMathBlock();
             return;
           case 'table':
             // 3 × 3（含表头行）。菜单项是「表格」而不是「3×3 表格」——
@@ -1133,6 +1195,25 @@ export async function createMarkdownEditor(
     .use(clipboard)
     .use(cursor)
     .use(trailing)
+    /**
+     * 公式。五样东西缺一不可：
+     *
+     * - `mathRemarkPlugin` —— 让 `$…$` 在**解析阶段**就变成 mdast 的公式节点。
+     *   少了它，schema 里的两个节点永远不会被用到，公式在源码视图里
+     *   也只是一段普通文字；
+     * - 两个 `$nodeSchema` —— 文档树里的节点类型（值存在 `value` 属性上）；
+     * - 两条输入规则 —— 打字时的即时转换；
+     * - `mathViewPlugin` —— 渲染与**原位编辑**。
+     *
+     * 顺序没有讲究（它们互不依赖），但**必须都在 `.create()` 之前** ——
+     * `$nodeSchema` 是在 schema 构建阶段注册节点类型的。
+     */
+    .use(mathRemarkPlugin)
+    .use(mathInlineSchema)
+    .use(mathBlockSchema)
+    .use(mathInlineInputRule)
+    .use(mathBlockInputRule)
+    .use(mathViewPlugin())
     .use(codeHighlightPlugin)
     .use(codeBlockChromePlugin(() => codeBlockHandlers))
     .use(imageViewPlugin(() => ({ resolve: options.resolveImageUrl, onClick: options.onImageClick })))

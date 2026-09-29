@@ -15,6 +15,8 @@
 
 import { highlightCode } from '../highlight/hljs.js';
 import { bytesToDataUrl, sniffImageMime } from '../image.js';
+import { renderTex } from '../katex.js';
+import { MATH_BLOCK, TEX_DATA_ATTR } from '../math.js';
 
 export interface InlineIo {
   /** 文档所在目录。null = 拿不到（例如浏览器预览的虚拟盘），此时只处理绝对路径的图片。 */
@@ -36,6 +38,17 @@ export interface InlineReport {
   remoteImages: number;
   /** 实际做了高亮的代码块数 */
   highlightedBlocks: number;
+  /** 实际渲染成 KaTeX 的公式数 */
+  renderedMath: number;
+  /** 渲染失败、只留下源码的公式数 */
+  failedMath: number;
+  /**
+   * 第一条公式错误的原因，供导出提示直接显示。
+   *
+   * 只留第一条：一份文档里十个公式都错，提示里堆十句话没人看。用户看到
+   * 其中一条就知道自己写错了什么，回去改就是了。
+   */
+  firstMathError: string | null;
 }
 
 /**
@@ -67,7 +80,15 @@ function isAbsolutePath(src: string): boolean {
  * 一张图读不到不该让整篇文档导不出来，标注出来让用户自己决定。
  */
 export async function inlineAssets(root: HTMLElement, io: InlineIo): Promise<InlineReport> {
-  const report: InlineReport = { inlinedImages: 0, missingImages: 0, remoteImages: 0, highlightedBlocks: 0 };
+  const report: InlineReport = {
+    inlinedImages: 0,
+    missingImages: 0,
+    remoteImages: 0,
+    highlightedBlocks: 0,
+    renderedMath: 0,
+    failedMath: 0,
+    firstMathError: null,
+  };
 
   // ---- 代码高亮 ----------------------------------------------------------
 
@@ -140,4 +161,62 @@ export async function inlineAssets(root: HTMLElement, io: InlineIo): Promise<Inl
   }
 
   return report;
+}
+
+/**
+ * 把文档里的公式渲染成 KaTeX 的 HTML，原地替换掉 `toDOM` 留下的壳。
+ *
+ * ## 为什么不能由内核的 `toDOM` 直接渲染
+ *
+ * `toDOM` 是**同步**的，而 KaTeX 是动态加载的（见 `core/katex.ts`）。
+ * 让 `toDOM` 能渲染，KaTeX 就只能静态引入 —— 272 KB 进主包，
+ * 每个打开轻墨的人都要先下载它。而且 `toDOM` 里抛异常会把编辑器带崩，
+ * 而非法公式**必然**抛。
+ *
+ * 于是分工是：内核写一个带 `data-tex` 的壳（内容是公式源码），
+ * 导出侧在这里把它换成渲染结果。壳里的源码不是废料 —— 渲染失败时
+ * 它就是用户唯一能看见的东西（见下）。
+ *
+ * ## 渲染失败要留下源码
+ *
+ * 一份导出文件是**发出去**的。某个公式渲染失败时，留一个空壳等于
+ * 「这段内容凭空消失」，而留下 `$x^2$` 至少让人看得出原本写了什么、
+ * 也看得出是哪里写错了。同时 `report` 里记一笔，导出提示会说出来。
+ *
+ * 与图片一样：**任何一处失败都不中断导出**。一个写错的公式不该让整篇文档
+ * 导不出来。
+ */
+export async function renderMath(root: HTMLElement, report: InlineReport): Promise<void> {
+  const targets = Array.from(root.querySelectorAll<HTMLElement>(`[${TEX_DATA_ATTR}]`));
+
+  for (const element of targets) {
+    const tex = element.getAttribute(TEX_DATA_ATTR) ?? '';
+    const displayMode = element.dataset['type'] === MATH_BLOCK;
+    const result = await renderTex(tex, displayMode);
+
+    if (result.ok) {
+      element.classList.remove('is-loading', 'is-empty', 'is-failed');
+      element.classList.add('is-loaded');
+      element.innerHTML = result.html;
+      report.renderedMath += 1;
+      continue;
+    }
+
+    // 失败：把壳里那段源码**显式**变成两个元素，样式与编辑器里一致
+    element.classList.remove('is-loading', 'is-empty', 'is-loaded');
+    element.classList.add('is-failed');
+    element.replaceChildren(
+      elementWithClass('qm-math-src', displayMode ? `$$\n${tex}\n$$` : `$${tex}$`),
+      elementWithClass('qm-math-note', result.message),
+    );
+    report.failedMath += 1;
+    report.firstMathError ??= result.message;
+  }
+}
+
+function elementWithClass(className: string, text: string): HTMLElement {
+  const element = document.createElement('span');
+  element.className = className;
+  element.textContent = text;
+  return element;
 }

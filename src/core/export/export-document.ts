@@ -13,6 +13,7 @@
 
 import type { DocumentProvider } from '../document/types.js';
 import { basename, dirname, titleOf } from '../path.js';
+import type { ExportReport } from './document.js';
 import { buildSelfContainedHtml } from './document.js';
 
 export interface ExportHtmlRequest {
@@ -76,14 +77,70 @@ export async function exportHtml(request: ExportHtmlRequest): Promise<ExportHtml
     return { status: 'failed', message: `写入失败：${describe(thrown)}` };
   }
 
-  const parts = [`已导出 ${basename(target)}`];
+  const message = describeExport({
+    target,
+    report,
+    plainFallback: request.bodyHtml === null,
+  });
+
+  return { status: 'saved', target, message };
+}
+
+export interface ExportSummaryInput {
+  /** 导出到的完整路径；提示里只用它的文件名。 */
+  readonly target: string;
+  readonly report: ExportReport;
+  /** 内核没有富文本结构，已按纯文本呈现。 */
+  readonly plainFallback: boolean;
+}
+
+/**
+ * 把一次导出的结果拼成给用户看的一句话。
+ *
+ * **单独成函数**是因为它有一堆分支，而每条分支都对应一件用户需要知道的事。
+ * 混在 `exportHtml` 里就只能靠「真的导出一次带公式、带图、带代码的文档」
+ * 去覆盖 —— 而那种测试同时也在测读盘、写盘、弹对话框，失败时不知道是谁的错。
+ * 抽出来之后，这里是一个纯函数：给一份报告，给一句话。
+ *
+ * 顺序是按「用户最关心什么」排的：先说自己要的那件事成了（导出到了哪），
+ * 再说内容里有什么被处理过，最后说有什么**没做到**。
+ */
+export function describeExport(input: ExportSummaryInput): string {
+  const { report } = input;
+  const parts = [`已导出 ${basename(input.target)}`];
+
   if (report.highlightedBlocks > 0) parts.push(`${report.highlightedBlocks} 个代码块已着色`);
   if (report.inlinedImages > 0) parts.push(`${report.inlinedImages} 张图片已内联`);
   if (report.missingImages > 0) parts.push(`${report.missingImages} 张图片读不到，只保留了原链接`);
   if (report.remoteImages > 0) parts.push(`${report.remoteImages} 张图片来自网络，打开时需要联网`);
-  if (request.bodyHtml === null) parts.push('当前内核没有富文本结构，已按纯文本呈现');
 
-  return { status: 'saved', target, message: parts.join('；') };
+  /**
+   * 公式。四条消息各有各的用处：
+   *
+   * - 渲染成功数 —— 让用户确认「我的公式都进去了」；
+   * - 字体大小 —— 一份带公式的文档会比同样长度的文档大 300 KB 上下，
+   *   不说清楚的话用户只会觉得「这个导出是不是有 bug」。这是他该知道的
+   *   **代价**，而不是我们该藏的细节；
+   * - 失败与缺失 —— 这两条是**必须**说出来的（本项目「绝不静默」的红线）：
+   *   字体没内联意味着发出去的文件在别人机器上会掉字形，
+   *   公式没渲染出来意味着那段内容只剩源码。
+   */
+  if (report.renderedMath > 0) parts.push(`${report.renderedMath} 个公式已渲染`);
+  if (report.failedMath > 0) {
+    const why = report.firstMathError === null ? '' : `（${report.firstMathError}）`;
+    parts.push(`${report.failedMath} 个公式渲染失败，只保留了源码${why}`);
+  }
+  if (report.mathFonts > 0) {
+    const kb = Math.round(report.mathStyleBytes / 1024);
+    parts.push(`公式字体已内联（${report.mathFonts} 个文件，约 ${kb} KB）`);
+  }
+  if (report.missingMathFonts > 0) {
+    parts.push(`${report.missingMathFonts} 个公式字体没能内联，导出的公式可能用系统字体显示`);
+  }
+
+  if (input.plainFallback) parts.push('当前内核没有富文本结构，已按纯文本呈现');
+
+  return parts.join('；');
 }
 
 /** 导出建议的文件名（供 UI 预览、也供测试断言）。 */

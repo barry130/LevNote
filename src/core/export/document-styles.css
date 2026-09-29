@@ -363,3 +363,74 @@
   background: var(--qm-line-soft);
   border: 1px dashed var(--qm-slate);
 }
+
+/* ------------------------------------------------------------------ 公式 */
+
+/*
+ * 公式的版式。编辑器与导出**同源**：两边的根元素都是 `.qm-math`，
+ * 里面直接放 KaTeX 的输出（`.katex` / `.katex-display`）——
+ * 编辑器里由 `modules/markdown/math-view.ts` 写进去，
+ * 导出时由 `core/export/inline-html.ts` 写进去。
+ *
+ * KaTeX 自己那套 `.katex` 规则来自 `katex.min.css`：编辑器通过
+ * `modules/markdown/markdown.css` 的 `@import` 拿到，导出时由
+ * `core/export/katex-css.ts` 把同一份 CSS 连同 woff2 字体一起内联进
+ * `<style>` —— 断网、换机器打开，公式的观感也不会变。
+ */
+.qm-doc .qm-math-inline {
+  /* 行内公式与周围文字对齐：KaTeX 的基线已经调好了，这里只需要
+     不让它因为行高把整行撑开 */
+  display: inline-block;
+  vertical-align: baseline;
+  max-width: 100%;
+}
+
+.qm-doc .qm-math-block {
+  display: block;
+  /*
+   * 宽公式（长矩阵、长推导）必须能横向滚动。
+   * `overflow-x: auto` 而不是让它溢出：溢出的部分会被裁掉或被页面横滚带走，
+   * 用户看到的是「公式缺了一半」，而没有任何提示。
+   */
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+/* KaTeX 的块级公式自带上下外边距，这里收一点，与段落间距一致 */
+.qm-doc .qm-math-block .katex-display {
+  margin: 0.6em 0;
+}
+
+/*
+ * 渲染不出来时的呈现（只有编辑器会产生这个状态，但样式放在这里，
+ * 因为它描述的是「一个公式节点长什么样」）。
+ *
+ * 失败时**同时**给出源码和原因：用户写错了一个命令，他需要知道错在哪，
+ * 也需要看见自己写的是什么。只给一个空白等于把「为什么」藏起来。
+ */
+.qm-doc .qm-math.is-failed {
+  padding: 2px 6px;
+  background: var(--qm-mark-bg);
+  border: 1px dashed var(--qm-vermilion);
+  border-radius: 4px;
+}
+
+.qm-doc .qm-math-src {
+  font-family: var(--qm-mono);
+  font-size: 0.9em;
+  color: var(--qm-ink);
+  word-break: break-all;
+}
+
+.qm-doc .qm-math-note {
+  margin-left: 0.5em;
+  font-size: 0.85em;
+  color: var(--qm-vermilion);
+}
+
+.qm-doc .qm-math.is-empty .qm-math-note {
+  margin-left: 0;
+  color: var(--qm-slate);
+  font-style: italic;
+}
