@@ -69,6 +69,7 @@ import type {
   BlockFormat,
   CodeBlockState,
   CursorPosition,
+  DiagramView,
   EditorCodeBlock,
   EditorFormatting,
   EditorSearch,
@@ -81,6 +82,7 @@ import type {
   TableState,
 } from '../../core/editor/types.js';
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
+import { MERMAID_LANGUAGE, MERMAID_STARTER } from '../../core/mermaid.js';
 import { CODE_BLOCK, codeBlockChromePlugin, type CodeBlockChromeHandlers } from './code-block-view.js';
 import { IMAGE, imageViewPlugin } from './image-view.js';
 import {
@@ -150,6 +152,13 @@ export interface CreateMarkdownEditorOptions {
   onImagePaste?: (request: ImagePasteRequest) => Promise<string | null>;
   /** 用户点了文档里的一张图片（灯箱）。 */
   onImageClick?: (image: ImageInfo) => void;
+  /**
+   * 用户要放大看一张 Mermaid 图表。
+   *
+   * 不实现时代码块上**不显示**放大按钮 —— 与「不实现 `onImageClick` 就不开灯箱」
+   * 同一条规则：给一个点了没反应的按钮，不如不给。
+   */
+  onDiagramOpen?: (diagram: DiagramView) => void;
 }
 
 export interface MarkdownEditorInstance {
@@ -426,6 +435,45 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
     });
   };
 
+  /**
+   * 插入一个 **Mermaid 图表块**。
+   *
+   * 走的是与 `insertMathBlock` 同一条路径（空段落 → 整块替换；有文字 → 插在段后），
+   * 但有三处不同，每一处都是被「图表不是公式」逼出来的：
+   *
+   * - **带起始内容**（`MERMAID_STARTER`）。空块会停在源码态（见
+   *   `code-block-view.ts` 的 `wantDiagram`），用户只看到一个空框；
+   * - **光标落在块里面**而不是块后面。图表块是要他**改那段源码**的，
+   *   落到块外面等于让他先点一下才写得进去；
+   * - **语言属性必须在建节点时就给**（`{ language: 'mermaid' }`）。
+   *   先建一个无语言的代码块再 `setNodeAttribute` 也可以，但那是两次事务，
+   *   中间那一帧内核已经把它当成「纯文本块」了。
+   */
+  const insertDiagramBlock = (): void => {
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const { $from } = view.state.selection;
+      if (!$from.parent.isTextblock) return;
+
+      const type = view.state.schema.nodes[CODE_BLOCK];
+      if (type === undefined) return;
+
+      const node = type.create({ language: MERMAID_LANGUAGE }, view.state.schema.text(MERMAID_STARTER));
+      const start = $from.before();
+      const end = $from.after();
+      const empty = $from.parent.content.size === 0;
+
+      const tr = empty
+        ? view.state.tr.replaceWith(start, end, node)
+        : view.state.tr.replaceWith(end, end, node);
+      // 块内**内容末尾**：`+1` 跨过 code_block 自己的开标签，再走完内容长度
+      const base = empty ? start : end;
+      const at = Math.min(base + 1 + node.content.size, tr.doc.content.size);
+      tr.setSelection(TextSelection.create(tr.doc, at));
+      view.dispatch(tr);
+    });
+  };
+
   const applyBlock = (format: BlockFormat, level?: number): void => {
     const now = currentBlock();
     if (now === null) return;
@@ -577,6 +625,9 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
             return;
           case 'mathBlock':
             insertMathBlock();
+            return;
+          case 'diagram':
+            insertDiagramBlock();
             return;
           case 'table':
             // 3 × 3（含表头行）。菜单项是「表格」而不是「3×3 表格」——
@@ -955,12 +1006,22 @@ interface CodeBlockPicker {
  *
  * 与命令面分成两个函数，是因为创建时机不同（见 `CodeBlockPicker`）。
  */
-function codeBlockPickerHandlers(picker: CodeBlockPicker): CodeBlockChromeHandlers {
+function codeBlockPickerHandlers(
+  picker: CodeBlockPicker,
+  onDiagramOpen: ((diagram: DiagramView) => void) | undefined,
+): CodeBlockChromeHandlers {
   return {
     openPicker: (request) => {
       picker.target = { token: request.token, resolvePos: request.resolvePos };
       picker.notify({ anchor: request.anchor, language: request.language });
     },
+    /**
+     * 放大看图表。
+     *
+     * 不在这里拼装任何东西：NodeView 交出来的就是「它此刻画在屏幕上的那一份」，
+     * 而全屏查看器要的也正是那一份 —— 重新渲染一遍既慢，又可能画出不一样的图。
+     */
+    openViewer: (diagram) => onDiagramOpen?.(diagram),
     closePicker: (token) => {
       // 只有**面板正对着的那个**代码块消失时才关。删掉别的代码块不该把面板带走 ——
       // 用户可能正打算给手里这个换个语言
@@ -1137,7 +1198,7 @@ export async function createMarkdownEditor(
    * 建一次就固定下来。传给插件的是「取它的函数」——
    * 这样插件拿到的是同一个对象，而不是每次调用都新建一个。
    */
-  const codeBlockHandlers = codeBlockPickerHandlers(picker);
+  const codeBlockHandlers = codeBlockPickerHandlers(picker, options.onDiagramOpen);
 
   const editor = await Editor.make()
     .config((ctx) => {

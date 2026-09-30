@@ -22,6 +22,7 @@ import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/s
 import type {
   CodeBlockState,
   CursorPosition,
+  DiagramView,
   EditorAdapter,
   EditorCodeBlock,
   EditorFormatting,
@@ -37,6 +38,7 @@ import { resolveAdapter } from '../core/editor/registry.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
 import { CodeBlockPicker } from './CodeBlockPicker.js';
+import { DiagramViewer } from './DiagramViewer.js';
 import { Lightbox } from './Lightbox.js';
 import { SelectionToolbar } from './SelectionToolbar.js';
 import { SlashMenu } from './SlashMenu.js';
@@ -177,6 +179,8 @@ export function DocumentPane({
    * 那意味着把同一个文件读第二遍，而字节此刻就在 DOM 上。
    */
   const [lightbox, setLightbox] = useState<ImageInfo | null>(null);
+  /** 全屏正在看的那张图表。null 表示查看器关着。 */
+  const [diagram, setDiagram] = useState<DiagramView | null>(null);
 
   const session = doc?.session ?? 0;
   /**
@@ -342,6 +346,8 @@ export function DocumentPane({
    * 功能上不会坏，但那是「每次按键做一次多余的 DOM 操作」。
    */
   const closeLightbox = useCallback(() => setLightbox(null), []);
+  /** 与 `closeLightbox` 同理：必须是稳定引用（`DiagramViewer` 的 Esc 监听依赖它）。 */
+  const closeDiagram = useCallback(() => setDiagram(null), []);
 
   const handleEditorError = useCallback(
     (thrown: Error) => {
@@ -443,6 +449,7 @@ export function DocumentPane({
             resolveImageUrl={store.resolveImageUrl}
             onImagePaste={handleImagePaste}
             onImageClick={setLightbox}
+            onDiagramOpen={setDiagram}
             onError={handleEditorError}
           />
         ) : doc ? (
@@ -483,6 +490,10 @@ export function DocumentPane({
             并且不像上面几个浮层那样有「什么时候该出现」的条件判断 ——
             它只由用户点图片决定 */}
         {lightbox !== null && <Lightbox image={lightbox} onClose={closeLightbox} />}
+
+        {/* 图表查看器也是模态的，与灯箱同一层、排在它后面（同层最后画的在最上面）。
+            两者不会同时出现：一个由点图片触发，一个由点「放大」按钮触发 */}
+        {diagram !== null && <DiagramViewer diagram={diagram} onClose={closeDiagram} />}
       </main>
 
       <footer className="statusbar">

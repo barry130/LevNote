@@ -138,6 +138,17 @@ export function describeExport(input: ExportSummaryInput): string {
     parts.push(`${report.missingMathFonts} 个公式字体没能内联，导出的公式可能用系统字体显示`);
   }
 
+  /**
+   * 图表。两条消息的分工与公式完全一致：成功的那个让用户确认「图都进去了」，
+   * 失败的那个是**必须**说出来的 —— 图上没画出来意味着发出去的文件里
+   * 那一段只剩代码，而用户以为对方看到的是图。
+   */
+  if (report.renderedDiagrams > 0) parts.push(`${report.renderedDiagrams} 张图表已画成 SVG`);
+  if (report.failedDiagrams > 0) {
+    const why = report.firstDiagramError === null ? '' : `（${report.firstDiagramError}）`;
+    parts.push(`${report.failedDiagrams} 张图表画不出来，只保留了源码${why}`);
+  }
+
   if (input.plainFallback) parts.push('当前内核没有富文本结构，已按纯文本呈现');
 
   return parts.join('；');

@@ -204,6 +204,8 @@ export type InsertableBlock =
   | 'orderedList'
   | 'codeBlock'
   | 'mathBlock'
+  /** Mermaid 图表。插进来的是一个**带起始内容的** mermaid 代码块（见 `MERMAID_STARTER`）。 */
+  | 'diagram'
   | 'table'
   | 'hr';
 
@@ -413,6 +415,18 @@ export interface ImageInfo {
 }
 
 /**
+ * 一张**已经画好**的图表，交给全屏查看器。
+ *
+ * `svg` 是完整的 `<svg>` 片段（自带样式，不依赖任何外部资源）。
+ * 它不是一个文件路径 —— 图是从 `source` 里现画出来的，磁盘上没有这个文件。
+ */
+export interface DiagramView {
+  readonly svg: string;
+  /** 图的源码（Mermaid）。 */
+  readonly source: string;
+}
+
+/**
  * 挂载一个内核所需的全部输入。
  *
  * **回调一律用属性签名**（`onChange: (v: string) => void`），不用方法简写
@@ -514,6 +528,18 @@ export interface EditorMountProps {
    * 不实现时点图片什么都不发生（纯文本内核没有图片，自然也走不到这里）。
    */
   onImageClick?: (image: ImageInfo) => void;
+  /**
+   * 用户要**放大看**一张图表（Mermaid）。
+   *
+   * 与 `onImageClick` 同一条理由（监听必须挂在内核自己造的元素上），
+   * 但交出来的东西不一样：图片给的是**已经解析好的 URL**，图表给的是
+   * **已经画好的 SVG 字符串** —— 因为图不是文件，它没有路径可给，
+   * 也只有此刻 DOM 上的这一份是「用户正在看的那一张」。
+   *
+   * 一起给出源码：全屏查看器要能显示它（图是从这段源码来的），
+   * 让用户知道「改了这段字，图就会变」。
+   */
+  onDiagramOpen?: (diagram: DiagramView) => void;
   /** 编辑器报错（内核初始化失败等），交给外壳呈现。 */
   onError?: (error: Error) => void;
   readOnly?: boolean;

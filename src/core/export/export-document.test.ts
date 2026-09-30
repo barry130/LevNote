@@ -265,6 +265,9 @@ function report(overrides: Partial<ExportReport> = {}): ExportReport {
     renderedMath: 0,
     failedMath: 0,
     firstMathError: null,
+    renderedDiagrams: 0,
+    failedDiagrams: 0,
+    firstDiagramError: null,
     mathFonts: 0,
     missingMathFonts: 0,
     mathStyleBytes: 0,
@@ -351,6 +354,36 @@ describe('describeExport', () => {
       const message = summary({ renderedMath: 3, missingMathFonts: 20 });
       expect(message).toContain('3 个公式已渲染');
       expect(message).toContain('20 个公式字体没能内联');
+    });
+  });
+
+  describe('图表', () => {
+    it('画成功时报出张数', () => {
+      expect(summary({ renderedDiagrams: 2 })).toBe('已导出 我的笔记.html；2 张图表已画成 SVG');
+    });
+
+    /**
+     * 与公式那两条同属「绝不静默」的红线：图没画出来意味着发出去的文件里
+     * 那一段只剩代码，而用户以为对方看到的是图。
+     */
+    it('画不出来时给出第一条原因', () => {
+      const message = summary({
+        failedDiagrams: 1,
+        firstDiagramError: '图表语法有误 —— 下面是渲染器的原文：Parse error on line 2',
+      });
+      expect(message).toContain('1 张图表画不出来，只保留了源码');
+      expect(message).toContain('Parse error on line 2');
+    });
+
+    it('没有原因时不留下一个空括号', () => {
+      const message = summary({ failedDiagrams: 1 });
+      expect(message).not.toContain('（）');
+    });
+
+    it('「没做到」的那条仍然排在最后', () => {
+      const message = summary({ renderedDiagrams: 1, failedDiagrams: 1, missingImages: 1 });
+      expect(message.indexOf('已画成 SVG')).toBeLessThan(message.indexOf('画不出来'));
+      expect(message.indexOf('读不到')).toBeLessThan(message.indexOf('画不出来'));
     });
   });
 

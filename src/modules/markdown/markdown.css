@@ -140,6 +140,100 @@
 }
 
 /*
+/*
+ * 图表（Mermaid）。
+ *
+ * 图与源码**同时都在 DOM 里**，用 `data-mode` 决定谁显示 —— 不做「切的时候
+ * 把另一个删掉」，因为那样每次进入/离开代码块都要销毁重建一棵子树，
+ * 而 `<code>` 还是 ProseMirror 的 `contentDOM`，销毁它等于把文档也拆了。
+ *
+ * 用 `display: none` 而不是 `visibility/opacity`：图区里那张 SVG 必须**不参与
+ * 布局**，否则它会继续占着高度，代码块看起来是「代码下面多了一大块空白」。
+ */
+.qm-editor .qm-cb[data-mode='diagram'] > .qm-cb-pre,
+.qm-editor .qm-cb[data-mode='diagram'] > .qm-cb-gutter {
+  display: none;
+}
+
+.qm-editor .qm-cb[data-mode='code'] > .qm-cb-diagram {
+  display: none;
+}
+
+/*
+ * 图区自己就是内容区：给它内边距和居中，让 SVG 待在一个像样的框里。
+ * 背景留白而不是跟代码一样用 `--qm-code-bg` —— 图是有背景色的（mermaid
+ * 自己画了一层），再叠一层代码底色会让边缘出现一条明显的色带。
+ */
+.qm-editor .qm-cb-diagram {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1em;
+  overflow-x: auto;
+  text-align: center;
+  cursor: text;
+}
+
+/* mermaid 产出的 SVG 宽度是渲染时定死的，窄屏上要允许它缩 */
+.qm-editor .qm-cb-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.qm-editor .qm-cb-note {
+  color: var(--qm-slate);
+  font-size: 0.85em;
+  line-height: 1.7;
+  text-align: left;
+  /* 语法错的原因是多行的（mermaid 会给一段带光标的 ASCII 示意图），必须原样排 */
+  white-space: pre-wrap;
+}
+
+.qm-editor .qm-cb-diagram.is-failed .qm-cb-note {
+  color: var(--qm-vermilion);
+}
+
+/*
+ * 「放大看」按钮。
+ *
+ * 摆在**右下角**而不是和语言标签挤在右上角：语言标签是每个代码块都有的，
+ * 它已经占了右上角那一块；两个都往上挤就得算偏移量，而标签的宽度随语言名变化
+ * （`js` 和 `mermaid` 差一倍），算出来的偏移迟早对不齐。
+ *
+ * 显隐由元素自己的 `hidden` 决定（见 `code-block-view.ts` 的 `syncZoom`）——
+ * 没有图画的时候按钮**不存在**，而不是变灰。一个点了没反应的按钮
+ * 会让用户以为软件坏了。
+ */
+.qm-editor .qm-cb-zoom {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0.1em 0.5em;
+  border: none;
+  border-radius: 6px 0 7px 0;
+  background: var(--qm-line-soft);
+  color: var(--qm-slate);
+  font-size: 0.8em;
+  line-height: 1.7;
+  cursor: pointer;
+}
+
+.qm-editor .qm-cb-zoom:hover {
+  color: var(--qm-ink);
+}
+
+.qm-editor .qm-cb-zoom:focus-visible {
+  outline: 2px solid var(--qm-bamboo);
+  outline-offset: -2px;
+}
+
+.qm-editor .qm-cb-note-hint {
+  margin-top: 0.4em;
+  color: var(--qm-slate);
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+
+/*
  * 语言标签。摆法与配色**照抄导出的 `pre[data-language]::after`**
  * （同样贴在右上角、同样的字号与圆角、同样 lowercase）——
  * 导出用伪元素是因为那份 HTML 里不该多出一个不可交互的按钮，

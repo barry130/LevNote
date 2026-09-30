@@ -10,7 +10,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { MATH_BLOCK, MATH_INLINE, TEX_DATA_ATTR } from '../math.js';
-import { inlineAssets, renderMath, type InlineReport } from './inline-html.js';
+import { inlineAssets, renderDiagrams, renderMath, type InlineReport } from './inline-html.js';
 import type { MathStyleIo } from './katex-css.js';
 import { buildSelfContainedHtml } from './document.js';
 
@@ -252,6 +252,9 @@ function emptyReport(): InlineReport {
     renderedMath: 0,
     failedMath: 0,
     firstMathError: null,
+    renderedDiagrams: 0,
+    failedDiagrams: 0,
+    firstDiagramError: null,
   };
 }
 
@@ -454,5 +457,117 @@ describe('buildSelfContainedHtml：公式', () => {
     expect(report.firstMathError).toContain('Undefined control sequence');
     expect(html).toContain('qm-math-src');
     expect(html).toContain('\\foo{');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 图表（Mermaid）
+// ---------------------------------------------------------------------------
+
+/**
+ * 这里把渲染器换成假的。
+ *
+ * mermaid 在 jsdom 里画不出东西（`getBBox()` 一律返回 0，见
+ * `core/mermaid-render.ts` 的文件头），真去加载它既慢又只会得到一张塌掉的图。
+ * 单测能证明的是**导出这一层的契约**：哪一块该被换掉、换成了什么、
+ * 失败时留下了什么。
+ */
+const diagramSpy = vi.hoisted(() => {
+  const state: {
+    calls: Array<{ source: string; theme: string }>;
+    result: { ok: true; svg: string } | { ok: false; message: string };
+  } = {
+    calls: [],
+    result: { ok: true, svg: '<svg id="g"><rect/></svg>' },
+  };
+  return state;
+});
+
+vi.mock('../mermaid-render.js', () => ({
+  renderMermaid: (source: string, theme: string) => {
+    diagramSpy.calls.push({ source, theme });
+    return Promise.resolve(diagramSpy.result);
+  },
+}));
+
+/** 内核产出的 mermaid 代码块：`pre[data-language]` 里套一个 `code`。 */
+function mermaidShell(source: string): string {
+  return `<pre data-language="mermaid"><code>${source}</code></pre>`;
+}
+
+describe('图表渲染', () => {
+  it('把 mermaid 代码块换成画好的 SVG', async () => {
+    diagramSpy.calls = [];
+    diagramSpy.result = { ok: true, svg: '<svg id="g"><rect/></svg>' };
+    const root = host(`<p>前</p>${mermaidShell('graph LR\n  A-->B')}`);
+    const report = emptyReport();
+
+    await renderDiagrams(root, report, 'light');
+
+    expect(report.renderedDiagrams).toBe(1);
+    expect(report.failedDiagrams).toBe(0);
+    const figure = root.querySelector('.qm-diagram') as HTMLElement;
+    expect(figure.innerHTML).toContain('<svg');
+    // 源码块必须消失：导出产物里没有「另一种看法」这回事
+    expect(root.querySelector('pre')).toBeNull();
+  });
+
+  it('画不出来时留下源码，并在后面说明原因', async () => {
+    diagramSpy.calls = [];
+    diagramSpy.result = { ok: false, message: '图表语法有误' };
+    const root = host(mermaidShell('graph LR\n  A-->B'));
+    const report = emptyReport();
+
+    await renderDiagrams(root, report, 'light');
+
+    expect(report.failedDiagrams).toBe(1);
+    expect(report.firstDiagramError).toContain('图表语法有误');
+    // 源码还在（发出去的文件里，一段代码好过一个空白）
+    expect(root.querySelector('pre')?.textContent).toContain('graph LR');
+    expect(root.querySelector('.qm-diagram-error')?.textContent).toContain('图表语法有误');
+  });
+
+  it('不是 mermaid 的代码块一个都不动，渲染器一次都不叫', async () => {
+    diagramSpy.calls = [];
+    const root = host('<pre data-language="js"><code>let a = 1;</code></pre>');
+    const report = emptyReport();
+
+    await renderDiagrams(root, report, 'light');
+
+    expect(diagramSpy.calls).toHaveLength(0);
+    expect(root.querySelector('pre')).not.toBeNull();
+    expect(report.renderedDiagrams).toBe(0);
+  });
+
+  it('空的 mermaid 块不算数：既不画，也不报错', async () => {
+    diagramSpy.calls = [];
+    const root = host(mermaidShell('   '));
+    const report = emptyReport();
+
+    await renderDiagrams(root, report, 'light');
+
+    expect(diagramSpy.calls).toHaveLength(0);
+    expect(report.renderedDiagrams).toBe(0);
+    expect(report.failedDiagrams).toBe(0);
+  });
+
+  it('大小写不规范的围栏也认（`Mermaid` 与 `mermaid` 是一回事）', async () => {
+    diagramSpy.calls = [];
+    diagramSpy.result = { ok: true, svg: '<svg id="g"></svg>' };
+    const root = host('<pre data-language="Mermaid"><code>graph LR</code></pre>');
+
+    await renderDiagrams(root, emptyReport(), 'light');
+
+    expect(diagramSpy.calls).toHaveLength(1);
+  });
+
+  it('导出是一张纸：图永远按浅色画，哪怕应用此刻是深色', async () => {
+    diagramSpy.calls = [];
+    diagramSpy.result = { ok: true, svg: '<svg id="g"></svg>' };
+    const root = host(mermaidShell('graph LR'));
+
+    await renderDiagrams(root, emptyReport(), 'light');
+
+    expect(diagramSpy.calls[0]?.theme).toBe('light');
   });
 });

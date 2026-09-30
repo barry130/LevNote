@@ -28,17 +28,48 @@
  * ## 它**不**负责高亮
  *
  * 语法着色仍然由 `plugin.ts` 的 `codeHighlightPlugin` 用 inline 装饰做
- * （与导出共用 `core/highlight/hljs.ts` 这一份实现）。这里只加两个
- * **不进入文档**的元素：行号槽与语言标签。装饰与 NodeView 互不干扰 ——
- * 装饰落在 `contentDOM` 里，两个新元素都在 `contentDOM` 之外。
+ * （与导出共用 `core/highlight/hljs.ts` 这一份实现）。这里只加几个
+ * **不进入文档**的元素：行号槽、语言标签、图表区。装饰与 NodeView 互不干扰 ——
+ * 装饰落在 `contentDOM` 里，这几个新元素都在 `contentDOM` 之外。
+ *
+ * ## Mermaid：图与源码是**同一个块的两种看法**
+ *
+ * 语言是 `mermaid` 时，块有两种形态（`dom.dataset.mode`）：
+ *
+ * - `diagram` —— 画好的图（或「正在渲染」/「语法错在哪」的说明）；
+ * - `code` —— 源码，可编辑。
+ *
+ * 光标**在块里**就一定是 `code`：用户正在改的东西必须是他正在打的字，
+ * 而不是一张每敲一个键就重画的图。光标离开后回到 `diagram`。
+ *
+ * 判据是「光标在不在里面」，而不是「有没有点过」：后者要用户自己记得切回来，
+ * 结果是文档里留着一堆忘了切回图形的块。
+ *
+ * ## 为什么失败也要占着 `diagram` 那一格
+ *
+ * 渲染失败时退回 `code` 会把**失败原因藏起来**（图区被 CSS 隐藏了），
+ * 用户只看到一段源码，不知道哪里不对。所以失败时仍然显示图区，
+ * 里面是「原因 + 点一下改源码」。点它就进 `code`。
+ *
+ * ## 为什么「光标在不在里面」要插件推给视图
+ *
+ * NodeView 的 `update()` 只在**节点本身**变了时才被 ProseMirror 调用，
+ * 光标挪动不会触发它（选区变化不是文档变化）。所以插件自己持有一份
+ * 活跃视图表，在 `PluginView.update()` 里逐个同步 —— 那是唯一一个
+ * 「每次状态变化都会被调用」的钩子。
  */
 
 import type { Node as ProseNode } from '@milkdown/kit/prose/model';
-import { Plugin, PluginKey } from '@milkdown/kit/prose/state';
+import type { EditorState, Selection } from '@milkdown/kit/prose/state';
+import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state';
 import type { EditorView, NodeView, ViewMutationRecord } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
 
 import type { SelectionRect } from '../../core/editor/types.js';
+import { isMermaidLanguage } from '../../core/mermaid.js';
+import { renderMermaid } from '../../core/mermaid-render.js';
+import type { ResolvedTheme } from '../../core/theme/theme.js';
+import { currentTheme } from '../../core/theme/theme.js';
 
 /**
  * ProseMirror 的代码块节点名（对齐 preset-commonmark 的 schema）。
@@ -83,6 +114,13 @@ export interface CodeBlockChromeRequest {
 export interface CodeBlockChromeHandlers {
   readonly openPicker: (request: CodeBlockChromeRequest) => void;
   /**
+   * 用户要**放大看**这个块的图。
+   *
+   * 交出去的是「此刻画在屏幕上的那一份」而不是让外壳再去渲染一遍 ——
+   * 重新渲染既慢，又可能因为时序画出不一样的图。
+   */
+  readonly openViewer: (diagram: { svg: string; source: string }) => void;
+  /**
    * 语言标签所在的代码块从文档里消失了（被删掉、或整篇被替换）。
    *
    * 必须上报：面板此时正对着一个已经不存在的代码块，而它自己不知道。
@@ -125,10 +163,19 @@ class CodeBlockView implements NodeView {
   readonly contentDOM: HTMLElement;
 
   private node: ProseNode;
+  private readonly view: EditorView;
   private readonly getPos: () => number | undefined;
   private readonly getHandlers: () => CodeBlockChromeHandlers | undefined;
+  /** 插件持有的活跃视图表 —— 「光标在不在里面」由插件推过来，见文件头。 */
+  private readonly live: Set<CodeBlockView>;
   private readonly gutter: HTMLElement;
   private readonly badge: HTMLButtonElement;
+  /** 图表区。非 mermaid 的块里它一直是空的，由 CSS 藏起来。 */
+  private readonly diagram: HTMLElement;
+  /** 「放大看」按钮。只在**真的画出了图**的时候才显示。 */
+  private readonly zoom: HTMLButtonElement;
+  /** 最近一次渲染成功的 SVG。`null` = 现在没有可放大的东西。 */
+  private svg: string | null = null;
   /** 行号槽当前画了几行；-1 表示还没画过。 */
   private drawnLines = -1;
   /** 标签上当前显示的文字；null 表示还没画过。 */
@@ -141,15 +188,32 @@ class CodeBlockView implements NodeView {
    */
   private alive = true;
 
+  /** 当前形态。与 `dom.dataset.mode` **同步维护** —— DOM 是渲染结果，不是真相。 */
+  private mode: 'code' | 'diagram' = 'code';
+  /** 光标是不是在这个块里。 */
+  private editing = false;
+  /**
+   * 图区正在画（或已经画完）的那一份「源码 + 主题」。
+   *
+   * 两个都要记：前者决定「源码改了要不要重画」，后者决定「换了明暗要不要重画」。
+   * `null` 表示图区是空的。
+   */
+  private painted: { source: string; theme: ResolvedTheme } | null = null;
+  /** 竞态令牌 —— 与 ImageView / MathView 同一个坑：先发的请求后回来会盖住新的。 */
+  private token = 0;
+
   constructor(
     node: ProseNode,
-    _view: EditorView,
+    view: EditorView,
     getPos: () => number | undefined,
     getHandlers: () => CodeBlockChromeHandlers | undefined,
+    live: Set<CodeBlockView>,
   ) {
     this.node = node;
+    this.view = view;
     this.getPos = getPos;
     this.getHandlers = getHandlers;
+    this.live = live;
 
     const dom = document.createElement('div');
     dom.className = 'qm-cb';
@@ -170,6 +234,36 @@ class CodeBlockView implements NodeView {
     code.className = 'qm-cb-code';
     pre.appendChild(code);
 
+    // 图表区。`contenteditable=false` 让光标进不去：`contentDOM` 是那个
+    // `<code>`，这里的一切都不是文档内容，只是「同一段源码的另一种看法」
+    const diagram = document.createElement('div');
+    diagram.className = 'qm-cb-diagram';
+    diagram.contentEditable = 'false';
+    /**
+     * 点图 = 我要改源码。
+     *
+     * 挂 `mousedown` 而不是 `click`：不拦下 `mousedown`，浏览器会先把焦点挪走、
+     * ProseMirror 会把光标放到块旁边 —— 等 `click` 到达时位置已经变了
+     * （与公式、语言标签、浮层按钮同一个坑）。
+     */
+    diagram.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.enterCode();
+    });
+
+    const zoom = document.createElement('button');
+    zoom.type = 'button';
+    zoom.className = 'qm-cb-zoom';
+    zoom.contentEditable = 'false';
+    zoom.textContent = '⤢';
+    zoom.title = '放大看这张图';
+    zoom.setAttribute('aria-label', '放大看这张图');
+    zoom.hidden = true;
+    // 同语言标签：不拦 mousedown，焦点会先离开编辑器、图会被重画一遍
+    zoom.addEventListener('mousedown', (event) => event.preventDefault());
+    zoom.addEventListener('click', () => this.requestViewer());
+
     const badge = document.createElement('button');
     badge.type = 'button';
     badge.className = 'qm-cb-lang';
@@ -180,14 +274,29 @@ class CodeBlockView implements NodeView {
     badge.addEventListener('mousedown', (event) => event.preventDefault());
     badge.addEventListener('click', () => this.requestPicker());
 
-    dom.append(gutter, pre, badge);
+    dom.append(gutter, pre, diagram, zoom, badge);
 
     this.dom = dom;
     this.contentDOM = code;
     this.gutter = gutter;
+    this.diagram = diagram;
+    this.zoom = zoom;
     this.badge = badge;
+    this.dom.dataset['mode'] = 'code';
 
     this.renderChrome();
+
+    // 自己先同步一次：插件的 PluginView 可能在**这个视图之前**就已经初始化完了，
+    // 那时表里还没有它，谁也不会来通知它「光标其实不在里面」。
+    // 顺序不能反 —— 光标本来就在里面时，先问一次才不会白白先画一张看不见的图
+    live.add(this);
+    this.syncSelection(view.state);
+    this.ensureDiagram();
+  }
+
+  /** 这个块的语言是不是 Mermaid。 */
+  private isMermaid(): boolean {
+    return isMermaidLanguage(this.language());
   }
 
   /** 当前语言标识；空串表示未指定。 */
@@ -254,6 +363,202 @@ class CodeBlockView implements NodeView {
     });
   }
 
+  // -------------------------------------------------------------------------
+  // 图表（Mermaid）
+  // -------------------------------------------------------------------------
+
+  /**
+   * 让图区与「当前该显示什么」对齐；需要重画时就发起一次异步渲染。
+   *
+   * 这个方法在**每一次文档变更**时都会被调用（在别处打字也算），所以
+   * 开头的判断是必需的：不判的话，用户在正文里每敲一个字，所有图表块
+   * 都要重新渲染一遍。
+   */
+  ensureDiagram(): void {
+    const source = this.node.textContent;
+    const theme = currentTheme();
+    const wanted = this.isMermaid() && source.trim() !== '';
+
+    if (!wanted) {
+      // 不是 mermaid（或还没写内容）：把图区清空。
+      // 空的图区由 CSS 藏起来，所以「清空」只是别留下上一次的图
+      this.clearDiagram();
+      this.syncMode();
+      return;
+    }
+
+    /**
+     * 正在改源码的时候**不画**。
+     *
+     * 用户每敲一个键都让整张图重新布局一遍纯属浪费 —— 而那张图他此刻根本
+     * 看不见（光标在块里，显示的是源码）。更糟的是渲染是异步的：连着敲
+     * 十个字符会排起十次渲染，而用户停下时看到的是**某一次中间的**结果。
+     *
+     * 光标离开的那一刻 `syncSelection` 会再叫一次，那时才画 ——
+     * 也就是「只在要显示图的时候才为它付钱」。
+     */
+    if (this.editing) {
+      this.syncMode();
+      return;
+    }
+
+    const painted = this.painted;
+    if (painted !== null && painted.source === source && painted.theme === theme) {
+      this.syncMode();
+      return;
+    }
+
+    void this.renderDiagram(source, theme);
+  }
+
+  private clearDiagram(): void {
+    if (this.painted === null && this.diagram.childElementCount === 0) return;
+    this.painted = null;
+    this.svg = null;
+    this.diagram.classList.remove('is-loading', 'is-failed', 'is-ok');
+    this.diagram.replaceChildren();
+    this.syncZoom();
+  }
+
+  /**
+   * 「放大」按钮只在**真的有一张图**时出现。
+   *
+   * 一直显示而点了没反应（正在渲染 / 语法错 / 不是图表块）是典型的
+   * 「假按钮」—— 用户会以为软件坏了。
+   */
+  private syncZoom(): void {
+    this.zoom.hidden = this.svg === null;
+  }
+
+  private requestViewer(): void {
+    const svg = this.svg;
+    if (svg === null) return;
+    this.getHandlers()?.openViewer({ svg, source: this.node.textContent });
+  }
+
+  private async renderDiagram(source: string, theme: ResolvedTheme): Promise<void> {
+    // 同步记下「正在画的是这一份」：于是并发的第二次 `ensureDiagram`
+    // 不会重复发起，而 `syncMode()` 也知道现在该显示图区（哪怕是「正在渲染」）
+    this.painted = { source, theme };
+    this.svg = null;
+    this.paintDiagramNote('正在渲染图表…', 'is-loading');
+    this.syncZoom();
+    this.syncMode();
+
+    const mine = (this.token += 1);
+    const result = await renderMermaid(source, theme).catch((thrown: unknown) => ({
+      ok: false as const,
+      message: thrown instanceof Error ? thrown.message : String(thrown),
+    }));
+
+    // 过期（源码又变了 / 主题又变了）或已销毁：丢掉这次结果
+    if (!this.alive || mine !== this.token) return;
+
+    if (result.ok) {
+      this.diagram.classList.remove('is-loading', 'is-failed');
+      this.diagram.classList.add('is-ok');
+      // mermaid 在 `securityLevel: 'strict'` 下会自己用 DOMPurify 清洗产出
+      // （见 `core/mermaid-render.ts`）；`innerHTML` 还有一个好处 —— 插进来的
+      // `<script>` 不会执行，而 `appendChild` 一个解析好的节点会
+      this.diagram.innerHTML = result.svg;
+      this.svg = result.svg;
+    } else {
+      this.paintDiagramNote(result.message, 'is-failed');
+    }
+    this.syncZoom();
+    this.syncMode();
+  }
+
+  /** 画「渲染失败 / 正在渲染」这类说明，而不是一张图。 */
+  private paintDiagramNote(text: string, state: 'is-loading' | 'is-failed'): void {
+    this.diagram.classList.remove('is-loading', 'is-failed', 'is-ok');
+    this.diagram.classList.add(state);
+
+    const note = document.createElement('div');
+    note.className = 'qm-cb-note';
+    note.textContent = text;
+
+    const children: Node[] = [note];
+    if (state === 'is-failed') {
+      const hint = document.createElement('div');
+      hint.className = 'qm-cb-note-hint';
+      hint.textContent = '点一下改源码';
+      children.push(hint);
+    }
+    this.diagram.replaceChildren(...children);
+  }
+
+  /** 当前该显示图还是源码。 */
+  private wantDiagram(): boolean {
+    if (!this.isMermaid() || this.editing) return false;
+    if (this.node.textContent.trim() === '') return false;
+    const painted = this.painted;
+    const theme = currentTheme();
+    return painted !== null && painted.source === this.node.textContent && painted.theme === theme;
+  }
+
+  private syncMode(): void {
+    const next = this.wantDiagram() ? 'diagram' : 'code';
+    if (next === this.mode) return;
+    this.mode = next;
+    this.dom.dataset['mode'] = next;
+  }
+
+  /** 点图之后：把光标放进源码里（`syncMode` 会因此切到 `code`）。 */
+  private enterCode(): void {
+    const pos = this.currentPos();
+    if (pos === null) return;
+
+    const { state } = this.view;
+    // 落在块**内部的第一个合法位置**：`pos + 1` 是 code_block 内容的起点。
+    // 用 `TextSelection.near` 而不是直接 `create`：块可能是空的，
+    // 那时 `pos + 1` 不是一个能放文本光标的点
+    const selection = TextSelection.near(state.doc.resolve(pos + 1));
+    // 只改选区、不改文档 —— 所以不需要 `USER_EDIT_META`（那条是给「改了文档
+    // 但没经过键盘事件」的操作用的）。这一步没有产生任何输入事件，
+    // 但它也不产生文档变更，本来就不该让文档变脏
+    this.view.dispatch(state.tr.setSelection(selection));
+    this.view.focus();
+  }
+
+  /**
+   * 插件在**每次状态变化**时推过来的一句「状态变了」。
+   *
+   * 公开给插件而不是自己订阅，是因为 ProseMirror 只给 NodeView 两个钩子
+   * （`update` / `destroy`），都不是「状态变了」。
+   *
+   * ## 为什么图区的对齐也放在这里，而不是 `update()` 里
+   *
+   * 一个事务里 ProseMirror **先**跑 `nodeView.update()`、**后**跑
+   * `PluginView.update()`。所以「在块里打第一个字」时，`update()` 看到的
+   * `this.editing` 还是**上一个状态**的（光标在块外面）—— 在那里判断
+   * 「要不要画图」会因为这一帧的滞后而多画一张没人看的图。
+   *
+   * 放在这里就没有滞后：插件推过来的就是**刚刚应用完**的那个状态。
+   */
+  syncSelection(state: EditorState): void {
+    if (!this.alive) return;
+    this.editing = this.containsSelection(state.selection);
+    // `ensureDiagram` 内部会调 `syncMode`，所以不需要再调一次
+    this.ensureDiagram();
+  }
+
+  /**
+   * 选区是不是**完全在**这个块里面。
+   *
+   * 两端都取严格内部（`> pos` 且 `< pos + nodeSize`）：贴在块边界上的光标
+   * 属于「块外面」—— 那时按回车是新建段落，而不是往代码里加一行。
+   */
+  private containsSelection(selection: Selection): boolean {
+    const pos = this.currentPos();
+    if (pos === null) return false;
+    return selection.from > pos && selection.to < pos + this.node.nodeSize;
+  }
+
+  // -------------------------------------------------------------------------
+  // ProseMirror 回调
+  // -------------------------------------------------------------------------
+
   /**
    * ProseMirror 把变更同步进 `contentDOM` 时会调它。
    *
@@ -261,6 +566,9 @@ class CodeBlockView implements NodeView {
    * ProseMirror 自己换掉，我们只负责把行号与标签重画一遍。
    * 返回 `false` 会让 ProseMirror 把整个视图销毁重建，那样每敲一个字
    * 语言标签都会闪一下。
+   *
+   * 这里**不**调 `ensureDiagram` —— 图区的对齐统一在 `syncSelection` 里做，
+   * 因为 `update` 跑在插件视图之前，那时 `editing` 还是上一帧的。
    */
   update(node: ProseNode): boolean {
     if (node.type.name !== CODE_BLOCK) return false;
@@ -285,20 +593,24 @@ class CodeBlockView implements NodeView {
   }
 
   /**
-   * 标签上的事件不要让 ProseMirror 处理。
+   * 标签、放大按钮与图表区上的事件不要让 ProseMirror 处理。
    *
-   * 只挡标签：行号槽和代码本体都要保持编辑器的默认行为
+   * 只挡这三处：行号槽和代码本体都要保持编辑器的默认行为
    * （点行号槽应该能把光标放进代码块，而不是被吞掉）。
    */
   stopEvent(event: Event): boolean {
     const target = event.target;
-    return target instanceof Node && this.badge.contains(target);
+    if (!(target instanceof Node)) return false;
+    return (
+      this.badge.contains(target) || this.zoom.contains(target) || this.diagram.contains(target)
+    );
   }
 
   destroy(): void {
     // 先置 false 再上报：上报出去之后内核可能立刻来问位置，
     // 而那时这个视图已经不在文档里了
     this.alive = false;
+    this.live.delete(this);
     this.getHandlers()?.closePicker(this);
   }
 }
@@ -308,19 +620,58 @@ class CodeBlockView implements NodeView {
  *
  * 回调用「取回调的函数」而不是直接传：插件实例在编辑器创建时就固定了，
  * 而 React 那边每次渲染都会换一个新的回调函数（与 `cursorReporterPlugin` 同一条理由）。
+ *
+ * ## 插件为什么还要持有一份活跃视图表
+ *
+ * ProseMirror 给 NodeView 的只有「节点变了」和「要销毁了」两个钩子，
+ * 都没有「选区变了」。而图/源码的切换完全由选区决定，所以插件在
+ * `PluginView.update()`（唯一每帧都跑的钩子）里逐个推过去。
+ *
+ * ## 为什么要盯 `data-theme`
+ *
+ * 图的配色是**渲染时**定死的（mermaid 把颜色写进了 SVG），换个明暗必须重画。
+ * 而「换主题」这件事不会经过编辑器 —— 没人派发事务，插件也就收不到通知。
+ * 所以直接盯根元素上 `applyTheme` 写的那个属性（`core/theme/theme.ts`）：
+ * 那是**唯一**一个一定会变的地方。
  */
 export function codeBlockChromePlugin(
   getHandlers: () => CodeBlockChromeHandlers | undefined,
 ) {
-  return $prose(
-    () =>
-      new Plugin({
-        key: chromeKey,
-        props: {
-          nodeViews: {
-            [CODE_BLOCK]: (node, view, getPos) => new CodeBlockView(node, view, getPos, getHandlers),
-          },
+  return $prose(() => {
+    /** 活着的视图。`destroy()` 里摘掉 —— 不摘就会把整棵视图树都留在内存里。 */
+    const live = new Set<CodeBlockView>();
+
+    const themeWatcher =
+      typeof MutationObserver === 'undefined'
+        ? null
+        : new MutationObserver(() => {
+            for (const view of live) view.ensureDiagram();
+          });
+
+    return new Plugin({
+      key: chromeKey,
+      props: {
+        nodeViews: {
+          [CODE_BLOCK]: (node, view, getPos) =>
+            new CodeBlockView(node, view, getPos, getHandlers, live),
         },
-      }),
-  );
+      },
+      view: () => {
+        themeWatcher?.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-theme'],
+        });
+
+        return {
+          update: (current) => {
+            for (const view of live) view.syncSelection(current.state);
+          },
+          destroy: () => {
+            themeWatcher?.disconnect();
+            live.clear();
+          },
+        };
+      },
+    });
+  });
 }

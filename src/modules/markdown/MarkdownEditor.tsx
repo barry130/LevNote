@@ -23,6 +23,7 @@ function MarkdownEditor({
   resolveImageUrl,
   onImagePaste,
   onImageClick,
+  onDiagramOpen,
   onError,
   readOnly,
   placeholder,
@@ -50,6 +51,8 @@ function MarkdownEditor({
   onImagePasteRef.current = onImagePaste;
   const onImageClickRef = useRef(onImageClick);
   onImageClickRef.current = onImageClick;
+  const onDiagramOpenRef = useRef(onDiagramOpen);
+  onDiagramOpenRef.current = onDiagramOpen;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -89,6 +92,8 @@ function MarkdownEditor({
           // 但内核**只在构造 NodeView 时**读一次这个属性，所以仍然要经 ref，
           // 否则切标签页之后点开的是旧文档的灯箱
           onImageClick: (image) => onImageClickRef.current?.(image),
+          // 与 onImageClick 同属「内核只在构造 NodeView 时读一次」的那类回调
+          onDiagramOpen: (diagram) => onDiagramOpenRef.current?.(diagram),
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），

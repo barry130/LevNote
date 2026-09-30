@@ -62,6 +62,9 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **图片的读与写** | `core/document/images.ts`（两个**无状态**的文档级动作：`readImageAsUrl` / `writePastedImage`）。**「已存在就换名字重试，绝不覆盖」这条在这里** |
 | **图片类型（MIME ↔ 扩展名）** | `core/image.ts`。**只有这一份**，落盘 / 显示 / 导出三处共用 —— 抄成三份的下场是「编辑器里能看、导出后打不开」 |
 | 图片显示（NodeView）与灯箱 | `modules/markdown/image-view.ts`（画占位与加载态）+ `ui/Lightbox.tsx`（外壳画全屏预览） |
+| **什么算 Mermaid 图表** | `core/mermaid.ts` 的 `isMermaidLanguage` / `MERMAID_STARTER`。**判定只有这一份**，三处共用（NodeView、导出、斜杠菜单插入）—— 抄成三份的下场是「编辑器画得出、导出不画」 |
+| **Mermaid 怎么渲染** | `core/mermaid-render.ts`。动态 `import('mermaid')`、**必须传容器**（不传它会往真实 `document.body` 挂临时节点）、容器必须**参与布局**（`display: none` 会让 `getBBox()` 全 0）。jsdom 里画不出图，所以测试用假渲染器 |
+| 图 / 源码双态与全屏入口 | `modules/markdown/code-block-view.ts`（`data-mode`）+ `ui/DiagramViewer.tsx`（外壳画全屏） |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
@@ -100,6 +103,9 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
   它的状态非 null 的含义是「**面板开着**」（点击触发），不是「光标在代码块里」。
   另外注意这里**不是纯外壳画**：代码块的行号与语言标签是 NodeView 画进文档树的，
   外壳只画那个弹出的面板。
+- `EditorMountProps.onDiagramOpen` —— Mermaid 图表的全屏查看。交出来的是
+  **已经画好的那份 SVG 字符串**（不是路径：图没有文件，只有此刻屏幕上的这一份）。
+  与 `onImageClick` 同属「监听必须挂在内核自己造的元素上」那一类。
 - `EditorMountProps.resolveImageUrl` / `onImagePaste` / `onImageClick` —— 图片的显示、
   落盘、灯箱。前两个是**异步**的（读盘 / 写盘），第三个是同步上报。
   这里有一个容易做错的分工：**内核只做它唯一能做的那部分**（从剪贴板里把字节取出来），
@@ -119,11 +125,16 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 **代码块改语言**。后三者的统一入口是 `withUserEdit(editor, run)` ——
 它临时替换 `view.dispatch`，给这期间派发的每个事务都盖上标记，`finally` 里还原。
 
-图片插入、Mermaid 预览这些还会再遇到 —— **新加一条这类能力时，先问自己打没打这个标记。**
+图片插入（落盘回来时早已过了那个窗口，所以另有一个 `withUserEditOnView`）踩过第六次。
+
+**Mermaid 预览是唯一一个「不需要打标记」的**：它只改**选区**（点图 → 光标进块），
+不改文档 —— 而「文档没变就不该变脏」正是这个标记要保证的事。
+所以判断依据不是「是不是用户动作」，而是**「这次事务改了文档没有」**。
+新加一条这类能力时，先问自己这一句。
 
 ---
 
-## 四、十四个已经踩过的坑（省下你的两小时）
+## 四、十六个已经踩过的坑（省下你的两小时）
 
 ### 1. Markdown 内核的「变更上报」不能用防抖
 
@@ -319,11 +330,45 @@ jsdom 没有真实键盘。直接往 `view.state` 里塞事务能造出文档状
 解析出来的 URL 是什么」，外壳只需要画。
 
 > **判断依据**：如果一件事需要外壳知道内核内部的 DOM 结构、类名、或者节点类型名，
-> 那它就该是一条契约方法。已经按这条走过五次（选区、斜杠、表格、代码块、图片），
+> 那它就该是一条契约方法。已经按这条走过六次（选区、斜杠、表格、代码块、图片、图表），
 > 每次都加在 `core/editor/types.ts` 上。
 >
 > **顺带一条**：`onImageClick` 给的是**已经解析好的 URL**，不是让外壳拿 `src`
 > 再解析一次 —— 再解析意味着把同一个文件读第二遍，而那份字节此刻就在 DOM 上。
+> 同理 `onDiagramOpen` 给的是**已经画好的那份 SVG 字符串**：图没有文件路径，
+> 只有「此刻屏幕上的这一份」，重新渲染一遍既慢又可能画出不一样的图。
+
+### 15. `nodeView.update()` 比 `PluginView.update()` **早一步** —— 在它里面判断选区会差一帧
+
+Mermaid 图表块要在「光标进块」时显示源码、「光标离块」时显示图。
+最自然的地方是在 `update()` 里判断 —— 而 `update()` 只在**节点本身**变了时被调用
+（选区变化不是文档变化），所以本来就够不着。于是改用插件持一份活跃视图表，
+在 `PluginView.update()` 里推给每个视图。
+
+**坑在后面**：一个事务里 ProseMirror **先**跑 `nodeView.update()`、**后**跑
+`PluginView.update()`。所以如果在 `update()` 里顺手做一次「要不要画图」的判断，
+它看到的 `editing` 是**上一帧**的值 —— 表现是「在图表块里打第一个字时会多画一张
+没人看的图」（第一次错，后面就对了，因为标志已经跟上）。
+
+**修法**：图区的对齐**统一放在插件推过来的那个回调里**，`update()` 只管节点本身。
+一句话：**在 `update()` 里读任何与选区有关的状态，都要先问一句「这个值是不是上一帧的」。**
+
+### 16. `getBBox()` 在「没被渲染」的元素上给不出数字 —— 也决定了单测能证明什么
+
+Mermaid 靠 `getBBox()` / `getComputedTextLength()` 量文字尺寸来决定节点框多大。
+这两个 API 只在元素**真的参与布局**时才给得出数字：`display: none` 或者游离
+（detached）节点会得到全 0（Firefox 上直接抛错），画出来是一片挤在一起、
+互相重叠的框。所以给它量尺寸的容器必须挂在文档里、且用 `position: fixed`
+挪到屏幕外，**不能用 `display: none` 藏**。
+
+**同一个事实的另一半在测试里**：jsdom 没有布局引擎，`getBBox()` 一律返回 0，
+**mermaid 在单测里画不出任何东西**。所以「渲染」这一层必须做成**可注入**的
+（`MermaidIo` / `renderMermaid` 的注入点），单测钉住的是**我们这一层的契约**
+（谁被换掉、失败留下什么、主题传对了没有、容器摘没摘），
+而不是「图画得好不好看」—— 后者只能人工看。
+
+> 判断依据：**只要一个库的渲染依赖真实的排版引擎，它就必须能被替换掉**，
+> 否则那个功能在单测里等于没测。
 
 ---
 
@@ -371,16 +416,19 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 **Markdown 完善（P3.5，对标 horseMD）**：字数统计、源码模式切换（Ctrl+/）、
 **选中浮层工具条**、**斜杠菜单（`/` 插入块）**、
 **表格可视化编辑 + 代码块语言选择器 / 行号**、
-**图片粘贴落盘 + 相对路径 + 灯箱**已交付；
-块手柄、KaTeX、Mermaid、位置记忆待做。
+**图片粘贴落盘 + 相对路径 + 灯箱**、**LaTeX 数学公式**、**Mermaid 图表**已交付；
+块手柄、位置记忆、设置页待做。
 清单在 `ROADMAP.md` 的 P3.5。
-**六项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木，
+**前六项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木，
 表格与代码块是自研的（官方那套是 Vue 3，见 ADR 0017），
 图片的显示与灯箱也是自己画的（见 ADR 0018）。
+后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
+两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**621 条前端 + 15 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
-主包 1,702.57 kB（gzip 566.70 kB），已超 Vite 的 500 kB 警戒线 ——
+测试：**837 条前端 + 15 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+主包 1,734 kB（gzip 577 kB），已超 Vite 的 500 kB 警戒线 ——
 归因与拆分方案在 `ROADMAP.md` 第 18 项。
+打包产物 5.8 MB，其中 3.4 MB 是 mermaid 的懒加载 chunk（ADR 0020）。
 
 **最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V3**
 （Milkdown 长文档输入延迟 ≤ 50ms）。它的结论决定后续「Markdown 编辑体验怎么走」，

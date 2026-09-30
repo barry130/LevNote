@@ -14,7 +14,7 @@
  * 再把版式内联进去。三条来源各管一段，互不重叠。
  */
 
-import { inlineAssets, renderMath, type InlineReport } from './inline-html.js';
+import { inlineAssets, renderDiagrams, renderMath, type InlineReport } from './inline-html.js';
 import { buildMathStyles, type MathStyleIo } from './katex-css.js';
 
 import documentStyles from './document-styles.css?raw';
@@ -168,6 +168,25 @@ export async function buildSelfContainedHtml(options: SelfContainedExportOptions
     report.missingMathFonts = styles.missingFonts;
     report.mathStyleBytes = byteLength(styles.css);
   }
+
+  /**
+   * 图表（Mermaid）：画成 SVG 内联进去。
+   *
+   * ## 为什么明暗**写死 `'light'`**
+   *
+   * 导出产物是一张**纸**：上面 `PAGE_STYLES` 把底色写死成浅色，它没有深色模式。
+   * 所以哪怕用户此刻用的是深色主题，图也必须按浅色画 —— 否则会出现
+   * 「浅色的纸上一张深色底的图」。这与 `Lightbox.tsx` 那条「灯箱恒深」
+   * 是同一类判断：**容器决定配色，而不是应用当前的主题决定配色**。
+   *
+   * ## 为什么不需要像公式那样先探一下
+   *
+   * 公式要探是因为「带上字体的 KaTeX 样式」有 300 KB，没有公式就不该多一个字节。
+   * 图表没有这层代价：`renderDiagrams` 里那个筛选为空时，一次 `renderMermaid`
+   * 都不会发生，**mermaid 那一堆 chunk 也就不会被下载**（它是动态加载的，
+   * 见 `core/mermaid-render.ts`）。所以「有没有图表」这件事由它自己判断就够了。
+   */
+  await renderDiagrams(root, report, 'light');
 
   // innerHTML 会丢掉根元素的 class，所以取它的内容再套一层
   const body = root.innerHTML;

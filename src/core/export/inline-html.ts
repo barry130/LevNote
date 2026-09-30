@@ -17,6 +17,9 @@ import { highlightCode } from '../highlight/hljs.js';
 import { bytesToDataUrl, sniffImageMime } from '../image.js';
 import { renderTex } from '../katex.js';
 import { MATH_BLOCK, TEX_DATA_ATTR } from '../math.js';
+import { isMermaidLanguage } from '../mermaid.js';
+import { renderMermaid } from '../mermaid-render.js';
+import type { ResolvedTheme } from '../theme/theme.js';
 
 export interface InlineIo {
   /** 文档所在目录。null = 拿不到（例如浏览器预览的虚拟盘），此时只处理绝对路径的图片。 */
@@ -49,6 +52,12 @@ export interface InlineReport {
    * 其中一条就知道自己写错了什么，回去改就是了。
    */
   firstMathError: string | null;
+  /** 实际画成 SVG 的 Mermaid 图表数 */
+  renderedDiagrams: number;
+  /** 画不出来、保留了源码的图表数 */
+  failedDiagrams: number;
+  /** 第一条图表错误的原因。理由与 `firstMathError` 相同。 */
+  firstDiagramError: string | null;
 }
 
 /**
@@ -88,6 +97,9 @@ export async function inlineAssets(root: HTMLElement, io: InlineIo): Promise<Inl
     renderedMath: 0,
     failedMath: 0,
     firstMathError: null,
+    renderedDiagrams: 0,
+    failedDiagrams: 0,
+    firstDiagramError: null,
   };
 
   // ---- 代码高亮 ----------------------------------------------------------
@@ -211,6 +223,75 @@ export async function renderMath(root: HTMLElement, report: InlineReport): Promi
     );
     report.failedMath += 1;
     report.firstMathError ??= result.message;
+  }
+}
+
+/**
+ * 把文档里的 Mermaid 图表画成 SVG，原地替换掉那个 `<pre>`。
+ *
+ * ## 为什么和公式分成两个函数
+ *
+ * 两者的**输入形态完全不同**：公式在文档树里是一个专门的节点（`<span data-tex>`），
+ * 图表在文档树里**就是一段普通的代码块**（`<pre data-language="mermaid">`）——
+ * 内核并不知道它是图，也不该知道：`code_block` 就是 `code_block`。
+ * 于是「哪一段是图」这个判断只能由导出侧按语言做，和公式那条路没有一行重合。
+ *
+ * ## 为什么替换的是整个 `<pre>` 而不是像公式那样换掉内容
+ *
+ * 公式的壳（`.qm-math`）在编辑器里**已经存在**，导出侧只是把它的内容填上，
+ * 两边同构。图表的代码块在编辑器里是「代码 + 一个由 NodeView 画出来的图区」，
+ * 那两样是**并列**的两个 DOM，导出一份单文件 HTML 没有理由保留一份
+ * 用户不需要的源码 —— 所以整块换成 `<div class="qm-diagram">`。
+ *
+ * ## 失败时保留源码
+ *
+ * 与公式同一条：一份导出文件是**发出去**的，图没画出来时留下那段
+ * `graph LR…` 至少让人看得出原本写了什么。同时 `report` 里记一笔，
+ * 导出提示会说出来。**任何一处失败都不中断导出**。
+ *
+ * ## 为什么主题是参数而不是从环境读
+ *
+ * 导出产物是一张**纸**：`document.ts` 的 `PAGE_STYLES` 把底色写死成浅色，
+ * 它没有深色模式。所以这里永远传 `'light'` —— 但写成参数，
+ * 是因为「用哪个明暗」是调用方的决定，藏在函数里会让将来「导出深色版」
+ * 变成一次挖宝。
+ */
+export async function renderDiagrams(
+  root: HTMLElement,
+  report: InlineReport,
+  theme: ResolvedTheme,
+): Promise<void> {
+  const targets = Array.from(root.querySelectorAll<HTMLPreElement>('pre')).filter((pre) =>
+    isMermaidLanguage(pre.getAttribute('data-language') ?? ''),
+  );
+
+  for (const pre of targets) {
+    const source = pre.querySelector('code')?.textContent ?? pre.textContent ?? '';
+    // 空块什么都不做：它既不是「画出来了」也不是「画错了」，
+    // 而且 `renderMermaid` 对空输入会短路（见 `core/mermaid-render.ts`）
+    if (source.trim() === '') continue;
+
+    const result = await renderMermaid(source, theme);
+
+    if (result.ok) {
+      const figure = document.createElement('div');
+      figure.className = 'qm-diagram';
+      // mermaid 在 `securityLevel: 'strict'` 下已用 DOMPurify 清洗过产出
+      // （见 `core/mermaid-render.ts`），这里插的是同一份字符串
+      figure.innerHTML = result.svg;
+      pre.replaceWith(figure);
+      report.renderedDiagrams += 1;
+      continue;
+    }
+
+    // 失败：源码原样留着（就是那个 `<pre>`），只在它后面加一句原因。
+    // 不动 `<pre>` 还有一个好处 —— 它已经被 hljs 着过色了（如果 hljs 认得这个语言）
+    const note = document.createElement('p');
+    note.className = 'qm-diagram-error';
+    note.textContent = `图表没能画出来，上面是它的源码。${result.message}`;
+    pre.after(note);
+    report.failedDiagrams += 1;
+    report.firstDiagramError ??= result.message;
   }
 }
 

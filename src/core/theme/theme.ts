@@ -54,6 +54,20 @@ export function applyTheme(theme: ResolvedTheme, root: HTMLElement): void {
   root.style.colorScheme = theme;
 }
 
+/**
+ * 当前**实际生效**的主题，从根元素上读回来。
+ *
+ * 存在这里而不是让调用方各自去读 `dataset`，是因为「主题落在哪儿」是
+ * `applyTheme` 的事：换一天把它写成 class 或者别的属性，改的应该是这一处。
+ *
+ * 读不到时按浅色处理（与 `systemPrefersDark` 同一个判据：宁可亮，不要用户在
+ * 白天看到黑屏）。
+ */
+export function currentTheme(root?: HTMLElement): ResolvedTheme {
+  const element = root ?? (typeof document === 'undefined' ? null : document.documentElement);
+  return element?.dataset['theme'] === 'dark' ? 'dark' : 'light';
+}
+
 /** 系统是否偏好深色。环境不支持时按浅色处理（宁可亮，不要用户在白天看到黑屏）。 */
 export function systemPrefersDark(matchMedia?: ((query: string) => { matches: boolean }) | null): boolean {
   // 两级兜底都要有：`window` 可能不存在（Node 里跑纯逻辑），

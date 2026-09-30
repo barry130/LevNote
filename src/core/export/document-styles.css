@@ -434,3 +434,50 @@
   color: var(--qm-slate);
   font-style: italic;
 }
+
+/* ---------------------------------------------------------------- 图表 */
+
+/*
+ * Mermaid 图表。
+ *
+ * ## 为什么这里**只有一条规则**
+ *
+ * 与公式相反：公式的观感一半来自 KaTeX 的 CSS（要连同字体一起内联进来），
+ * 而图表的外观**全在 mermaid 自己产出的那份 SVG 里** —— 它自带一个
+ * `<style>`，颜色、字号、连线的形状都在里面，用的是**绝对色值**。
+ * 所以导出侧不需要、也不该再给它套一层样式（套了只会和 mermaid 自己那套打架）。
+ *
+ * 剩下的一件事只是**摆放**：让图居中、别溢出纸面。
+ *
+ * ## 与编辑器里的 `.qm-cb-diagram` 不是同一棵树
+ *
+ * 编辑器那边图区和源码是并列的两种看法（见 `modules/markdown/code-block-view.ts`），
+ * 这里只有一个孤立的图 —— 导出产物里没有「另一个看法」这回事。
+ */
+.qm-doc .qm-diagram {
+  margin: 1em 0;
+  text-align: center;
+  /* 宽图（长流程图）必须能横向滚动，理由与块级公式相同：溢出会被裁掉 */
+  overflow-x: auto;
+}
+
+.qm-doc .qm-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/*
+ * 画不出来时留的那句话。源码就在它上面（那个 `<pre>` 原样保留），
+ * 所以这句话只需要说清「为什么」，不必重复内容。
+ */
+.qm-doc .qm-diagram-error {
+  margin: 0.4em 0 1em;
+  padding: 6px 10px;
+  background: var(--qm-mark-bg);
+  border-left: 3px solid var(--qm-vermilion);
+  border-radius: 4px;
+  color: var(--qm-vermilion);
+  font-size: 0.88em;
+  /* mermaid 的语法错误是多行的（自带一段带光标的 ASCII 示意图），要保留换行 */
+  white-space: pre-wrap;
+}
