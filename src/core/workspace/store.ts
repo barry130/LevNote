@@ -54,6 +54,33 @@ export interface WorkspaceState {
   readonly openError: AppErrorShape | null;
 }
 
+/**
+ * 会话恢复的一条输入。
+ *
+ * 刻意**只有路径与草稿**，没有 `at` —— 那是存储层用来决定淘汰顺序的，
+ * 工作区不关心它。也刻意没有编码与行尾：那两项在 `open()` 读磁盘时重新探测，
+ * 存一份等于造出第二个真相来源（见 `core/session.ts` 的已知限制）。
+ */
+export interface RestoreEntry {
+  readonly path: string;
+  /** 未保存的草稿。`null` = 从磁盘读。 */
+  readonly draft: string | null;
+}
+
+export interface RestoreResult {
+  /** 成功打开的路径数（含本来就已经开着的）。 */
+  readonly restored: number;
+  /**
+   * 打不开的路径（文件被删 / 被移走 / 没权限）。
+   *
+   * **刻意不写进 `openError`**：那个字段是「一个错误横幅」的单槽位，
+   * 而启动恢复可能一次失败好几个 —— 逐条塞进去的结果是用户只看到最后一条，
+   * 前面几个文件**悄无声息地不见了**。所以这里把整份清单交回给外壳，
+   * 由它用一条横幅把话说完（硬约束 2）。
+   */
+  readonly failed: readonly string[];
+}
+
 interface Tab {
   readonly id: number;
   readonly store: DocumentStore;
@@ -223,6 +250,88 @@ export class WorkspaceStore {
     const path = await this.provider.pickOpenPath();
     if (path === null) return false;
     return this.open(path);
+  }
+
+  /**
+   * 会话恢复：一次性把上次开着的标签页重新打开。
+   *
+   * ## 为什么不循环调 `open()`
+   *
+   * `open()` 每打开一个就把那个标签页**激活**一次。循环调它意味着启动时
+   * 有 N 次 `activeId` 变化、N 次外壳重渲染、N 次编辑器内核创建 ——
+   * 而每次创建内核的代价是实打实的（实测：2 万字文档 700ms 上下）。
+   * 十个标签页的会话会变成「启动要等好几秒，中间还闪十下」。
+   *
+   * 这里改成**先全部塞进去、最后一次性通知**：整个恢复过程只有一次渲染，
+   * 也就只有一个内核被创建（用户最后看到的那个标签页）。
+   *
+   * ## 草稿为什么在这里就写进 store
+   *
+   * 因为**面板是照着 `doc.text` 挂载的**（`DocumentPane` 把 `doc.text` 交给
+   * `initialValue`）。在标签页被激活之前把草稿写进去，内核一出生拿到的就是草稿；
+   * 反过来（先激活、再 `updateText`）会让内核先用磁盘内容建一遍、再被整篇替换一次 ——
+   * 白花一次创建，中间还会闪一下磁盘版本。
+   *
+   * 写草稿走的是 `updateText`，它只改 `text`、不动 `savedText`，
+   * 所以这个标签页**天然是脏的**：用户看到的是「有未保存的改动」，
+   * 按 Ctrl+S 就会把草稿写回磁盘，与崩溃前完全是同一个状态。
+   *
+   * ## 重复调用是安全的
+   *
+   * 已经开着的路径会被跳过（与 `open()` 的去重同一条理由）。这让调用方
+   * 不必为「effect 会不会跑两遍」操心 —— React 的 StrictMode 在开发模式下
+   * 确实会把启动 effect 跑两遍。
+   */
+  async restoreTabs(entries: readonly RestoreEntry[], activePath: string | null): Promise<RestoreResult> {
+    const failed: string[] = [];
+    let restored = 0;
+
+    for (const entry of entries) {
+      if (this.tabs.some((tab) => tab.store.getSnapshot().doc?.path === entry.path)) {
+        restored += 1;
+        continue;
+      }
+
+      const store = new DocumentStore(this.provider);
+      const ok = await store.open(entry.path);
+      if (!ok) {
+        store.dispose();
+        failed.push(entry.path);
+        continue;
+      }
+
+      if (entry.draft !== null) {
+        store.updateText(entry.draft);
+        // `open()` 留了一句「已打开 X」。那是**磁盘读取**的结果，
+        // 而屏幕上现在是草稿 —— 留着它等于让状态栏说一句半真的话。
+        // 清掉之后状态栏由「有未保存的改动」那枚状态标签说话，那是准的。
+        store.clearNotice();
+      }
+
+      const id = this.nextId;
+      this.nextId += 1;
+      // 订阅放在 `updateText` **之后**：否则上面那次写入会立刻触发一次
+      // `syncTabs()`，而那时这个标签页还没进 `this.tabs`，通知的是半成品状态
+      const unsubscribe = store.subscribe(() => this.syncTabs());
+      this.tabs = [...this.tabs, { id, store, unsubscribe }];
+      restored += 1;
+    }
+
+    const target = activePath === null ? undefined : this.tabs.find((tab) => tab.store.getSnapshot().doc?.path === activePath);
+    // 上次激活的那个文件打不开了（被删 / 被移走）时落到第一个 ——
+    // 宁可打开一个别的标签页，也不要留一个「什么都没打开」的空窗口
+    const chosen = target ?? this.tabs[0];
+    if (chosen) this.activeId = chosen.id;
+
+    // 整个恢复过程**只通知这一次**
+    this.syncTabs();
+
+    // 把当前标签页在文件树里展开。只展开它一个：十个标签页各展开一次
+    // 意味着十倍的目录读取，而用户真正需要看到的是「我正在看的这份在哪」。
+    const chosenPath = chosen?.store.getSnapshot().doc?.path;
+    if (chosenPath !== undefined && this.tree.root !== null) await this.revealInTree(chosenPath);
+
+    return { restored, failed };
   }
 
   activate(id: number): void {

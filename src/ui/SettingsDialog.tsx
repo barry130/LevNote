@@ -174,6 +174,12 @@ export function SettingsDialog({
               onChange={(next) => onChange({ wordWrap: next })}
             />
             <Toggle
+              label="恢复上次的标签页"
+              hint="重新打开时自动打开上次的标签页，没保存的改动也还在。关掉之后不再写会话记录 —— 异常退出时未保存的内容会丢。"
+              checked={settings.restoreSession}
+              onChange={(next) => onChange({ restoreSession: next })}
+            />
+            <Toggle
               label="记住文档位置"
               hint="重新打开时回到上次的光标与滚动位置。位置只存在本机，不会上传。"
               checked={settings.rememberPositions}

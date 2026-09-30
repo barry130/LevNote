@@ -29,9 +29,18 @@ import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
-import { isMarkdownPath } from '../core/path.js';
+import { basename, isMarkdownPath } from '../core/path.js';
 import { askConfirm, isDesktop } from '../core/platform/index.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
+import {
+  clearSession,
+  EMPTY_SESSION,
+  loadSession,
+  sameSession,
+  saveSession,
+  type SessionState,
+  type SessionTab,
+} from '../core/session.js';
 import {
   defaultStorage,
   loadSettings,
@@ -90,6 +99,33 @@ const TOOLBAR: ReadonlyArray<{ id: string; label: string }> = [
  */
 const POSITION_FLUSH_DELAY_MS = 600;
 
+/**
+ * 会话写盘的防抖时长。
+ *
+ * 比位置记忆那 600ms 更长，因为要写的东西重得多：位置一次几十 KB，
+ * 会话要写**整篇草稿**（一份两万字的中文文档约 60 KB，utf-16 算 120 KB）。
+ * 与位置同一个理由 —— 连续打字时它一直在重置、一次都不写，
+ * 只在用户停手之后落盘。
+ */
+const SESSION_FLUSH_DELAY_MS = 1000;
+
+/**
+ * 会话层面「有东西丢了 / 存不下」的提示。
+ *
+ * 三个字段都是**坏消息**，成功恢复的草稿不在这里 —— 那件事已经有脏标记
+ * 与状态栏那枚「有未保存的改动」在说，再来一条横幅就变成每次启动弹一次的噪音。
+ */
+interface SessionWarning {
+  /** 上一次写盘时因超出容量没能存下的草稿数。 */
+  readonly droppedDrafts: number;
+  /** 启动时打不开的标签页路径（被删 / 被移走 / 没权限）。 */
+  readonly failed: readonly string[];
+  /** 存储被禁用或写不进去 —— 自动备份这条线断了。 */
+  readonly writeFailed: boolean;
+}
+
+const NO_SESSION_WARNING: SessionWarning = { droppedDrafts: 0, failed: [], writeFailed: false };
+
 export interface AppProps {
   workspace: WorkspaceStore;
   provider: DocumentProvider;
@@ -105,6 +141,45 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
   const storage = useMemo(() => defaultStorage(), []);
   const [settings, setSettings] = useState<ViewSettings>(() => initialSettings ?? loadSettings(storage));
   const [systemDark, setSystemDark] = useState(() => systemPrefersDark());
+
+  // ---- 会话恢复 ---------------------------------------------------------
+
+  /**
+   * 上次的会话（开着哪些标签页、哪一份有未保存的草稿）。
+   *
+   * 与 `positionsRef` 同一条理由放在 ref 里：它每次落盘都会变，
+   * 而屏幕上看不出任何区别 —— 进 state 只会换来一堆无意义的重渲染。
+   * `??=` 也是同一条：`useRef(x)` 的参数每次渲染都会求值。
+   */
+  const sessionRef = useRef<SessionState | null>(null);
+  sessionRef.current ??= loadSession(storage);
+  const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * 恢复是否已经结束。
+   *
+   * 它是一道**闸门**，挡的不是「写得太早」而是「写得比读还早」：
+   * 启动时 `workspace` 还是空的，而落盘是被防抖定时器驱动的 ——
+   * 恢复读完 N 个文件之前那一次写就会把一份**空会话**覆盖上去，
+   * 用户的草稿在他自己看到之前就没了。
+   */
+  const sessionReadyRef = useRef(false);
+  /** 恢复中。只用来把空状态换成一句「正在恢复…」，否则启动会闪一下「还没有打开文档」。 */
+  const [restoring, setRestoring] = useState(false);
+
+  /**
+   * 会话层面丢了什么 / 存不下什么。
+   *
+   * `droppedDrafts` 在初始化时就取出来：它是**上一次写盘**留下的账目，
+   * 而那一次写盘的见证者只有存储里那个数字 —— 读出来之后马上就会
+   * 被下一次写盘清零（见 `sameSession` 为什么把 `droppedDrafts` 算进比较）。
+   */
+  const [sessionWarning, setSessionWarning] = useState<SessionWarning>(() => ({
+    ...NO_SESSION_WARNING,
+    droppedDrafts: settings.restoreSession ? (sessionRef.current?.droppedDrafts ?? 0) : 0,
+  }));
+  const sessionWarningVisible =
+    sessionWarning.droppedDrafts > 0 || sessionWarning.failed.length > 0 || sessionWarning.writeFailed;
 
   const [handle, setHandle] = useState<EditorHandle | null>(null);
   const handleRef = useRef<EditorHandle | null>(null);
@@ -227,6 +302,179 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
     positionsRef.current = EMPTY_POSITIONS;
     savePositions(storage, EMPTY_POSITIONS);
   }, [storage]);
+
+  // ---- 会话（上次开着什么 + 未保存的草稿） ------------------------------
+
+  /**
+   * 把当前工作区写进会话存储。
+   *
+   * 三条硬要求，每一条都对应一种「用户的东西没了」：
+   *
+   * 1. **恢复完成之前不许写**（`sessionReadyRef`）。见那道闸门的注释。
+   * 2. **内容没变就不写**（`sameSession`）。这个函数被「每次按键后的防抖」与
+   *    「切标签页」两处驱动，而绝大多数触发时文本并没有变 ——
+   *    没有这道比较，用户每切一次标签页都要把几百 KB 的草稿重写一遍。
+   * 3. **写不进去要说出来**（`outcome.ok`）。存储被禁用或写满时，
+   *    「自动备份」这条线就断了，而用户完全无从察觉 —— 直到他崩一次。
+   */
+  const flushSession = useCallback(() => {
+    if (sessionTimerRef.current !== null) {
+      clearTimeout(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+    if (!sessionReadyRef.current || !settings.restoreSession) return;
+
+    const snapshot = workspace.getSnapshot();
+    const previous = sessionRef.current;
+    const previousTabs = new Map<string, SessionTab>();
+    for (const item of previous?.tabs ?? []) previousTabs.set(item.path, item);
+
+    const now = Date.now();
+    const tabs: SessionTab[] = [];
+    for (const tab of snapshot.tabs) {
+      const doc = workspace.storeOf(tab.id)?.getSnapshot().doc ?? null;
+      // 只给**脏**的标签页存草稿：干净标签页的内容磁盘上就有，
+      // 存一份等于把整份文件复制进 localStorage，而它一点用都没有
+      const draft = tab.dirty && doc !== null ? doc.text : null;
+      const before = previousTabs.get(tab.path);
+      // `at` 只在草稿真的变了时才推进。每次落盘都刷新一遍的话，
+      // 容量裁剪的顺序会退化成「标签页顺序」，最该保住的那一份反而可能先被丢
+      const at = before !== undefined && before.draft === draft ? before.at : now;
+      tabs.push({ path: tab.path, draft, at });
+    }
+
+    const next: SessionState = {
+      tabs,
+      activePath: snapshot.tabs.find((tab) => tab.id === snapshot.activeId)?.path ?? null,
+      root: snapshot.tree.root,
+      // 旧账目已经在 `sessionWarning` 里了，这里交 0 让 `saveSession` 把它清掉
+      droppedDrafts: 0,
+    };
+    if (previous !== null && sameSession(previous, next)) return;
+
+    const outcome = saveSession(storage, next);
+    // 存回去的是**实际写下去的那一份**（可能被裁剪过），否则下一轮比较会
+    // 认为又有变化、反复重写
+    sessionRef.current = outcome.state;
+    if (!outcome.ok) setSessionWarning((warn) => (warn.writeFailed ? warn : { ...warn, writeFailed: true }));
+  }, [settings.restoreSession, storage, workspace]);
+
+  const flushSessionRef = useRef(flushSession);
+  flushSessionRef.current = flushSession;
+
+  /**
+   * 排一次防抖落盘。
+   *
+   * 高频事件（每一次按键）走这里，所以它必须**稳定引用**、且只做
+   * 「重置一个定时器」这一件事 —— 任何进 state 的动作都会让打字重新变成
+   * 「每敲一个字重渲染一次外壳」。
+   */
+  const scheduleSessionFlush = useCallback(() => {
+    if (sessionTimerRef.current !== null) clearTimeout(sessionTimerRef.current);
+    sessionTimerRef.current = setTimeout(() => {
+      sessionTimerRef.current = null;
+      flushSessionRef.current();
+    }, SESSION_FLUSH_DELAY_MS);
+  }, []);
+
+  /**
+   * 启动恢复。**只跑一次。**
+   *
+   * `restoredRef` 是给 StrictMode 的：开发模式下 effect 会「建立 → 清理 → 再建立」，
+   * 少了这道闸会话会被恢复两遍。`restoreTabs` 自己也是幂等的（已开着的路径跳过），
+   * 这里多一道只是省掉一轮无意义的异步操作。
+   */
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    const session = sessionRef.current;
+    if (session === null || !settings.restoreSession || (session.tabs.length === 0 && session.root === null)) {
+      // 没有会话可恢复（或者用户关掉了恢复）：直接放行落盘
+      sessionReadyRef.current = true;
+      flushSessionRef.current();
+      return;
+    }
+
+    void (async () => {
+      setRestoring(true);
+      try {
+        // 先开文件夹再开标签页：`restoreTabs` 最后要把当前文件在树里展开，
+        // 顺序反过来的话根目录还没加载，展开会落空
+        if (session.root !== null) await workspace.openFolder(session.root);
+        const result = await workspace.restoreTabs(session.tabs, session.activePath);
+        if (result.failed.length > 0) setSessionWarning((warn) => ({ ...warn, failed: result.failed }));
+      } finally {
+        setRestoring(false);
+        // 闸门打开，然后**立刻**写一次：把 `droppedDrafts` 那笔旧账清掉，
+        // 免得用户下一次启动又看到同一条提示
+        sessionReadyRef.current = true;
+        flushSessionRef.current();
+      }
+    })();
+  }, [settings.restoreSession, workspace]);
+
+  /**
+   * 结构变化（开 / 关 / 切 / 拖标签页、脏标记翻转）→ 排一次落盘。
+   *
+   * `tabs` 是 `useSyncExternalStore` 给的那个数组，它**只在摘要真的变了**时才
+   * 换新对象（见 `WorkspaceStore.syncTabs`），所以这个 effect 不会被「每次按键」
+   * 惊动 —— 那件事由下面那个文档订阅负责。
+   */
+  useEffect(() => {
+    if (!settings.restoreSession) return;
+    scheduleSessionFlush();
+  }, [tabs, activePath, settings.restoreSession, scheduleSessionFlush]);
+
+  /**
+   * 活动文档的**每一次**状态变化（含每一次按键）→ 排一次落盘。
+   *
+   * ## 为什么这里可以直接订阅文档 store
+   *
+   * 「外壳刻意不订阅文档 store」那条规则针对的是 `useSyncExternalStore` ——
+   * 那会让每次按键都重渲染整个外壳（侧栏、标签栏、工具栏全跟着走）。
+   * 这里用的是**普通订阅**，回调里只重置一个定时器、不碰任何 state，
+   * 所以没有任何渲染成本。用普通订阅换来的是「不必给面板再加一个回调 prop」，
+   * 而且顺手覆盖了编码 / 行尾这类不改文本的改动。
+   *
+   * 只订阅**活动**标签页：非活动标签页用户碰不到，改不了内容；
+   * 它少数几种会变的情形（重新加载、冲突解决）都会翻转 `dirty`，
+   * 已经由上面那个 effect 覆盖了。
+   */
+  useEffect(() => {
+    if (activeStore === null || !settings.restoreSession) return;
+    return activeStore.subscribe(scheduleSessionFlush);
+  }, [activeStore, settings.restoreSession, scheduleSessionFlush]);
+
+  /**
+   * 关窗口 / 卸载时把还没落盘的草稿补上。
+   *
+   * 与位置记忆那条同一个理由，但代价高得多：位置丢了只是「回到开头」，
+   * 草稿丢了是**用户刚写的字没了**。所以这条链路上还有第二道保险 ——
+   * 桌面版在 `onCloseRequested` 里也会写一次（见下面那个 effect），
+   * 因为 `beforeunload` 在 WebView 里并不保证每次都发得出来。
+   */
+  useEffect(() => {
+    const onBeforeUnload = () => flushSessionRef.current();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      flushSessionRef.current();
+    };
+  }, []);
+
+  /**
+   * 关掉「恢复上次的标签页」= **忘掉**已有的会话记录。
+   *
+   * 只做「不再写」是不够的：用户关掉它、用一阵子、再打开，会突然恢复出
+   * **几天前**那一批标签页与草稿 —— 那不是「恢复上次」，那是从坟里刨东西。
+   */
+  useEffect(() => {
+    if (settings.restoreSession) return;
+    clearSession(storage);
+    sessionRef.current = EMPTY_SESSION;
+  }, [settings.restoreSession, storage]);
 
   // ---- 偏好 ------------------------------------------------------------
 
@@ -412,6 +660,9 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
 
       cleanups.push(
         await getCurrentWindow().onCloseRequested(async (event) => {
+          // 先落盘再问用户。用户完全可能选「仍要退出」，而那时窗口马上就要销毁，
+          // `beforeunload` 不保证发得出来 —— 而这次写盘是草稿的最后一次机会。
+          flushSessionRef.current();
           const dirty = workspace.getSnapshot().tabs.filter((tab) => tab.dirty);
           if (dirty.length === 0) return;
           const names = dirty.map((tab) => tab.displayName).join('、');
@@ -565,6 +816,39 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
         </div>
       )}
 
+      {/*
+        会话层面的坏消息。**只在真的丢了东西时才出现** ——
+        成功恢复的草稿有脏标记与状态栏那枚「有未保存的改动」在说，
+        再来一条横幅就变成每次启动都弹一次的噪音，用户很快就不看了。
+      */}
+      {sessionWarningVisible && (
+        <div className={`banner ${sessionWarning.failed.length > 0 || sessionWarning.writeFailed ? 'error' : 'warn'}`}>
+          <span className="grow">
+            {sessionWarning.failed.length > 0 && (
+              <>
+                <strong>有 {sessionWarning.failed.length} 个上次开着的文件打不开了</strong>
+                （可能已被删除或移走）：{sessionWarning.failed.map((path) => basename(path)).join('、')}。
+              </>
+            )}
+            {sessionWarning.droppedDrafts > 0 && (
+              <>
+                <strong>有 {sessionWarning.droppedDrafts} 份未保存的草稿没能存下来</strong>
+                （会话记录超出了容量上限）。如果那正是你在写的东西，请在退出前手动保存。
+              </>
+            )}
+            {sessionWarning.writeFailed && (
+              <>
+                <strong>会话记录写不进去</strong>
+                （存储被禁用或已写满）。自动备份未保存改动的能力已经失效，请手动保存。
+              </>
+            )}
+          </span>
+          <button type="button" onClick={() => setSessionWarning(NO_SESSION_WARNING)}>
+            知道了
+          </button>
+        </div>
+      )}
+
       <div className="body">
         <ActivityBar
           sidebarVisible={settings.sidebarVisible}
@@ -612,6 +896,19 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
               initialPosition={initialPosition}
               onPositionChange={onPositionChange}
             />
+          ) : restoring ? (
+            /*
+              恢复中。**不能省**：恢复要逐个读磁盘上的文件，那段时间 `activeId`
+              还是 null，不挡住的话用户会先看到一句「还没有打开文档」再看到
+              自己的标签页冒出来 —— 像是文件被关掉了又打开。
+            */
+            <main className="editor-area">
+              <div className="empty">
+                <Mark size={56} />
+                <h2>正在恢复上次的标签页…</h2>
+                <p>正在把上次没保存的改动一起读回来。</p>
+              </div>
+            </main>
           ) : (
             <main className="editor-area">
               <div className="empty">

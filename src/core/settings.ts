@@ -58,6 +58,17 @@ export interface ViewSettings {
    * 这也是位置记忆里滚动用比例的同一条理由（见 `EditorPosition.scrollRatio`）。
    */
   readonly splitRatio: number;
+  /**
+   * 启动时是否恢复上次的标签页与**未保存的草稿**。
+   *
+   * 默认**开**。和 `rememberPositions` 一样做成可见的开关，但理由更硬：
+   * 它会在启动时**自动打开文件**，那是一次侵入性行为 —— 用户有权拒绝。
+   *
+   * 关掉之后**不读也不写**会话存储。代价必须说清楚：草稿持久化挂在这一条线上，
+   * 关掉它意味着**异常退出时未保存的改动会丢**。设置页的提示要如实写出来，
+   * 而不是只说「不恢复标签页」—— 那会让用户以为关掉它只是少了个便利。
+   */
+  readonly restoreSession: boolean;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -69,6 +80,7 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   codeLineNumbers: true,
   rememberPositions: true,
   splitRatio: 0.5,
+  restoreSession: true,
 };
 
 export const SIDEBAR_MIN_WIDTH = 160;
@@ -141,6 +153,7 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     codeLineNumbers: asBoolean(record['codeLineNumbers'], DEFAULT_SETTINGS.codeLineNumbers),
     rememberPositions: asBoolean(record['rememberPositions'], DEFAULT_SETTINGS.rememberPositions),
     splitRatio: clampSplitRatio(record['splitRatio']),
+    restoreSession: asBoolean(record['restoreSession'], DEFAULT_SETTINGS.restoreSession),
   };
 }
 

@@ -314,6 +314,164 @@ describe('标签页', () => {
   });
 });
 
+describe('会话恢复', () => {
+  function seeded(): FakeProvider {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\a.md', 'A 的磁盘内容');
+    provider.put('C:\\n\\b.md', 'B 的磁盘内容');
+    provider.put('C:\\n\\c.md', 'C 的磁盘内容');
+    return provider;
+  }
+
+  it('一次把上次的标签页全开出来，只激活 activePath 指定的那一个', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    const result = await workspace.restoreTabs(
+      [
+        { path: 'C:\\n\\a.md', draft: null },
+        { path: 'C:\\n\\b.md', draft: null },
+        { path: 'C:\\n\\c.md', draft: null },
+      ],
+      'C:\\n\\b.md',
+    );
+
+    expect(result).toEqual({ restored: 3, failed: [] });
+    expect(workspace.getSnapshot().tabs.map((tab) => tab.path)).toEqual(['C:\\n\\a.md', 'C:\\n\\b.md', 'C:\\n\\c.md']);
+    expect(workspace.activeTab?.path).toBe('C:\\n\\b.md');
+  });
+
+  it('草稿在标签页被激活之前就写进 store —— 内核一出生拿到的就是草稿，不会先渲染一遍磁盘版本', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    await workspace.restoreTabs([{ path: 'C:\\n\\a.md', draft: 'A 的草稿' }], 'C:\\n\\a.md');
+
+    const doc = workspace.activeStore?.getSnapshot().doc;
+    expect(doc?.text).toBe('A 的草稿');
+    // 磁盘那份原样留着：脏判定是「与最近一次保存的比」，保存时才知道要写什么
+    expect(doc?.savedText).toBe('A 的磁盘内容');
+    expect(workspace.getSnapshot().tabs[0]?.dirty).toBe(true);
+  });
+
+  it('恢复出来的草稿按 Ctrl+S 就写回磁盘 —— 与崩溃前是同一个状态', async () => {
+    const provider = seeded();
+    const workspace = new WorkspaceStore(provider);
+    await workspace.restoreTabs([{ path: 'C:\\n\\a.md', draft: 'A 的草稿' }], 'C:\\n\\a.md');
+
+    expect(await workspace.save()).toBe(true);
+    expect(provider.files.get('C:\\n\\a.md')?.text).toBe('A 的草稿');
+    expect(workspace.getSnapshot().tabs[0]?.dirty).toBe(false);
+  });
+
+  it('没有草稿的标签页恢复出来是干净的，状态栏那句话留着（它说的是磁盘读取，是准的）', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    await workspace.restoreTabs([{ path: 'C:\\n\\a.md', draft: null }], 'C:\\n\\a.md');
+    expect(workspace.getSnapshot().tabs[0]?.dirty).toBe(false);
+    expect(workspace.activeStore?.getSnapshot().notice).toBe('已打开 a.md');
+  });
+
+  it('有草稿时把「已打开 X」清掉 —— 那句话说的是磁盘读取，而屏幕上现在是草稿', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    await workspace.restoreTabs([{ path: 'C:\\n\\a.md', draft: '草稿' }], 'C:\\n\\a.md');
+    expect(workspace.activeStore?.getSnapshot().notice).toBe('');
+  });
+
+  it('打不开的路径进 failed，**不写 openError**，其余标签页照常恢复', async () => {
+    // 写进 openError 的话，那个字段只有一个槽位 —— 启动时失败好几个，
+    // 用户只会看到最后一条，前面几个文件悄无声息地不见了
+    const workspace = new WorkspaceStore(seeded());
+    const result = await workspace.restoreTabs(
+      [
+        { path: 'C:\\n\\a.md', draft: '草稿' },
+        { path: 'C:\\n\\被删了.md', draft: '草稿' },
+        { path: 'C:\\n\\b.md', draft: null },
+      ],
+      'C:\\n\\b.md',
+    );
+
+    expect(result.restored).toBe(2);
+    expect(result.failed).toEqual(['C:\\n\\被删了.md']);
+    expect(workspace.getSnapshot().openError).toBeNull();
+    expect(workspace.getSnapshot().tabs.map((tab) => tab.path)).toEqual(['C:\\n\\a.md', 'C:\\n\\b.md']);
+  });
+
+  it('上次激活的那个文件打不开时落到第一个 —— 不留一个「什么都没打开」的空窗口', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    await workspace.restoreTabs(
+      [
+        { path: 'C:\\n\\a.md', draft: null },
+        { path: 'C:\\n\\b.md', draft: null },
+      ],
+      'C:\\n\\幽灵.md',
+    );
+    expect(workspace.activeTab?.path).toBe('C:\\n\\a.md');
+  });
+
+  it('activePath 为 null 时激活第一个', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    await workspace.restoreTabs(
+      [
+        { path: 'C:\\n\\b.md', draft: null },
+        { path: 'C:\\n\\a.md', draft: null },
+      ],
+      null,
+    );
+    expect(workspace.activeTab?.path).toBe('C:\\n\\b.md');
+  });
+
+  it('整个恢复过程**只通知一次** —— 否则 N 个标签页会换来 N 次外壳重渲染与 N 次内核创建', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    let notifications = 0;
+    const unsubscribe = workspace.subscribe(() => {
+      notifications += 1;
+    });
+
+    await workspace.restoreTabs(
+      [
+        { path: 'C:\\n\\a.md', draft: null },
+        { path: 'C:\\n\\b.md', draft: null },
+        { path: 'C:\\n\\c.md', draft: null },
+      ],
+      'C:\\n\\a.md',
+    );
+    unsubscribe();
+
+    expect(notifications).toBe(1);
+  });
+
+  it('重复调用是幂等的（StrictMode 会把启动 effect 跑两遍）', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    const entries = [
+      { path: 'C:\\n\\a.md', draft: '草稿' },
+      { path: 'C:\\n\\b.md', draft: null },
+    ];
+
+    await workspace.restoreTabs(entries, 'C:\\n\\a.md');
+    const afterFirst = workspace.getSnapshot().tabs.map((tab) => tab.id);
+
+    const second = await workspace.restoreTabs(entries, 'C:\\n\\a.md');
+    expect(second).toEqual({ restored: 2, failed: [] });
+    expect(workspace.getSnapshot().tabs).toHaveLength(2);
+    expect(workspace.getSnapshot().tabs.map((tab) => tab.id)).toEqual(afterFirst);
+    // 第二次没有再写一遍草稿：内容还是第一次那一份
+    expect(workspace.activeStore?.getSnapshot().doc?.text).toBe('草稿');
+  });
+
+  it('空清单什么都不做，也不炸', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    expect(await workspace.restoreTabs([], null)).toEqual({ restored: 0, failed: [] });
+    expect(workspace.getSnapshot().tabs).toEqual([]);
+    expect(workspace.getSnapshot().activeId).toBeNull();
+  });
+
+  it('已经有标签页时恢复不会把它们关掉或重排', async () => {
+    const workspace = new WorkspaceStore(seeded());
+    await workspace.open('C:\\n\\c.md');
+    const first = workspace.getSnapshot().tabs[0]?.id;
+
+    await workspace.restoreTabs([{ path: 'C:\\n\\a.md', draft: null }], 'C:\\n\\a.md');
+    expect(workspace.getSnapshot().tabs.map((tab) => tab.path)).toEqual(['C:\\n\\c.md', 'C:\\n\\a.md']);
+    expect(workspace.getSnapshot().tabs[0]?.id).toBe(first);
+  });
+});
+
 describe('文件树', () => {
   function seeded(): FakeProvider {
     const provider = new FakeProvider();

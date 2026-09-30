@@ -2450,3 +2450,127 @@ describe('位置记忆', () => {
     expect(mounted.container.querySelector('.ProseMirror')).not.toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 会话恢复（未保存的草稿不丢）
+// ---------------------------------------------------------------------------
+
+describe('会话恢复', () => {
+  const A = 'C://note.md';
+  const B = 'C://other.md';
+  const SESSION_KEY = 'qingmo.session.v1';
+
+  interface StoredSession {
+    tabs: Array<{ path: string; draft: string | null; at: number }>;
+    activePath: string | null;
+    root: string | null;
+    droppedDrafts: number;
+  }
+
+  function storedSession(): StoredSession {
+    return JSON.parse(localStorage.getItem(SESSION_KEY) ?? '{}') as StoredSession;
+  }
+
+  function seedSession(overrides: Partial<StoredSession> = {}): void {
+    const session: StoredSession = { tabs: [], activePath: null, root: null, droppedDrafts: 0, ...overrides };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+
+  /** 排空的 Promise 链不够用：这里要等一个真实的 1000ms 防抖。 */
+  async function sleep(ms: number): Promise<void> {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+    });
+  }
+
+  it('启动时把上次的标签页与**未保存的草稿**一起恢复出来', async () => {
+    seedSession({
+      tabs: [
+        { path: A, draft: '这是没保存的草稿', at: 2 },
+        { path: B, draft: null, at: 1 },
+      ],
+      activePath: A,
+    });
+    mounted = await mount((p) => {
+      p.put(A, '磁盘上的旧内容');
+      p.put(B, 'B 的内容');
+    });
+
+    expect(mounted.workspace.getSnapshot().tabs).toHaveLength(2);
+    // 恢复出来的内容必须是**草稿**，不是磁盘上那份
+    expect(mounted.store.getSnapshot().doc?.text).toBe('这是没保存的草稿');
+    expect(mounted.store.getSnapshot().status).toBe('dirty');
+    // 编辑器里显示的也得是草稿 —— 内核是在草稿写进 store 之后才挂载的
+    expect(editableOf(mounted.container).textContent).toContain('这是没保存的草稿');
+    // 上次激活的那个标签页要回到前台
+    expect(mounted.workspace.activeTab?.path).toBe(A);
+  });
+
+  it('打字之后**不用等关窗口**，防抖到点就落盘 —— 强杀进程也丢不了', async () => {
+    mounted = await mount((p) => p.put(A, '原始内容'));
+    await mounted.open(A);
+    await typeInEditor(mounted.container, '草稿');
+
+    // 强杀进程不会发 beforeunload，所以这条链路只能靠防抖
+    await sleep(1200);
+
+    const saved = storedSession();
+    expect(saved.tabs).toHaveLength(1);
+    expect(saved.tabs[0]?.path).toBe(A);
+    expect(saved.tabs[0]?.draft).toContain('草稿');
+  });
+
+  it('保存之后草稿从会话记录里消失（它不再是「未保存」的）', async () => {
+    seedSession({ tabs: [{ path: A, draft: '草稿', at: 1 }], activePath: A });
+    mounted = await mount((p) => p.put(A, '磁盘'));
+    expect(mounted.store.getSnapshot().status).toBe('dirty');
+
+    await act(async () => {
+      await mounted?.store.save();
+    });
+    window.dispatchEvent(new Event('beforeunload'));
+
+    expect(storedSession().tabs[0]?.draft).toBeNull();
+  });
+
+  it('关掉「恢复上次的标签页」之后既不恢复也不写，而且旧记录会被清掉', async () => {
+    seedSession({ tabs: [{ path: A, draft: '草稿', at: 1 }], activePath: A });
+    mounted = await mount((p) => p.put(A, '磁盘'), { settings: { restoreSession: false } });
+
+    expect(mounted.workspace.getSnapshot().tabs).toEqual([]);
+    expect(mounted.container.textContent).toContain('还没有打开文档');
+    // 只做「不再写」是不够的：用户关掉它、用几天、再打开，会突然恢复出几天前的标签页
+    expect(storedSession().tabs).toEqual([]);
+  });
+
+  it('上次开着的文件打不开了：如实说出来，而不是静默少一个标签页', async () => {
+    seedSession({
+      tabs: [
+        { path: 'C://被删了.md', draft: '重要的草稿', at: 2 },
+        { path: A, draft: null, at: 1 },
+      ],
+      activePath: A,
+    });
+    mounted = await mount((p) => p.put(A, '磁盘'));
+
+    expect(mounted.workspace.getSnapshot().tabs).toHaveLength(1);
+    expect(mounted.container.textContent).toContain('有 1 个上次开着的文件打不开了');
+    expect(mounted.container.textContent).toContain('被删了.md');
+  });
+
+  it('上次因为超出容量丢了草稿时，启动就把这件事说出来', async () => {
+    // 裁剪发生在写的时候、告知发生在下一次启动，中间隔着一次进程结束 ——
+    // 没有这条记录，用户永远不会知道自己的草稿被丢了
+    seedSession({ droppedDrafts: 2 });
+    mounted = await mount(() => undefined);
+
+    expect(mounted.container.textContent).toContain('有 2 份未保存的草稿没能存下来');
+  });
+
+  it('没有会话记录时安安静静地开在空态，不弹任何提示', async () => {
+    mounted = await mount(() => undefined);
+    expect(mounted.container.textContent).toContain('还没有打开文档');
+    expect(mounted.container.textContent).not.toContain('打不开了');
+    expect(mounted.container.textContent).not.toContain('没能存下来');
+  });
+});
