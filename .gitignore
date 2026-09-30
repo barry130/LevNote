@@ -16,3 +16,6 @@ Thumbs.db
 
 # AI 助手的项目记忆，属于工具状态而非源码
 .workbuddy-ai/
+
+# V3（长文档输入延迟）的压测材料是生成物，脚本才是资产
+docs/samples/v3-longdoc*.md
