@@ -66,6 +66,27 @@ export default defineConfig({
     },
   },
   server: {
+    /**
+     * **必须显式绑 IPv4，不能只写 `port`。**
+     *
+     * 只给 `port` 时 Vite 用 `localhost` 当 host，交给 `server.listen()` 解析。
+     * 而这台机器上 `localhost` 只解析到 `::1`（IPv6）—— `ping localhost`
+     * 回的就是 `[::1]` —— 于是 Vite **只监听 `[::1]:1420`**。
+     *
+     * WebView2（Chromium）解析 `localhost` 走的是 IPv4 `127.0.0.1`，
+     * 于是**根本连不上 dev server**。表现是窗口内容区一片纯黑、
+     * **没有任何报错**（不是「CSS 加载了但 React 没挂载」—— 那种情况
+     * 会露出 `body` 的浅色底 `--surface-sunken`）。
+     *
+     * 实测（`--noproxy '*'` 绕开环境里的代理）：
+     *   http://127.0.0.1:1420/  → 000（不可达）
+     *   http://[::1]:1420/      → 200
+     * 且 `netstat` 里 1420 上**没有 ESTABLISHED** —— 客户端从没连上过。
+     *
+     * 配套：`src-tauri/tauri.conf.json` 的 `devUrl` 也写成 `127.0.0.1`，
+     * 两端都别再经过 `localhost` 这个名字。
+     */
+    host: '127.0.0.1',
     port: 1420,
     strictPort: true,
     watch: { ignored: ['**/src-tauri/**'] },
