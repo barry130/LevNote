@@ -2008,7 +2008,7 @@ describe('设置页', () => {
     const text = mounted.container.querySelector('.settings')?.textContent ?? '';
     // 断言「有版本字样」而不是断言具体值：具体值会随发版变，
     // 断言它等于把测试变成 package.json 的第二份副本
-    expect(text).toContain(`版本 ${__QINGMO_VERSION__}`);
+    expect(text).toContain(`版本 ${import.meta.env.QINGMO_VERSION}`);
   });
 });
 

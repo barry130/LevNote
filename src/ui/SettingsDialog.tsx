@@ -220,7 +220,7 @@ export function SettingsDialog({
             <h3>关于</h3>
             <div className="settings-row">
               <span className="settings-row-label">轻墨</span>
-              <span className="settings-hint">版本 {__QINGMO_VERSION__}</span>
+              <span className="settings-hint">版本 {import.meta.env.QINGMO_VERSION}</span>
             </div>
             <p className="settings-hint">
               纯本地编辑器：没有账号、没有网络请求、没有遥测。文档只存在你自己的磁盘上。

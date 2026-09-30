@@ -525,16 +525,49 @@ body {
   min-height: 0;
 }
 
+/*
+ * 滚动条归谁：**归内核，且只归一个地方**。
+ *
+ * 这里原先写的是 `.qm-editor, .qm-code { … overflow: hidden }`，理由是
+ * 「滚动由 ProseMirror 的 `.ProseMirror` / CodeMirror 的 `.cm-scroller` 管」。
+ * 但 Markdown 内核**不这么认为** —— `modules/markdown/markdown.css` 里写的是
+ * `.qm-editor { overflow: auto }`，而内层 `.ProseMirror` 只有 `min-height: 100%`、
+ * 自己不滚。**同一个属性两个来源，谁赢只看打包顺序。**
+ *
+ * 实测产物（`dist/assets/index-*.css`）：内核那条在 28048 字节处、
+ * 本文件这条在 39651 处 —— 本文件在后，于是 `overflow: hidden` 生效，
+ * **长文档被裁掉且滚不动**（滚轮不动，只有光标移到底部时浏览器才自己滚一下）。
+ * 症状是「打开 md 文件无法滚动」，但根因和 Markdown 一点关系都没有：
+ * 是外壳悄悄推翻了内核的选择。而且这个 bug 从初始提交 `a224ec4` 就在，
+ * 只是 jsdom 没有布局引擎，测试永远看不见它。
+ *
+ * 现在的分工是**按属性切**，不是按文件切：
+ *   本文件 → 只负责「把内核根节点压进 flex 容器」（`flex` / `min-height`）
+ *   内核   → 自己声明滚动（Markdown 是 `.qm-editor`，CodeMirror 是 `.cm-scroller`）
+ * `.qm-code` 保留 `overflow: hidden` 是对的：CodeMirror 的滚动确实在 `.cm-scroller` 上，
+ * 那是内核自己的 DOM，本文件拦不住也不需要拦。
+ */
 .qm-editor,
 .qm-code {
   flex: 1;
   min-height: 0;
-  /* 滚动由内核自己管（ProseMirror 的 .ProseMirror / CodeMirror 的 .cm-scroller），
-     这里必须 overflow: hidden —— 两边都开滚动会出现双滚动条 */
+}
+
+.qm-code {
   overflow: hidden;
 }
 
-.qm-editor .ProseMirror,
+/*
+ * 同理，这里原先也顺手给 `.qm-editor .ProseMirror` 加了 `height: 100%`。
+ * 内核要的是 `min-height: 100%`（`markdown.css`），语义完全不同：
+ *   `min-height: 100%` = 至少撑满一屏，**内容多了就长高**，由父级滚出去
+ *   `height: 100%`     = 钉死在容器高度，多出来的内容靠父级的溢出区域去够
+ * 后者会让内核那句 `padding-bottom: 40vh` 失效（它被算进固定的 100% 里，
+ * 而不是变成末尾多出来的一段可滚动空间），也就是「最后一行能滚到屏幕中间」
+ * 这个刻意的留白没了。
+ *
+ * CodeMirror 那边必须留着：它要靠一个显式高度才能算出滚动区。
+ */
 .qm-code .cm-editor {
   height: 100%;
 }
