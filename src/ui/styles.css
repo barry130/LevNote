@@ -34,28 +34,67 @@
   --plum: #8a5a86;
   --blue: #3f6ea8;
 
-  --line: #dfe6e2;
-  --line-strong: #c6d3cd;
+  /* ---- 外壳与编辑器表面：VSCode Light Modern 色板 --------------------
+     取值来源是 VSCode 默认浅色主题的语义色（editor.background、
+     sideBar.background、activityBar.background、tab.*、statusBar.background…），
+     变量名保持原样，所以「谁用哪个颜色」这件事没有变，只是值换了。
+
+     品牌色（--ink / --vermilion / --bamboo / --moss / --slate / --plum / --blue）
+     **刻意不动**：它们是语法着色（--syn-*）与导出文档（core/export/document-styles.css
+     的 --qm-*）的身份色，换掉会连累用户导出出去的每一份文件。
+     所以「VSCode 风格」到外壳与编辑器表面为止，不越界去改文档长什么样。 */
+
+  --line: #e5e5e5;
+  --line-strong: #cecece;
   --surface: #ffffff;
-  --surface-sunken: #eef3f0;
+  --surface-sunken: #f3f3f3;
   --surface-raised: #ffffff;
-  --danger: #b5442c;
+  --danger: #e51400;
 
-  --selection: rgba(46, 125, 106, 0.18);
-  --selection-match: rgba(226, 96, 63, 0.22);
-  --shadow: 0 10px 30px rgba(22, 48, 42, 0.12);
-  --shadow-soft: 0 2px 8px rgba(22, 48, 42, 0.06);
+  --selection: #add6ff;
+  --selection-match: #a8ac94;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --shadow-soft: 0 2px 6px rgba(0, 0, 0, 0.08);
 
-  /* 外壳（标题栏 / 标签栏 / 状态栏） */
-  --chrome-bg: #16302a;
-  --chrome-fg: #f7faf8;
-  --chrome-muted: #9fb8b0;
-  --chrome-line: #0e221d;
-  --chrome-btn-bg: #1e3b34;
-  --chrome-btn-border: #2b4a42;
-  --chrome-btn-fg: #e7f1ec;
-  --chrome-btn-hover: #27534a;
-  --chrome-active-bg: #23443c;
+  /* 外壳：侧栏 / 活动栏 / 标签栏 / 标题栏 */
+  --chrome-bg: #f8f8f8;
+  --chrome-fg: #3b3b3b;
+  --chrome-muted: #6a6a6a;
+  --chrome-line: #e5e5e5;
+  /* VSCode 的工具栏按钮是「无底无边、悬停才浮起来」，不是常驻按钮 */
+  --chrome-btn-bg: transparent;
+  --chrome-btn-border: transparent;
+  --chrome-btn-fg: #3b3b3b;
+  --chrome-btn-hover: #e8e8e8;
+  --chrome-active-bg: #e4e6f1;
+
+  --titlebar-bg: #dddddd;
+  --tabbar-bg: #f8f8f8;
+  --tab-bg: #f8f8f8;
+  --tab-hover-bg: #f2f2f2;
+  --tab-active-bg: #ffffff;
+  --tab-fg: #6a6a6a;
+  --tab-active-fg: #3b3b3b;
+  --tab-active-border: #005fb8;
+
+  /* 主题强调色（VSCode 的 `focusBorder` / `button.background` 同源）。
+     与品牌色 `--vermilion` 分工不同：那个是「轻墨的身份」，
+     这个是「当前这个主题里表示可交互/聚焦的颜色」。 */
+  --accent: #005fb8;
+
+  --activitybar-bg: #f8f8f8;
+  --activitybar-fg: #6a6a6a;
+  --activitybar-active: #000000;
+  --activitybar-active-border: #005fb8;
+
+  /* 状态栏是 VSCode 唯一一块「主题色铺满」的地方，蓝底白字是它的招牌 */
+  --statusbar-bg: #007acc;
+  --statusbar-fg: #ffffff;
+  --statusbar-hover: rgba(255, 255, 255, 0.18);
+
+  --focus-border: #0090f1;
+  --list-hover: #e8e8e8;
+  --list-active: #e4e6f1;
 
   /* 语法着色。**刻意与导出文件里的 hljs 配色同源**
      （见 core/export/document-styles.css 的 --qm-*），
@@ -88,27 +127,54 @@
   --plum: #c396bf;
   --blue: #7fa8dd;
 
-  --line: #27332f;
-  --line-strong: #3b4a45;
-  --surface: #16211e;
-  --surface-sunken: #111b18;
-  --surface-raised: #1b2724;
-  --danger: #e8836a;
+  /* 品牌色的深色变体（语法着色与选中描边用，刻意不动） */
 
-  --selection: rgba(108, 195, 165, 0.24);
-  --selection-match: rgba(239, 125, 95, 0.26);
+  /* ---- VSCode Dark Modern 色板（与浅色那边逐项对应） ---- */
+  --line: #2b2b2b;
+  --line-strong: #3c3c3c;
+  --surface: #1f1f1f;
+  --surface-sunken: #181818;
+  --surface-raised: #252526;
+  --danger: #f85149;
+
+  --selection: #264f78;
+  --selection-match: #623315;
   --shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
   --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.35);
 
-  --chrome-bg: #0a1211;
-  --chrome-fg: #dbe6e1;
-  --chrome-muted: #7d8f89;
-  --chrome-line: #050b0a;
-  --chrome-btn-bg: #1a2724;
-  --chrome-btn-border: #2e3f3a;
-  --chrome-btn-fg: #cfdcd7;
-  --chrome-btn-hover: #24332f;
-  --chrome-active-bg: #20302c;
+  --chrome-bg: #181818;
+  --chrome-fg: #cccccc;
+  --chrome-muted: #9d9d9d;
+  --chrome-line: #2b2b2b;
+  --chrome-btn-bg: transparent;
+  --chrome-btn-border: transparent;
+  --chrome-btn-fg: #cccccc;
+  --chrome-btn-hover: #2a2d2e;
+  --chrome-active-bg: #04395e;
+
+  --titlebar-bg: #181818;
+  --tabbar-bg: #181818;
+  --tab-bg: #181818;
+  --tab-hover-bg: #2a2d2e;
+  --tab-active-bg: #1f1f1f;
+  --tab-fg: #9d9d9d;
+  --tab-active-fg: #cccccc;
+  --tab-active-border: #0078d4;
+
+  --accent: #0078d4;
+
+  --activitybar-bg: #181818;
+  --activitybar-fg: #9d9d9d;
+  --activitybar-active: #cccccc;
+  --activitybar-active-border: #0078d4;
+
+  --statusbar-bg: #0078d4;
+  --statusbar-fg: #ffffff;
+  --statusbar-hover: rgba(255, 255, 255, 0.18);
+
+  --focus-border: #0078d4;
+  --list-hover: #2a2d2e;
+  --list-active: #04395e;
 
   color-scheme: dark;
 }
@@ -141,12 +207,17 @@ body {
 
 /* ---------------------------------------------------------------- 顶栏 */
 
+/*
+ * 标题栏。35px 是 VSCode 的实测高度 —— 它同时是「窗口拖动区」与
+ * 「一排动作」的容器，比 35px 矮会让按钮的命中区太小。
+ */
 .titlebar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 14px;
-  background: var(--chrome-bg);
+  min-height: 35px;
+  padding: 0 12px;
+  background: var(--titlebar-bg);
   color: var(--chrome-fg);
   border-bottom: 1px solid var(--chrome-line);
   user-select: none;
@@ -181,10 +252,17 @@ body {
 
 .toolbar {
   display: flex;
-  gap: 6px;
+  gap: 2px;
   flex: none;
 }
 
+/*
+ * VSCode 的工具栏按钮是**无底无边、悬停才浮起**的一小块。
+ *
+ * 与「常驻按钮」的差别不只是好看：一排有边框的按钮会形成一条
+ * 视觉上的「分割带」，把标题栏切成一格一格；无边按钮让整条标题栏
+ * 读起来是一整块，动作只是「浮在上面」。
+ */
 .toolbar button {
   appearance: none;
   border: 1px solid var(--chrome-btn-border);
@@ -192,10 +270,10 @@ body {
   color: var(--chrome-btn-fg);
   font: inherit;
   font-size: 12.5px;
-  padding: 5px 11px;
-  border-radius: 6px;
+  padding: 4px 9px;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background 0.1s ease;
 }
 
 .toolbar button:hover:not(:disabled) {
@@ -207,33 +285,42 @@ body {
   cursor: default;
 }
 
+/* 「保存」用主题色。VSCode 本身没有这样一个按钮，这里是刻意的产品选择：
+   这个编辑器里「保存」是用户最需要被提醒的一件事，给它一个恒定的视觉锚点 */
 .toolbar button.primary {
-  background: var(--vermilion);
-  border-color: #c9502f;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
 .toolbar button.primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.1);
 }
 
 .badge {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid var(--chrome-btn-border);
+  border: 1px solid var(--chrome-line);
   color: var(--chrome-muted);
   flex: none;
 }
 
 /* ---------------------------------------------------------------- 标签栏 */
 
+/*
+ * VSCode 的标签是**方角**的：没有圆角、没有下边框，靠「当前那个标签的底色
+ * 与编辑器底色相同 + 顶上一条主题色细线」来区分。
+ *
+ * 圆角标签是浏览器标签的语汇（Chrome / Edge），而这是编辑器 ——
+ * 圆角会让它读起来像「另一排按钮」而不是「文档的页签」。
+ */
 .tabbar {
   display: flex;
   align-items: stretch;
-  gap: 2px;
-  padding: 0 8px;
-  background: var(--surface-sunken);
+  gap: 0;
+  padding: 0;
+  background: var(--tabbar-bg);
   border-bottom: 1px solid var(--line);
   overflow-x: auto;
   scrollbar-width: thin;
@@ -248,30 +335,31 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 220px;
-  padding: 6px 8px 6px 12px;
-  font-size: 12.5px;
-  color: var(--slate);
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 7px 7px 0 0;
+  max-width: 240px;
+  height: 35px;
+  padding: 0 8px 0 12px;
+  font-size: 13px;
+  color: var(--tab-fg);
+  background: var(--tab-bg);
+  /* 上边框**始终存在**（未选中时透明），否则选中时整条标签会往下跳 1px */
+  border: 0;
+  border-top: 1px solid transparent;
+  border-right: 1px solid var(--chrome-line);
   cursor: default;
   user-select: none;
   flex: none;
   position: relative;
-  top: 1px;
 }
 
 .tab:hover {
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--tab-hover-bg);
+  color: var(--tab-active-fg);
 }
 
 .tab.active {
-  background: var(--surface);
-  color: var(--ink);
-  border-color: var(--line);
-  font-weight: 600;
+  background: var(--tab-active-bg);
+  color: var(--tab-active-fg);
+  border-top-color: var(--tab-active-border);
 }
 
 .tab.dragging {
@@ -282,12 +370,11 @@ body {
 .tab.drop-target::before {
   content: '';
   position: absolute;
-  left: -2px;
-  top: 4px;
-  bottom: 4px;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 2px;
-  border-radius: 2px;
-  background: var(--bamboo);
+  background: var(--focus-border);
 }
 
 .tab-name {
@@ -337,14 +424,107 @@ body {
   min-height: 0;
 }
 
+/*
+ * 只给读屏软件看的文字。
+ *
+ * **不是 `display: none`** —— 那样读屏也看不到，等于没有。
+ * 用「裁剪到 1px」这套：元素仍然在无障碍树里，但不占任何视觉空间。
+ *
+ * 为什么需要它：活动栏是纯图标按钮，而图标 `<svg>` 上没有文字。
+ * 纯图标按钮必须有可访问名字，`title` 只是提示、不构成可访问名。
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- 活动栏 */
+
+/*
+ * VSCode 最左边那条图标带。
+ *
+ * 宽度 48px、图标 22px 都是 VSCode 的实测值：再窄图标会贴边，
+ * 再宽它就开始和侧栏抢视觉重量（而它只是「入口」，不该比内容更显眼）。
+ */
+.activitybar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  width: 48px;
+  flex: none;
+  background: var(--activitybar-bg);
+  border-right: 1px solid var(--chrome-line);
+  user-select: none;
+}
+
+/* 把底部的两项推下去。`.grow` 在本项目里是按父容器定义的，不是全局类 */
+.activitybar .grow {
+  flex: 1;
+}
+
+.activity-item {
+  appearance: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--activitybar-fg);
+  cursor: pointer;
+}
+
+.activity-item:hover:not(:disabled) {
+  color: var(--activitybar-active);
+}
+
+.activity-item:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/*
+ * 选中态：图标变亮 + 左侧一道主题色竖条。
+ *
+ * 两个信号一起给，是因为单靠颜色差在浅色主题下太弱
+ * （`#6a6a6a` → `#000000` 只有明度差），竖条是那个「扫一眼就知道」的锚点。
+ * 竖条用 `::before` 而不是 `border-left`：`border` 会把图标挤偏 1px，
+ * 于是选中时图标会轻微跳动。
+ */
+.activity-item[aria-pressed='true'] {
+  color: var(--activitybar-active);
+}
+
+.activity-item[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--activitybar-active-border);
+}
+
 /* ---------------------------------------------------------------- 侧栏 */
 
 .sidebar-slot {
   display: flex;
   flex: none;
   min-width: 0;
-  background: var(--surface-sunken);
-  border-right: 1px solid var(--line);
+  background: var(--chrome-bg);
+  border-right: 1px solid var(--chrome-line);
 }
 
 .sidebar-resizer {
@@ -374,8 +554,8 @@ body {
   gap: 4px;
   padding: 6px 8px;
   font-size: 12px;
-  color: var(--slate);
-  border-bottom: 1px solid var(--line);
+  color: var(--chrome-muted);
+  border-bottom: 1px solid var(--chrome-line);
   flex: none;
 }
 
@@ -388,14 +568,14 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--chrome-fg);
 }
 
 .sidebar-head button {
   appearance: none;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--slate);
+  color: var(--chrome-muted);
   font-size: 13px;
   line-height: 1;
   width: 22px;
@@ -406,14 +586,12 @@ body {
 }
 
 .sidebar-head button:hover:not(:disabled) {
-  background: var(--surface);
-  border-color: var(--line);
-  color: var(--ink);
+  background: var(--list-hover);
+  color: var(--chrome-fg);
 }
 
 .sidebar-head button.on {
   color: var(--bamboo);
-  border-color: var(--line);
 }
 
 .sidebar-error {
@@ -460,21 +638,23 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 24px;
+  height: 22px;
   padding-right: 8px;
-  font-size: 12.5px;
-  color: var(--ink);
+  font-size: 13px;
+  color: var(--chrome-fg);
   cursor: default;
   user-select: none;
   white-space: nowrap;
 }
 
+/* 22px 行高、悬停底色、13px 字号都是 VSCode 列表的实测值 ——
+   比它更大的一行会让人不自觉地「一行一行读」，而文件树是用来扫的 */
 .tree-row:hover {
-  background: var(--surface);
+  background: var(--list-hover);
 }
 
 .tree-row.active {
-  background: var(--selection);
+  background: var(--list-active);
   font-weight: 600;
 }
 
@@ -570,6 +750,73 @@ body {
  */
 .qm-code .cm-editor {
   height: 100%;
+}
+
+/* ------------------------------------------------------------ 分屏（源码 + 预览） */
+
+/*
+ * 分屏的单栏。
+ *
+ * ## 它**不声明 `overflow`** —— 这一条是刻意的
+ *
+ * 直觉上会想在这里写 `overflow: hidden`（「别让内容溢出去影响另一栏」），
+ * 但那正是硬约束 13 说的那类错误：**滚动归内核**。
+ *
+ * 写 `hidden` 的代价很具体：哪个内核忘了声明自己的滚动，它的内容就会
+ * **被安静地裁掉、且滚不动** —— 而这正是「打开 md 文件无法滚动」那个
+ * 躺了九个里程碑的 bug 的形态。反过来，不写 `hidden` 最坏也只是内容
+ * 溢到隔壁一栏（看得见、能诊断），而不是消失。
+ *
+ * 两栏的内核各自声明了滚动（Markdown 是 `.qm-editor`，CodeMirror 是
+ * `.cm-scroller`），所以这里什么都不需要做。`styles.test.ts` 钉住这一条。
+ *
+ * ## 两栏都 `flex-basis: 0`
+ *
+ * 不写的话 `flex-basis` 是 `auto`，两栏的初始宽度会按**内容宽度**算 ——
+ * 源码那一栏有长行，于是它一上来就把预览挤成一条缝，
+ * 而且用户拖动时宽度也不按比例走（`flex-grow` 只在**剩余**空间上分配）。
+ * `flex-basis: 0` 让「剩余空间」等于「全部空间」，比例才真的等于比例。
+ */
+.editor-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+/*
+ * 分隔条。
+ *
+ * 视觉上 1px，命中区 7px（靠 `::after` 往两侧各撑 3px）——
+ * 1px 的线在 4K 屏上几乎点不中，而画成 7px 又太笨重。
+ * 这是「看起来的样子」与「能点到的地方」分离的经典做法。
+ */
+.editor-divider {
+  position: relative;
+  flex: none;
+  width: 1px;
+  background: var(--line);
+  cursor: col-resize;
+}
+
+.editor-divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
+}
+
+.editor-divider:hover {
+  background: var(--focus-border);
 }
 
 .editor {
@@ -681,20 +928,32 @@ body {
 
 /* ---------------------------------------------------------------- 状态栏 */
 
+/*
+ * VSCode 唯一一块「主题色铺满」的地方 —— 蓝底白字是它的招牌。
+ *
+ * 这里有一处**刻意的偏离**：VSCode 的状态栏横跨整个窗口宽度，
+ * 而这一条是 `DocumentPane` 的 footer，只横跨编辑器那一栏（侧栏与大纲在它两侧）。
+ * 原因是这条状态栏显示的全是**这一份文档**的信息（编码、行尾、光标、字数、视图模式），
+ * 而外壳刻意不订阅文档状态（见 `App.tsx` 顶部那段）—— 要让它横跨整个窗口，
+ * 就得把文档状态提到外壳，代价是用户每敲一个字整个外壳都重渲染。
+ *
+ * 一条少横跨 240px 的状态栏，换掉「每次按键重渲染侧栏和标签栏」，这笔账是划算的。
+ */
 .statusbar {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 5px 14px;
+  gap: 10px;
+  padding: 0 10px;
+  min-height: 22px;
   font-size: 12px;
-  color: var(--slate);
-  background: var(--surface-sunken);
-  border-top: 1px solid var(--line);
+  color: var(--statusbar-fg);
+  background: var(--statusbar-bg);
   flex: none;
 }
 
+/* 分隔符在蓝底上要弱化成半透明白，用 `--line-strong`（灰）会显得脏 */
 .statusbar .sep {
-  color: var(--line-strong);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .statusbar .grow {
@@ -703,47 +962,120 @@ body {
 
 /* 当前内核的名字。比编码/行尾弱一档，它是「解释性」信息不是「可操作」信息 */
 .statusbar .kernel {
-  color: var(--bamboo);
+  color: var(--statusbar-fg);
   font-weight: 600;
 }
 
+/*
+ * 状态栏里的下拉框。
+ *
+ * 这里**不能用 `--surface`**：浅色主题下那是纯白，会在蓝色状态栏上
+ * 变成两块突兀的白斑；深色主题下是 `#1f1f1f`，在蓝底上是两块黑斑。
+ * 半透明白底 + 白字才是这一层该有的样子。
+ */
 .statusbar select {
   font: inherit;
   font-size: 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface);
-  color: inherit;
-  padding: 1px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--statusbar-fg);
+  padding: 0 2px;
 }
 
+/* 下拉展开的列表是**浏览器原生绘制**的，不继承这里的配色。
+   必须显式给 `option` 一个浅底深字，否则在深色主题下
+   （`color-scheme: dark`）会得到白字白底。 */
+.statusbar select option {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.statusbar .hint {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/*
+ * 状态徽章。
+ *
+ * 基态是「半透明白底」而不是描边：在饱和的蓝底上，描边几乎看不见，
+ * 而一块淡淡的底能立刻圈出「这是一个状态」。
+ * 三种需要被注意到的状态用实色底，靠**明度差**而不是色相差来区分 ——
+ * 在蓝底上，橙 / 红 / 白三者的明度差比色相差可靠得多。
+ */
 .status-pill {
   font-size: 11px;
   padding: 1px 7px;
   border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  color: var(--slate);
+  border: 0;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--statusbar-fg);
   flex: none;
 }
 
 .status-pill.dirty {
-  border-color: var(--vermilion);
-  color: var(--vermilion);
+  background: var(--vermilion);
+  color: #fff;
 }
 
 .status-pill.conflict,
 .status-pill.error {
-  border-color: var(--danger);
-  color: var(--danger);
+  background: var(--danger);
+  color: #fff;
 }
 
+/* 「处理中」用反白（白底 + 状态栏蓝字）：它是唯一一个**短暂**的状态，
+   反白让它在扫过状态栏时一眼可辨，而且不会和「出错」的实色底混淆 */
 .status-pill.saving {
-  border-color: var(--bamboo);
-  color: var(--bamboo);
+  background: var(--statusbar-fg);
+  color: var(--statusbar-bg);
 }
 
 .hint {
   color: var(--slate);
+}
+
+/* ------------------------------------------------------------ 视图三档切换 */
+
+/*
+ * 富文本 / 源码 / 分屏。
+ *
+ * 一整块「分段控件」而不是三个独立按钮：它们是**互斥的三选一**，
+ * 分段控件的视觉语言（连成一排、只有一个凹下去）本身就说明了这一点，
+ * 而三个独立按钮会让用户以为可以同时开两个。
+ *
+ * 与工具栏那个「源码 / 富文本」开关并存是刻意的，理由见 `ViewSwitcher.tsx`。
+ */
+.view-switcher {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 4px;
+  overflow: hidden;
+  flex: none;
+}
+
+.view-switcher button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.view-switcher button:hover {
+  background: var(--statusbar-hover);
+}
+
+/* 选中态给一块**实白底 + 状态栏蓝字**：与 `.status-pill.saving` 同一套语言，
+   在蓝底上这是对比度最高的组合，隔着半米也看得出现在是哪一档 */
+.view-switcher button[aria-pressed='true'] {
+  background: var(--statusbar-fg);
+  color: var(--statusbar-bg);
+  font-weight: 600;
 }
 
 /* ---------------------------------------------------------------- 大纲 */
@@ -754,8 +1086,8 @@ body {
   flex: none;
   width: 232px;
   min-height: 0;
-  background: var(--surface-sunken);
-  border-left: 1px solid var(--line);
+  background: var(--chrome-bg);
+  border-left: 1px solid var(--chrome-line);
 }
 
 .outline-head {
@@ -764,7 +1096,7 @@ body {
   gap: 6px;
   padding: 6px 8px;
   font-size: 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--chrome-line);
   flex: none;
 }
 
@@ -774,14 +1106,14 @@ body {
 
 .outline-title {
   font-weight: 600;
-  color: var(--ink);
+  color: var(--chrome-fg);
 }
 
 .outline-head button {
   appearance: none;
   border: 0;
   background: transparent;
-  color: var(--slate);
+  color: var(--chrome-muted);
   font-size: 15px;
   line-height: 1;
   width: 20px;
@@ -791,8 +1123,8 @@ body {
 }
 
 .outline-head button:hover {
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--list-hover);
+  color: var(--chrome-fg);
 }
 
 .outline-empty {
@@ -823,10 +1155,11 @@ body {
   text-align: left;
   border: 0;
   background: transparent;
-  color: var(--ink);
+  color: var(--chrome-fg);
   font: inherit;
-  font-size: 12.5px;
-  padding: 3px 10px;
+  font-size: 13px;
+  height: 22px;
+  padding: 0 10px;
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -834,12 +1167,12 @@ body {
 }
 
 .outline-item:hover:not(:disabled) {
-  background: var(--surface);
+  background: var(--list-hover);
 }
 
 .outline-item:disabled {
   cursor: default;
-  color: var(--slate);
+  color: var(--chrome-muted);
 }
 
 .outline-item.level-1 {
@@ -850,7 +1183,7 @@ body {
 .outline-item.level-4,
 .outline-item.level-5,
 .outline-item.level-6 {
-  color: var(--slate);
+  color: var(--chrome-muted);
 }
 
 /* ---------------------------------------------------------------- 查找栏 */

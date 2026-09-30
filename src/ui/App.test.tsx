@@ -315,9 +315,19 @@ async function nextFrame(): Promise<void> {
  * 同时认两种内核的 contenteditable：`.ProseMirror`（富文本）与 `.cm-content`（代码）。
  * 测试「代码内核没有浮层」时需要在 CodeMirror 里真的选中一段文字，
  * 否则那条用例会退化成「没选区所以没浮层」，什么都没验证到。
+ *
+ * ## 分屏时**必须先取左栏**
+ *
+ * 分屏的右栏也是一个 `.qm-editor .ProseMirror`，而且它排在左栏**后面** ——
+ * 但选择器写在前面的那个（`.qm-editor .ProseMirror`）会先命中**它**，
+ * 因为左栏那时是 CodeMirror。往只读的预览栏里打字什么都不会发生，
+ * 于是「打字 → 内容变了」这类用例会变成假绿（或者假红）。
+ * 所以这里把「分屏左栏」这一支写在最前面：命中就说明用户此刻在编辑哪一栏。
  */
 function editableOf(container: HTMLElement): HTMLElement {
-  const root = container.querySelector<HTMLElement>('.qm-editor .ProseMirror, .qm-code .cm-content');
+  const root = container.querySelector<HTMLElement>(
+    '.editor-split > .editor-pane:first-child .qm-code .cm-content, .qm-editor .ProseMirror, .qm-code .cm-content',
+  );
   if (root === null) throw new Error('没有找到可编辑区 —— 用例是不是忘了先 open？');
   return root;
 }
@@ -856,6 +866,346 @@ describe('源码模式切换', () => {
     // 切回 a：它仍然停在源码视图
     expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
     expect(toolbarButton(mounted.container, '富文本')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 分屏（源码 + 预览并排）
+// ---------------------------------------------------------------------------
+
+/** 分屏的两栏。没分屏时是空数组。 */
+function splitPanes(container: HTMLElement): HTMLElement[] {
+  return [...container.querySelectorAll<HTMLElement>('.editor-split > .editor-pane')];
+}
+
+/** 分屏右栏里那个只读的渲染。 */
+function previewOf(container: HTMLElement): HTMLElement {
+  const pane = splitPanes(container)[1];
+  const root = pane?.querySelector<HTMLElement>('.qm-editor .ProseMirror') ?? null;
+  if (root === null) throw new Error('分屏右栏里没有找到只读预览 —— 用例是不是忘了先进分屏？');
+  return root;
+}
+
+/** 点状态栏里视图三档的某一档。 */
+async function clickViewMode(container: HTMLElement, label: string): Promise<void> {
+  const button = [...container.querySelectorAll<HTMLButtonElement>('.view-switcher button')].find(
+    (item) => item.textContent?.trim() === label,
+  );
+  if (!button) throw new Error(`视图切换器里没有「${label}」`);
+  await act(async () => {
+    button.click();
+  });
+  await settle();
+}
+
+/**
+ * 等一段**真实**的时间。
+ *
+ * 预览同步是防抖的（`PREVIEW_SYNC_DELAY_MS = 160`），而 `settle()` 那三轮
+ * `setTimeout(0)` 走不到它。这里刻意用真实计时器而不是 `vi.useFakeTimers()`：
+ * 内核创建本身是一条 `await` 的 Promise 链，假计时器一开就得把所有
+ * `await` 都手工推进去，用例会退化成一串 `advanceTimersByTimeAsync` ——
+ * 而那种写法测的是「定时器有没有被排上」，不是「用户看到了什么」。
+ */
+async function waitMs(ms: number): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  });
+}
+
+describe('分屏：源码与预览并排', () => {
+  /**
+   * 这一组守的是三件事，缺一件这个功能就不成立：
+   *
+   * 1. **两栏真的同时存在**（不是替换、不是并排画两遍同一个内核）；
+   * 2. **右栏是只读的**（能编辑的话，同一份文档就有了两个写入方）；
+   * 3. **左栏的改动会到右栏**（不会的话，预览显示的是打开那一刻的旧内容 ——
+   *    而它看起来完全正常，用户会以为自己的修改没生效）。
+   */
+
+  const SOURCE = '# 标题\n\n正文 **加粗**。\n';
+
+  it('两栏并存：左栏源码、右栏只读渲染，且内容一字不差', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+
+    await clickViewMode(mounted.container, '分屏');
+
+    const panes = splitPanes(mounted.container);
+    expect(panes.length).toBe(2);
+
+    // 左栏是**源码**：看得到 `**` 这类语法标记
+    const left = panes[0]?.querySelector<HTMLElement>('.qm-code .cm-content');
+    expect(left).not.toBeNull();
+    expect(left?.textContent).toContain('**加粗**');
+
+    // 右栏是**渲染结果**：语法标记消失、文本还在
+    const preview = previewOf(mounted.container);
+    expect(preview.textContent).toContain('标题');
+    expect(preview.textContent).toContain('加粗');
+    expect(preview.textContent).not.toContain('**');
+
+    // 分隔条要在，否则用户没法调两栏的比例
+    expect(mounted.container.querySelector('.editor-divider')).not.toBeNull();
+
+    // 切到分屏是纯视图动作：内容没变、也不该变成待保存
+    expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
+    expect(statusOf(mounted.container)).toBe('已保存');
+  });
+
+  it('右栏是**真只读** —— 靠 ProseMirror 的 contenteditable，不是「拦下按键」', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+    await clickViewMode(mounted.container, '分屏');
+
+    // 这条断言比「敲字没反应」强得多：后者在一个「拦截了按键但 DOM 仍可编辑」
+    // 的假只读实现上也会通过，而那种实现在拖选、IME、粘贴上全都会漏
+    expect(previewOf(mounted.container).getAttribute('contenteditable')).toBe('false');
+  });
+
+  it('左栏改内容之后，右栏跟着更新', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+    await clickViewMode(mounted.container, '分屏');
+
+    expect(previewOf(mounted.container).textContent).toContain('标题');
+
+    // 用 `store.updateText` 而不是模拟键盘：内核的 `onChange` 里做的**就是**这一件事。
+    // （分屏的左栏是 CodeMirror，jsdom 里没有可信的打字路径 —— 硬造一个
+    // 只会测到「我们伪造的事件长什么样」，而不是「用户打字会怎样」。）
+    await act(async () => {
+      mounted?.store.updateText('# 换过的标题\n\n新的一段。\n');
+    });
+    await settle();
+
+    // 防抖窗口**内**预览还没变。这一步不只是补充说明 ——
+    // 它证明下面那条断言不是空转（若把同步整个删掉，下面那条才会失败）
+    expect(previewOf(mounted.container).textContent).not.toContain('换过的标题');
+
+    // 预览是**防抖**推过去的（160ms），必须真的等过那个窗口
+    await waitMs(260);
+
+    const preview = previewOf(mounted.container);
+    expect(preview.textContent).toContain('换过的标题');
+    expect(preview.textContent).toContain('新的一段。');
+    // 左栏也要跟着换（走的是「外部改动」那条路径）
+    expect(editableOf(mounted.container).textContent).toContain('换过的标题');
+  });
+
+  it('从分屏切回富文本：回到单栏，右栏消失', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+    await clickViewMode(mounted.container, '分屏');
+    expect(splitPanes(mounted.container).length).toBe(2);
+
+    await clickViewMode(mounted.container, '富文本');
+
+    expect(splitPanes(mounted.container).length).toBe(0);
+    expect(mounted.container.querySelector('.qm-code')).toBeNull();
+    expect(mounted.container.querySelector('.qm-editor .ProseMirror')).not.toBeNull();
+    expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
+  });
+
+  it('工具栏那个开关把分屏算作「源码那一侧」—— 再点一次回富文本', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+    await clickViewMode(mounted.container, '分屏');
+
+    // 分屏的出口与源码模式是同一个（富文本），否则用户点一下会落到
+    // 一个他刚才没选过的状态上
+    const button = toolbarButton(mounted.container, '富文本');
+    expect(button).not.toBeNull();
+    expect(button?.disabled).toBe(false);
+  });
+
+  it('三档里只有一档是选中的，且读屏读得出来', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+
+    const pressed = () =>
+      [...mounted!.container.querySelectorAll('.view-switcher button')]
+        .filter((item) => item.getAttribute('aria-pressed') === 'true')
+        .map((item) => item.textContent?.trim());
+
+    expect(pressed()).toEqual(['富文本']);
+
+    await clickViewMode(mounted.container, '源码');
+    expect(pressed()).toEqual(['源码']);
+
+    await clickViewMode(mounted.container, '分屏');
+    expect(pressed()).toEqual(['分屏']);
+  });
+
+  it('代码文档没有视图三档 —— 它本身就是源码，三档对它是个不存在的选择', async () => {
+    mounted = await mount((p) => p.put('main.py', 'print(1)\n'));
+    await mounted.open('main.py');
+
+    expect(mounted.container.querySelector('.view-switcher')).toBeNull();
+  });
+
+  it('切标签页时不会把上一份文档的预览留在屏幕上', async () => {
+    mounted = await mount((p) => {
+      p.put('a.md', '# 甲\n');
+      p.put('b.md', '# 乙\n');
+    });
+
+    await mounted.open('a.md');
+    await clickViewMode(mounted.container, '分屏');
+    expect(previewOf(mounted.container).textContent).toContain('甲');
+
+    await mounted.open('b.md');
+
+    // b 是新打开的文档，默认富文本 —— 没有分屏、更没有 a 的内容
+    expect(splitPanes(mounted.container).length).toBe(0);
+    expect(mounted.container.textContent).not.toContain('甲');
+  });
+
+  it('右栏的预览不产生浮层工具条 —— 在只读渲染里选中文字不该弹出「加粗」', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+    await clickViewMode(mounted.container, '分屏');
+
+    // 在**右栏**里真的选中一段文字（而不是在左栏）
+    const preview = previewOf(mounted.container);
+    const walker = document.createTreeWalker(preview, NodeFilter.SHOW_TEXT);
+    let hit: Text | null = null;
+    while (walker.nextNode()) {
+      if ((walker.currentNode as Text).data.includes('加粗')) {
+        hit = walker.currentNode as Text;
+        break;
+      }
+    }
+    expect(hit).not.toBeNull();
+    const range = document.createRange();
+    range.selectNodeContents(hit!);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    await act(async () => {
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+    await nextFrame();
+
+    // 浮层会弹在左栏（用户真正在编辑的那一栏）上，但**不该由右栏触发** ——
+    // 在预览里选中一段文字、浮出一个「加粗」、点下去却作用在左栏，
+    // 没有任何用户能猜到这个行为。所以右栏根本不交出格式化命令面。
+    expect(previewOf(mounted.container).getAttribute('contenteditable')).toBe('false');
+    expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
+  });
+
+  /**
+   * 拖动分隔条。
+   *
+   * 这条用例测的**不是「拖动能改比例」**（那要真实布局，jsdom 给不了），
+   * 而是它旁边那个更危险的失败模式：**拿不到容器宽度时该怎么办**。
+   *
+   * jsdom 里 `getBoundingClientRect()` 全是 0，于是 `(clientX - 0) / 0` 得到
+   * `Infinity` 或 `NaN`。这个值一旦被夹进 `[0.2, 0.8]` 之外的比较里就会变成
+   * 一个「合法」的边界值并被**持久化** —— 之后每次打开都是那个比例，
+   * 而用户只会看到「分屏比例坏了」，找不到原因。
+   *
+   * 所以实现里是「宽度 ≤ 0 直接返回」。这条用例钉的就是那个提前返回。
+   */
+  it('拖动分隔条：量不到真实宽度时是空操作，不会把坏值写进偏好', async () => {
+    mounted = await mount((p) => p.put('note.md', SOURCE));
+    await mounted.open('note.md');
+    await clickViewMode(mounted.container, '分屏');
+
+    const divider = mounted.container.querySelector<HTMLElement>('.editor-divider');
+    expect(divider).not.toBeNull();
+
+    // 用 MouseEvent 而不是 PointerEvent：jsdom 没有实现 PointerEvent 构造器，
+    // 而 React 只按**事件名**分派 `onPointerDown`，类型本身不影响这条路径
+    await act(async () => {
+      divider!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 100 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 260 }));
+      window.dispatchEvent(new MouseEvent('pointerup'));
+    });
+    await settle();
+
+    // 两栏还在，比例也没被改坏
+    const panes = splitPanes(mounted.container);
+    expect(panes.length).toBe(2);
+    expect(panes[0]?.style.flexGrow).toBe('0.5');
+    expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 活动栏
+// ---------------------------------------------------------------------------
+
+/** 活动栏里的某个图标按钮（按它里面那段 `.sr-only` 文字找）。 */
+function activityItem(container: HTMLElement, label: string): HTMLButtonElement | null {
+  const found = [...container.querySelectorAll<HTMLButtonElement>('.activitybar button')].find(
+    (item) => item.textContent?.trim() === label,
+  );
+  return found ?? null;
+}
+
+describe('活动栏', () => {
+  /**
+   * 它是「这个应用有哪些面板」的**常驻入口**。
+   *
+   * 在这之前那五件事分别藏在三个快捷键和两个工具栏按钮后面，
+   * 而快捷键不是发现功能的入口（这是 M9 写设置页时定下的判断）。
+   */
+
+  it('五个入口都在，且开关状态由 aria-pressed 表达', async () => {
+    mounted = await mount(() => undefined);
+
+    for (const label of ['文件浏览器', '查找', '大纲', '命令面板', '设置']) {
+      expect(activityItem(mounted.container, label)).not.toBeNull();
+    }
+
+    // 测试偏好里侧栏是关的
+    expect(activityItem(mounted.container, '文件浏览器')?.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('点文件浏览器图标开关侧栏', async () => {
+    mounted = await mount(() => undefined);
+    expect(mounted.container.querySelector('.sidebar-slot')).toBeNull();
+
+    await mounted.click('文件浏览器');
+
+    expect(activityItem(mounted.container, '文件浏览器')?.getAttribute('aria-pressed')).toBe('true');
+    expect(mounted.container.querySelector('.sidebar-slot')).not.toBeNull();
+  });
+
+  it('点命令面板图标打开命令面板', async () => {
+    mounted = await mount(() => undefined);
+    expect(mounted.container.querySelector('.palette')).toBeNull();
+
+    await mounted.click('命令面板');
+
+    expect(mounted.container.querySelector('.palette')).not.toBeNull();
+  });
+
+  /**
+   * 「有，但这份文档用不上」用**禁用**表达，不是隐藏 ——
+   * 与工具栏那个「源码」开关同一条规矩。
+   */
+  it('查找与大纲按当前文档决定能不能点，禁用而不是消失', async () => {
+    mounted = await mount((p) => {
+      p.put('note.md', '# 标题\n');
+      p.put('main.py', 'print(1)\n');
+    });
+
+    // 还没打开任何文档：无处可查、也没有大纲
+    expect(activityItem(mounted.container, '查找')?.disabled).toBe(true);
+    expect(activityItem(mounted.container, '大纲')?.disabled).toBe(true);
+
+    await mounted.open('note.md');
+    expect(activityItem(mounted.container, '查找')?.disabled).toBe(false);
+    expect(activityItem(mounted.container, '大纲')?.disabled).toBe(false);
+
+    await mounted.open('main.py');
+    // 代码文档没有标题结构。按钮还在（用户能看到功能存在），只是置灰
+    expect(activityItem(mounted.container, '大纲')?.disabled).toBe(true);
+    expect(activityItem(mounted.container, '查找')?.disabled).toBe(false);
   });
 });
 
@@ -1931,7 +2281,7 @@ function cursorOf(container: HTMLElement): string {
 }
 
 describe('设置页', () => {
-  it('从工具栏打开，Esc 关闭', async () => {
+  it('从活动栏打开，Esc 关闭', async () => {
     mounted = await mount(() => undefined);
     expect(mounted.container.querySelector('.settings')).toBeNull();
 

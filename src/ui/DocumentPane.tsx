@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import type { BomKind, LineEndingName } from '../core/document/types.js';
 import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
@@ -36,6 +37,7 @@ import type {
   TableState,
 } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
+import { SPLIT_RATIO_MAX, SPLIT_RATIO_MIN } from '../core/settings.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
 import { CodeBlockPicker } from './CodeBlockPicker.js';
@@ -44,6 +46,7 @@ import { Lightbox } from './Lightbox.js';
 import { SelectionToolbar } from './SelectionToolbar.js';
 import { SlashMenu } from './SlashMenu.js';
 import { TableToolbar } from './TableToolbar.js';
+import { ViewSwitcher } from './ViewSwitcher.js';
 
 const ENCODINGS: Array<{ label: string; encoding: string; bom: BomKind }> = [
   { label: 'UTF-8', encoding: 'UTF-8', bom: 'none' },
@@ -69,6 +72,26 @@ const STATUS_TEXT = {
   conflict: '磁盘上有更新的版本',
   error: '出错',
 } as const;
+
+/**
+ * 分屏时「左栏改完 → 右栏重画」的等待窗口（毫秒）。
+ *
+ * 取 160ms 的依据是**两端**的代价：
+ *
+ * - 太短（比如逐字推、或者 16ms 一帧）等于把打字成本乘以文档长度 ——
+ *   右栏每收到一次新文本都要**整篇重新解析**（`setValue` → 一次完整 parse
+ *   ＋ 重新渲染全部节点）。这正是 `open-decisions.md` 的 V3 要测的那类退化，
+ *   而分屏恰恰是最容易把它引出来的场景：用户在左栏打字，右栏全程陪跑。
+ * - 太长（比如 500ms）用户会明确感到「预览慢半拍」，开始怀疑是不是卡了。
+ *
+ * 160ms 落在「连续击键的间隔（约 80–150ms）」与「人开始察觉延迟（约 200ms）」
+ * 之间：连续打字时它一直在重置、一次都不推（等用户停手），
+ * 而用户停手后到预览更新只隔一次眨眼。
+ *
+ * 这是个**手感参数**，不是正确性参数 —— 调它不会让任何测试变红，
+ * 只有人眼能判断好坏。
+ */
+const PREVIEW_SYNC_DELAY_MS = 160;
 
 function encodingKey(encoding: string, bom: BomKind): string {
   const hit = ENCODINGS.find((item) => item.encoding.toUpperCase() === encoding.toUpperCase() && item.bom === bom);
@@ -102,6 +125,15 @@ export interface DocumentPaneProps {
   /** 代码块是否显示行号。视图偏好，不写进文档。 */
   codeLineNumbers: boolean;
   onToggleCodeLineNumbers: (next: boolean) => void;
+  /**
+   * 分屏时左栏占的宽度比例（0.2–0.8）。视图偏好，不写进文档。
+   *
+   * 与 `wordWrap` 一样由外壳持有并持久化：面板只是把它**用**在布局上。
+   * 面板自己存的话，切标签页会重置成 50%，而用户刚把分隔条拖好。
+   */
+  splitRatio: number;
+  /** 分隔条拖完（松手）时提交新比例。**拖动过程中不要调它** —— 见 `beginSplitResize`。 */
+  onSplitRatioChange: (next: number) => void;
   /** 编辑器就绪时交出命令面；卸载或换文档时交回 null。 */
   onHandle: (handle: EditorHandle | null) => void;
   /** 首选内核或视图模式变化时通知外壳；卸载时以 null 撤回。 */
@@ -128,6 +160,8 @@ export function DocumentPane({
   wordWrap,
   codeLineNumbers,
   onToggleCodeLineNumbers,
+  splitRatio,
+  onSplitRatioChange,
   onHandle,
   onViewInfoChange,
   initialPosition,
@@ -152,6 +186,21 @@ export function DocumentPane({
   const lastPushedRef = useRef<string | null>(null);
 
   /**
+   * 分屏右栏（只读预览）的句柄与同步基准。
+   *
+   * 与左栏那三个 ref 一一对应，但**刻意不复用**：两个内核是两个独立实例，
+   * 「我属于哪一次实例」「我最后推给它的是什么」这两件事各自都要有一份。
+   * 共用一套的后果很具体 —— 左栏就绪时会把右栏的基准一起改掉，
+   * 于是分屏刚打开的那一帧右栏会闪一下旧内容。
+   *
+   * 声明在这个位置（而不是 `previewKey` 旁边）是因为下面的
+   * `handlePositionChange` 要用到 `previewRef`。
+   */
+  const previewRef = useRef<EditorHandle | null>(null);
+  const previewKeyRef = useRef<string | null>(null);
+  const previewPushedRef = useRef<string | null>(null);
+
+  /**
    * 待恢复的位置，以及上报用的回调。
    *
    * **都用 ref 而不是直接进依赖**，理由不同但都必要：
@@ -167,14 +216,38 @@ export function DocumentPane({
   const onPositionChangeRef = useRef(onPositionChange);
   onPositionChangeRef.current = onPositionChange;
 
+  /**
+   * 左栏上报的位置。
+   *
+   * 除了转给外壳（位置记忆），分屏时还要**顺手把滚动比例同步给右栏**。
+   *
+   * 这一步能成立，靠的是 ADR 0021 定下的那条约定：`offset` 是**内核空间的不透明值**，
+   * 而 `textLength` 是一致性凭据。左栏报的是源码字符数、右栏算的是
+   * ProseMirror 的 `doc.content.size`，两者**必然对不上** ——
+   * 于是右栏的 `setPosition` 会走「只恢复滚动、不动光标」那条路。
+   * 这正是分屏想要的效果：两栏一起滚，但预览栏不抢焦点。
+   *
+   * 换句话说：**跨内核传位置时「对不上」不是缺陷，而是这里唯一正确的行为。**
+   * 若哪天有人「修好」了 textLength 让两边相等，右栏就会开始跟着左栏跳光标，
+   * 而那是一个比不联动更糟的结果。
+   */
   const handlePositionChange = useCallback((position: EditorPosition) => {
     onPositionChangeRef.current?.(position);
+    previewRef.current?.setPosition?.(position);
   }, []);
 
   const [cursor, setCursor] = useState<CursorPosition | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
   /** 内核启动失败的那一次实例标识。用标识而不是布尔值，换文件 / 切视图后自然重新尝试。 */
   const [failedKey, setFailedKey] = useState<string | null>(null);
+  /**
+   * **预览栏**创建失败的那一次实例标识。与 `failedKey` 分开是必须的。
+   *
+   * 共用 `failedKey` 会造成一个很难查的连锁反应：右栏起不来 → 标记成
+   * 「这一次内核失败」→ 左栏被判定失败 → 整个文档退化成白底 textarea。
+   * 而实际情况是「预览渲染不出来，源码完全正常」—— 用户会以为文件坏了。
+   */
+  const [previewFailedKey, setPreviewFailedKey] = useState<string | null>(null);
 
   /**
    * 浮层工具条的两份输入：当前选区，和内核交出来的格式化命令面。
@@ -219,6 +292,14 @@ export function DocumentPane({
   const [lightbox, setLightbox] = useState<ImageInfo | null>(null);
   /** 全屏正在看的那张图表。null 表示查看器关着。 */
   const [diagram, setDiagram] = useState<DiagramView | null>(null);
+  /**
+   * 拖动分隔条过程中的**临时**比例。null 表示「没在拖」。
+   *
+   * 与 `sidebarWidth` 的处理完全同构：拖动期间只改这个本地值，
+   * 松手才把它提交给外壳去落盘。逐次 `pointermove` 都写一次 localStorage
+   * 会让拖拽明显发涩 —— 而拖拽恰恰是最需要跟手的一个交互。
+   */
+  const [liveSplitRatio, setLiveSplitRatio] = useState<number | null>(null);
 
   const session = doc?.session ?? 0;
   /**
@@ -229,6 +310,16 @@ export function DocumentPane({
    */
   const kernelKey = `${session}:${viewMode}`;
   const kernelFailed = failedKey !== null && failedKey === kernelKey;
+
+  /**
+   * 右栏预览的内核标识。
+   *
+   * 刻意**不含 `viewMode`**：右栏只在分屏下存在，所以它一旦存在就是
+   * 「这一次会话的只读渲染」。用会话号而不是复用 `kernelKey`，
+   * 是为了避免「左栏的 key 变了右栏跟着重建」这种没必要的耦合。
+   */
+  const previewKey = `${session}:preview`;
+  const previewFailed = previewFailedKey !== null && previewFailedKey === previewKey;
 
   /**
    * 选内核（**首选内核**，与视图模式无关）。
@@ -260,7 +351,30 @@ export function DocumentPane({
   const adapter = useMemo(() => {
     if (primary === null) return null;
     if (kernelFailed) return EDITOR_FALLBACK;
-    if (viewMode === 'source') return primary.sourceView ?? primary;
+    // `source` 与 `split` 的**左栏**都是源码视图；内核没声明 `sourceView` 时
+    // 退回首选内核（与源码模式同样的降级：宁可显示富文本，也不要空着）
+    if (viewMode !== 'rich') return primary.sourceView ?? primary;
+    return primary;
+  }, [primary, viewMode, kernelFailed]);
+
+  /**
+   * 分屏右栏的只读预览内核。null 表示「这次不分屏」。
+   *
+   * 三个条件缺一不可：
+   * - **首选内核起得来**。它起不来时左栏已经是兜底内核（白底 textarea）了，
+   *   再挂一个「同一份文档的只读渲染」没有意义；
+   * - **首选内核真的声明了 `sourceView`**。少了这一条，左右两栏会是同一个内核 ——
+   *   那不是分屏，是并排画两遍同样的东西；
+   * - 当前确实是 `split`。
+   *
+   * 预览用**首选内核本身**加 `readOnly`，而不是另造一条 Markdown → HTML 的渲染管线。
+   * 后者会得到「预览和富文本视图长得不一样」的结果，而用户一定会认为其中一个是错的 ——
+   * 而且两条渲染管线要各自维护表格、公式、图表、图片的相对路径解析。
+   */
+  const previewAdapter = useMemo(() => {
+    if (primary === null || kernelFailed) return null;
+    if (viewMode !== 'split') return null;
+    if (primary.sourceView === undefined) return null;
     return primary;
   }, [primary, viewMode, kernelFailed]);
 
@@ -282,6 +396,8 @@ export function DocumentPane({
   useEffect(() => () => onHandle(null), [onHandle]);
 
   const EditorComponent = adapter?.Component ?? null;
+  /** 分屏右栏要用的内核。null 表示这次不分屏（见 `previewAdapter`）。 */
+  const PreviewComponent = previewAdapter?.Component ?? null;
 
   // ---- 内核 ↔ 外壳 的双向同步 -------------------------------------------
 
@@ -332,6 +448,77 @@ export function DocumentPane({
     [kernelKey, store, onHandle],
   );
 
+  /**
+   * 右栏预览就绪。
+   *
+   * 它**刻意不做** `handleEditorReady` 做的那些事，逐条对应：
+   *
+   * - **不调 `onHandle`**。命令面（保存、查找、格式化、导出）属于
+   *   **用户正在编辑的那一栏**，也就是左栏。右栏交出句柄会让 `Ctrl+S`
+   *   保存到预览上去 —— 而两者其实是同一份文档，用户不会立刻发现，
+   *   等到发现时已经晚了。
+   * - **不恢复位置**。左栏恢复完之后会通过 `handlePositionChange`
+   *   把滚动同步过来。右栏自己再恢复一次是重复劳动，而且两份位置可能不同。
+   * - **不设 `formatting` / `table` / `codeBlock`**。那些是浮层工具条的输入，
+   *   而预览栏里不该弹工具条：在预览里选中一段文字、浮出一个「加粗」、
+   *   点下去却作用在左栏 —— 没有任何用户能猜到这个行为。
+   * - **不碰 `failedKey`**。见 `previewFailedKey` 的注释。
+   */
+  const handlePreviewReady = useCallback(
+    (handle: EditorHandle) => {
+      previewRef.current = handle;
+      previewKeyRef.current = previewKey;
+      // 右栏刚才是用 `doc.text` 挂载的，两边已经一致 —— 记下基准，
+      // 免得下面那个同步 effect 立刻又推一遍
+      previewPushedRef.current = store.getSnapshot().doc?.text ?? '';
+    },
+    [previewKey, store],
+  );
+
+  /**
+   * 右栏创建失败。
+   *
+   * 只标右栏，不动左栏 —— 源码照常可编辑，界面上会如实说明「预览没起来」。
+   * 这是「绝不静默」在分屏这一处的具体形态：**降级要说出来，而且只降该降的那一半**。
+   */
+  const handlePreviewError = useCallback(() => {
+    previewRef.current = null;
+    previewKeyRef.current = null;
+    setPreviewFailedKey(previewKey);
+  }, [previewKey]);
+
+  /**
+   * 左栏 → 右栏的内容同步。
+   *
+   * **必须防抖**：`doc.text` 每敲一个字就变一次，而右栏拿到新文本要
+   * **整篇重新解析**（`setMarkdown` 是一次完整 parse + 重新渲染）。
+   * 逐字推过去等于把打字成本乘以文档长度 —— 长文档上这会直接拖垮手感，
+   * 而那正是这条技术路线上最该避免的一类退化（见 `open-decisions.md` 的 V3）。
+   *
+   * 窗口取 160ms：短于人的「停一下」感知，长于连续击键的间隔。
+   * 代价是预览会滞后一点点 —— 分屏预览本来就不是逐帧同步的东西。
+   *
+   * 它**不读 `handleRef`**：那条链路（下面那个 effect）是「外壳 → 左栏」的
+   * 外部变更推送，方向相反。混在一起会让「谁该覆盖谁」变成一个需要仔细推理的问题，
+   * 而这类问题一旦推理错就是静默丢数据。
+   */
+  useEffect(() => {
+    if (previewAdapter === null || previewFailed) return;
+    if (previewKeyRef.current !== previewKey) return;
+    const text = doc?.text;
+    if (text === undefined || text === previewPushedRef.current) return;
+
+    const timer = setTimeout(() => {
+      const handle = previewRef.current;
+      // 定时器到期时世界可能已经变了：换了文件、切了视图、内核重建过。
+      // 这三件事都会让 `previewKeyRef` 与 `previewKey` 不再相等
+      if (!handle || previewKeyRef.current !== previewKey) return;
+      handle.setValue(text);
+      previewPushedRef.current = text;
+    }, PREVIEW_SYNC_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [doc, previewAdapter, previewFailed, previewKey]);
+
   useEffect(() => {
     if (!doc) return;
     // 新内核还没就绪（或者启动失败了），此时 handleRef 里要么是空的、
@@ -360,9 +547,20 @@ export function DocumentPane({
    * 看到的仍然是兜底内核，而且**没有任何解释**（错误横幅属于上一个实例，
    * 早被撤掉了）。那是这个功能最糟的失败形态 —— 界面不对，还不说为什么。
    * 重试一次的成本是一次内核创建，而用户已经明确表达了「我要看那一边」。
+   *
+   * ## 预览栏的失败标记也在这里清
+   *
+   * 同样的道理，而且它更容易踩：`previewKey` 只含会话号（不含视图模式），
+   * 所以「分屏 → 富文本 → 分屏」不会换出一个新的 `previewKey`。
+   * 不在这里清的话，右栏失败一次就**永久**失败 —— 用户来回切几次都还是
+   * 「预览没能渲染出来」，而他能做的只有换标签页。
+   *
+   * 这个 effect 在**离开分屏**时（`kernelKey` 从 `…:split` 变成 `…:rich`）
+   * 就已经把它清掉了，所以再进分屏一定是一次全新的尝试。
    */
   useEffect(() => {
     setFailedKey(null);
+    setPreviewFailedKey(null);
     // 换内核实例 = 换了一份文档或换了一边视图，上一个实例报上来的选区与命令面
     // 都已经失效。不清的话，切标签页的那一帧会拿旧选区画出一个位置正确的浮层 ——
     // 位置对了反而更糟，用户会以为它属于新文档
@@ -401,6 +599,57 @@ export function DocumentPane({
   /** 与 `closeLightbox` 同理：必须是稳定引用（`DiagramViewer` 的 Esc 监听依赖它）。 */
   const closeDiagram = useCallback(() => setDiagram(null), []);
 
+  /**
+   * 切换视图三态。
+   *
+   * 直接调 `store.setViewMode` 而不走命令注册表：命令是给**键盘与命令面板**
+   * 用的入口（它们需要 `enabled` 判断、需要出现在快捷键表里），而这个按钮
+   * 就在面板自己身上、状态也是面板自己读的。绕一圈反而要在这里再判一次
+   * 「有没有活动文档」——而 `setViewMode` 自己已经静默忽略空文档了。
+   */
+  const switchView = useCallback((mode: ViewMode) => store.setViewMode(mode), [store]);
+
+  /**
+   * 拖动分屏分隔条。
+   *
+   * ## 为什么在 `pointerdown` 那一刻就把容器的矩形量下来
+   *
+   * 拖动过程中容器的宽度**会变**（分隔条一动，两侧的宽度就变），
+   * 但容器的**外框**是不变的。在每次 `pointermove` 里重量一次也得到同样的值，
+   * 而那是每次移动都强制一次布局 —— 拖拽立刻变涩。量一次、记住，就够了。
+   *
+   * ## 为什么矩形宽度为 0 时直接返回
+   *
+   * jsdom 没有布局引擎，`getBoundingClientRect()` 返回全 0。不挡这一下会算出
+   * `NaN`（0/0），而 `NaN` 会一路走进偏好里被持久化 —— 之后每次打开都是
+   * 「比例是 NaN」，布局塌成一条线，看起来像设置页坏了。
+   */
+  const beginSplitResize = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const container = event.currentTarget.parentElement;
+      if (container === null) return;
+      const rect = container.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      event.preventDefault();
+
+      const onMove = (move: PointerEvent) => {
+        const ratio = (move.clientX - rect.left) / rect.width;
+        setLiveSplitRatio(Math.min(SPLIT_RATIO_MAX, Math.max(SPLIT_RATIO_MIN, ratio)));
+      };
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        setLiveSplitRatio((ratio) => {
+          if (ratio !== null) onSplitRatioChange(ratio);
+          return null;
+        });
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    },
+    [onSplitRatioChange],
+  );
+
   const handleEditorError = useCallback(
     (thrown: Error) => {
       setEditorError(thrown.message);
@@ -417,6 +666,73 @@ export function DocumentPane({
   const stats = useMemo(() => (docText === undefined ? null : analyze(docText)), [docText]);
 
   const activeEncodingKey = doc ? encodingKey(doc.encoding, doc.bom) : '';
+
+  /**
+   * 左栏（不分屏时是唯一一栏）的编辑器元素。
+   *
+   * 抽成变量而不是写两遍 JSX：分屏与不分屏的**左栏完全相同**，
+   * 写两遍的话将来加一个 prop 就得记得改两处 ——
+   * 而漏改的那一处表现是「分屏下某个功能不工作」，很难联想到是 props 少传了。
+   */
+  const editorNode =
+    doc && EditorComponent ? (
+      <EditorComponent
+        // 换文件、换视图都要重建内核：撤销栈、光标、滚动位置都该跟着换。
+        // 「另存为」换了路径但 session 与视图都不变，所以不会被重建 ——
+        // 否则用户刚改完按 Ctrl+Shift+S，光标会跳回开头。
+        key={kernelKey}
+        initialValue={doc.text}
+        path={doc.path}
+        readOnly={doc.readonly}
+        wordWrap={wordWrap}
+        codeLineNumbers={codeLineNumbers}
+        placeholder="在这里写。支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档。"
+        onChange={handleEditorChange}
+        onReady={handleEditorReady}
+        onCursorChange={setCursor}
+        onPositionChange={handlePositionChange}
+        onSelectionChange={setSelection}
+        onSlashChange={setSlash}
+        onTableChange={setTable}
+        onCodeBlockChange={setCodeBlock}
+        resolveImageUrl={store.resolveImageUrl}
+        onImagePaste={handleImagePaste}
+        onImageClick={setLightbox}
+        onDiagramOpen={setDiagram}
+        onError={handleEditorError}
+      />
+    ) : null;
+
+  /**
+   * 现在是不是真的要并排显示两栏。
+   *
+   * 判据是 `previewAdapter` **加上**「右栏这一次没起崩」——
+   * 右栏起崩之后 `previewAdapter` 仍然非 null（它是「该不该分屏」的判断，
+   * 与运行时成败无关），所以少了后半个条件会让一个已经报错的预览栏
+   * 继续占着屏幕右半边。
+   */
+  const splitActive = previewAdapter !== null && PreviewComponent !== null && !previewFailed;
+
+  /** 拖动中就用临时值，否则用偏好里那个。拖动结束会把临时值提交上去并清空它。 */
+  const effectiveSplitRatio = liveSplitRatio ?? splitRatio;
+
+  /**
+   * 右栏报上来的内容变更。
+   *
+   * **它不该被调用**，而且这里刻意什么都不做。两个理由：
+   *
+   * 1. 右栏是 `readOnly` 的（Markdown 内核靠 ProseMirror 的
+   *    `editable: () => false` 实现真正的只读），用户改不动它；
+   * 2. 就算它报了，**也不能往 `store` 里写**：左栏才是用户正在编辑的那一栏，
+   *    同一份 `doc.text` 有第二个写入方就会变成竞态 —— 而竞态的两种结果
+   *    （丢用户的字 / 把预览的旧文本写回去）都属于静默丢数据。
+   *
+   * 所以这里不是「忘了处理」，是**明确地拒绝第二个写入方**。
+   * 之所以还要留一个函数而不是传 `() => {}`：每次渲染新建一个函数会让
+   * 内核那一侧的 props 比较失效（它把 `onChange` 存进 ref，但仍有别的实现
+   * 会把它放进依赖里），而这是个稳定引用，零成本。
+   */
+  const ignoreChange = useCallback(() => undefined, []);
 
   return (
     <>
@@ -478,33 +794,63 @@ export function DocumentPane({
         </div>
       )}
 
+      {previewFailed && (
+        <div className="banner warn">
+          <span className="grow">
+            <strong>预览没能渲染出来。</strong>
+            源码那一栏照常可以编辑，保存也不受影响 —— 只是右边看不到渲染结果。
+          </span>
+          <button type="button" onClick={() => store.setViewMode('source')}>
+            只显示源码
+          </button>
+        </div>
+      )}
+
       <main className="editor-area">
-        {doc && EditorComponent ? (
-          <EditorComponent
-            // 换文件、换视图都要重建内核：撤销栈、光标、滚动位置都该跟着换。
-            // 「另存为」换了路径但 session 与视图都不变，所以不会被重建 ——
-            // 否则用户刚改完按 Ctrl+Shift+S，光标会跳回开头。
-            key={kernelKey}
-            initialValue={doc.text}
-            path={doc.path}
-            readOnly={doc.readonly}
-            wordWrap={wordWrap}
-            codeLineNumbers={codeLineNumbers}
-            placeholder="在这里写。支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档。"
-            onChange={handleEditorChange}
-            onReady={handleEditorReady}
-            onCursorChange={setCursor}
-            onPositionChange={handlePositionChange}
-            onSelectionChange={setSelection}
-            onSlashChange={setSlash}
-            onTableChange={setTable}
-            onCodeBlockChange={setCodeBlock}
-            resolveImageUrl={store.resolveImageUrl}
-            onImagePaste={handleImagePaste}
-            onImageClick={setLightbox}
-            onDiagramOpen={setDiagram}
-            onError={handleEditorError}
-          />
+        {editorNode !== null ? (
+          splitActive ? (
+            <div className="editor-split">
+              {/* 左栏 = 源码（可编辑），右栏 = 只读渲染。
+                  两栏的 flex-grow 用内联样式给：它是**每次拖动都在变**的值，
+                  写进样式表就得靠自定义属性 + 一次字符串拼装，
+                  而这里直接给数字更直白、也没有转义问题。
+                  `flex-basis: 0` 在样式表里（见 styles.css）—— 那一半是不变的。 */}
+              <div className="editor-pane" style={{ flexGrow: effectiveSplitRatio }}>
+                {editorNode}
+              </div>
+              <div
+                className="editor-divider"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="拖动调整源码与预览的宽度"
+                onPointerDown={beginSplitResize}
+              />
+              <div className="editor-pane" aria-label="只读预览" style={{ flexGrow: 1 - effectiveSplitRatio }}>
+                <PreviewComponent
+                  // 右栏的内核标识不含视图模式（见 `previewKey`）：它只在分屏下存在，
+                  // 一旦存在就是「这一次会话的只读渲染」，与左栏是源码还是富文本无关
+                  key={previewKey}
+                  initialValue={doc?.text ?? ''}
+                  path={doc?.path ?? ''}
+                  // 只读。Markdown 内核靠 ProseMirror 的 `editable: () => !readOnly`
+                  // 实现真正的只读 —— 不是「拦下按键」那种假只读
+                  readOnly
+                  wordWrap={wordWrap}
+                  codeLineNumbers={codeLineNumbers}
+                  onChange={ignoreChange}
+                  onReady={handlePreviewReady}
+                  // 图片与图表在预览栏里**照常可点**：那两件事只读不改文档，
+                  // 而且「点一下放大看」正是用户想在预览里做的事
+                  resolveImageUrl={store.resolveImageUrl}
+                  onImageClick={setLightbox}
+                  onDiagramOpen={setDiagram}
+                  onError={handlePreviewError}
+                />
+              </div>
+            </div>
+          ) : (
+            editorNode
+          )
         ) : doc ? (
           <div className="empty">
             <h2>找不到能打开这个文档的内核</h2>
@@ -631,6 +977,16 @@ export function DocumentPane({
         {notice && <span className="hint">{notice}</span>}
         <span className="sep">│</span>
         <span className="hint">Ctrl+S 保存 · Ctrl+P 命令面板</span>
+        {/* 视图三档放在最右：VSCode 的状态栏最右侧就是「这份文档是什么、
+            现在怎么看」这一类信息（语言模式、编码）。它**只在有得选的时候出现** ——
+            代码 / 纯文本文档本身就是源码，「切到源码」对它们是个不存在的动作，
+            给一个恒亮的单选项比不给更让人困惑。 */}
+        {primary?.sourceView !== undefined && (
+          <>
+            <span className="sep">│</span>
+            <ViewSwitcher value={viewMode} onChange={switchView} />
+          </>
+        )}
       </footer>
     </>
   );

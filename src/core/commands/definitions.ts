@@ -181,6 +181,50 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     enabled: (ctx) => ctx.ui.canToggleSourceView(),
     run: (ctx) => ctx.ui.toggleSourceView(),
   },
+  /**
+   * 三档视图的直接入口。
+   *
+   * ## 为什么是 `Ctrl+1/2/3` 而不是 `Ctrl+/` 那种循环
+   *
+   * 循环是**有状态的**：想从富文本切到分屏，得先知道「现在在哪一档、
+   * 还要按几下」。三档之后这个心智负担明显变大（两档时循环很自然，
+   * 三档就开始猜）。数字键是「直接跳过去」，与 VSCode 的编辑器组切换同一个思路。
+   *
+   * `Ctrl+/` 保留：它在两档之间来回仍然是最高频的动作，不该被迫多按一个键。
+   *
+   * ## `enabled` 用的是同一个判据
+   *
+   * 源码与分屏都要求首选内核声明了 `sourceView`（目前是 Markdown），
+   * 所以三个命令里有两个共用 `canToggleSourceView()` —— 名字说的是
+   * 「能不能切到源码那一侧」，而分屏正是「源码那一侧 + 预览」。
+   * 富文本那一档永远可用（兜底内核也能渲染），所以它没有 `enabled`。
+   */
+  {
+    id: 'view.rich',
+    title: '富文本视图',
+    category: '视图',
+    keybinding: 'Mod+1',
+    keywords: ['rich', 'wysiwyg', 'fuwenben', '预览', '所见即所得'],
+    run: (ctx) => ctx.ui.setViewMode('rich'),
+  },
+  {
+    id: 'view.source',
+    title: '源码视图',
+    category: '视图',
+    keybinding: 'Mod+2',
+    keywords: ['source', 'yuanma', '源码', 'markdown'],
+    enabled: (ctx) => ctx.ui.canToggleSourceView(),
+    run: (ctx) => ctx.ui.setViewMode('source'),
+  },
+  {
+    id: 'view.split',
+    title: '源码 + 预览（并排）',
+    category: '视图',
+    keybinding: 'Mod+3',
+    keywords: ['split', 'side by side', 'bingshu', '分屏', '双栏', 'fenping'],
+    enabled: (ctx) => ctx.ui.canToggleSourceView(),
+    run: (ctx) => ctx.ui.setViewMode('split'),
+  },
   {
     id: 'view.cycleTheme',
     title: '切换主题',

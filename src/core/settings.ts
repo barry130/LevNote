@@ -47,6 +47,17 @@ export interface ViewSettings {
    * 只是不再读也不再写。要真的清空，设置页里有独立的「清除位置记忆」。
    */
   readonly rememberPositions: boolean;
+  /**
+   * 分屏时左栏（源码）占的宽度比例，0.2–0.8。
+   *
+   * 与 `sidebarWidth` 一样是**持久化**的：分屏比例是「我这台机器、这个屏」的
+   * 一次性调好的东西，每次打开都要重调一遍会很烦。
+   *
+   * 只存**比例**不存像素：比例与窗口大小无关，换个窗口宽度打开还是同一个观感；
+   * 存像素的话在宽屏上调好的 800px，到了窄窗口就变成「预览只剩一条缝」。
+   * 这也是位置记忆里滚动用比例的同一条理由（见 `EditorPosition.scrollRatio`）。
+   */
+  readonly splitRatio: number;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -57,10 +68,23 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   wordWrap: false,
   codeLineNumbers: true,
   rememberPositions: true,
+  splitRatio: 0.5,
 };
 
 export const SIDEBAR_MIN_WIDTH = 160;
 export const SIDEBAR_MAX_WIDTH = 480;
+
+/**
+ * 分屏比例的上下限。
+ *
+ * **刻意不是 0 和 1**：0 或 1 会让另一栏宽度归零，而它仍然占着 DOM ——
+ * 用户会看到「分屏开着但只有一栏」，既不知道为什么、也拖不回来
+ * （分隔条本身也只剩一个像素）。要只看一栏请用「富文本 / 源码」那两档，
+ * 它们是真正的「只显示一栏」。0.2 / 0.8 保证两栏各自至少有一屏的 1/5，
+ * 任何一边都还看得见、还能被拖。
+ */
+export const SPLIT_RATIO_MIN = 0.2;
+export const SPLIT_RATIO_MAX = 0.8;
 
 const STORAGE_KEY = 'qingmo.settings.v1';
 
@@ -74,6 +98,11 @@ function clampSidebar(width: unknown): number {
 
 function asBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
+}
+
+function clampSplitRatio(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_SETTINGS.splitRatio;
+  return Math.min(SPLIT_RATIO_MAX, Math.max(SPLIT_RATIO_MIN, value));
 }
 
 /**
@@ -111,6 +140,7 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     wordWrap: asBoolean(record['wordWrap'], DEFAULT_SETTINGS.wordWrap),
     codeLineNumbers: asBoolean(record['codeLineNumbers'], DEFAULT_SETTINGS.codeLineNumbers),
     rememberPositions: asBoolean(record['rememberPositions'], DEFAULT_SETTINGS.rememberPositions),
+    splitRatio: clampSplitRatio(record['splitRatio']),
   };
 }
 

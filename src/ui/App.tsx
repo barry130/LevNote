@@ -43,6 +43,7 @@ import {
 import { applyTheme, cycleTheme, resolveTheme, systemPrefersDark, type ThemePreference } from '../core/theme/theme.js';
 import type { WorkspaceStore } from '../core/workspace/store.js';
 import { registerBuiltInEditors } from '../modules/index.js';
+import { ActivityBar } from './ActivityBar.js';
 import { Mark } from './brand.js';
 import { CommandPalette } from './CommandPalette.js';
 import { DocumentPane, type PaneViewInfo } from './DocumentPane.js';
@@ -62,6 +63,12 @@ registerBuiltInEditors();
  * **是精选子集，不是命令面板的镜像**：工具栏只放高频且需要「一眼看到」的动作，
  * 其余交给 Ctrl+P。但每个按钮的**行为**都走命令 ——
  * 于是不可能出现「按钮和命令面板里的同一个功能行为不一致」。
+ *
+ * ## 「设置」与「命令面板」不在这里
+ *
+ * 它们搬去了活动栏（见 `ActivityBar.tsx`）。理由不是省地方，而是**分工**：
+ * 工具栏放「对文档做什么」（打开 / 保存 / 导出），活动栏放「看哪个面板」。
+ * 一个动作有两个常驻入口时，用户会开始猜「它们是不是不一样」。
  */
 const TOOLBAR: ReadonlyArray<{ id: string; label: string }> = [
   { id: 'file.open', label: '打开' },
@@ -72,7 +79,6 @@ const TOOLBAR: ReadonlyArray<{ id: string; label: string }> = [
   // 视图动作，不是文件动作 —— 但它是最常被点的开关之一，值得占一个位置。
   // 文字由下面的渲染按当前视图模式决定（它是开关，不是按钮）。
   { id: 'view.toggleSource', label: '源码' },
-  { id: 'app.settings', label: '设置' },
 ];
 
 /**
@@ -295,9 +301,16 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
         if (store === null) return;
         const snapshot = store.getSnapshot();
         if (snapshot.doc === null) return;
-        // 只翻模式，不碰内容：两种视图共用 `doc.text` 这一份权威副本，
-        // 所以来回切是**无损**的 —— 这也是「外壳不认识内核」带来的好处之一
-        store.setViewMode(snapshot.viewMode === 'source' ? 'rich' : 'source');
+        // 只翻模式，不碰内容：三种视图共用 `doc.text` 这一份权威副本，
+        // 所以来回切是**无损**的 —— 这也是「外壳不认识内核」带来的好处之一。
+        // 判据写成「是不是 rich」而不是「是不是 source」：分屏也属于源码那一侧，
+        // 从它切回去的落点应该是富文本，与源码模式同一个出口
+        store.setViewMode(snapshot.viewMode === 'rich' ? 'source' : 'rich');
+      },
+      setViewMode: (mode) => {
+        // 没有活动文档时 `DocumentStore.setViewMode` 自己会静默忽略
+        // （切视图是纯视图动作，不该在空标签页上报错），这里不必再判一次
+        workspace.activeStore?.setViewMode(mode);
       },
       notify: (message, title) => provider.notify(message, title),
       closeActiveTab,
@@ -321,6 +334,21 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
       void Promise.resolve(command.run(context)).catch((thrown: unknown) => {
         console.warn(`命令 ${id} 执行失败`, thrown);
       });
+    },
+    [registry, context],
+  );
+
+  /**
+   * 某个命令此刻可不可用。
+   *
+   * 抽出来是因为工具栏与活动栏都要问同一个问题，而**答案必须来自同一个地方**：
+   * 命令的 `enabled` 是它的契约（保存要判只读、查找要判有没有文档），
+   * 两处各判一次迟早会分叉 —— 而分叉的表现是「工具栏灰着但活动栏能点」。
+   */
+  const isEnabled = useCallback(
+    (id: string) => {
+      const command = registry.find(id);
+      return command !== undefined && (command.enabled ? command.enabled(context) : true);
     },
     [registry, context],
   );
@@ -484,10 +512,12 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
         <span className="toolbar">
           {TOOLBAR.map(({ id, label }) => {
             const command = registry.find(id);
-            const enabled = command !== undefined && (command.enabled ? command.enabled(context) : true);
-            // 「源码」是一个**开关**，文字必须反映当前在哪一边 ——
-            // 固定写「源码」的话，切过去之后用户会以为再点一次还是切到源码
-            const text = id === 'view.toggleSource' && paneInfo?.viewMode === 'source' ? '富文本' : label;
+            const enabled = isEnabled(id);
+            // 「源码」是一个**开关**，文字必须反映点了之后去哪 ——
+            // 固定写「源码」的话，切过去之后用户会以为再点一次还是切到源码。
+            // 分屏算「源码那一侧」，所以它显示的也是「富文本」（同一个出口）
+            const text =
+              id === 'view.toggleSource' && paneInfo !== null && paneInfo.viewMode !== 'rich' ? '富文本' : label;
             return (
               <button
                 key={id}
@@ -501,9 +531,6 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
               </button>
             );
           })}
-          <button type="button" onClick={() => setPaletteOpen(true)} title="命令面板（Ctrl+P）">
-            命令
-          </button>
         </span>
       </header>
 
@@ -539,6 +566,18 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
       )}
 
       <div className="body">
+        <ActivityBar
+          sidebarVisible={settings.sidebarVisible}
+          outlineVisible={settings.outlineVisible}
+          canOutline={outlineEnabled}
+          canFind={isEnabled('find.open')}
+          onToggleSidebar={() => runCommand('view.toggleSidebar')}
+          onToggleOutline={() => runCommand('view.toggleOutline')}
+          onFind={() => runCommand('find.open')}
+          onPalette={() => runCommand('palette.open')}
+          onSettings={() => runCommand('app.settings')}
+        />
+
         {settings.sidebarVisible && (
           <>
             <div className="sidebar-slot" style={{ width: sidebarWidth }}>
@@ -566,6 +605,8 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
               wordWrap={settings.wordWrap}
               codeLineNumbers={settings.codeLineNumbers}
               onToggleCodeLineNumbers={(next) => update({ codeLineNumbers: next })}
+              splitRatio={settings.splitRatio}
+              onSplitRatioChange={(next) => update({ splitRatio: next })}
               onHandle={onHandle}
               onViewInfoChange={onViewInfoChange}
               initialPosition={initialPosition}

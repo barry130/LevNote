@@ -95,3 +95,42 @@ describe('滚动容器的所有权', () => {
     expect(propertiesOn(stylesCss, '.qm-code .cm-editor')).toContain('height');
   });
 });
+
+/**
+ * 分屏引入的是**同一个病的第三次复发机会**。
+ *
+ * 分屏时两栏各挂一个内核，很自然会想「给每一栏加个 `overflow: hidden`
+ * 免得内容溢到隔壁」。但那会让「某个内核忘了声明自己的滚动」变成
+ * **内容被安静裁掉且滚不动** —— 和 `.qm-editor` 那个躺了九个里程碑的
+ * bug 一模一样。溢到隔壁至少看得见。
+ *
+ * 所以这里钉的是：分屏的容器**只管宽度分配**，不碰滚动。
+ */
+describe('分屏的布局所有权', () => {
+  it('两栏只负责宽度分配，不声明 overflow', () => {
+    expect(propertiesOn(stylesCss, '.editor-split')).not.toContain('overflow');
+    expect(propertiesOn(stylesCss, '.editor-pane')).not.toContain('overflow');
+  });
+
+  /**
+   * 正向的那一半：两栏必须能被压扁。
+   *
+   * 少了 `min-width: 0`，flex 项目的默认 `min-width: auto` 会让宽度由**内容**
+   * 决定 —— 源码栏的长行会把预览栏挤成一条缝，而拖动分隔条看起来「没反应」。
+   */
+  it('两栏都能被压扁（否则长行会把另一栏挤没）', () => {
+    const props = propertiesOn(stylesCss, '.editor-pane');
+
+    expect(props).toContain('min-width');
+    expect(props).toContain('flex-basis');
+  });
+
+  /**
+   * 分隔条的命中区靠伪元素撑开，所以 `::after` 必须存在 ——
+   * 1px 的线在 4K 屏上几乎点不中。
+   */
+  it('分隔条有一条比它自己宽的命中区', () => {
+    expect(propertiesOn(stylesCss, '.editor-divider::after')).toContain('left');
+    expect(propertiesOn(stylesCss, '.editor-divider::after')).toContain('right');
+  });
+});

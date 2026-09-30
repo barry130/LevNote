@@ -17,7 +17,12 @@
 
 ---
 
-## 二、三条硬约束
+## 二、硬约束
+
+**这份清单是编号的唯一来源。** 代码注释里写的「硬约束 N」指的就是下面第 N 条 ——
+改任何一条之前，先去找它的完整理由（在对应的 ADR、或那一行代码旁边的注释里）。
+
+前三条是地基（破坏它们会让整个架构塌掉），后面十一条是「换个写法就会坏」的具体约束。
 
 ### 1. 依赖方向是单向的
 
@@ -39,6 +44,51 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 
 `modules/plaintext` 是兜底内核，**不注册进注册表**，而是作为常量直接交给外壳 ——
 这样它不可能被某个内核的错误配置遮蔽掉。任何改动都不能破坏这条。
+
+### 4–14
+
+4. **注册顺序即优先级**：`registerAdapter` 是 `push` + 先注册先匹配。
+   markdown 在前、code 在后（code 认得 `.md`，只作备胎）。
+5. **Markdown 扩展名名单只有一份**：`core/path.ts` 的 `MARKDOWN_EXTENSIONS`
+   （`isMarkdownPath()`）。抄多份的后果是**双重落空** —— 用户拿到白底 textarea，
+   而两边代码都没写错。`modules/wiring.test.ts` 跨模块断言钉住它。
+6. **`EditorAdapter.sourceView` 不注册进注册表**：注册表按路径挑内核，
+   同一路径只能有一个答案（ADR 0014）。源码视图是「同一路径的第二种看法」。
+7. **内核里任何绕过键盘事件改文档的能力，必须自己给事务打 `USER_EDIT_META`。**
+   `markdownEmitPlugin` 只在「刚发生过用户输入」的窗口内上报，而查找替换 /
+   浮层按钮 / 斜杠菜单**不产生 `input` / `paste`**。漏了 = **静默丢数据**
+   （文档不变脏，Ctrl+S 写回改动**之前**的文本，界面还显示「已保存」）。
+   已踩**六次**。`withUserEdit` 与 `withUserEditOnView` 是同一个东西的两半，不要各写一份。
+   **图表预览是唯一不需要打标记的**（只改选区、不改文档）。
+8. **`beforeinput` 是内核判定「这次变更是不是用户干的」的唯一可靠依据。**
+   ProseMirror **不监听 `input`**（靠 `MutationObserver`，回调是微任务，
+   跑在任何事件派发之前）。只挂 `input` 会让**第一次**变更被安静丢掉。
+9. **浮层菜单的键盘必须挂在 `window` 的捕获阶段**（`addEventListener(..., true)`）。
+   默认监听的话回车会先把段落拆开 —— ProseMirror 的 `handleKeyDown`
+   在 `view.dom` 的冒泡路径上先到。配套：菜单项按钮要 `preventDefault` 掉 `mousedown`。
+10. **浮层 / 面板不许持有文档坐标。** `setNodeAttribute` **不检查节点类型** ——
+    位置过期会安静写到另一个不相干的节点上。用 `resolvePos: () => number | null`，
+    **写的那一刻现问**。
+11. **外壳不许按类名 / DOM 结构去认内核画的东西。** 正确做法是**加一条契约方法**
+    （`EditorMountProps` 上的 `onImageClick` / `onDiagramOpen` …），
+    监听挂在内核自己造的元素上。判断依据：**只要需要外壳知道内核内部的 DOM 结构 /
+    类名 / 节点类型名，它就该是一条契约方法。**
+12. **`joinPath` 把相对部分的分隔符统一成 `base` 的风格。** Markdown 图片地址必须
+    正斜杠、Windows 文档路径是反斜杠；不统一则「写入路径」与「回读路径」是**两个字符串**，
+    只在**按字符串比较**处出问题（缓存键 / 去重）→「图写进去了但显示不出来」。
+    **只换风格**，不折叠重复分隔符、不解析 `..`。
+13. **样式表按「属性」划所有权，不按文件。** 内核根节点的**滚动**由内核自己的样式表声明
+    （Markdown 是 `.qm-editor`，CodeMirror 是 `.cm-scroller`）；外壳只声明
+    「把内核根节点压进 flex 容器」（`flex` / `min-height`）。
+    两边都声明同一个属性时**谁赢只看打包顺序**，而 `styles.css` 在产物里靠后、
+    会**安静地赢** —— 表现是「打开长文档滚不动」，且**从 `a224ec4` 就存在**
+    （jsdom 没有布局引擎，照不出来）。回归测试 `src/ui/styles.test.ts`。
+    > 硬约束 11 的同胞：11 说「外壳不许按类名认内核画的东西」，这条说「也不许替内核决定属性」。
+14. **构建期注入的常量必须写成 `import.meta.env.X`，不能写成裸标识符。**
+    Vite dev server **不替换裸标识符形式的 `define`**（`vite build` 与 vitest 都替换
+    → **单测全绿而开发时崩**）。踩过：设置页的版本号渲染时抛 `ReferenceError`，
+    没有错误边界，**React 卸掉整棵渲染树** —— 点一下设置应用就没了。
+    **凡是依赖构建期替换的东西，都要在真正跑起来的那条路径上验一次。**
 
 ---
 
@@ -71,9 +121,11 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
-| 界面布局 | `ui/App.tsx` + `ui/styles.css` |
+| 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
+| 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
+| **视图三态（富文本 / 源码 / 分屏）** | `core/document/store.ts` 的 `ViewMode`（**枚举，不是两个布尔**）+ `ui/ViewSwitcher.tsx`（状态栏里的三档）。分屏的两栏在 `ui/DocumentPane.tsx`：左 = `primary.sourceView`（可编辑），右 = `primary` 加 `readOnly` |
 | 某个面板 | `ui/DocumentPane.tsx` / `TabBar.tsx` / `Sidebar.tsx` / `FindBar.tsx` … |
-| 设置页 | `ui/SettingsDialog.tsx`。**快捷键表与版本号都不许手写**：前者由 `CommandRegistry` 派生，后者经 `vite.config.ts` 的 `define` 从 `package.json` 注入 |
+| 设置页 | `ui/SettingsDialog.tsx`。**快捷键表与版本号都不许手写**：前者由 `CommandRegistry` 派生，后者经 `vite.config.ts` 的 `define` 从 `package.json` 注入（**必须写成 `import.meta.env.X`**，见硬约束 14） |
 | 文件读写、编码探测 | `src-tauri/src/fs/` |
 
 ### 内核能力怎么加（不要破坏外壳的边界）
@@ -422,7 +474,7 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 
 ---
 
-## 六、现在的状态（2026-09-29）
+## 六、现在的状态（2026-09-30）
 
 **已完成**：P0–P3 的大部分 —— 文档生命周期、Markdown 内核、自包含导出、
 多标签工作区、文件树、代码内核、命令面板、查找替换、大纲、主题。
@@ -430,23 +482,27 @@ npm run lint         # 单独跑 ESLint（check 与 CI 都已包含）
 **Markdown 完善（P3.5，对标 horseMD）**：字数统计、源码模式切换（Ctrl+/）、
 **选中浮层工具条**、**斜杠菜单（`/` 插入块）**、
 **表格可视化编辑 + 代码块语言选择器 / 行号**、
-**图片粘贴落盘 + 相对路径 + 灯箱**、**LaTeX 数学公式**、**Mermaid 图表**已交付；
-块手柄、位置记忆、设置页待做。
+**图片粘贴落盘 + 相对路径 + 灯箱**、**LaTeX 数学公式**、**Mermaid 图表**、
+**位置记忆 + 设置页**、**VSCode 式外壳 + 视图三态（含源码/预览分屏）**已交付；
+**只剩块手柄**。
 清单在 `ROADMAP.md` 的 P3.5。
 **前六项都没有引入新依赖** —— `@milkdown/kit` 已经带齐大部分积木，
 表格与代码块是自研的（官方那套是 Vue 3，见 ADR 0017），
-图片的显示与灯箱也是自己画的（见 ADR 0018）。
+图片的显示与灯箱也是自己画的（见 ADR 0018），
+M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**837 条前端 + 15 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
-主包 1,734 kB（gzip 577 kB），已超 Vite 的 500 kB 警戒线 ——
+测试：**905 条前端 + 15 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+主包 1,749 kB（gzip 581 kB），已超 Vite 的 500 kB 警戒线 ——
 归因与拆分方案在 `ROADMAP.md` 第 18 项。
 打包产物 5.8 MB，其中 3.4 MB 是 mermaid 的懒加载 chunk（ADR 0020）。
 
 **最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V3**
 （Milkdown 长文档输入延迟 ≤ 50ms）。它的结论决定后续「Markdown 编辑体验怎么走」，
 而且**只能在真实 WebView 里测**（jsdom 的耗时没有参考价值）。
+跑的时候**一并测原文保真**（往返不篡改未编辑的 Markdown）——
+那是 horseMD 最值钱的差异点，我们从未测过。见 `MEMORY` 里的「一个重要的外部信号」。
 
 > **一条纪律**：`open-decisions.md` 里的 V1–V4 在没有结论之前，**不要再新增待验证项**。
 > 现状：V4（表格可视化编辑的成本）**已由 M5 回答** —— 自研可行、成本可接受；

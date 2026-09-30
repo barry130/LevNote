@@ -10,6 +10,7 @@
  * **能力的清单只有一份**。命令面板直接由注册表生成，因此它永远不会过期。
  */
 
+import type { ViewMode } from '../document/store.js';
 import type { DocumentProvider } from '../document/types.js';
 import type { EditorHandle } from '../editor/types.js';
 import type { ThemePreference } from '../theme/theme.js';
@@ -48,6 +49,17 @@ export interface UiActions {
   canToggleSourceView(): boolean;
   /** 在当前文档的富文本视图与源码视图之间切换。 */
   toggleSourceView(): void;
+  /**
+   * 切到指定视图（富文本 / 源码 / 源码+预览并排）。
+   *
+   * 与 `toggleSourceView` 并存而不是取代它：三档视图需要一个「直接跳过去」的
+   * 入口（`Ctrl+1/2/3`），而 `Ctrl+/` 是「在两档之间来回」的习惯动作。
+   * 两者都只改 `store.viewMode`，语义不重叠。
+   *
+   * 外壳**不检查**目标视图在这个内核上是否可用 —— 调用方（命令）已经通过
+   * `enabled` 做过这件事；store 那边也刻意不做判断（见 `DocumentStore.setViewMode`）。
+   */
+  setViewMode(mode: ViewMode): void;
   /** 弹一次提示（走平台对话框）。 */
   notify(message: string, title?: string): Promise<void>;
   /** 关闭当前标签页（内部会处理未保存确认）。 */

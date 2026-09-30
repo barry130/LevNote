@@ -385,7 +385,7 @@ describe('关闭', () => {
   });
 });
 
-describe('视图模式（富文本 / 源码）', () => {
+describe('视图模式（富文本 / 源码 / 分屏）', () => {
   /**
    * 这一组守的核心不变量：**视图模式是「这次会话怎么看待这份文档」，
    * 不是文档本身的属性**。所以它必须
@@ -411,6 +411,29 @@ describe('视图模式（富文本 / 源码）', () => {
     expect(snapshot.viewMode).toBe('source');
     expect(snapshot.doc?.text).toBe('# 标题\n');
     expect(snapshot.status).toBe('clean');
+  });
+
+  /**
+   * 分屏与源码**共用同一份 `doc.text`**，所以「进分屏」不该动内容、
+   * 更不该把它变成待保存。这条要是坏了，用户切一下视图就会看到
+   * 「有未保存的改动」，然后开始怀疑自己是不是改坏了什么。
+   */
+  it('进分屏同样不改内容、不算脏，且三档之间来回切是无损的', async () => {
+    provider.put('/p/a.md', '# 标题\n\n正文 **加粗**。\n');
+    await store.open('/p/a.md');
+
+    store.setViewMode('split');
+    expect(store.getSnapshot().doc?.text).toBe('# 标题\n\n正文 **加粗**。\n');
+    expect(store.getSnapshot().status).toBe('clean');
+
+    store.setViewMode('source');
+    store.setViewMode('rich');
+    store.setViewMode('split');
+
+    // 三档共用一份权威副本 —— 来回切是**无损**的，不是三次序列化往返
+    expect(store.getSnapshot().viewMode).toBe('split');
+    expect(store.getSnapshot().doc?.text).toBe('# 标题\n\n正文 **加粗**。\n');
+    expect(store.getSnapshot().status).toBe('clean');
   });
 
   it('reload 之后仍然停在源码视图 —— 视图模式不属于文档对象', async () => {

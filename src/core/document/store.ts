@@ -59,6 +59,12 @@ export interface ConflictInfo {
  *
  * - `rich`：渲染后的视图（Markdown 内核）。新打开的文档默认在这里。
  * - `source`：源码视图（由适配器的 `sourceView` 内核渲染）。
+ * - `split`：**源码与预览并排**。左栏是源码（可编辑，就是 `source` 那一个内核），
+ *   右栏是同一个文档的只读渲染（首选内核 + `readOnly`）。见 ADR 0022。
+ *
+ * `split` 刻意**不是**一个独立的开关位（比如 `split: boolean`）：那样会多出
+ * 「rich + split 同时为真」这种不存在的状态要回答，而三档是**互斥**的 ——
+ * 用户在任何时刻只看其中一种排布。互斥的取值就该是一个枚举。
  *
  * ## 为什么它**不放在 `OpenDocument` 里**
  *
@@ -71,7 +77,7 @@ export interface ConflictInfo {
  * 放进 `StoreState` 之后，它天然是**每标签页**的（一个标签页一个 store），
  * 且 `reload` / `saveAs` 这类只碰文档对象的操作碰不到它。
  */
-export type ViewMode = 'rich' | 'source';
+export type ViewMode = 'rich' | 'source' | 'split';
 
 export interface StoreState {
   doc: OpenDocument | null;
