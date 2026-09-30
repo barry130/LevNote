@@ -58,6 +58,14 @@ export default tseslint.config(
       'src-tauri/gen/**',
       'coverage/**',
       'docs/samples/**',
+      // ESLint **不读 `.gitignore`** —— 本地生成的目录必须在这里再列一遍，
+      // 否则 `npm run check` 会去 lint 它们。踩过两次：
+      // ① `.v3-edge-profile/` / `.v3-edge-p2/` 是 Edge 的调试用户目录，
+      //    里面躺着几十个扩展的 `.js`，全都报「not found by the project service」；
+      // ② `.v3-out/` 是 V3 跑出来的 JSON 与临时脚本。
+      '.v3-edge-profile/**',
+      '.v3-edge-p2/**',
+      '.v3-out/**',
     ],
   },
 

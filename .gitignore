@@ -19,3 +19,8 @@ Thumbs.db
 
 # V3（长文档输入延迟）的压测材料是生成物，脚本才是资产
 docs/samples/v3-longdoc*.md
+
+# V3 自动化的两个本地产物：Edge 调试用的一次性用户目录、跑出来的 JSON 读数
+.v3-edge-profile/
+.v3-edge-p2/
+.v3-out/

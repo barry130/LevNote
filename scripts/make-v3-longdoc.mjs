@@ -15,14 +15,20 @@
  * ## 为什么是两份而不是一份
  *
  * 单跑一份只能回答「过不过」。过不了的时候还需要回答「**是谁慢**」——
- * 否则拿到「超出 50ms」也不知道该改哪儿。两份文档构成一次干净的 A/B：
+ * 否则拿到「超出 50ms」也不知道该改哪儿。两份文档构成一次 A/B：
  *
- *   v3-longdoc.md        完整版（8 个代码块）
- *   v3-longdoc-nocode.md 对照组（代码块换成等量中文段落）
+ *   v3-longdoc.md        完整版（8 个高亮代码块）
+ *   v3-longdoc-nocode.md 对照组（那 8 个代码块换成等量中文段落）
  *
- * 两份的**节点数与总字数接近、只差「有没有 code_block」**。于是两份的
- * 延迟之差就是 `codeHighlightPlugin` 里那次 `buildDecorations(tr.doc)`
+ * 两份的**节点数与总字符数接近**，差的是那 8 个 `code_block` 节点。
+ * 于是两份的延迟之差就是 `codeHighlightPlugin` 里那次 `buildDecorations(tr.doc)`
  * （每次改文档整篇重跑 highlight.js）的净成本。详见 `plugin.ts`。
+ *
+ * **注意别把这份对照组读成「没有代码块」**：`EXTRAS` 里的 mermaid 围栏
+ * **两份都有**（它在 AST 里同样是 `code_block`，只是语言是 `mermaid`）。
+ * 换掉的只有那 8 个带真实语言的代码块。2026-09-30 实测踩到过这个误读 ——
+ * 对照组的落点正好落在一条 mermaid 围栏上，那一档就不是干净对照。
+ * 要做干净的 A/B，用 `--at start`（两份的首行是同一个 H1，落点完全一致）。
  *
  * 注意 A/B 的方向别做反：**把代码块的语言名删掉不是「去掉高亮」** ——
  * `highlightCode()` 对无语言输入会走 `hljs.highlightAuto()`，

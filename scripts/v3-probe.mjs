@@ -19,13 +19,71 @@
  * `Input.dispatchKeyEvent`，是浏览器眼中的**可信输入**，会完整走一遍输入管线。
  * 代价是要装一份 Chromium，而且无头模式下的绘制读数不可信 —— 本项目还没走这条路。）
  *
- * ## 三个读数，各自回答不同的问题
+ * ## 四个读数，各自回答不同的问题
  *
  * | 读数 | 含义 | 误差 |
  * |---|---|---|
- * | `sync` | `beforeinput` → `input`：**内核在一个事件循环里跑完的成本**（事务派发 + 整篇序列化上报 + 位置换算 + React 同步部分） | **无** |
- * | `paint` | 事件时间戳 → **下一次绘制**：用户实际感知的输入延迟 | **无**（Event Timing API 的定义） |
+ * | `输入延迟` | **主判据。** `beforeinput` → **出字那一帧**：用户实际感知的输入延迟 | **无**（Event Timing API 的定义） |
+ * | `sync` | `beforeinput` → `input`：浏览器完成原生插入 + 内核在这一段里同步跑掉的成本 | **无** |
+ * | `paint` | `input` → 出字那一帧 | **无** |
  * | `longtasks` | 主线程上 > 50ms 的独立任务 | **无** |
+ *
+ * `sync` 与 `paint` 是**分解**，但**不能相加** —— 它们量的是不同的那次绘制：
+ * `beforeinput` 的条目量到「字上屏」那一帧，`input` 的条目量到它**之后**的下一次绘制
+ * （内核把原生插入的文本改写回自己的模型之后）。实测 `sync 34 + paint 40 = 74ms`，
+ * 而同一批数据的 `输入延迟` 只有 48ms —— 差的那 26ms 是内核的收尾工作，
+ * 用户在 48ms 时已经看见字了。
+ *
+ * ## 2026-09-30 修正：主判据从 `paint` 改成 `beforeinput → 出字`
+ *
+ * 初版拿 `paint`（`input` → 下次绘制）当判据。**那是低估**：
+ * `input` 事件在 `beforeinput` 之后才发，所以 `paint` 把
+ * 「浏览器插入 + 内核同步响应」这一整段（实测 15–30ms，富文本档）漏在了外面。
+ *
+ * 现在直接量 `beforeinput` 的 Event Timing 条目 —— 它的 `duration` 定义就是
+ * 「beforeinput → 它处理完之后的下一次绘制」，正好是要的那个数，
+ * 而且**不需要我们自己拼两段**。`sync` / `paint` 降级为归因用的分解。
+ *
+ * ## `paint` / `输入延迟` 的取值被 Chromium 粗化到 8ms 的整数倍
+ *
+ * 实测拿到的是 16 / 24 / 32 / 40 / 64 / 88 —— **全是 8 的整数倍**。
+ * 这是 Chromium 对 Event Timing `duration` 做的粗化（防计时侧信道），不是巧合。
+ * 后果：**「≤ 50ms」实际等价于「≤ 48ms」**，而且 p50 与 p95 常常是同一个数
+ * （24/24、40/40）—— 百分位在这个粒度上不总是有分辨力，读数要连着看。
+ *
+ * ## 量程下限是 16ms
+ *
+ * 另一个观察器（`durationThreshold: 16`）收到的条目数与 `0` 的**完全相同**，
+ * 说明 **Chromium 把 `durationThreshold` 钳到了最小 16ms**（规范里就写的 16）。
+ * 于是源码视图（CodeMirror）报出来的 16ms 是**顶到量程**，
+ * 真实值 **≤ 16ms**，不能读成「正好 16ms」。
+ *
+ * ## 绝对读数会随机器背景负载整体漂移 —— 判据必须写明测量环境
+ *
+ * 实测：同一份文档、同一个视图、同一台机器，隔了二十分钟再跑，
+ * `sync` 从 18.3ms 变成 34ms、源码档从 4.1ms 变成 7.3ms ——
+ * **两个完全不同的内核按同一个比例（约 1.8×）一起变慢**，说明漂的是环境不是代码。
+ * 原因是这台机器上同时跑着几套语言服务和一个前端 dev server。
+ *
+ * 这对 V3 是要害：判据是「≤ 50ms」，而读数能整体翻倍 —— **判定会随负载翻面**。
+ * 所以：
+ *
+ * 1. **同批次内部**的横向比较（视图之间、落点之间）是可信的；
+ * 2. 跨批次比绝对值必须**按校准基准归一化**（见 `v3-run.mjs` 的 `CALIBRATE`）；
+ * 3. 记录结论时要**写上当时的校准基准**，否则这个数字没有意义。
+ *
+ * ## 事件计数：分辨「输入没进去」和「没有条目」
+ *
+ * 报告里的 `事件计数` 摆着四个数。不相等时要先解释清楚再采信读数：
+ *
+ * - `beforeinput` 少于实际敲入键数 → **输入压根没全进去**，这一档不成立；
+ * - `beforeinput` 远多于 `input` → 内核拦掉了原生插入（`preventDefault`），
+ *   这类内核测不到 `sync`；
+ * - `输入延迟样本` 少于 `input` → Event Timing 漏了条目（多半被 16ms 下限挡掉），
+ *   此时读数**偏向上界**，是保守的，可以采信。
+ *
+ * （实测踩过：源码视图敲 60 键只收到 33 个 `input`。补上这几个计数之前，
+ * 这个现象与「输入没进去」完全无法区分。）
  *
  * ## 2026-09-30 修正：`paint` 改用 Event Timing API
  *
@@ -77,6 +135,18 @@
   const samples = [];
   /** `input` 事件留下的标记，用来给 Event Timing 的 entry 补上 `inputType` 与 `sync`。 */
   const marks = [];
+  /**
+   * `beforeinput` 留下的标记。它与 `marks` 分开，因为要配的是**另一个**事件类型的条目。
+   *
+   * 为什么要单独配 `beforeinput` 的条目：`sync`（`beforeinput → input`）与
+   * `paint`（`input → 下次绘制`）是**两段不重叠的时间**，真正的「按键到出字」
+   * 是两者之和。只用 `paint` 判定会**低估**延迟。而 Event Timing 对
+   * `beforeinput` 也产生条目，它的 `duration` 定义就是「beforeinput → 出字那一帧」——
+   * 这正是要量的那个数，且没有帧对齐误差。
+   */
+  const armedQueue = [];
+  /** `beforeinput → 出字那一帧` 的样本。**这是主判据**，`sync` / `paint` 是它的分解。 */
+  const latencies = [];
   const longtasks = [];
   const frameGaps = [];
 
@@ -84,8 +154,41 @@
   let usingEventTiming = false;
   /** 配不到 `input` 标记、被丢弃的 Event Timing 条目数（别的元素上的输入 / 历史条目）。 */
   let orphans = 0;
-  let lastInputAt = 0;
+  let lastBeforeInputAt = 0;
   let armed = null;
+
+  /**
+   * 三个计数，用来分辨「输入没进去」和「输入进去了但没产生条目」。
+   *
+   * 这两件事的表现**完全一样**（样本数偏少），但含义相反：
+   * 前者说明这一档的读数不可信，后者只是 Event Timing 少了些条目。
+   * 实测踩过：源码视图（CodeMirror）敲 60 键只收到 33 个 `input` ——
+   * 不把这两个数摆出来，就没法判断该不该采信。
+   */
+  let beforeInputCount = 0;
+  let inputCount = 0;
+  /** 配不到 `beforeinput` 标记的条目数（别处产生的 beforeinput）。 */
+  let orphanBeforeInputEntries = 0;
+
+  /**
+   * 测量期间页面被隐藏/遮挡了多久。
+   *
+   * 这是**必须记**的一项：页面不可见时 Chromium 会挂起渲染管线，
+   * 而 `paint` 的读数会窜到几百甚至上千毫秒 —— 那种数字**不像 0 那样一眼可疑**，
+   * 只会被误读成「这一档特别慢」。实测踩过：跑到一半窗口被最小化，
+   * 拿到 `paint.p95 = 1144ms`、`max = 1408ms`，而同一份文档正常时是 32ms。
+   */
+  let hiddenSince = 0;
+  const hiddenPeriods = [];
+  const onVisibilityChange = () => {
+    if (document.hidden) {
+      hiddenSince = performance.now();
+    } else if (hiddenSince !== 0) {
+      hiddenPeriods.push(Number((performance.now() - hiddenSince).toFixed(1)));
+      hiddenSince = 0;
+    }
+  };
+  document.addEventListener('visibilitychange', onVisibilityChange);
 
   const percentile = (values, q) => {
     if (values.length === 0) return 0;
@@ -102,19 +205,21 @@
   });
 
   /** 取走与某个 `startTime` 最接近的标记（Event Timing 的 entry 是异步到的）。 */
-  const takeMark = (startTime) => {
+  const takeNearest = (queue, startTime) => {
     let bestIndex = -1;
     let bestDelta = Number.POSITIVE_INFINITY;
-    for (let i = 0; i < marks.length; i += 1) {
-      const delta = Math.abs(marks[i].at - startTime);
+    for (let i = 0; i < queue.length; i += 1) {
+      const delta = Math.abs(queue[i].at - startTime);
       if (delta < bestDelta) {
         bestDelta = delta;
         bestIndex = i;
       }
     }
     if (bestIndex === -1 || bestDelta > 1) return null;
-    return marks.splice(bestIndex, 1)[0];
+    return queue.splice(bestIndex, 1)[0];
   };
+
+  const takeMark = (startTime) => takeNearest(marks, startTime);
 
   // -------------------------------------------------------------------------
   // 主测量：Event Timing API
@@ -124,6 +229,22 @@
   try {
     eventObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
+        // 主判据：beforeinput → 出字那一帧
+        if (entry.name === 'beforeinput') {
+          const armedEntry = takeNearest(armedQueue, entry.startTime);
+          if (armedEntry === null) {
+            orphanBeforeInputEntries += 1;
+            continue;
+          }
+          latencies.push({
+            at: entry.startTime,
+            latency: entry.duration,
+            inputType: armedEntry.inputType,
+            gap: armedEntry.gap,
+          });
+          continue;
+        }
+
         if (entry.name !== 'input') continue;
         const mark = takeMark(entry.startTime);
         // 配不到标记的 entry **一律丢弃**。它是两种东西之一：别的元素上的输入事件
@@ -156,22 +277,52 @@
     usingEventTiming = false;
   }
 
+  /**
+   * 量程下限核对：另开一个**只报 duration ≥ 16ms** 的观察器，和上面那个比数量。
+   *
+   * 实测所有取值都是 16 的整数倍、从没出现过 8 或 0，怀疑 Chromium 把
+   * `durationThreshold` 钳到了最小 16ms（Event Timing 规范里就写了 16 这个下限）。
+   * 两个观察器数量相同 = 确认下限是 16ms，那么**源码/分屏档报出来的 16ms
+   * 就是「顶到量程下限」，真实值 ≤ 16ms**，不能读成「正好 16ms」。
+   */
+  let floorObserver = null;
+  let floorCount = 0;
+  try {
+    floorObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.name === 'input' || entry.name === 'beforeinput') floorCount += 1;
+      }
+    });
+    floorObserver.observe({ type: 'event', buffered: false, durationThreshold: 16 });
+  } catch {
+    floorObserver = null;
+  }
+
   // -------------------------------------------------------------------------
   // 输入监听：拿 inputType，算内核成本
   // -------------------------------------------------------------------------
 
   const onBeforeInput = (event) => {
-    armed = { at: performance.now(), inputType: event.inputType || 'unknown' };
+    beforeInputCount += 1;
+    const now = performance.now();
+    const gap = lastBeforeInputAt === 0 ? 0 : now - lastBeforeInputAt;
+    lastBeforeInputAt = now;
+    const inputType = event.inputType || 'unknown';
+    armed = { at: now, timeStamp: event.timeStamp, inputType, gap };
+    // 同一时刻也排进 `armedQueue`：`beforeinput` 的 Event Timing 条目要用 `event.timeStamp`
+    // 去配（`performance.now()` 与它同源，但条目给的是事件自己的时间戳）。
+    armedQueue.push({ at: event.timeStamp, inputType, gap });
+    if (armedQueue.length > 400) armedQueue.shift();
   };
 
   const onInput = (event) => {
+    inputCount += 1;
     const started = armed;
     armed = null;
 
     const inputType = (started === null ? '' : started.inputType) || event.inputType || 'unknown';
     const sync = started === null ? null : performance.now() - started.at;
-    const gap = started === null ? 0 : started.at - lastInputAt;
-    if (started !== null) lastInputAt = started.at;
+    const gap = started === null ? 0 : started.gap;
 
     if (usingEventTiming) {
       // 交给 Event Timing 的 entry 去配 paint，这里只留标记
@@ -194,10 +345,15 @@
     });
   };
 
+  /** 已经挂过监听的根，防止重复 `attach()` 把每条输入算两遍。 */
+  let attachedRoots = new WeakSet();
+
   const attach = () => {
     // 只挂真正可编辑的：分屏右栏是 `contenteditable="false"`，会被排除
     const roots = [...document.querySelectorAll('[contenteditable="true"]')];
     for (const root of roots) {
+      if (attachedRoots.has(root)) continue;
+      attachedRoots.add(root);
       // 捕获阶段：编辑器内部可能 stopPropagation，捕获能保证我们拿到
       root.addEventListener('beforeinput', onBeforeInput, true);
       root.addEventListener('input', onInput, true);
@@ -250,7 +406,12 @@
     const paintValues = kept.map((s) => s.paint);
     const sync = describe(syncValues);
     const paint = describe(paintValues);
-    const over = paintValues.filter((v) => v > 50).length;
+    // 主判据：与 `kept` 用同一个冷启动窗口过滤
+    const latencyValues = latencies.filter((s) => s.gap >= 0 && s.gap <= warmup).map((s) => s.latency);
+    const latency = describe(latencyValues);
+    const latencyOver = latencyValues.filter((v) => v > 50).length;
+    /** threshold=0 那个观察器一共收到多少条条目（含配不上的）。用来和 16ms 观察器对账。 */
+    const totalEntries = samples.length + orphans + latencies.length + orphanBeforeInputEntries;
     const ms = frameMs();
 
     const byType = {};
@@ -271,25 +432,53 @@
       样本数: kept.length,
       剔除的冷启动键: dropped,
       丢弃的无关条目: orphans,
+      事件计数: {
+        beforeinput: beforeInputCount,
+        input: inputCount,
+        配对成功的条目: kept.length,
+        输入延迟样本: latencyValues.length,
+        配不上标记的条目: { input: orphans, beforeinput: orphanBeforeInputEntries },
+        说明: '输入延迟样本数明显少于敲入键数 = Event Timing 漏了条目（多半是被 16ms 量程下限挡掉），不是输入没进去',
+      },
+      量程下限核对:
+        floorObserver === null
+          ? '这个环境不支持第二个观察器，没法核对'
+          : floorCount !== totalEntries
+            ? `threshold=0 收到 ${totalEntries} 条、threshold=16 收到 ${floorCount} 条 → 确有 <16ms 的条目被下限挡掉了`
+            : latency.p50 <= 16
+              ? `下限确认是 16ms（两个观察器都收到 ${floorCount} 条）。本档 输入延迟 p50 就是 16ms = 顶到量程，**真实值 ≤ 16ms，不是「正好 16ms」**`
+              : `下限确认是 16ms（两个观察器都收到 ${floorCount} 条）。本档读数（输入延迟 p50 ${latency.p50}ms）在这之上，不受下限影响`,
+      可见性中断:
+        hiddenPeriods.length === 0 && !document.hidden
+          ? '无（全程可见，读数可用）'
+          : `⚠️ 发生了 ${hiddenPeriods.length + (document.hidden ? 1 : 0)} 次、累计约 ${(hiddenPeriods.reduce((a, b) => a + b, 0) + (document.hidden ? 1 : 0)).toFixed(0)}ms —— 渲染被挂起，**这一档的读数不可信**`,
+      // 主判据：beforeinput → 出字那一帧。`sync` 与 `paint` 是它的两段分解。
+      输入延迟: latency,
       sync,
       paint,
-      '超过 50ms 的输入': `${over} / ${kept.length}（${((over / Math.max(1, kept.length)) * 100).toFixed(0)}%）`,
+      分解说明:
+        `sync（beforeinput→input）= ${sync.p50}ms，paint（input→那次绘制）= ${paint.p50}ms。` +
+        '**两者不能相加** —— 它们量的是不同的那次绘制：' +
+        '`beforeinput` 的条目量到的是**字上屏**的那一帧，而 `input` 的条目量到的是它之后的下一次绘制' +
+        '（内核把原生插入的文本改写回自己的模型之后）。所以「用户什么时候看见字」看 `输入延迟`，' +
+        '`sync` 与 `paint` 只用来判断成本落在哪一段。',
+      '超过 50ms 的输入': `${latencyOver} / ${latencyValues.length}（${((latencyOver / Math.max(1, latencyValues.length)) * 100).toFixed(0)}%）`,
       长任务: { 条数: longtasks.length, 最长: longtasks.length === 0 ? 0 : Math.max(...longtasks) },
       按inputType分组: byType,
       归因:
-        paintValues.length === 0
+        latencyValues.length === 0
           ? '还没有样本'
           : sync.p95 > 50
-            ? '内核 JS 同步成本本身就超了 —— 对着 plugin.ts 的 O(n) 清单逐条查'
-            : paint.p95 > 50
-              ? '内核 JS 达标、慢在「内核跑完 → 绘制」这一段 —— 瓶颈在样式/布局/绘制（或掉帧），不是 JS'
+            ? '内核在这一段里同步跑的成本就超了 —— 对着 plugin.ts 的 O(n) 清单逐条查'
+            : latency.p95 > 50
+              ? '内核同步部分达标、慢在「input → 绘制」这一段 —— 瓶颈在样式/布局/绘制（或掉帧），不是 JS'
               : '两项都达标',
       结论:
-        paintValues.length === 0
+        latencyValues.length === 0
           ? '还没有样本'
-          : paint.p95 <= 50
-            ? `✅ p95 = ${paint.p95}ms，在判据内`
-            : `❌ p95 = ${paint.p95}ms，超出判据`,
+          : latency.p95 <= 50
+            ? `✅ 输入延迟 p95 = ${latency.p95}ms，在判据内`
+            : `❌ 输入延迟 p95 = ${latency.p95}ms，超出判据`,
     };
   };
 
@@ -299,24 +488,36 @@
     reset: () => {
       samples.length = 0;
       marks.length = 0;
+      armedQueue.length = 0;
+      latencies.length = 0;
       longtasks.length = 0;
       frameGaps.length = 0;
       orphans = 0;
-      lastInputAt = 0;
+      orphanBeforeInputEntries = 0;
+      beforeInputCount = 0;
+      inputCount = 0;
+      floorCount = 0;
+      hiddenPeriods.length = 0;
+      hiddenSince = 0;
+      lastBeforeInputAt = 0;
+      armed = null;
       console.log('[v3] 已清空');
     },
     stop: () => {
       eventObserver?.disconnect();
+      floorObserver?.disconnect();
       longtaskObserver?.disconnect();
       if (typeof cancelAnimationFrame === 'function' && frameProbe !== 0) cancelAnimationFrame(frameProbe);
       for (const root of document.querySelectorAll('[contenteditable="true"]')) {
         root.removeEventListener('beforeinput', onBeforeInput, true);
         root.removeEventListener('input', onInput, true);
       }
+      attachedRoots = new WeakSet();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       console.log('[v3] 已卸载');
     },
     /** 原始样本，需要自己画图或做别的统计时用 */
-    raw: () => [...samples],
+    raw: () => ({ 输入: [...samples], 延迟: [...latencies] }),
   };
 
   // 调用 `__v3()` 等价于 `__v3.report()`
