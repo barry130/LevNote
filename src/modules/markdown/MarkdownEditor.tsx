@@ -16,6 +16,7 @@ function MarkdownEditor({
   onChange,
   onReady,
   onCursorChange,
+  onPositionChange,
   onSelectionChange,
   onSlashChange,
   onTableChange,
@@ -37,6 +38,8 @@ function MarkdownEditor({
   onChangeRef.current = onChange;
   const onCursorChangeRef = useRef(onCursorChange);
   onCursorChangeRef.current = onCursorChange;
+  const onPositionChangeRef = useRef(onPositionChange);
+  onPositionChangeRef.current = onPositionChange;
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
   const onSlashChangeRef = useRef(onSlashChange);
@@ -78,6 +81,7 @@ function MarkdownEditor({
           placeholder: placeholderRef.current,
           onChange: (markdown) => onChangeRef.current(markdown),
           onCursorChange: (position) => onCursorChangeRef.current?.(position),
+          onPositionChange: (position) => onPositionChangeRef.current?.(position),
           onSelectionChange: (selection) => onSelectionChangeRef.current?.(selection),
           onSlashChange: (state) => onSlashChangeRef.current?.(state),
           onTableChange: (state) => onTableChangeRef.current?.(state),
@@ -115,6 +119,8 @@ function MarkdownEditor({
           table: created.table,
           codeBlock: created.codeBlock,
           goToOutlineItem: ({ level, text }) => created.goToHeading(level, text),
+          getPosition: () => created.getPosition(),
+          setPosition: (position) => created.setPosition(position),
         };
         onReadyRef.current(handle);
       } catch (thrown) {

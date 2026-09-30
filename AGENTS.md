@@ -50,6 +50,9 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 多标签、文件树 | `core/workspace/` |
 | 快捷键、命令、命令面板 | `core/commands/`（能力清单在 `definitions.ts`） |
 | 查找替换的匹配语义 | `core/search/find.ts`（三个内核共用） |
+| **视图偏好（主题 / 侧栏 / 行号 / 位置记忆开关）** | `core/settings.ts`（`localStorage`，逐字段校验）。**设置页只是它的一个界面** —— 加偏好项改这里，别在 `SettingsDialog.tsx` 里另起一份 |
+| **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
+| **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
 | 大纲提取 | `core/outline/outline.ts` |
 | 字数 / 阅读时长 | `core/statistics.ts`（Word 口径，内核无关） |
 | **哪些文件算 Markdown** | `core/path.ts` 的 `MARKDOWN_EXTENSIONS` / `isMarkdownPath()`。**名单只有这一份**，四个地方在用它 |
@@ -69,7 +72,8 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css` |
-| 某个面板 | `ui/DocumentPane.tsx` / `TabBar.tsx` / `Sidebar.tsx` / `FindPanel.tsx` … |
+| 某个面板 | `ui/DocumentPane.tsx` / `TabBar.tsx` / `Sidebar.tsx` / `FindBar.tsx` … |
+| 设置页 | `ui/SettingsDialog.tsx`。**快捷键表与版本号都不许手写**：前者由 `CommandRegistry` 派生，后者经 `vite.config.ts` 的 `define` 从 `package.json` 注入 |
 | 文件读写、编码探测 | `src-tauri/src/fs/` |
 
 ### 内核能力怎么加（不要破坏外壳的边界）
@@ -80,7 +84,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 2. 各内核按需实现（不实现的要能被外壳识别为「没有这个能力」）；
 3. 外壳只问契约，不问内核。
 
-已有六例可以照着看：
+已有七例可以照着看：
 
 - `EditorHandle.search` / `goToOutlineItem` —— 可选能力，**缺了显示为禁用**；
 - `EditorAdapter.sourceView` —— 源码视图，**不注册进注册表**
@@ -111,6 +115,16 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
   这里有一个容易做错的分工：**内核只做它唯一能做的那部分**（从剪贴板里把字节取出来），
   「存到哪、叫什么名、绝不覆盖」全在外壳 —— 内核连自己正在编辑哪个文件都不该知道。
   灯箱为什么由内核上报「点了哪张图」而不是外壳按类名做事件委托：见下面的坑 14。
+- `EditorHandle.getPosition` / `setPosition` + `EditorMountProps.onPositionChange` ——
+  位置记忆。这是**最不像浮层的一例**：前六例都是「内核报事件、外壳画界面」，
+  这一例是「**内核读写状态、外壳只记住**」。
+  两处容易做错的地方：① `offset` 的坐标系**由内核自己定**，外壳只做往返 ——
+  想在外壳里把它换算成「第几个可见字符」等于重新实现一遍 ProseMirror 的
+  `textBetween`，两份实现一定会在边界上分叉（见 ADR 0021）；
+  ② 滚动容器归内核所有（`.qm-editor` / `.cm-scroller` / textarea 自身），
+  所以滚动**只能**由内核读写 —— 外壳自己去 `querySelector` 就是按类名认 DOM。
+  另外它**不是**「离开时问一次」：那一刻编辑器可能已经销毁，
+  依赖卸载时序的东西会在某次重构里安静地坏掉。
 
 **反例**（不要这样做）：在外壳里写 `if (adapter.id === 'markdown')` 或
 `resolveAdapterById('code')`。那等于把内核知识漏进外壳，

@@ -11,13 +11,15 @@ import type { Node as ProseNode } from '@milkdown/kit/prose/model';
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
 
-import type { CursorPosition, SelectionSnapshot, SlashState, TableState } from '../../core/editor/types.js';
+import type { CursorPosition, EditorPosition, SelectionSnapshot, SlashState, TableState } from '../../core/editor/types.js';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { highlightCode } from '../../core/highlight/hljs.js';
+import { readScrollRatio } from '../../core/editor/position.js';
 import { anchorOf, caretAnchorOf, describeSelection, describeSlash, describeTable } from './selection.js';
 
 const highlightKey = new PluginKey<DecorationSet>('qingmo-code-highlight');
 const cursorKey = new PluginKey('qingmo-cursor-reporter');
+const positionKey = new PluginKey('qingmo-position-reporter');
 const selectionKey = new PluginKey('qingmo-selection-reporter');
 const slashKey = new PluginKey('qingmo-slash-reporter');
 const tableKey = new PluginKey('qingmo-table-reporter');
@@ -104,6 +106,62 @@ export function cursorReporterPlugin(getReporter: () => ((position: CursorPositi
             update: (view, prevState) => {
               if (view.state.selection !== prevState.selection) report(view);
             },
+          };
+        },
+      }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 位置记忆上报
+// ---------------------------------------------------------------------------
+
+/**
+ * 位置（光标 + 滚动）上报。
+ *
+ * ## 为什么滚动要在这里挂，而不是外壳去挂
+ *
+ * 滚动容器是 `.qm-editor` —— **内核自己造的那个根节点**（`options.root`）。
+ * 外壳要自己去监听它，就得按类名认内核画的 DOM，那是硬约束 11 禁止的事。
+ * 内核手里正好有这个引用，所以由它挂。
+ *
+ * 用 `passive: true`：滚动监听里没有任何 `preventDefault`，声明被动能让浏览器
+ * 不必等回调跑完就能继续滚 —— 对滚动流畅度是实打实的差别。
+ *
+ * ## 上报频率刻意不设防抖
+ *
+ * 一次上报只是读三个 O(1) 的字段（`selection.head` / `doc.content.size` /
+ * `scrollTop`）然后调一个写 ref 的回调，代价可以忽略。防抖放在内核里反而有害：
+ * 内核的定时器在销毁时不会自动清，得额外维护生命周期。落盘那一侧的防抖在外壳，
+ * 那里才知道「写一次 localStorage」到底有多贵。
+ */
+export function positionReporterPlugin(
+  root: HTMLElement,
+  getReporter: () => ((position: EditorPosition) => void) | undefined,
+) {
+  return $prose(
+    () =>
+      new Plugin({
+        key: positionKey,
+        view: (editorView) => {
+          const report = (): void => {
+            const reporter = getReporter();
+            if (!reporter) return;
+            reporter({
+              offset: editorView.state.selection.head,
+              // O(1)：只读一个算好的尺寸，不遍历文档。
+              // 位置每次光标移动都要读一次，O(n) 的写法在大文档上会拖慢打字。
+              textLength: editorView.state.doc.content.size,
+              scrollRatio: readScrollRatio(root),
+            });
+          };
+
+          root.addEventListener('scroll', report, { passive: true });
+          return {
+            update: (view, prevState) => {
+              if (view.state.selection !== prevState.selection) report();
+            },
+            destroy: () => root.removeEventListener('scroll', report),
           };
         },
       }),

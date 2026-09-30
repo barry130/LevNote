@@ -42,6 +42,24 @@ describe('loadSettings', () => {
     expect(loadSettings(memoryStorage(JSON.stringify({ sidebarWidth: 9999 }))).sidebarWidth).toBe(SIDEBAR_MAX_WIDTH);
   });
 
+  it('老数据里缺少的新字段回落到默认值 —— 新增偏好项不该影响老用户', () => {
+    // 存储里只有 theme（等于更早版本写下的内容）
+    const settings = loadSettings(memoryStorage(JSON.stringify({ theme: 'ink' })));
+    expect(settings.rememberPositions).toBe(DEFAULT_SETTINGS.rememberPositions);
+    expect(settings.codeLineNumbers).toBe(DEFAULT_SETTINGS.codeLineNumbers);
+    expect(settings.sidebarVisible).toBe(DEFAULT_SETTINGS.sidebarVisible);
+  });
+
+  it('位置记忆默认开，且能被显式关掉', () => {
+    expect(DEFAULT_SETTINGS.rememberPositions).toBe(true);
+    const off = loadSettings(memoryStorage(JSON.stringify({ rememberPositions: false })));
+    expect(off.rememberPositions).toBe(false);
+  });
+
+  it('非布尔的位置记忆取值被忽略（回落默认）', () => {
+    expect(loadSettings(memoryStorage(JSON.stringify({ rememberPositions: 'yes' }))).rememberPositions).toBe(true);
+  });
+
   it('存储内容坏了（不是 JSON）不抛错，回落到默认值', () => {
     expect(loadSettings(memoryStorage('{不是 json'))).toEqual(DEFAULT_SETTINGS);
   });

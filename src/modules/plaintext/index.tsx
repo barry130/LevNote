@@ -8,7 +8,8 @@
 
 import { useEffect, useRef } from 'react';
 
-import type { EditorAdapter, EditorHandle, EditorMountProps, EditorSearch } from '../../core/editor/types.js';
+import type { EditorAdapter, EditorHandle, EditorMountProps, EditorPosition, EditorSearch } from '../../core/editor/types.js';
+import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js';
 import { findInText, replaceInText, type FindOptions, type TextMatch } from '../../core/search/find.js';
 
 /**
@@ -75,6 +76,7 @@ function PlainTextEditor({
   onChange,
   onReady,
   onCursorChange,
+  onPositionChange,
   readOnly,
   placeholder,
 }: EditorMountProps) {
@@ -85,6 +87,8 @@ function PlainTextEditor({
   onChangeRef.current = onChange;
   const onCursorChangeRef = useRef(onCursorChange);
   onCursorChangeRef.current = onCursorChange;
+  const onPositionChangeRef = useRef(onPositionChange);
+  onPositionChangeRef.current = onPositionChange;
 
   useEffect(() => {
     const element = textareaRef.current;
@@ -113,11 +117,47 @@ function PlainTextEditor({
       // 纯文本没有富文本语义可导出，如实返回 null，由导出层退化为 <pre>
       toHtml: async () => null,
       search: createTextareaSearch(element),
+      getPosition: (): EditorPosition => ({
+        offset: element.selectionStart ?? 0,
+        textLength: element.value.length,
+        scrollRatio: readScrollRatio(element),
+      }),
+      setPosition: (position) => {
+        if (position.textLength === element.value.length) {
+          const inside = Math.min(Math.max(position.offset, 0), element.value.length);
+          element.setSelectionRange(inside, inside);
+        }
+        applyScrollRatio(element, position.scrollRatio);
+      },
     };
 
     onReady(handle);
     reportCursor();
   }, [onReady]);
+
+  /**
+   * 上报位置。
+   *
+   * **一份，不是三份**：`input` / `scroll` / `select` 三个事件都要报同一份东西，
+   * 各写一遍的下场是其中两份迟早漏掉一个字段（而漏掉 `textLength` 的表现是
+   * 「恢复位置时永远只滚不动光标」，没人会想到是这里）。
+   *
+   * textarea 自己就是滚动容器（`.editor { overflow: auto }`），所以
+   * `readScrollRatio` 直接读它 —— 不需要像另外两个内核那样区分「谁是 scroller」。
+   *
+   * 定义在组件体里而不是 effect 里：effect 依赖是 `[onReady]`，
+   * 放在里面就只认第一次渲染的那份闭包。
+   */
+  const reportPosition = () => {
+    const element = textareaRef.current;
+    if (!element) return;
+    onPositionChangeRef.current?.({
+      offset: element.selectionStart ?? 0,
+      // 字符串长度是算好的字段，O(1)
+      textLength: element.value.length,
+      scrollRatio: readScrollRatio(element),
+    });
+  };
 
   return (
     <textarea
@@ -130,7 +170,14 @@ function PlainTextEditor({
       autoCorrect="off"
       autoCapitalize="off"
       placeholder={placeholder}
-      onChange={(event) => onChangeRef.current(event.target.value)}
+      onChange={(event) => {
+        onChangeRef.current(event.target.value);
+        reportPosition();
+      }}
+      // 滚动、点击、键盘都会改位置，分开挂而不是合成一个 —— 它们的触发源不同，
+      // 合成一个要写一堆判断。回调本身只是读三个字段 + 写 ref，代价可以忽略。
+      onScroll={reportPosition}
+      onSelect={reportPosition}
       onKeyUp={() => {
         const element = textareaRef.current;
         if (!element) return;

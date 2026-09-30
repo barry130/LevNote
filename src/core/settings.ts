@@ -35,6 +35,18 @@ export interface ViewSettings {
    * 就把默认值翻过来。
    */
   readonly codeLineNumbers: boolean;
+  /**
+   * 是否记住每份文档的光标与滚动位置（位置记忆）。
+   *
+   * 默认**开**。它是一个开关而不是永远开着，是因为它**写盘**：每次光标停顿都会
+   * 往 localStorage 里写一份。虽然只是几十 KB、失败也无害，但「会不会偷偷写东西」
+   * 是用户有权知道的事 —— 尤其对一个把「纯本地、无网络」写进定位的产品来说，
+   * 可见的开关比不可见的默认值更符合它的性格。
+   *
+   * 关掉之后**已有的记忆不会被清掉**（用户可能只是想临时关一下），
+   * 只是不再读也不再写。要真的清空，设置页里有独立的「清除位置记忆」。
+   */
+  readonly rememberPositions: boolean;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -44,6 +56,7 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   outlineVisible: false,
   wordWrap: false,
   codeLineNumbers: true,
+  rememberPositions: true,
 };
 
 export const SIDEBAR_MIN_WIDTH = 160;
@@ -97,6 +110,7 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     outlineVisible: asBoolean(record['outlineVisible'], DEFAULT_SETTINGS.outlineVisible),
     wordWrap: asBoolean(record['wordWrap'], DEFAULT_SETTINGS.wordWrap),
     codeLineNumbers: asBoolean(record['codeLineNumbers'], DEFAULT_SETTINGS.codeLineNumbers),
+    rememberPositions: asBoolean(record['rememberPositions'], DEFAULT_SETTINGS.rememberPositions),
   };
 }
 

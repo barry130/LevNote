@@ -28,9 +28,13 @@
 | 斜杠菜单（`/` 插入块） | `src/core/editor/types.ts`（`onSlashChange` + `insertBlock`）+ `modules/markdown/selection.ts`（`describeSlash`）+ `ui/SlashMenu.tsx` | `modules/markdown/slash.test.ts`（18 条，**逐字真的打字**驱动，覆盖六种触发条件 + 九个可插入块）+ `App.test.tsx` 的「斜杠菜单」（8 条，覆盖筛选 / 回车 / 上下键 / Esc / 无匹配 / 鼠标 / 切源码视图）。决策见 [ADR 0016](./decisions/0016-slash-menu.md) |
 | 表格增强 + 代码块（语言选择器 / 行号） | `src/core/editor/types.ts`（`onTableChange` / `onCodeBlockChange` + `EditorTable` / `EditorCodeBlock`）+ `modules/markdown/table.ts`、`code-block-view.ts`（NodeView）+ `ui/TableToolbar.tsx`、`CodeBlockPicker.tsx` | `modules/markdown/table.test.ts`（27 条）+ `code-block.test.ts`（29 条）+ `App.test.tsx` 的「表格工具条」（12 条）与「代码块语言选择器」（14 条）+ `ui/floating.test.ts`（12 条，**新建** —— 浮层算术提取成纯函数后第一次有测试）。**两半都自研** —— 官方组件是 Vue 3 的，理由与重审条件见 [ADR 0017](./decisions/0017-m5-tables-and-code-blocks.md) |
 | 图片：粘贴落盘 + 显示 + 灯箱 | `src/core/document/images.ts`（**新建**，两个无状态的文档级动作）+ `core/document/assets.ts`（目录与命名规则）+ `core/image.ts`（MIME ↔ 扩展名、字节 → `data:` URI）+ `modules/markdown/image-view.ts`（NodeView）+ `ui/Lightbox.tsx`（**新建**）+ `src-tauri/src/fs/mod.rs` 的 `write_binary_file` | `core/document/images.test.ts`（18 条，**新建**：六种读取降级、撞名重试、非 CONFLICT 不重试、写入被截断要报出来）+ `core/image.test.ts`（29 条）+ `core/document/assets.test.ts`（38 条）+ `modules/markdown/image.test.ts`（16 条，内核半边）+ `App.test.tsx` 的「图片」（10 条，**跨四层的端到端**）+ `core/path.test.ts` +4（含「写读路径逐字符相同」）+ Rust 侧 4 条（`percent_decode`）。决策见 [ADR 0018](./decisions/0018-m6-images.md) |
+| 位置记忆 + 设置页 | `src/core/positions.ts`（**新建**：独立存储键、逐字段校验、LRU 200 条）+ `core/editor/position.ts`（**新建**：滚动比例算术，三个内核共用）+ `core/editor/types.ts`（`EditorPosition` + `getPosition` / `setPosition` + `onPositionChange`）+ `ui/SettingsDialog.tsx`（**新建**）+ `vite.config.ts`（`define` 注入版本号）+ 三个内核各自实现位置读写 | `core/positions.test.ts`（21 条，**新建**：坏条目整条丢、LRU 淘汰、存储抛错不炸）+ `core/editor/position.test.ts`（10 条，**新建**：除零、`NaN`、往返一致）+ `core/settings.test.ts` +3 + `App.test.tsx` 的「设置页」（5 条）与「位置记忆」（4 条，**跨四层的端到端**）。决策见 [ADR 0021](./decisions/0021-m9-position-memory-and-settings.md) |
 
-合计 **621 条前端测试 + 15 条 Rust 测试**（P2 结束时是 162 条），
+合计 **880 条前端测试 + 15 条 Rust 测试**（P2 结束时是 162 条），
 `tsc` / `eslint` / `vite build` / `cargo test` 全绿。
+
+> 这张表在 M7 / M8 那两批**漏更了**（表停在 M6），所以「合计」这一行直到 M9
+> 才跟着对上一次。现在的 880 是 `vitest run` 的实测值，不是累加出来的。
 
 > 其中 `eslint` 的「全绿」是 **2026-09-29 才真正成立**的：此前它虽然被写在这一行，
 > 但实际上是非阻塞的、且还有 33 项欠账。现在它是阻塞门禁，且配置里没有关掉的规则。
@@ -74,6 +78,8 @@
 | **图片的显示观感与灯箱只有人眼能验** | 同 M3–M5：jsdom 没有布局引擎，也不解码图片 | 低（但确实没验）。要在 `npm run desktop` 里确认：占位的虚线框大小、加载中那块底色的位置、灯箱在大图 / 长图上的表现、深底与浅色主题的对比度 |
 | **图片走 `data:` URI 而非 `asset:` 协议** | `asset:` 要打开 `app.security.assetProtocol` 并配一份路径白名单 —— 那是一块需要长期维护的安全面。`data:` 走已有的 `read_binary_file`，权限收口在同一个地方。代价（base64 大 1/3、常驻 DOM）由上游 24 MB 的单文件上限兜住 | 低到中。**重审条件**：一份文档里几十张大图、打开明显变慢时，重新评估 —— 届时要一并给出白名单方案，而不是只把开关打开。见 [ADR 0018](./decisions/0018-m6-images.md) |
 | **显示图片不做缓存** | 缓存对象是 `data:` URI（1 MB 的图 → 约 1.4 MB 字符串），**常驻且无上界**。一份三十张截图的文档就能吃掉几十 MB。不缓存的代价有限：NodeView 只在节点创建时解析一次，真正会重读的只有「切换视图模式」 | 低。**重审条件**：实测切视图出现可感知卡顿时，加一个**按字节总量**（而不是条目数）设上界的缓存 |
+| **设置页的版式与长列表滚动只有人眼能验** | 同 M3–M6：jsdom 没有布局引擎，`getBoundingClientRect()` 全是 0，也**没有滚动**。测试钉住的是「工具栏能开、Esc / 点遮罩能关、点内部不关、快捷键表由注册表派生、改主题立即生效且落盘、版本号来自构建期常量」——全是**行为**，不是**观感** | 低（但确实没验）。要在 `npm run desktop` 里目视确认：四段分组的分隔是否清楚、开关的选中态在深浅两套主题下都看得见、快捷键表在窗口变窄时会不会溢出、以及**清除位置记忆**那个按钮的破坏性提示是否足够显眼。见 [ADR 0021](./decisions/0021-m9-position-memory-and-settings.md) |
+| **位置记忆的实际手感只有人眼能验** | 位置（光标偏移 + 滚动比例）的**往返**在单测里钉得很死（三个内核各一条 + `position.test.ts` 10 条 + `positions.test.ts` 21 条），但「**回到哪儿才算对**」是个观感问题：`textLength` 对不上时只恢复滚动、不对齐光标，这在实际文档上落点是否符合直觉，只有真机能判断 | 低到中。要在 `npm run desktop` 里确认三件事：① 长文档读到一半切走再切回，落点是否就是刚才那一段；② 在**源码模式**与富文本之间来回切，滚动比例是否稳定（两边 `textLength` 口径不同，只在同一视图内保证）；③ 编辑完立刻关窗（`beforeunload` 兜底那一次写盘）再打开，位置有没有丢。与 V3 同类 —— **测试环境的结论不能替代真机结论** |
 
 ---
 
@@ -244,6 +250,7 @@ B3 / B4 是原规划就指出「应尽早启动申请」的事项 —— 它们�
 | 斜杠菜单 | 触发判定留在内核、菜单与键盘在外壳；**Esc 只收菜单不删字** | [0016](./decisions/0016-slash-menu.md) |
 | M5 表格与代码块 | **自研两半，不用官方 Vue 版组件**；表格走装饰、代码块走 NodeView | [0017](./decisions/0017-m5-tables-and-code-blocks.md) |
 | M6 图片 | 落 `<文档名>.assets/`、文档里写相对路径、显示走 `data:` URI（不开 `asset:` 协议）、灯箱自研 | [0018](./decisions/0018-m6-images.md) |
+| M9 位置记忆 + 设置页 | 位置的 `offset` **由内核定义、外壳只往返**；`textLength` 作一致性凭据（不符则只恢复滚动）；滚动读写进契约（容器归内核）；位置单独一个存储键 + LRU 200 条；切文档立刻落盘；设置页的快捷键表与版本号都从唯一来源派生 | [0021](./decisions/0021-m9-position-memory-and-settings.md) |
 
 ---
 

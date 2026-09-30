@@ -209,6 +209,14 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => ctx.ui.openPalette(),
   },
   {
+    id: 'app.settings',
+    title: '设置',
+    category: '应用',
+    keybinding: 'Mod+,',
+    keywords: ['settings', 'preferences', 'shezhi', 'pianhao'],
+    run: (ctx) => ctx.ui.openSettings(),
+  },
+  {
     id: 'ui.escape',
     title: '关闭浮层',
     category: '导航',
@@ -217,6 +225,7 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => {
       ctx.ui.closePalette();
       ctx.ui.closeFind();
+      ctx.ui.closeSettings();
     },
   },
 ];

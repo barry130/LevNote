@@ -27,6 +27,7 @@ import type {
   EditorCodeBlock,
   EditorFormatting,
   EditorHandle,
+  EditorPosition,
   EditorTable,
   ImageInfo,
   ImagePasteRequest,
@@ -105,6 +106,21 @@ export interface DocumentPaneProps {
   onHandle: (handle: EditorHandle | null) => void;
   /** 首选内核或视图模式变化时通知外壳；卸载时以 null 撤回。 */
   onViewInfoChange?: (info: PaneViewInfo | null) => void;
+  /**
+   * 这份文档上次离开时的位置。外壳从位置记忆里取，null 表示没有记忆。
+   *
+   * 由外壳传进来而不是面板自己去读存储：位置记忆是**跨文档**的
+   * （「最近打开过哪些文件」），那是外壳的知识；面板只该知道自己这一份。
+   * 面板自己去读的话，它还得知道存储键、淘汰策略、开关状态 —— 三样都不属于它。
+   */
+  initialPosition?: EditorPosition | null;
+  /**
+   * 位置变化（光标或滚动）。**高频**：光标每动一次、容器每滚一下都会调用。
+   *
+   * 外壳必须把它当成高频信号处理（存 ref + 防抖落盘），
+   * 而不是 setState —— 否则用户每敲一个字都要重渲染整条链路。
+   */
+  onPositionChange?: (position: EditorPosition) => void;
 }
 
 export function DocumentPane({
@@ -114,6 +130,8 @@ export function DocumentPane({
   onToggleCodeLineNumbers,
   onHandle,
   onViewInfoChange,
+  initialPosition,
+  onPositionChange,
 }: DocumentPaneProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const { doc, status, error, conflict, busy, notice, viewMode } = state;
@@ -132,6 +150,26 @@ export function DocumentPane({
   const handleKeyRef = useRef<string | null>(null);
   const lastReportedRef = useRef<string | null>(null);
   const lastPushedRef = useRef<string | null>(null);
+
+  /**
+   * 待恢复的位置，以及上报用的回调。
+   *
+   * **都用 ref 而不是直接进依赖**，理由不同但都必要：
+   *
+   * - `initialPosition` 只在**内核就绪那一刻**读一次。放进 `handleEditorReady` 的
+   *   依赖表会让它的标识随位置变化而变，而 `handleEditorReady` 是传给内核的
+   *   `onReady` —— 纯文本兜底内核把它写在 effect 依赖里，一变就重建内核。
+   * - `onPositionChange` 是**高频**回调（光标每动一次都调）。它一变就重渲染
+   *   整条链路的话，用户每敲一个字都要走一遍 React 的提交。
+   */
+  const initialPositionRef = useRef(initialPosition);
+  initialPositionRef.current = initialPosition;
+  const onPositionChangeRef = useRef(onPositionChange);
+  onPositionChangeRef.current = onPositionChange;
+
+  const handlePositionChange = useCallback((position: EditorPosition) => {
+    onPositionChangeRef.current?.(position);
+  }, []);
 
   const [cursor, setCursor] = useState<CursorPosition | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -275,6 +313,20 @@ export function DocumentPane({
       setTableOps(handle.table ?? null);
       // 同理：只有支持代码块语言的内核才交出 `codeBlock`
       setCodeBlockOps(handle.codeBlock ?? null);
+
+      /**
+       * 恢复上次离开时的光标与滚动。
+       *
+       * 放在这里（内核就绪之后）而不是更早：`setPosition` 要往文档里派发一个
+       * 选择事务，而文档树是内核建出来的 —— 内核没就绪时没有地方可派发。
+       *
+       * **只在有位置、且这个内核支持位置读写时才调。** 不支持的内核
+       * （将来可能的思维导图 / draw.io）没有这个方法，文档照常打开，
+       * 只是从头开始 —— 而不是抛一个空引用错误把打开流程整个打断。
+       */
+      const remembered = initialPositionRef.current;
+      if (remembered && handle.setPosition) handle.setPosition(remembered);
+
       onHandle(handle);
     },
     [kernelKey, store, onHandle],
@@ -442,6 +494,7 @@ export function DocumentPane({
             onChange={handleEditorChange}
             onReady={handleEditorReady}
             onCursorChange={setCursor}
+            onPositionChange={handlePositionChange}
             onSelectionChange={setSelection}
             onSlashChange={setSlash}
             onTableChange={setTable}

@@ -205,7 +205,7 @@ interface Mounted {
 
 async function mount(
   seed: (provider: FakeProvider) => void,
-  options: { strict?: boolean } = {},
+  options: { strict?: boolean; settings?: Partial<ViewSettings> } = {},
 ): Promise<Mounted> {
   const provider = new FakeProvider();
   seed(provider);
@@ -215,8 +215,9 @@ async function mount(
   document.body.appendChild(container);
   const root: Root = createRoot(container);
 
+  const settings: ViewSettings = { ...TEST_SETTINGS, ...options.settings };
   const element: ReactElement = (
-    <App workspace={workspace} provider={provider} initialSettings={TEST_SETTINGS} />
+    <App workspace={workspace} provider={provider} initialSettings={settings} />
   );
   await act(async () => {
     root.render(options.strict === false ? element : <StrictMode>{element}</StrictMode>);
@@ -461,6 +462,15 @@ let mounted: Mounted | null = null;
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  /**
+   * 位置记忆会写 localStorage，而 jsdom 的 localStorage 在**同一个文件里是共享的**
+   * （每个测试文件一个 jsdom 环境，用例之间不隔离）。不清的话，
+   * 前一个用例把光标放在 `C:\a.md` 的第 3 行，后一个用例打开同一个路径时
+   * 会**从第 3 行开始** —— 一个看起来像产品 bug 的假失败。
+   *
+   * 偏好那边不受影响：`TEST_SETTINGS` 是注入的，不读存储。
+   */
+  localStorage.clear();
 });
 
 afterEach(async () => {
@@ -1907,5 +1917,186 @@ describe('图片：粘贴落盘 + 显示 + 灯箱', () => {
 
     expect(mounted.container.querySelector('.lightbox')).toBeNull();
     expect(renderedText(mounted.container)).toContain('![](./note.assets/image-');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 设置页
+// ---------------------------------------------------------------------------
+
+/** 状态栏里的「第 N 行，第 M 列」。内核不报光标时整段隐藏，所以读不到就是空串。 */
+function cursorOf(container: HTMLElement): string {
+  const spans = [...container.querySelectorAll('.statusbar span')];
+  return spans.find((item) => item.textContent?.includes('行，第'))?.textContent?.trim() ?? '';
+}
+
+describe('设置页', () => {
+  it('从工具栏打开，Esc 关闭', async () => {
+    mounted = await mount(() => undefined);
+    expect(mounted.container.querySelector('.settings')).toBeNull();
+
+    await mounted.click('设置');
+    expect(mounted.container.querySelector('.settings')).not.toBeNull();
+
+    // 派发到 window 上：对话框的 Esc 挂在 window 的**捕获阶段**（硬约束 9），
+    // 直接派发到 window 正好覆盖那条路径
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    });
+    await settle();
+    expect(mounted.container.querySelector('.settings')).toBeNull();
+  });
+
+  it('点遮罩关闭，点对话框内部不关', async () => {
+    mounted = await mount(() => undefined);
+    await mounted.click('设置');
+
+    const dialog = mounted.container.querySelector('.settings');
+    expect(dialog).not.toBeNull();
+    await act(async () => {
+      dialog?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    });
+    await settle();
+    expect(mounted.container.querySelector('.settings')).not.toBeNull();
+
+    const backdrop = mounted.container.querySelector('.palette-backdrop');
+    await act(async () => {
+      backdrop?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    });
+    await settle();
+    expect(mounted.container.querySelector('.settings')).toBeNull();
+  });
+
+  it('快捷键一览由命令注册表生成 —— 不是手写的一份', async () => {
+    mounted = await mount(() => undefined);
+    await mounted.click('设置');
+
+    const text = mounted.container.querySelector('.settings')?.textContent ?? '';
+    // 命令面板与保存都在表里，且带上了真实绑定
+    expect(text).toContain('命令面板');
+    expect(text).toContain('Ctrl+P');
+    expect(text).toContain('保存');
+    expect(text).toContain('Ctrl+S');
+    // 没有快捷键的命令不进这张表（它是快捷键一览，不是第二份命令面板）
+    expect(text).not.toContain('从磁盘重新加载');
+  });
+
+  it('改主题立即生效，并且落进偏好存储', async () => {
+    mounted = await mount(() => undefined);
+    await mounted.click('设置');
+
+    const select = mounted.container.querySelector<HTMLSelectElement>('.settings select');
+    expect(select).not.toBeNull();
+
+    await act(async () => {
+      if (select) {
+        select.value = 'ink';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    await settle();
+
+    // 「立即生效」而不是「保存后生效」：设置页没有保存按钮，每项都是即时生效
+    expect(document.documentElement.dataset['theme']).toBe('dark');
+    expect(JSON.parse(localStorage.getItem('qingmo.settings.v1') ?? '{}').theme).toBe('ink');
+  });
+
+  it('关于页的版本号来自 package.json，不是写死的', async () => {
+    mounted = await mount(() => undefined);
+    await mounted.click('设置');
+
+    const text = mounted.container.querySelector('.settings')?.textContent ?? '';
+    // 断言「有版本字样」而不是断言具体值：具体值会随发版变，
+    // 断言它等于把测试变成 package.json 的第二份副本
+    expect(text).toContain(`版本 ${__QINGMO_VERSION__}`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 位置记忆
+// ---------------------------------------------------------------------------
+
+describe('位置记忆', () => {
+  const A = 'C://note.md';
+  const B = 'C://other.md';
+
+  function storedPositions(): Record<string, { offset: number; textLength: number; scrollRatio: number }> {
+    return JSON.parse(localStorage.getItem('qingmo.positions.v1') ?? '{}');
+  }
+
+  it('打字之后位置被记下来 —— 切文档时立刻结算，不等防抖', async () => {
+    mounted = await mount((p) => {
+      p.put(A, '甲\n\n乙\n');
+      p.put(B, '别的\n');
+    });
+    await mounted.open(A);
+    await typeInEditor(mounted.container, '丙');
+
+    // 切走是一个明确的边界。少了这一步，位置要等 600ms 防抖才落盘，
+    // 而「改完就切走」恰恰是最常见的离开方式
+    await mounted.open(B);
+
+    const saved = storedPositions()[A];
+    expect(saved).toBeDefined();
+    expect(saved?.offset).toBeGreaterThan(0);
+    expect(saved?.textLength).toBeGreaterThan(0);
+  });
+
+  it('切走再切回来，光标回到上次的位置', async () => {
+    mounted = await mount((p) => {
+      p.put(A, '甲\n\n乙\n');
+      p.put(B, '别的\n');
+    });
+    await mounted.open(A);
+    await typeInEditor(mounted.container, '丙');
+
+    const before = cursorOf(mounted.container);
+    // 先确认光标真的离开了开头，否则下面的断言可能「碰巧成立」
+    expect(before).not.toBe('');
+    expect(before).not.toBe('第 1 行，第 1 列');
+
+    await mounted.open(B);
+    await mounted.open(A);
+
+    expect(cursorOf(mounted.container)).toBe(before);
+  });
+
+  it('关掉「记住文档位置」之后既不再读也不再写', async () => {
+    // 先种一条明显不对的记忆：若被读到了，光标会被搬到一个莫名其妙的地方
+    localStorage.setItem(
+      'qingmo.positions.v1',
+      JSON.stringify({ [A]: { offset: 999, textLength: 1, scrollRatio: 0, at: 1 } }),
+    );
+    mounted = await mount(
+      (p) => {
+        p.put(A, '甲\n\n乙\n');
+        p.put(B, '别的\n');
+      },
+      { settings: { rememberPositions: false } },
+    );
+    await mounted.open(A);
+
+    // 不读：光标仍在开头
+    expect(cursorOf(mounted.container)).toBe('第 1 行，第 1 列');
+
+    await typeInEditor(mounted.container, '丙');
+    await mounted.open(B);
+
+    // 不写：种下去的那条原封不动
+    expect(storedPositions()[A]?.offset).toBe(999);
+  });
+
+  it('文档长度变了就只恢复滚动，不搬光标', async () => {
+    // 记一条长度对不上的位置：这正是「文件被别的程序改过」的形状
+    localStorage.setItem(
+      'qingmo.positions.v1',
+      JSON.stringify({ [A]: { offset: 9999, textLength: 1, scrollRatio: 0, at: 1 } }),
+    );
+    mounted = await mount((p) => p.put(A, '甲\n\n乙\n'));
+    await mounted.open(A);
+
+    // 光标没被搬到 9999，也没有因为越界抛错 —— 打开流程照常走完
+    expect(cursorOf(mounted.container)).toBe('第 1 行，第 1 列');
+    expect(mounted.container.querySelector('.ProseMirror')).not.toBeNull();
   });
 });

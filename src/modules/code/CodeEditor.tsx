@@ -17,6 +17,7 @@ function CodeEditor({
   onChange,
   onReady,
   onCursorChange,
+  onPositionChange,
   onError,
   readOnly,
   placeholder,
@@ -30,6 +31,8 @@ function CodeEditor({
   onChangeRef.current = onChange;
   const onCursorChangeRef = useRef(onCursorChange);
   onCursorChangeRef.current = onCursorChange;
+  const onPositionChangeRef = useRef(onPositionChange);
+  onPositionChangeRef.current = onPositionChange;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -59,6 +62,7 @@ function CodeEditor({
         placeholder: placeholderRef.current,
         onChange: (value) => onChangeRef.current(value),
         onCursorChange: (position) => onCursorChangeRef.current?.(position),
+        onPositionChange: (position) => onPositionChangeRef.current?.(position),
       });
     } catch (thrown) {
       // 与 Markdown 内核不同，CodeMirror 是**同步**创建的：没有「创建到一半卸载」
@@ -85,6 +89,11 @@ function CodeEditor({
         clear: () => instanceRef.current?.search.clear(),
       },
       goToOutlineItem: ({ level, text }) => instanceRef.current?.goToHeading(level, text) ?? false,
+      // 与上面的 `search` 同一层转发：卸载后实例为 null，而外壳可能还握着
+      // 这个 handle（React 的清理顺序不保证）。`getPosition` 返回 null 表示
+      // 「此刻读不到」，外壳据此保留上一次的值，而不是覆盖成一个假的 0。
+      getPosition: () => instanceRef.current?.getPosition() ?? null,
+      setPosition: (position) => instanceRef.current?.setPosition(position),
     };
     onReadyRef.current(handle);
 

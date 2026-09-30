@@ -72,6 +72,7 @@ import type {
   DiagramView,
   EditorCodeBlock,
   EditorFormatting,
+  EditorPosition,
   EditorSearch,
   EditorTable,
   ImageInfo,
@@ -94,11 +95,13 @@ import {
 } from './math.js';
 import { mathViewPlugin } from './math-view.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
+import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js';
 import {
   codeHighlightPlugin,
   cursorReporterPlugin,
   markdownEmitPlugin,
   placeholderPlugin,
+  positionReporterPlugin,
   selectionReporterPlugin,
   SILENT_META,
   slashReporterPlugin,
@@ -132,6 +135,8 @@ export interface CreateMarkdownEditorOptions {
   /** 内容变化。**由 `setMarkdown` 触发的变化不会回调到这里**（避免回声）。 */
   onChange: (markdown: string) => void;
   onCursorChange?: (position: CursorPosition) => void;
+  /** 光标或滚动位置变化（位置记忆）。高频，调用方别在里面做重活。 */
+  onPositionChange?: (position: EditorPosition) => void;
   /** 选区变化。参数为 null 表示「现在不该有浮层工具条」（见契约注释）。 */
   onSelectionChange?: (selection: SelectionSnapshot | null) => void;
   /** 斜杠菜单状态。参数为 null 表示「现在不该有斜杠菜单」。 */
@@ -165,6 +170,10 @@ export interface MarkdownEditorInstance {
   getMarkdown(): string;
   setMarkdown(markdown: string): void;
   focus(): void;
+  /** 当前光标与滚动位置（位置记忆）。 */
+  getPosition(): EditorPosition;
+  /** 恢复光标与滚动。`textLength` 对不上时只恢复滚动。 */
+  setPosition(position: EditorPosition): void;
   /** 语义 HTML 片段，不含 `<html>` / `<head>`。 */
   toHtml(): string;
   readonly search: EditorSearch;
@@ -1279,6 +1288,7 @@ export async function createMarkdownEditor(
     .use(codeBlockChromePlugin(() => codeBlockHandlers))
     .use(imageViewPlugin(() => ({ resolve: options.resolveImageUrl, onClick: options.onImageClick })))
     .use(cursorReporterPlugin(() => options.onCursorChange))
+    .use(positionReporterPlugin(options.root, () => options.onPositionChange))
     .use(selectionReporterPlugin(() => options.onSelectionChange))
     .use(slashReporterPlugin(() => options.onSlashChange))
     .use(tableReporterPlugin(() => options.onTableChange))
@@ -1350,6 +1360,60 @@ export async function createMarkdownEditor(
 
     focus: () => {
       editor.action((ctx) => ctx.get(editorViewCtx).focus());
+    },
+
+    /**
+     * 当前光标与滚动位置。
+     *
+     * `offset` 用的是 ProseMirror 的文档位置，`textLength` 用 `doc.content.size` ——
+     * 两者在**同一个坐标系**里，且都是 O(1)。刻意不去换算成「第几个可见字符」：
+     * 那要重新实现一遍 `textBetween` 在块之间插分隔符的规则，而抄一份的下场
+     * 是两份实现在边界上悄悄分叉（见 `EditorPosition` 的注释）。
+     *
+     * `scrollRatio` 读的是 `root` —— `.qm-editor`，也就是内核自己那个滚动容器。
+     */
+    getPosition: () =>
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        return {
+          offset: view.state.selection.head,
+          textLength: view.state.doc.content.size,
+          scrollRatio: readScrollRatio(options.root),
+        };
+      }),
+
+    /**
+     * 恢复光标与滚动。
+     *
+     * ## 两条刻意的取舍
+     *
+     * 1. **长度对不上就只恢复滚动。** 长度变了说明这份文档被改过（外部程序改的、
+     *    或者上一次是别的内核存的），那个偏移可能已经不指同一个地方了。
+     *    硬套上去的结果是光标落在一段无关的文字里，比「回到开头」更让人困惑。
+     * 2. **不调 `scrollIntoView()`。** 光标与滚动是**分别**恢复的，因为我们恢复的
+     *    是「用户离开时的那一屏」：他可能正滚在别处读，光标停在屏幕外 ——
+     *    那正是他离开时的样子。把光标拉进视野反而破坏了这个状态。
+     *
+     * 选择事务不进撤销栈（`addToHistory: false`）：恢复位置不是一次编辑，
+     * 用户按 Ctrl+Z 时不该先撤销掉一次「光标跳转」。
+     */
+    setPosition: (position) => {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { doc } = view.state;
+
+        if (position.textLength === doc.content.size) {
+          // 夹到合法范围：位置记忆坏掉不该让文档打不开
+          const inside = Math.min(Math.max(position.offset, 0), doc.content.size);
+          view.dispatch(
+            view.state.tr
+              .setSelection(TextSelection.near(doc.resolve(inside)))
+              .setMeta('addToHistory', false),
+          );
+        }
+
+        applyScrollRatio(options.root, position.scrollRatio);
+      });
     },
 
     /**

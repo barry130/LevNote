@@ -2,10 +2,25 @@
 // 运行时二者是同一个对象，不影响 Tauri 拉起 dev server。
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import type { Plugin as PostcssPlugin } from 'postcss';
 
 import { woff2OnlyFontFaces } from './src/core/katex-fonts.js';
+
+/**
+ * 应用版本，从 `package.json` 读进来注入。
+ *
+ * 为什么不在设置页里写死一个字符串：写死的那个**一定会漂**（发版时改了
+ * `package.json` 却忘了改界面），而漂了之后表现是「关于页显示的版本号是旧的」——
+ * 一个没人会去核对的数字。从唯一来源读，就不可能不一致。
+ *
+ * 用 `readFileSync` 而不是 `import pkg from './package.json'`：后者会把整份
+ * `package.json`（含全部依赖清单）打进产物，白送几 KB 给用户。
+ */
+const packageVersion = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string;
+}).version;
 
 /**
  * 编辑器那份 KaTeX CSS 只声明 woff2 字体。
@@ -57,6 +72,9 @@ export default defineConfig({
   plugins: [react()],
   css: { postcss: { plugins: [katexWoff2Only] } },
   clearScreen: false,
+  define: {
+    __QINGMO_VERSION__: JSON.stringify(packageVersion),
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

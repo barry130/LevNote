@@ -45,7 +45,8 @@ import { sql } from '@codemirror/lang-sql';
 import type { Extension } from '@codemirror/state';
 import { tags as t } from '@lezer/highlight';
 
-import type { CursorPosition, EditorSearch } from '../../core/editor/types.js';
+import type { CursorPosition, EditorPosition, EditorSearch } from '../../core/editor/types.js';
+import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js';
 import { stripInlineMarkup } from '../../core/outline/outline.js';
 import { isMarkdownPath } from '../../core/path.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions, type TextMatch } from '../../core/search/find.js';
@@ -63,12 +64,18 @@ export interface CreateCodeEditorOptions {
   placeholder?: string;
   onChange(value: string): void;
   onCursorChange?(position: CursorPosition): void;
+  /** 光标或滚动位置变化（位置记忆）。高频，调用方别在里面做重活。 */
+  onPositionChange?(position: EditorPosition): void;
 }
 
 export interface CodeEditorInstance {
   getValue(): string;
   setValue(value: string): void;
   focus(): void;
+  /** 当前光标与滚动位置（位置记忆）。 */
+  getPosition(): EditorPosition;
+  /** 恢复光标与滚动。`textLength` 对不上时只恢复滚动。 */
+  setPosition(position: EditorPosition): void;
   /** `<pre data-language>` 片段，交给导出层上色（与 Markdown 的代码块走同一条路）。 */
   toHtml(): string;
   setWordWrap(on: boolean): void;
@@ -295,12 +302,42 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
           const head = update.state.selection.main.head;
           const line = update.state.doc.lineAt(head);
           options.onCursorChange?.({ line: line.number, column: head - line.from + 1 });
+          // 与上面共用同一个判断：位置记忆关心的是同一批事件（光标动了、内容变了）
+          options.onPositionChange?.({
+            offset: head,
+            // O(1)：CodeMirror 的文档长度是算好的字段，不是遍历出来的
+            textLength: update.state.doc.length,
+            // 用 `update.view` 而不是外面那个 `view` 变量：`EditorView` 的构造
+            // 过程里就可能派发一次更新，那时 `const view =` 还没赋值（TDZ），
+            // 引用它会抛 `Cannot access 'view' before initialization`。
+            // `ViewUpdate` 自带 `view`，拿它永远安全。
+            scrollRatio: readScrollRatio(update.view.scrollDOM),
+          });
         }
       }),
     ],
   });
 
   const view = new EditorView({ state, parent: options.root });
+
+  /**
+   * 滚动单独监听，而不是塞进 `updateListener`。
+   *
+   * CodeMirror 的滚动**不产生 transaction** —— 它只改 DOM 的 `scrollTop`，
+   * 所以 `updateListener` 根本收不到。滚动容器是 `view.scrollDOM`
+   * （也就是 `.cm-scroller`），这是 CodeMirror 公开的 API，不是我们猜的类名。
+   *
+   * `passive: true`：回调里没有 `preventDefault`，声明被动能让浏览器不等回调
+   * 就继续滚。
+   */
+  const onScroll = (): void => {
+    options.onPositionChange?.({
+      offset: view.state.selection.main.head,
+      textLength: view.state.doc.length,
+      scrollRatio: readScrollRatio(view.scrollDOM),
+    });
+  };
+  view.scrollDOM.addEventListener('scroll', onScroll, { passive: true });
 
   return {
     getValue: () => view.state.doc.toString(),
@@ -318,6 +355,38 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
     },
 
     focus: () => view.focus(),
+
+    /**
+     * 当前光标与滚动位置。
+     *
+     * 这里 `offset` 就是**文档的字符偏移**（CodeMirror 的位置天然是这个），
+     * 与 Markdown 内核的 ProseMirror 位置是两套坐标系 —— 这正是
+     * `EditorPosition` 让外壳只做往返、不做解释的原因。两者靠 `textLength`
+     * 区分：文档树的内容尺寸与源码字符数通常对不上，所以切视图后不会拿
+     * 一套坐标去另一套里定位。
+     */
+    getPosition: () => ({
+      offset: view.state.selection.main.head,
+      textLength: view.state.doc.length,
+      scrollRatio: readScrollRatio(view.scrollDOM),
+    }),
+
+    /**
+     * 恢复光标与滚动。`textLength` 对不上时只恢复滚动 —— 理由与 Markdown 内核
+     * 完全一致（见 `EditorHandle.setPosition`）。
+     *
+     * 不调 `EditorView.scrollIntoView`：滚动是单独按比例恢复的，
+     * 光标与滚动各自回到用户离开时的样子，而 `scrollIntoView` 会把光标拉进视野、
+     * 破坏「用户当时正滚在别处读」这个状态。
+     */
+    setPosition: (position) => {
+      const doc = view.state.doc;
+      if (position.textLength === doc.length) {
+        const inside = Math.min(Math.max(position.offset, 0), doc.length);
+        view.dispatch({ selection: { anchor: inside } });
+      }
+      applyScrollRatio(view.scrollDOM, position.scrollRatio);
+    },
 
     /**
      * `<pre data-language>` 而不是带行内样式的 HTML。
@@ -366,7 +435,13 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
       return false;
     },
 
-    destroy: () => view.destroy(),
+    destroy: () => {
+      // 先摘监听再销毁视图：`view.destroy()` 之后 `scrollDOM` 已经脱离文档，
+      // 留在它上面的监听会跟着一起被回收，但显式摘掉更清楚，也免得
+      // 将来有人把 `destroy` 改成「只是隐藏」时留下一个野监听
+      view.scrollDOM.removeEventListener('scroll', onScroll);
+      view.destroy();
+    },
   };
 }
 

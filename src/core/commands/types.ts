@@ -29,6 +29,8 @@ export interface UiActions {
   closePalette(): void;
   openFind(): void;
   closeFind(): void;
+  openSettings(): void;
+  closeSettings(): void;
   setTheme(preference: ThemePreference): void;
   cycleTheme(): void;
   /** 当前聚焦的编辑器命令面。没有内核就绪时为 null。 */

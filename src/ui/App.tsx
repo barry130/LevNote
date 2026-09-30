@@ -27,10 +27,11 @@ import { registerBuiltInCommands } from '../core/commands/definitions.js';
 import { detectPlatform, isEditableTarget, type Platform } from '../core/commands/keybinding.js';
 import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
-import type { EditorHandle } from '../core/editor/types.js';
+import type { EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
 import { isMarkdownPath } from '../core/path.js';
 import { askConfirm, isDesktop } from '../core/platform/index.js';
+import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
 import {
   defaultStorage,
   loadSettings,
@@ -48,6 +49,7 @@ import { DocumentPane, type PaneViewInfo } from './DocumentPane.js';
 import { FindBar } from './FindBar.js';
 import { OutlinePanel } from './OutlinePanel.js';
 import { Sidebar } from './Sidebar.js';
+import { SettingsDialog } from './SettingsDialog.js';
 import { TabBar } from './TabBar.js';
 
 // 注册表要在任何一次 resolveAdapter 之前填好。放在模块顶层是刻意的：
@@ -70,7 +72,17 @@ const TOOLBAR: ReadonlyArray<{ id: string; label: string }> = [
   // 视图动作，不是文件动作 —— 但它是最常被点的开关之一，值得占一个位置。
   // 文字由下面的渲染按当前视图模式决定（它是开关，不是按钮）。
   { id: 'view.toggleSource', label: '源码' },
+  { id: 'app.settings', label: '设置' },
 ];
+
+/**
+ * 位置记忆写盘的防抖时长。
+ *
+ * 600ms 的取法：光标停下来半秒多才落盘，人感觉不到延迟；而连续打字时
+ * 一次都不写 —— 逐次写就是「每敲一个字一次同步 localStorage 写」，
+ * 那会实打实地拖慢打字。
+ */
+const POSITION_FLUSH_DELAY_MS = 600;
 
 export interface AppProps {
   workspace: WorkspaceStore;
@@ -102,12 +114,113 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [liveSidebarWidth, setLiveSidebarWidth] = useState<number | null>(null);
 
   const activeStore = activeId === null ? null : workspace.storeOf(activeId);
   const activeTab = tabs.find((tab) => tab.id === activeId) ?? null;
   const activePath = activeTab?.path ?? null;
+
+  // ---- 位置记忆 ---------------------------------------------------------
+
+  /**
+   * 路径 → 位置。
+   *
+   * 存在 ref 里而不是 state：它每次光标停顿都会变，进 state 就等于
+   * **用户每敲一个字都重渲染整个外壳**（侧栏、标签栏、工具栏全跟着走）。
+   * 落盘单独防抖，见 `onPositionChange`。
+   *
+   * 用 `??=` 而不是 `useRef(loadPositions(storage))`：后者看着只跑一次，
+   * 实际上 `useRef` 的参数**每次渲染都会求值**（只是第一次的结果被保留下来），
+   * 那会变成每帧一次同步的 localStorage 读取。
+   */
+  const positionsRef = useRef<PositionMap | null>(null);
+  positionsRef.current ??= loadPositions(storage);
+  const positionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * 位置上报时要往哪份文档上记。
+   *
+   * 用 ref 而不是把它塞进 `onPositionChange` 的依赖：后者一变，
+   * 面板那边虽然用 ref 转发了，但「切标签页」本来就会重建面板 ——
+   * 没必要再多一次回调标识变化。
+   */
+  const activePathRef = useRef(activePath);
+  activePathRef.current = activePath;
+
+  const rememberPositions = settings.rememberPositions;
+
+  const flushPositions = useCallback(() => {
+    if (positionsTimerRef.current !== null) {
+      clearTimeout(positionsTimerRef.current);
+      positionsTimerRef.current = null;
+    }
+    savePositions(storage, positionsRef.current ?? EMPTY_POSITIONS);
+  }, [storage]);
+
+  const onPositionChange = useCallback(
+    (position: EditorPosition) => {
+      if (!rememberPositions) return;
+      const path = activePathRef.current;
+      if (path === null) return;
+
+      positionsRef.current = rememberPosition(positionsRef.current ?? EMPTY_POSITIONS, path, position);
+
+      if (positionsTimerRef.current !== null) clearTimeout(positionsTimerRef.current);
+      positionsTimerRef.current = setTimeout(() => {
+        positionsTimerRef.current = null;
+        savePositions(storage, positionsRef.current ?? EMPTY_POSITIONS);
+      }, POSITION_FLUSH_DELAY_MS);
+    },
+    [rememberPositions, storage],
+  );
+
+  /**
+   * 关窗口 / 卸载时把还没落盘的那一份补上。
+   *
+   * 少了这一步，最后 600ms 内的移动会丢 —— 而「改完最后一行就关掉窗口」
+   * 恰好是最常见的一种用法。
+   */
+  useEffect(() => {
+    const onBeforeUnload = () => flushPositions();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      flushPositions();
+    };
+  }, [flushPositions]);
+
+  /**
+   * 切文档时立刻落盘，不等防抖。
+   *
+   * 防抖是给「连续打字」用的；切文档是一个**明确的边界**，边界上就该结算一次。
+   * 少了它，用户改完 A 就切到 B、然后进程被杀，A 的位置就没了 ——
+   * 而「切走」恰恰是最常发生的一种离开方式，比正常关窗口还常见。
+   *
+   * 副作用是首屏也会写一次（内容与刚读出来的一样）。那是幂等的，
+   * 换来的是这条链路上没有任何「靠定时器兜底」的时序假设。
+   */
+  useEffect(() => {
+    flushPositions();
+  }, [activePath, flushPositions]);
+
+  /**
+   * 这份文档上次离开时的位置。
+   *
+   * 依赖只写 `activePath`：`positionsRef` 是 ref，它的变化不会触发重算，
+   * 但**也不需要** —— 面板是按 `activeId` 挂载的，切回来时这个 useMemo
+   * 会跟着 `activePath` 重新求值，读到的一定是最新的那份。
+   */
+  const initialPosition = useMemo(
+    () => (rememberPositions && activePath !== null ? (positionsRef.current?.[activePath] ?? null) : null),
+    [activePath, rememberPositions],
+  );
+
+  const clearPositions = useCallback(() => {
+    positionsRef.current = EMPTY_POSITIONS;
+    savePositions(storage, EMPTY_POSITIONS);
+  }, [storage]);
 
   // ---- 偏好 ------------------------------------------------------------
 
@@ -169,6 +282,8 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
       closePalette: () => setPaletteOpen(false),
       openFind: () => setFindOpen(true),
       closeFind: () => setFindOpen(false),
+      openSettings: () => setSettingsOpen(true),
+      closeSettings: () => setSettingsOpen(false),
       setTheme: (preference: ThemePreference) => update({ theme: preference }),
       cycleTheme: () => update({ theme: cycleTheme(settings.theme) }),
       editor: () => handleRef.current,
@@ -453,6 +568,8 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
               onToggleCodeLineNumbers={(next) => update({ codeLineNumbers: next })}
               onHandle={onHandle}
               onViewInfoChange={onViewInfoChange}
+              initialPosition={initialPosition}
+              onPositionChange={onPositionChange}
             />
           ) : (
             <main className="editor-area">
@@ -487,6 +604,19 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
 
       {paletteOpen && (
         <CommandPalette registry={registry} context={context} platform={platform} onClose={() => setPaletteOpen(false)} />
+      )}
+
+      {/* 设置页与命令面板同层、排在它之后（同层里最后画的在最上面）。
+          两者不会同时开：打开设置要走命令或工具栏，而命令面板打开时会先关掉自己 */}
+      {settingsOpen && (
+        <SettingsDialog
+          settings={settings}
+          onChange={update}
+          registry={registry}
+          platform={platform}
+          onClearPositions={clearPositions}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
 
       {dragging && <div className="drop-overlay">松手即可打开</div>}
