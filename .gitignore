@@ -21,6 +21,5 @@ Thumbs.db
 docs/samples/v3-longdoc*.md
 
 # V3 自动化的两个本地产物：Edge 调试用的一次性用户目录、跑出来的 JSON 读数
-.v3-edge-profile/
-.v3-edge-p2/
+.v3-edge-*/
 .v3-out/

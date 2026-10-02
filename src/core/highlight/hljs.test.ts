@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { highlightCode, tokenizeHighlightedHtml } from './hljs.js';
+import { highlightCode, hljs, tokenizeHighlightedHtml } from './hljs.js';
 
 describe('tokenizeHighlightedHtml', () => {
   it('returns ranges that map back onto the plain source text', () => {
@@ -63,5 +63,60 @@ describe('highlightCode', () => {
     for (const sample of nasty) {
       expect(() => highlightCode(sample, 'js')).not.toThrow();
     }
+  });
+});
+
+/**
+ * 缓存的存在理由是性能（见 `hljs.ts` 头部），但它同时也是一条**行为**：
+ * 第二次调用返回的是同一个对象，调用方拿到的东西没有变。
+ *
+ * 这里用 `vi.spyOn` 数底层调用次数 —— 那是唯一能证明「真的没重算」的办法。
+ * 光测「两次结果相等」是不够的：那在**没有缓存**时也成立。
+ */
+describe('highlightCode 的缓存', () => {
+  it('同一段代码第二次不再调用 highlight.js，且返回同一个对象', () => {
+    // 唯一内容，避免与别的用例共享缓存条目（缓存是模块级的，跨用例存活）
+    const code = `const cached_${String(Date.now())} = 1;`;
+    const spy = vi.spyOn(hljs, 'highlight');
+
+    const first = highlightCode(code, 'js');
+    const callsAfterFirst = spy.mock.calls.length;
+    const second = highlightCode(code, 'js');
+
+    expect(callsAfterFirst).toBe(1);
+    expect(spy.mock.calls.length).toBe(1);
+    // 共享同一个对象 —— 调用方都只读，这一点写在 hljs.ts 的注释里
+    expect(second).toBe(first);
+
+    spy.mockRestore();
+  });
+
+  /**
+   * 这条对应**实测里最贵的那个场景**：`mermaid` 不是 hljs 认识的语言，
+   * 于是每次高亮都会退回 `highlightAuto()` —— 把全部约 35 种语言各试一遍。
+   * 一份文档里 5 个 mermaid 围栏共 605 字符，每次按键重算要 20.8ms。
+   */
+  it('不认识的语言（mermaid）第二次也不再走 highlightAuto', () => {
+    const code = `graph LR\n  A_${String(Date.now())}-->B`;
+    const spy = vi.spyOn(hljs, 'highlightAuto');
+
+    highlightCode(code, 'mermaid');
+    const callsAfterFirst = spy.mock.calls.length;
+    highlightCode(code, 'mermaid');
+
+    expect(callsAfterFirst).toBe(1);
+    expect(spy.mock.calls.length).toBe(1);
+
+    spy.mockRestore();
+  });
+
+  it('同样的代码在不同语言下是两个条目，不会互相污染', () => {
+    const code = `x = ${String(Date.now())}`;
+    const asJs = highlightCode(code, 'js');
+    const asPython = highlightCode(code, 'python');
+
+    expect(asJs).not.toBeNull();
+    expect(asPython).not.toBeNull();
+    expect(asJs).not.toBe(asPython);
   });
 });

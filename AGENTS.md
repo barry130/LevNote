@@ -111,6 +111,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 斜杠菜单（`/` 插入块） | `ui/SlashMenu.tsx`（外壳画菜单与键盘导航）+ `modules/markdown/selection.ts` 的 `describeSlash`（内核判断触发） |
 | 表格工具条（加行加列、对齐、删除） | `ui/TableToolbar.tsx` + `modules/markdown/table.ts` 的 `describeTable`（纯函数，把光标处的表格算成数据）。**对齐是按列的**，见坑 12 |
 | 代码块（行号 / 语言标签） | `modules/markdown/code-block-view.ts`（NodeView，**画在文档树里**）+ `ui/CodeBlockPicker.tsx`（外壳画语言面板） |
+| **代码高亮**（编辑器与导出共用） | `core/highlight/hljs.ts` + `core/highlight/cache.ts`（**LRU 缓存**）。高亮在**每次文档变更**时整篇重跑（`codeHighlightPlugin` 的 `apply`），是按键路径上的常客 —— 所以**一律走 `highlightCode`**（它带缓存），不要绕开它直接调 hljs。详见 `docs/open-decisions.md` 的「V3 的后续」 |
 | **图片存在哪、叫什么名** | `core/document/assets.ts`（目录布局与命名，**纯函数**）。`<文档名>.assets/` + `image-<时间戳>-<盐><后缀>`；Markdown 里一律写相对路径 |
 | **图片的读与写** | `core/document/images.ts`（两个**无状态**的文档级动作：`readImageAsUrl` / `writePastedImage`）。**「已存在就换名字重试，绝不覆盖」这条在这里** |
 | **图片类型（MIME ↔ 扩展名）** | `core/image.ts`。**只有这一份**，落盘 / 显示 / 导出三处共用 —— 抄成三份的下场是「编辑器里能看、导出后打不开」 |

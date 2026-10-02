@@ -2079,6 +2079,22 @@ describe('图片：粘贴落盘 + 显示 + 灯箱', () => {
    * 而不是直接调内核的 `handlePaste` —— 后者会跳过 ProseMirror 的
    * 「先看剪贴板、再决定要不要拦」那一段，而那正是「普通文本粘贴有没有被误拦」
    * 的关键。走真实事件路径才测得到。
+   *
+   * ## 末尾那 60ms 是必需的，不是「保险起见」
+   *
+   * 我们的 `handlePaste` 只拦**图片**（`imageFilesOf` 按 `image/*` 过滤），
+   * 其余一律返回 `false` 交给默认处理 —— 这是对的。而 ProseMirror 在
+   * `handlePaste` 没拦下时会走一条降级路径（`capturePaste`）：造一个屏幕外
+   * `contenteditable`、`focus()` 它，再 `setTimeout(…, 50)` 读它的内容重调一次
+   * `doPaste`。所以**每粘贴一个非图片文件，就有一个 50ms 的定时器被排上**。
+   *
+   * 不等它跑完的话，它会跨到用例结束、编辑器销毁之后才执行 —— 那时
+   * `doPaste` 里的 `view.someProp("handlePaste", …)` 会问到 Milkdown 的剪贴板插件，
+   * 而它要 `ctx.get(parserCtx)`，ctx 已经没了，于是抛 `contextNotFound`。
+   * 现象很隐蔽：**用例全绿，但 vitest 报一条 unhandled error、退出码是 1**
+   * （门禁红，而失败信息指向的却是另一个用例的名字）。
+   *
+   * 真实使用中不会出这个错：定时器跑的时候编辑器还在，ctx 也还在。
    */
   async function pasteFiles(container: HTMLElement, files: File[]): Promise<void> {
     const editable = editableOf(container);
@@ -2092,6 +2108,8 @@ describe('图片：粘贴落盘 + 显示 + 灯箱', () => {
     });
     // 落盘 + 插节点 + NodeView 回读，串了三段异步，比通常多等一轮
     await settle(6);
+    // 把 `capturePaste` 的 50ms 定时器等掉，理由见函数注释
+    await waitMs(60);
   }
 
   it('粘贴一张图：落到 `<文档名>.assets/`，文档里写相对路径，并且变脏', async () => {
