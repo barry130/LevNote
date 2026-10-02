@@ -120,6 +120,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **Mermaid 怎么渲染** | `core/mermaid-render.ts`。动态 `import('mermaid')`、**必须传容器**（不传它会往真实 `document.body` 挂临时节点）、容器必须**参与布局**（`display: none` 会让 `getBBox()` 全 0）。jsdom 里画不出图，所以测试用假渲染器 |
 | 图 / 源码双态与全屏入口 | `modules/markdown/code-block-view.ts`（`data-mode`）+ `ui/DiagramViewer.tsx`（外壳画全屏） |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
+| **写回磁盘时被改写成什么样**（列表符号 / 分隔线 / 表格） | `modules/markdown/setup.ts` 的 `useDashSymbols`（`bullet` / `rule` 都设成 `'-'`）。**`remark-stringify` 的默认是 `'*'`**，改回去会让「打开一份用 `-` 写的文档 → **改一个字** → 保存」把全篇的 `-` 静默换成 `*`。清单与实测见 `docs/open-decisions.md` 的「原文保真的实测与收窄」 |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |

@@ -22,6 +22,7 @@ import {
   editorViewOptionsCtx,
   parserCtx,
   remarkPluginsCtx,
+  remarkStringifyOptionsCtx,
   rootCtx,
   serializerCtx,
 } from '@milkdown/kit/core';
@@ -64,6 +65,7 @@ import {
   toggleStrikethroughCommand,
 } from '@milkdown/kit/preset/gfm';
 import { $prose } from '@milkdown/kit/utils';
+import type { Options as RemarkStringifyOptions } from 'remark-stringify';
 
 import type {
   BlockFormat,
@@ -1183,6 +1185,29 @@ async function insertPastedImages(
   }
 }
 
+/**
+ * 把序列化的符号选项对齐到最常见的 Markdown 写法。
+ *
+ * ## 为什么单独拆成函数、还要显式标返回类型
+ *
+ * `ctx.update` 的签名是 `update<T, N>(slice: SliceType<T, N> | N, updater: (prev: T) => T)` ——
+ * `T` 在回调的**返回位置**上仍然是一个推断目标，上下文类型还没定下来。
+ * 于是把 `'-'` 直接写进返回的对象字面量时，它会被**放宽成 `string`**，
+ * 赋值检查报 TS2322（`string` 不可赋给 `'*' | '+' | '-' | null | undefined`）。
+ *
+ * 标上返回类型之后字面量按目标类型收窄，问题消失。**不要改回内联箭头函数** ——
+ * 那会重新触发同一个报错，而且报错信息（「`string` 不可赋给 `'*' | '+' | '-'`」）
+ * 指向的是 `ctx.update` 那一行，看不出真正的原因是「返回位置的字面量被放宽了」。
+ *
+ * ## 语义：见 `createMarkdownEditor` 里调用处的注释
+ *
+ * 一句话：`remark-stringify` 默认把无序列表写成 `* 项目`，而 `-` 才是绝大多数人的写法。
+ * 不改这一条，「打开一份用 `-` 写的文档、改一个字、保存」会把**全篇**的 `-` 静默换成 `*`。
+ */
+function useDashSymbols(options: RemarkStringifyOptions): RemarkStringifyOptions {
+  return { ...options, bullet: '-', rule: '-' };
+}
+
 export async function createMarkdownEditor(
   options: CreateMarkdownEditorOptions,
 ): Promise<MarkdownEditorInstance> {
@@ -1258,6 +1283,33 @@ export async function createMarkdownEditor(
        * 注册必须走 config（早于 parser 创建），不能等编辑器建好再挂。
        */
       ctx.update(remarkPluginsCtx, (plugins) => [...plugins, { plugin: normalizeMarkdownAst, options: {} }]);
+
+      /**
+       * 序列化时用的符号：**对齐到最常见的 Markdown 写法**。
+       *
+       * ## 不改这一条会怎样
+       *
+       * `remark-stringify` 的默认是 `bullet: '*'` —— 无序列表一律写成 `* 项目`。
+       * 而 `-` 才是绝大多数人的写法（Typora 的默认、GitHub 上最常见、也更短）。
+       *
+       * 于是「打开一份用 `-` 写的文档 → 改一个字 → 保存」会让**全篇的 `-` 静默变成 `*`**，
+       * 而那些行用户根本没碰过。实测一份 23419 字符的文档里这类改写有 18 处，
+       * 而它**连序列化器的「已知且已接受」清单都没进**（清单在
+       * `markdown-core.test.ts`，那里压根没提列表符号）。
+       *
+       * 分隔线同理：`---` 被写成 `***`，而 `---` 是它最常见的写法。
+       *
+       * ## 这**不是**在解决问题，只是把受害面缩到最小
+       *
+       * 真正的解法是「只把改动写回它发生的位置」（horseMD 的卖点），
+       * 那要换架构（源码优先 / Live Preview），不是配置能办到的。
+       * 在换之前，这一条保证的是：**最常用的写法不再被改写**。
+       * 用 `*` 写列表的人仍然会被改成 `-` —— 但那比反过来少见得多
+       * （`*` 与强调标记视觉上容易混，很多人本来就避开它）。
+       *
+       * 表格的列宽重排改不掉（那是 remark 的表格式化），仍然是已知代价。
+       */
+      ctx.update(remarkStringifyOptionsCtx, useDashSymbols);
     })
     .use(commonmark)
     .use(gfm)
@@ -1314,8 +1366,8 @@ export async function createMarkdownEditor(
    * 用**规范化后**的写法初始化 `current`，而不是入参原文。
    *
    * 规范化是真实存在的：实测 setext 标题（`标题\n====`）会变成 ATX（`# 标题`）、
-   * 行尾空白与连续空行会被收敛、`~~~` 围栏变成 ```、`___` 分隔线变成 `***`、
-   * 硬换行的两个行尾空格变成反斜杠。`*斜体*` 倒是原样保留。
+   * 行尾空白与连续空行会被收敛、`~~~` 围栏变成 ```、`___` 分隔线变成 `---`、
+   * 硬换行的两个行尾空格变成反斜杠、**表格按列宽重排**。`*斜体*` 倒是原样保留。
    * 让 `getMarkdown()` 一开始就说真话，好过等到第一次编辑才悄悄变样。
    *
    * 这不影响「打开后一个字没改就不该是脏的」：外壳那边的脏判定只认
