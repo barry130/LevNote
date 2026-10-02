@@ -27,3 +27,9 @@ docs/samples/v3-longdoc*.md
 # V2（mind-elixir 500 节点压测）跑出来的 JSON 读数。
 # 压测台（v2-page.html）与探针（v2-probe.mjs）是资产，读数不是 —— 它们随机器负载漂。
 .v2-out/
+
+# V1（drawio 查看器能否独立渲染）下下来的第三方产物与读数。
+# 产物是**被观测的对象**：viewer.min.js 2.7 MB、viewer-static 4.1 MB、stencils.min.js 7.3 MB，
+# 加起来十几 MB，且它们随上游版本变 —— 脚本（v1-samples / v1-page / v1-run）才是资产。
+# 重新拿到产物的方式写在 v1-run.mjs 的报错提示里（本机只有 Python urllib 能过代理）。
+.v1-out/

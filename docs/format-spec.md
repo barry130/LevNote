@@ -215,6 +215,33 @@ simple-mind-map、自研）都有的最小公因式，`style` / `layout` / `note
 第 4 条尤其容易被忽视：XML 序列化器很乐意替你「整理」一下，
 而这一整理就会让用户的下一次 `git diff` 变成一整页红色的噪音。
 
+#### 7.2.1 变体表（2026-10-02 实测确认，不是推测）
+
+下面这张表是 V1 实测出来的（**判据在查看器源码 `Editor.parseDiagramNode` 里，不是猜的**）。
+实现 `.drawio` 读写时按这张表来，**不要发明表外的形式**。
+
+| `<diagram>` 的内容 | 是否合法 | 说明 |
+|---|---|---|
+| `<mxGraphModel>` 作为**子元素** | ✅ | draw.io 关掉压缩后的写法 |
+| `base64(deflateRaw(encodeURIComponent(xml)))` | ✅ | draw.io 的**默认**保存格式。**必须是 raw deflate**，带 zlib 头的读不了 |
+| **空**（什么都没有） | ✅ | 真实存在（新建页没画东西）。读的时候会被补一个空模型，**写回时不要丢页** |
+| **没有 `<mxfile>` 外壳**，根直接是 `<mxGraphModel>` | ✅ | 能读能画，但**页集合为 0** —— 读写都不能假设「页」存在 |
+| `<mxGraphModel>` **转义成文本**（`&lt;mxGraphModel …&gt;`） | ❌ | **不是合法变体**，见下 |
+
+**为什么最后一条不合法**（这条写下来是为了避免有人再发明一遍）：
+`Editor.parseDiagramNode` 对 `<diagram>` 的**任何非空文本内容**都**无条件**调用
+`Graph.decompress`，而它第一句是 `Graph.stringToArrayBuffer(atob(b))` —— **没有保护**，
+也没有「这段文本是不是已经是裸 XML」的分支。所以转义文本进 `atob` 必抛
+`InvalidCharacterError`。反向也证过：`viewer.min.js` 里**没有任何路径会把转义文本写进
+`<diagram>`**。
+
+> 转义形式**真实存在**，但不在 `.drawio` 文件里 —— 它在 HTML 的 `data-mxgraph` 属性、
+> SVG 的 `content` 属性、PNG 的 `zTXt` 块里，那些走另外的抽取函数。
+> **`.drawio.png` / `.drawio.svg` 是另外的扩展名**，不属于本节的范围。
+
+**压缩变体的一条实现细节**：`Graph.compress` 的第二个参数决定 `deflate` 还是 `deflateRaw`，
+而读取侧传的是 `null` → **只有 `deflateRaw` 能被读回**。所以写回时也必须用 raw。
+
 ---
 
 ## 8. 编码与行尾（红线）

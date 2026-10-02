@@ -55,59 +55,29 @@
  * 也就没有「构建配置改坏了导致读数变了」这一类噪声。
  */
 
-import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
-import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
+
 import * as cdp from './lib/cdp.mjs';
+import { createHarness } from './lib/harness.mjs';
 
 const PROBE = readFileSync(new URL('./v2-probe.mjs', import.meta.url), 'utf8');
 const PAGE = new URL('./v2-page.html', import.meta.url);
 
 /**
- * 收尾用的句柄，**故意放在模块级**。
+ * 静态服务、起浏览器、探端口、收尾都在 `lib/harness.mjs`（V1 与 V2 共用）。
  *
- * 它们原本是 `main()` 的局部变量，收尾代码（`Browser.close` / `server.close()`）
- * 写在 happy path 的末尾 —— 于是**一旦抛异常就跳过收尾**，而 Node 的 http server
- * 句柄会把事件循环钉住，进程永不退出：既不打错误、也不退出，只是静静占着
- * 9222 与 4318 两个端口。实测就卡成这样（1 分 42 秒后仍在跑，端口全占着），
- * 而且这就是之前那两次「跑了很久只输出前缀、最后被 SIGTERM」的真相 ——
- * 当时误判成「被测页面卡死」，还专门写了外部探针去问页面，其实页面是好的。
- *
- * 教训与 `send()` 的超时是同一条：**收尾必须写在 `finally` 里**，
- * 而 `finally` 要能拿到句柄，句柄就不能是 try 块里的局部变量。
+ * **收尾必须走一条与 happy path 分开的幂等路径** —— 这条是踩出来的：
+ * 原先收尾写在 happy path 末尾，一抛异常就被跳过，而 Node 的 http server
+ * 句柄会钉住事件循环，进程永不退出：既不打错误、也不退出，只是静静占着
+ * 9222 与 4318 两个端口。实测卡了 1 分 42 秒仍不退，而且这就是之前那两次
+ * 「跑了很久只输出前缀、最后被 SIGTERM」的真相 —— 当时误判成「被测页面卡死」，
+ * 还专门写了外部探针去问页面，其实页面是好的。
  */
-let server = null;
-let browser = null;
-/** `--keep` 的结果。收尾在 `main()` 之外跑，拿不到 `args`，所以留一个模块级的位。 */
-let keepBrowserFlag = false;
-
-/** 幂等：happy path 与 catch 路径都会调，重复调不报错。 */
-async function teardown({ keepBrowser = false } = {}) {
-  if (!keepBrowser && browser !== null) {
-    await cdp.send('Browser.close').catch(() => undefined);
-  }
-  cdp.close();
-  if (server !== null) {
-    await new Promise((done) => server.close(done));
-    server = null;
-  }
-  if (browser !== null && keepBrowser) {
-    console.log(`浏览器留着没关（--keep）：PID ${browser.child.pid}，profile ${browser.profile}`);
-  }
-  browser = null;
-}
+const harness = createHarness();
 
 /** 隔离的 node 工作区 —— ADR 0007：验证用的依赖不进本仓库 `package.json`。 */
 const DEFAULT_PKG = 'C:/Users/canace/.workbuddy-ai/binaries/node/workspace/node_modules/mind-elixir';
-
-const BROWSER_CANDIDATES = [
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-];
 
 // ---------------------------------------------------------------------------
 // 参数
@@ -128,6 +98,8 @@ const DEFAULTS = {
   browser: null,
   out: null,
   keep: false,
+  // 自起浏览器是默认行为；`--no-spawn` 由 `parseArgs` 通用处理（见 cdp.mjs 的注释）。
+  spawn: true,
   fresh: false,
 };
 
@@ -160,9 +132,10 @@ function parseShapes(text) {
 }
 
 function parseArgv(argv) {
+  // `--no-spawn`（关掉自起浏览器）由 parseArgs 通用处理 —— `spawn` 已在 DEFAULTS 里。
+  // 以前这里是 `args.spawn = !argv.includes('--no-spawn')`，两个脚本各写一遍；
+  // 抽进 parseArgs 的同时也把「`--preload-stencils` 被静默吞掉」那个坑一起堵了。
   const args = cdp.parseArgs(argv, DEFAULTS, ['reps', 'typeRuns', 'keys', 'interval', 'settle', 'port', 'cdp']);
-  // `--spawn` 是默认行为，用 `--no-spawn` 关掉；`--keep` 是「跑完不关浏览器」
-  args.spawn = !argv.includes('--no-spawn');
   args.nodes = String(args.nodes)
     .split(',')
     .map((item) => Number(item.trim()))
@@ -258,83 +231,22 @@ const OPS = {
 };
 
 // ---------------------------------------------------------------------------
-// 压测台：静态服务 + 浏览器
+// 压测台的路由表（静态服务本身在 `lib/harness.mjs`）
 // ---------------------------------------------------------------------------
 
-function startServer({ port, pkgDir }) {
-  const assets = new Map([
-    ['/mind-elixir/MindElixir.js', { path: resolve(pkgDir, 'dist/MindElixir.js'), type: 'text/javascript; charset=utf-8' }],
-    ['/mind-elixir/MindElixir.css', { path: resolve(pkgDir, 'dist/MindElixir.css'), type: 'text/css; charset=utf-8' }],
+const pageRoutes = (pkgDir) =>
+  new Map([
+    ['/', { body: readFileSync(PAGE), type: 'text/html; charset=utf-8' }],
+    ['/index.html', { body: readFileSync(PAGE), type: 'text/html; charset=utf-8' }],
+    [
+      '/mind-elixir/MindElixir.js',
+      { file: () => readFileSync(resolve(pkgDir, 'dist/MindElixir.js')), type: 'text/javascript; charset=utf-8' },
+    ],
+    [
+      '/mind-elixir/MindElixir.css',
+      { file: () => readFileSync(resolve(pkgDir, 'dist/MindElixir.css')), type: 'text/css; charset=utf-8' },
+    ],
   ]);
-  const server = createServer((request, response) => {
-    const route = new URL(request.url ?? '/', 'http://127.0.0.1').pathname;
-    if (route === '/' || route === '/index.html') {
-      response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      response.end(readFileSync(PAGE));
-      return;
-    }
-    const asset = assets.get(route);
-    if (asset === undefined) {
-      response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
-      response.end('not found');
-      return;
-    }
-    response.writeHead(200, { 'content-type': asset.type });
-    response.end(readFileSync(asset.path));
-  });
-  return new Promise((done, fail) => {
-    server.once('error', fail);
-    // **只绑 127.0.0.1**。这是本机的临时压测台，不该被局域网看见。
-    server.listen(port, '127.0.0.1', () => done(server));
-  });
-}
-
-function spawnBrowser({ exe, cdpPort, url }) {
-  const profile = resolve(tmpdir(), `v2-browser-profile-${Date.now()}`);
-  const args = [
-    `--remote-debugging-port=${cdpPort}`,
-    `--user-data-dir=${profile}`,
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--disable-extensions',
-    // 这几条**必须**有：少了它们，窗口被别的窗口盖住时 Chromium 会挂起渲染管线，
-    // 读数会窜到上千毫秒 —— 而那不像 0 那样一眼可疑，只会被读成「这一档特别慢」。
-    '--disable-features=CalculateNativeWinOcclusion,msEdgeSidebarV2',
-    '--disable-backgrounding-occluded-windows',
-    '--disable-renderer-backgrounding',
-    '--disable-background-timer-throttling',
-    '--window-size=1440,900',
-    '--window-position=40,40',
-    url,
-  ];
-  const child = spawn(exe, args, { detached: true, stdio: 'ignore' });
-  child.unref();
-  return { child, profile, exe };
-}
-
-/** 端口上有没有东西在应答（不问是什么，只问「通不通」）。 */
-async function portAnswers(http) {
-  try {
-    await fetch(`${http}/json/version`);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function waitForDebugPort(http, timeoutMs = 30000) {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      const response = await fetch(`${http}/json/version`);
-      if (response.ok) return await response.json();
-    } catch {
-      // 端口还没起来，继续等
-    }
-    if (Date.now() > deadline) throw new Error(`等了 ${timeoutMs}ms，${http} 还是连不上`);
-    await cdp.sleep(300);
-  }
-}
 
 // ---------------------------------------------------------------------------
 // 单元格：一种形状 × 一个节点数
@@ -785,35 +697,22 @@ async function main() {
   const pkgVersion = JSON.parse(readFileSync(resolve(args.pkg, 'package.json'), 'utf8')).version;
   note(`mind-elixir ${pkgVersion}（${args.pkg}）`);
 
-  server = await startServer({ port: args.port, pkgDir: args.pkg });
+  await harness.startServer({ port: args.port, routes: pageRoutes(args.pkg) });
   const url = `http://127.0.0.1:${args.port}/`;
   note(`压测台 ${url}`);
 
   if (args.spawn) {
-    // **先确认调试端口是空的。** 一个残留的浏览器会把端口占着，新起的那个绑不上，
-    // 而 `waitForDebugPort` 会**高高兴兴地连上旧的那个** —— 于是脚本测的是上一次的页面
-    // （甚至是被改过的代码），而所有输出看起来完全正常。这类「静默连错对象」
-    // 比报错难查得多。实测就留下过一个（抛异常时收尾被跳过，见 `teardown` 的注释）。
-    if (await portAnswers(http)) {
-      throw new Error(
-        `${http} 上已经有一个调试端口在应答 —— 大概率是上一次跑残留的浏览器。\n` +
-          '新起的浏览器绑不上这个端口，脚本会静默连到旧的那个（测错页面）。\n' +
-          '先清掉它：关掉那个浏览器窗口；或改用 --no-spawn 明确表示「就用这个」。',
-      );
-    }
-    const exe = args.browser ?? BROWSER_CANDIDATES.find((candidate) => existsSync(candidate));
-    if (exe === undefined) {
-      throw new Error(`找不到浏览器。用 --browser 指定，或加 --no-spawn 自己起一个。\n试过：\n  ${BROWSER_CANDIDATES.join('\n  ')}`);
-    }
-    browser = spawnBrowser({ exe, cdpPort: args.cdp, url });
-    note(`浏览器 ${exe}（PID ${browser.child.pid}，profile ${browser.profile}）`);
+    await harness.requireFreePort(http);
+    const exe = harness.pickBrowser(args.browser);
+    const started = harness.startBrowser({ exe, cdpPort: args.cdp, url });
+    note(`浏览器 ${exe}（PID ${started.child.pid}，profile ${started.profile}）`);
   } else {
     note('--no-spawn：连一个已经开着的调试端口（页面应当是压测台）');
   }
 
-  const version = await waitForDebugPort(http);
+  const version = await harness.waitForDebugPort(http);
   note(`调试端口 ${http} → ${version.Browser}`);
-  note(`浏览器命令（--no-spawn 时照这条起）：\n  ${browser?.exe ?? '<浏览器>'} --remote-debugging-port=${args.cdp} --user-data-dir=<空目录> --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling ${url}`);
+  note(`浏览器命令（--no-spawn 时照这条起）：\n  ${harness.browser?.exe ?? '<浏览器>'} --remote-debugging-port=${args.cdp} --user-data-dir=<空目录> --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling ${url}`);
 
   await cdp.connect({
     http,
@@ -910,17 +809,17 @@ async function main() {
     console.log(`\n原始读数已落盘：${outPath}`);
   }
 
-  keepBrowserFlag = args.keep;
+  harness.keepBrowserFlag = args.keep;
 }
 
 // 收尾**不写在 `main()` 里**。main 里提前 throw 的地方有七八处（找不到包、找不到浏览器、
 // 焦点拿不到…），靠「每一处都记得收尾」是不可能守住的 —— 实测就是这么漏的。
 // 成败两条路都走同一个幂等的 `teardown`。
 main()
-  .then(() => teardown({ keepBrowser: keepBrowserFlag }))
+  .then(() => harness.teardown({ keepBrowser: harness.keepBrowserFlag }))
   .catch(async (thrown) => {
     console.error('\n❌', thrown instanceof Error ? thrown.message : thrown);
     if (thrown instanceof Error && thrown.cause) console.error('   原因：', thrown.cause);
-    await teardown({ keepBrowser: keepBrowserFlag });
+    await harness.teardown({ keepBrowser: harness.keepBrowserFlag });
     process.exitCode = 1;
   });

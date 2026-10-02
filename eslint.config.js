@@ -68,6 +68,10 @@ export default tseslint.config(
       '.v3-out/**',
       // ③ `.v2-out/` 是 V2（mind-elixir 压测）跑出来的 JSON 读数。
       '.v2-out/**',
+      // ④ `.v1-out/` 是 V1（drawio 查看器）下下来的第三方产物（viewer.min.js 2.7 MB、
+      //    stencils.min.js 7.3 MB）、样本与读数，外加几个一次性的下载/诊断脚本。
+      //    那些产物是**被观测的对象**，不是我们的代码 —— lint 它们只会得到一堆噪声。
+      '.v1-out/**',
     ],
   },
 

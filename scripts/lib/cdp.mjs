@@ -39,19 +39,48 @@
 // ---------------------------------------------------------------------------
 
 /**
- * `--key value` / `--flag` 形式的最小解析器。
+ * `--key value` / `--flag` / `--no-flag` 形式的最小解析器。
  *
  * `numberKeys` 里列出的键会被转成数字 —— 字符串 `'40'` 与数字 `40` 在
  * `for (let i = 0; i < args.keys; i++)` 里都能跑，但在报告里一个是字符串，
  * 会让「同一场景两次读数」的对比脚本出岔子。
+ *
+ * ## 两条不能省的规矩（都是踩出来的）
+ *
+ * **① 未知参数必须报错，不能跳过。**
+ * 静默跳过会让「我传了那个参数」与「它生效了」**看起来完全一样** ——
+ * 脚本照常跑完、报告照常打印，而那个参数一个字都没生效。
+ * 踩过：V1 的「`--preload-stencils`」那一轮因此变成了一次**伪装成实验的重复**
+ * （读数与对照组逐字相同，差点被当成「预加载没用」的结论）。
+ *
+ * **② kebab-case 与 camelCase 是同一个参数。**
+ * `--preload-stencils` 与 `--preloadStencils` 都指向 `defaults.preloadStencils`。
+ * 不归一化的话，命令行长什么样决定了它是生效还是被静默丢掉 ——
+ * 而这种差别**只体现在拼写上**，看代码看不出来。
+ *
+ * `--no-X` 把布尔项 `X` 置 false（`--no-spawn`）；`X` 不在 defaults 里就算未知参数。
  */
 export function parseArgs(argv, defaults, numberKeys = []) {
   const out = { ...defaults };
+  const unknown = [];
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
     if (!token.startsWith('--')) continue;
-    const name = token.slice(2);
-    if (!(name in defaults)) continue;
+    const raw = token.slice(2);
+    // `preload-stencils` → `preloadStencils`
+    const name = raw.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+    // `noSpawn` → `spawn`（置 false）
+    if (/^no[A-Z]/.test(name)) {
+      const target = name.slice(2, 3).toLowerCase() + name.slice(3);
+      if (typeof defaults[target] === 'boolean') {
+        out[target] = false;
+        continue;
+      }
+    }
+    if (!(name in defaults)) {
+      unknown.push(token);
+      continue;
+    }
     if (typeof defaults[name] === 'boolean') {
       out[name] = true;
       continue;
@@ -59,6 +88,14 @@ export function parseArgs(argv, defaults, numberKeys = []) {
     const value = argv[i + 1];
     i += 1;
     out[name] = numberKeys.includes(name) ? Number(value) : value;
+  }
+  if (unknown.length > 0) {
+    throw new Error(
+      `无法识别的命令行参数：${unknown.join('、')}\n` +
+        `可用：${Object.keys(defaults)
+          .map((key) => `--${key}`)
+          .join('、')}（也可写 kebab-case；布尔项可用 --no-<name> 取反）`,
+    );
   }
   return out;
 }

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>V1 · drawio 查看器独立渲染</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #ffffff; font: 13px/1.5 system-ui, sans-serif; }
+  #host { width: 1200px; height: 640px; }
+  #host .mxgraph { width: 1200px; height: 640px; }
+</style>
+<script>
+  /**
+   * **必须在查看器脚本之前**把每一条资源路径占住。
+   *
+   * CDN 版的产物把每一条都硬写成了绝对地址（`window.X = window.X || "https://viewer.diagrams.net/…"`），
+   * 而 `||` 的左边一旦有值就不会去联网。这是「查看器会不会发网络请求」的唯一开关 ——
+   * 不设它，打开一张带 stencil 的图就会去 `viewer.diagrams.net` 取资源。
+   *
+   * 指向一个**不存在的本地目录**（而不是留空）：留空时内核可能回落到自己的默认值，
+   * 而指向不存在的目录会得到一次干净的 404 —— 我们要看的就是「它到底会不会去取」。
+   */
+  // `?noblock` 跳过占位 —— 用来看**不占位时它默认会去哪儿取**。
+  // 这是「必须覆盖这些路径」这个结论的取证方式：不占位，就会看到它去请求 viewer.diagrams.net。
+  var NO_BLOCK = /[?&]noblock/.test(window.location.search);
+  var BLOCKED = '/__v1_blocked__';
+  if (!NO_BLOCK) {
+    window.SHAPES_PATH = BLOCKED + '/shapes';
+    window.STENCIL_PATH = BLOCKED + '/stencils';
+    window.STYLE_PATH = BLOCKED + '/styles';
+    window.PROXY_URL = BLOCKED + '/proxy';
+    window.DRAW_MATH_URL = BLOCKED + '/math4/es5';
+    window.GRAPH_IMAGE_PATH = BLOCKED + '/img';
+    window.RESOURCES_PATH = BLOCKED + '/resources';
+    window.RESOURCE_BASE = BLOCKED + '/resources/grapheditor';
+    window.mxImageBasePath = BLOCKED + '/mxgraph/images';
+    window.mxBasePath = BLOCKED + '/mxgraph';
+    window.DRAWIO_BASE_URL = '';
+    window.DRAWIO_LOG_URL = '';
+  }
+
+  // 拦住自动处理：viewer.min.js 末尾会在没有这个回调时立刻 processElements()，
+  // 而那时宿主里还没有任何 .mxgraph 元素 —— 更重要的是我们要自己控制渲染时机。
+  window.onDrawioViewerLoad = function () {};
+</script>
+<script src="/viewer.min.js"></script>
+</head>
+<body>
+<div id="host"></div>
+<script>
+(function () {
+  'use strict';
+
+  /** 三条独立的「它去取了什么」读数：① 打点过的 XHR / fetch；② Resource Timing；③ CDP 侧（脚本里收）。 */
+  var requests = [];
+  var errors = [];
+
+  var originalOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url) {
+    requests.push({ via: 'xhr', method: method, url: String(url) });
+    return originalOpen.apply(this, arguments);
+  };
+
+  var originalFetch = window.fetch;
+  if (typeof originalFetch === 'function') {
+    window.fetch = function (input) {
+      requests.push({ via: 'fetch', method: 'GET', url: String(input && input.url ? input.url : input) });
+      return originalFetch.apply(this, arguments);
+    };
+  }
+
+  window.addEventListener('error', function (event) {
+    errors.push('error: ' + (event.message || ''));
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    errors.push('unhandledrejection: ' + String(event.reason));
+  });
+  var originalConsoleError = console.error;
+  console.error = function () {
+    errors.push('console.error: ' + Array.prototype.map.call(arguments, String).join(' '));
+    return originalConsoleError.apply(console, arguments);
+  };
+
+  var host = document.getElementById('host');
+  var viewer = null;
+
+  function textOf(selector) {
+    var out = [];
+    var nodes = host.querySelectorAll(selector);
+    for (var i = 0; i < nodes.length; i += 1) out.push(nodes[i].textContent);
+    return out;
+  }
+
+  /**
+   * 渲染出来的 SVG 的**形状指纹**。
+   *
+   * 为什么不能只看标签文字：mxGraph 在**取不到 stencil 时会安静地回落成普通矩形**，
+   * 而标签照样画出来 —— 于是「标签都在」这个断言会把「静默降级」判成通过。
+   * 实测就是这么被骗过一次（`stencil-required.drawio` 的 5 个请求全 404，
+   * 而报告里写着「✅ 通过」）。
+   *
+   * 指纹取三样：各标签的**数量**、SVG 总长度、以及每条 `path` 的 `d` 前缀。
+   * stencil 画出来是 `<path>`（有自己的轮廓），回落成矩形是 `<rect>` ——
+   * 两者的数量分布完全不一样，一眼可辨。
+   */
+  function signature() {
+    var tags = ['rect', 'path', 'ellipse', 'image', 'text', 'foreignObject', 'line', 'polyline', 'polygon', 'circle'];
+    var counts = {};
+    for (var i = 0; i < tags.length; i += 1) {
+      counts[tags[i]] = host.querySelectorAll(tags[i]).length;
+    }
+    var svg = host.querySelector('svg');
+    var markup = svg ? svg.outerHTML : '';
+    var pathNodes = host.querySelectorAll('path');
+    var pathD = [];
+    for (var j = 0; j < pathNodes.length; j += 1) {
+      pathD.push(String(pathNodes[j].getAttribute('d') || '').slice(0, 90));
+    }
+    return {
+      标签数量: counts,
+      svg长度: markup.length,
+      path的d: pathD,
+      // 前 600 字符足够看出「是矩形还是 stencil 轮廓」
+      svg开头: markup.slice(0, 600),
+    };
+  }
+
+  function state() {
+    var labels = textOf('text').concat(textOf('foreignObject div'));
+    return {
+      // 「画出来了没有」
+      svg: host.querySelectorAll('svg').length,
+      rect: host.querySelectorAll('rect').length,
+      path: host.querySelectorAll('path').length,
+      ellipse: host.querySelectorAll('ellipse').length,
+      // 「画对了没有」：标签文字是最好读的证据
+      labels: labels.map(function (item) { return item.replace(/\s+/g, ' ').trim(); }).filter(Boolean),
+      // 「画的是不是一个形状」：见 signature 的注释
+      指纹: signature(),
+      // 失败时 processElements 会把错误消息写进元素 innerText
+      hostText: host.textContent.replace(/\s+/g, ' ').trim().slice(0, 300),
+      // 多页
+      pages: viewer !== null && viewer.diagrams ? viewer.diagrams.length : null,
+      pageNames:
+        viewer !== null && viewer.diagrams
+          ? Array.prototype.map.call(viewer.diagrams, function (item) { return item.getAttribute('name'); })
+          : [],
+      currentPage: viewer !== null && viewer.currentPage !== undefined ? viewer.currentPage : null,
+      // 工具栏 / 页码选择器的存在性
+      toolbar: host.querySelectorAll('.geToolbar, .mxToolbar').length,
+      // 资源取用
+      requests: requests.slice(),
+      resourceTiming: performance
+        .getEntriesByType('resource')
+        .map(function (entry) { return entry.name; })
+        .filter(function (name) { return name.indexOf('v1-page') === -1; }),
+      errors: errors.slice(),
+      // 路径占位有没有生效
+      noBlock: NO_BLOCK,
+      paths: {
+        SHAPES_PATH: window.SHAPES_PATH,
+        STENCIL_PATH: window.STENCIL_PATH,
+        mxBasePath: window.mxBasePath,
+        PROXY_URL: window.PROXY_URL,
+        DRAW_MATH_URL: window.DRAW_MATH_URL,
+      },
+      stencilsPreloaded: stencilsPreloaded,
+    };
+  }
+
+  var stencilsPreloaded = false;
+
+  /**
+   * 预加载「全部 stencils 打成一包」的那个文件（`stencils.min.js`）。
+   *
+   * **必须在查看器脚本之后** —— 它调的是 `mxStencilRegistry.addStencil(...)`，
+   * 而 `mxStencilRegistry` 是查看器脚本定义的。顺序反了会静默什么都没注册。
+   *
+   * 这是「完全离线」的第二条路：不打这一包时，用到一个形状库就得去 STENCIL_PATH 取；
+   * 打了这一包，注册表已经满了，一次都不用取。
+   */
+  function preloadStencils(url) {
+    return new Promise(function (done) {
+      var tag = document.createElement('script');
+      tag.src = url;
+      tag.onload = function () {
+        stencilsPreloaded = true;
+        done({ ok: true, url: url });
+      };
+      tag.onerror = function () {
+        done({ ok: false, url: url, error: 'script onerror' });
+      };
+      document.head.appendChild(tag);
+    });
+  }
+
+  window.__v1 = {
+    reset: function () {
+      host.innerHTML = '';
+      viewer = null;
+      requests.length = 0;
+      errors.length = 0;
+      return true;
+    },
+
+    /**
+     * 渲染一份 XML。
+     *
+     * 走 `createViewerForElement`（`processElements` 内部用的就是它），
+     * 因为只有它把**查看器实例**交出来 —— 多页断言要读 `viewer.diagrams`。
+     */
+    render: function (xml, config) {
+      window.__v1.reset();
+      var box = document.createElement('div');
+      box.className = 'mxgraph';
+      var payload = { nav: true, resize: true, xml: xml };
+      if (config) for (var key in config) payload[key] = config[key];
+      box.setAttribute('data-mxgraph', JSON.stringify(payload));
+      host.appendChild(box);
+      return new Promise(function (done) {
+        var settled = false;
+        var finish = function () {
+          if (settled) return;
+          settled = true;
+          // 两帧：mxGraph 在渲染后还会补一次布局（标签、自适应）
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () { done(state()); });
+          });
+        };
+        try {
+          GraphViewer.createViewerForElement(box, function (instance) {
+            viewer = instance;
+            finish();
+          });
+        } catch (error) {
+          errors.push('createViewerForElement threw: ' + error.message);
+          finish();
+        }
+        // 兜底：有些路径不回调
+        setTimeout(finish, 3000);
+      });
+    },
+
+    /**
+     * 正对照：**证明「记录请求」这套机制本身是通的。**
+     *
+     * 没有它，「所有样本都没有发请求」这个读数没法解释 —— 可能是真的没请求，
+     * 也可能是探针瞎了。所以这里主动去取两个**一定不存在**的路径：
+     * 一个走 XHR（测打点补丁）、一个走 `<img>`（测 Resource Timing / CDP 那条路）。
+     * 两条都记到了，才说明「没记到请求」是有意义的。
+     */
+    probeNetwork: function () {
+      var before = requests.length;
+      var timingBefore = performance.getEntriesByType('resource').length;
+      return new Promise(function (done) {
+        var stamp = String(Date.now());
+        var img = new Image();
+        var settle = function () {
+          done({
+            xhrAndFetch: requests.slice(before),
+            newResourceTiming: performance
+              .getEntriesByType('resource')
+              .slice(timingBefore)
+              .map(function (entry) { return entry.name; }),
+          });
+        };
+        img.onload = settle;
+        img.onerror = settle;
+        img.src = '/__v1_blocked__/probe.png?t=' + stamp;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/__v1_blocked__/probe.json?t=' + stamp);
+        xhr.onload = xhr.onerror = function () {};
+        xhr.send();
+        setTimeout(settle, 1500);
+      });
+    },
+
+    preloadStencils: preloadStencils,
+
+    selectPage: function (index) {
+      if (viewer === null || typeof viewer.selectPage !== 'function') {
+        return { error: '没有 viewer 实例，或它没有 selectPage' };
+      }
+      viewer.selectPage(index);
+      return state();
+    },
+
+    state: state,
+  };
+})();
+</script>
+</body>
+</html>

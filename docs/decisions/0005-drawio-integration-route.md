@@ -1,7 +1,7 @@
 # 0005 · draw.io 集成路线：内置查看器 + 编辑器按需下载
 
-日期：2026-09-28
-状态：已采纳
+日期：2026-09-28（V1 实测复核：2026-10-02）
+状态：**已采纳**（V1 实测通过 —— 见文末「V1 实测记录」）
 关联：0001（桌面端优先）、开放问题 R1（体积）
 
 ## 背景
@@ -77,3 +77,130 @@
   或无法正确渲染多页与压缩变体的 `.drawio`，则退化为「全部按需下载」（连 viewer 也下载）。
 - 若实测 viewer + 必要 stencils 明显超过 6 MB，重新评估是否值得内置。
 - 若上游改变许可条款或停止维护，立即重审。
+
+---
+
+## V1 实测记录（2026-10-02）
+
+**两条重审条件都没有命中 —— 决策维持。** 但实测翻出了**两条原决策没预料到的风险**，
+它们直接改变 P5 的实现要求（见下面「结论 4 / 5」）。
+
+### 怎么测的
+
+`scripts/v1-run.mjs`（驱动器）+ `scripts/v1-page.html`（测试页）+ `scripts/v1-samples.mjs`（样本）。
+产物从官方 CDN 下到 `.v1-out/`（**本机只有 Python urllib 能过代理，且必须显式设 `User-Agent`** ——
+`viewer.diagrams.net` 对默认 UA 回 403；`curl` 走 Schannel 握手直接失败、Node 的 `fetch` 不认 `http_proxy`）。
+
+样本是 **8 份 `.drawio`**，压的是从**查看器源码读出来的**变体（不是想出来的）：
+
+| 样本 | 形态 |
+|---|---|
+| `child-uncompressed` | 3 页，`<mxGraphModel>` 作为 `<diagram>` 子元素 |
+| `compressed` | 3 页，`base64(deflateRaw(encodeURIComponent(xml)))` |
+| `mixed` | 2 页，一页未压缩一页压缩 |
+| `empty-page` | 2 页，其中一页 `<diagram>` 里什么都没有 |
+| `bare-model` | 根直接是 `<mxGraphModel>`，没有 `<mxfile>` 外壳 |
+| `stencil-required` | BPMN + flowchart 形状（**不在** mxGraph 核心里） |
+| `plain-rectangles` | **对照**：与上一条几何完全相同，只是没用 stencil |
+| `escaped-text` | **负样本**：证伪过的变体，见下 |
+
+五轮对照（每轮只改一个变量）：A 占位+无 stencils / B 占位+真 stencils / C 占位+预加载
+`stencils.min.js` / D **不占位** / E 换 `viewer-static.min.js`。
+
+### 结论 1 —— **能独立运行，但必须自己占住资源路径**
+
+CDN 版把每一条资源路径硬写成绝对地址并可覆盖：
+`window.SHAPES_PATH = window.SHAPES_PATH || "https://viewer.diagrams.net/shapes"`
+（`STENCIL_PATH` / `STYLE_PATH` / `PROXY_URL` / `DRAW_MATH_URL` / `GRAPH_IMAGE_PATH` /
+`RESOURCES_PATH` / `RESOURCE_BASE` / `mxImageBasePath` / `mxBasePath` 同）。
+
+- **占位后**：不带 stencil 的样本 **0 个网络请求**（服务器日志 + CDP + 页面内打点 + Resource Timing
+  四条读数一致，且有一条**正对照**证明探针本身是通的）。
+- **不占位（D 轮）**：那 5 个请求**全部发往 `https://viewer.diagrams.net/...` 并成功取回**。
+
+→ **P5 必须把这 10 个路径全部指到本地**。否则一个「纯本地、无网络请求」的产品
+（ADR 0001）会在打开一张带 stencil 的图时**静默联网**。
+
+### 结论 2 —— **多页与压缩变体都能正确渲染**
+
+| 样本 | 页数 | 标签 | 请求 |
+|---|---|---|---|
+| `child-uncompressed` | 3/3 ✅ | 逐页切过去都 ✅ | 0 |
+| `compressed` | 3/3 ✅ | 逐页 ✅ | 0 |
+| `mixed` | 2/2 ✅ | 逐页 ✅ | 0 |
+| `empty-page` | 2/2 ✅ | 第 1 页可切、不画东西 | 0 |
+| `bare-model` | **无「页」概念**（页集合 0） | 内容画得出 ✅ | 0 |
+
+判据不是「有没有 svg」，而是**逐页切过去把标签文字读回来**跟样本的期望值比 ——
+「页数对」不等于「每页都画对了」。
+
+**`bare-model` 是个新事实**：没有 `<mxfile>` 外壳时 `extractGraphModel` 接受 `mxGraphModel` 当根，
+内容照画，但 `GraphViewer` 的页集合是 `getElementsByTagName('diagram')` → **为 0**。
+P5 读这种文件时**不能假设「页」存在**。
+
+### 结论 3 —— **体积：单个查看器过线，「viewer + 全量 stencils」超线**
+
+| 组合 | 原始 | gzip |
+|---|---|---|
+| `viewer.min.js` | 2.654 MiB | 0.684 MiB |
+| `viewer-static.min.js` | 4.073 MiB | 0.866 MiB |
+| `embed-static.min.js` | 1.284 MiB | 0.318 MiB |
+| **`viewer.min.js` + 全量 `stencils.min.js`** | **9.987 MiB** | **6.191 MiB** |
+| **`viewer.min.js` + bpmn/flowchart 两个库（5 个文件）** | **2.914 MiB** | **0.708 MiB** |
+
+（与本文档 2026-09-28 那次从上游仓库量的数字吻合：`viewer.min.js` 2.7 MB、`viewer-static` 4.2 MB、
+`stencils.min.js` 7.7 MB。）
+
+**「按库带」与「全量带」差 3.4 倍**，而且全量那条在**两个口径上都超 6 MB 判据**
+（`stencils.min.js` 几乎压不动：7.333 MiB → gzip 5.507 MiB，因为它是 base64 数据块）。
+
+### 结论 4 —— **stencil 缺失是静默降级（原决策没预料到）**
+
+mxGraph 取不到 stencil 时**不报错、不提示**，把形状画成普通矩形，而**标签照旧画出来**：
+
+| 轮 | 请求 | rect | path | svg 长度 | 形状 |
+|---|---|---|---|---|---|
+| A 全 404 | 5 | 2 | 3 | 2809 | **回落** |
+| B 真文件 | 5 | **1** | **7** | 3365 | ✅ |
+| C 预加载 | 3 | 2 | 3 | 2827 | **仍回落** |
+
+→ **P5 必须把「哪些 stencil 库取不到」在 UI 上说清楚**（硬约束 2「绝不静默」）。
+只靠「标签都在」这种断言会把静默降级判成通过 —— 本次实测就**被骗过一次**。
+
+### 结论 5 —— **`stencils.min.js` 不足以让形状画对（原决策没预料到）**
+
+C 轮（预加载 7.333 MiB 的 `stencils.min.js`）把请求从 5 降到 3，但**形状仍然回落**。
+原因是它**只含 `.xml` 那一半**：文件头就是 `f['alibaba_cloud.xml'] = '…base64…'` 这样一张表，
+`registerShape` 出现 **0 次**、`function` 只有 4 次 —— 它是**数据块，不是代码**。
+而 BPMN 的形状是 JS 类（`shapes/bpmn/mxBpmnShape2.js` → `mxCellRenderer.registerShape`）画的。
+
+**`shapes/*.js` 是必需的，且它不在 `stencils.min.js` 里。** 任何「只带 stencils.min.js 就离线了」
+的方案都是错的。
+
+### 一条被证伪的变体（留证，别再发明一遍）
+
+变体表里原本有一行「未压缩 · 转义文本」—— `<diagram>` 里放 `&lt;mxGraphModel …&gt;`。**实测读不了**，
+报 `Failed to execute 'atob' on 'Window': The string to be decoded is not correctly encoded`。
+
+根因在 `Editor.parseDiagramNode`：`<diagram>` 只要**有文本内容**就**无条件**走 `Graph.decompress`，
+而 `Graph.decompress` 第一句是 `Graph.stringToArrayBuffer(atob(b))` —— **没有保护**，
+也没有「这段文本是不是已经是裸 XML」的分支。
+
+反向也证过：`viewer.min.js` 里**没有任何路径会把转义文本写进 `<diagram>`**
+（全文搜 `"<diagram` 只有一处，是 Firefox 拖拽的 hack），`Graph.compress` 默认就是 `deflateRaw`。
+→ **这不是「查看器不支持某版本」，而是这种形式根本不是 `.drawio` 的合法变体。**
+（转义形式真实存在的地方是别处：HTML 的 `data-mxgraph` 属性、SVG 的 `content` 属性、
+PNG 的 `zTXt` 块 —— 那些走另外的抽取函数，不经过 `parseDiagramNode`。）
+
+它在样本表里**留着当负样本**：期望是「明确报错」，而不是「画出一张空白画布」。
+
+### 对 P5 的落地建议
+
+1. 内置 `viewer.min.js`（2.654 MiB），**按库内置** `stencils/*.xml` + `shapes/*.js`
+   （bpmn + flowchart 两个库只要 0.26 MiB）。**不要内置全量 `stencils.min.js`**（超判据，且不够用）。
+2. 那 10 个路径**全部**指到本地；这是「无网络请求」的**唯一开关**，漏一个就会静默联网。
+3. 取不到的 stencil 库 → **显式提示**（「这张图里的 N 个形状用到了未内置的库，已按矩形显示」）。
+4. 读 `.drawio` 时**不假设「页」存在**（`bare-model` 形态的页集合为 0）。
+5. `viewer-static.min.js`（4.073 MiB）是一条**备选**：它自带 832 个形状类（含 50 处 `mxBpmnShape`），
+   实测只剩 `stencils/flowchart.xml` 一个外取 —— 更省事，但多 1.4 MiB 且**仍不是完全离线**。
+
