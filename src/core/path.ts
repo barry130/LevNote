@@ -77,6 +77,25 @@ export function isMarkdownPath(path: string): boolean {
 }
 
 /**
+ * 认定为思维导图的扩展名。
+ *
+ * 与 `MARKDOWN_EXTENSIONS` 同一个理由放在 `core`：**名单只有一份**。
+ * 目前只有 `.mindmap` 一个，看起来不值得单开一个常量 —— 但 `.mindmap`
+ * 会出现在至少三处（内核注册、文件对话框的过滤器、导出/引用解析），
+ * 而这三处「各自写一个字符串字面量」正是硬约束 5 说的那种**双重落空**：
+ * 改了一处、忘了另一处，表现是「同一个文件在不同功能里被当成两种东西」。
+ *
+ * 刻意**不把 `.xmind` 收进来**：那是另一个格式（zip 容器），
+ * 拿 JSON 解析器去读它只会得到 `NOT_JSON`，不如让它落到纯文本兜底。
+ */
+export const MINDMAP_EXTENSIONS: ReadonlySet<string> = new Set(['.mindmap']);
+
+/** 路径是否属于思维导图。大小写不敏感（`extensionOf` 已统一小写）。 */
+export function isMindmapPath(path: string): boolean {
+  return MINDMAP_EXTENSIONS.has(extensionOf(path));
+}
+
+/**
  * 取所在目录。
  *
  * 返回 `null` 表示「拿不到目录」，也就是**不能猜**：光秃秃的文件名
