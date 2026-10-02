@@ -50,13 +50,38 @@ export const MINDMAP_FORMAT = 'qingmo.mindmap';
 export const MINDMAP_VERSION = 1;
 
 /**
- * 唯一认识的布局。
+ * 默认布局。§7.1 的示例写的就是它。
  *
- * §7.1 的示例写 `logicalStructure`，V2 的对齐实测也确认「官方侧只固定这一个值」。
- * 别的值**不报错也不丢**：原样保留 + 一条 `UNKNOWN_LAYOUT` 提示 ——
- * 因为我们认不出的布局，很可能只是更高版本新增的。
+ * 对应内核的**双向**逻辑结构图（`direction = 2`），也就是「思维导图」最典型的样子。
+ * 刻意**不用** mind-elixir 自己的默认值（`direction = 1`，全部向右）：
+ * 打开一张 `.mindmap` 时该看到的是中心发散，不是一张左对齐的树。
  */
 export const MINDMAP_DEFAULT_LAYOUT = 'logicalStructure';
+
+/**
+ * 认得的布局。
+ *
+ * ## 为什么是四个值而不是一个
+ *
+ * 布局（= 内核的 `direction`）是**用户可以改的东西** ——
+ * `Ctrl + 方向键` 就能换，那是内核自带的键位（见 `MindElixir.js` 的 keypress 表）。
+ * 只认一个值意味着「用户按了 `Ctrl+←`、保存、再打开，方向回去了」——
+ * 一次静默的数据丢失（硬约束 2）。
+ *
+ * 名字沿用 XMind 的术语，因为它们是**跨工具的通用叫法**，
+ * 而不是 mind-elixir 的内部标识符 —— 将来换内核时这几个名字仍然讲得通。
+ *
+ * **顺序必须与内核的方向编号一致**（0 左 / 1 右 / 2 双向 / 3 向下）：
+ * 适配层用下标直接查表（`modules/mindmap/adapter.ts` 的 `LAYOUT_BY_DIRECTION`），
+ * 顺序错了会让「向右」显示成「向左」，而且**没有任何地方会报错**。
+ * `adapter.test.ts` 有一条测试专门钉住这个顺序。
+ */
+export const MINDMAP_LAYOUTS: readonly string[] = [
+  'logicalStructureLeft', // 0：全部向左
+  'logicalStructureRight', // 1：全部向右
+  'logicalStructure', // 2：双向（默认）
+  'orgChart', // 3：向下（组织架构图）
+];
 
 /** 顶层「我们认识」的字段。不在此列的键进 `extra`。 */
 export const KNOWN_TOP_KEYS: ReadonlySet<string> = new Set(['format', 'version', 'layout', 'root']);

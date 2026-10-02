@@ -13,6 +13,7 @@ import type { EditorAdapter } from '../core/editor/types.js';
 import { registerAdapter } from '../core/editor/registry.js';
 import { codeAdapter } from './code/index.js';
 import { markdownAdapter } from './markdown/index.js';
+import { mindmapAdapter } from './mindmap/index.js';
 import { plainTextAdapter } from './plaintext/index.js';
 
 /**
@@ -28,15 +29,24 @@ let registered = false;
  *
  * **注册顺序即优先级**（见 `registry.ts`）。这里的顺序有实际含义：
  * 1. `markdown` 在前 —— `.md` 归富文本内核；
- * 2. `code` 在后 —— 它认得 `.md`，但只作为备胎：Markdown 内核的 `canHandle`
- *    否决（front matter 文件）之后，注册表会继续找下一个候选，这时它接住。
+ * 2. `mindmap` 在中间 —— `.mindmap` 归导图内核；
+ * 3. `code` 在**最后** —— 它是**备胎**，而且认得前两个认得的所有扩展名
+ *    （`.md` 与 `.mindmap`）。所以它必须排在它们后面：备胎抢在正主前面，
+ *    就会把所有文件都吃掉。
  *
- * 把这条顺序写下来，是因为它决定了「front matter 文件用什么打开」这个具体行为，
- * 而那个行为光看两个模块的文件是推不出来的。
+ * 这条顺序决定了两件具体的事，而它们光看模块文件是推不出来的：
+ * - 「带 YAML front matter 的 `.md` 用什么打开」—— Markdown 内核的 `canHandle`
+ *   否决之后，注册表继续找，`code` 接住（一份有着色的 Markdown 源码）；
+ * - 「坏掉的 `.mindmap` 用什么打开」—— 同理，导图内核否决之后由 `code` 接住
+ *   （一份有着色的 JSON 源码），而不是掉到纯文本。
+ *
+ * **「打开任何文件都不能失败」的具体形态就是这条链**：
+ * 正主 → 备胎 → 纯文本，一级比一级少，但一级都不会打不开。
  */
 export function registerBuiltInEditors(): void {
   if (registered) return;
   registered = true;
   registerAdapter(markdownAdapter);
+  registerAdapter(mindmapAdapter);
   registerAdapter(codeAdapter);
 }

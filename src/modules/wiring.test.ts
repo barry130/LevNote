@@ -13,12 +13,13 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { listAdapters } from '../core/editor/registry.js';
+import { listAdapters, resolveAdapter } from '../core/editor/registry.js';
 import { MARKDOWN_EXTENSIONS } from '../core/path.js';
 import { codeAdapter } from './code/index.js';
 import { languageForPath } from './code/setup.js';
 import { EDITOR_FALLBACK, registerBuiltInEditors } from './index.js';
 import { markdownAdapter } from './markdown/index.js';
+import { mindmapAdapter } from './mindmap/index.js';
 
 describe('Markdown 扩展名名单只有一份', () => {
   /**
@@ -62,10 +63,65 @@ describe('源码视图的接线', () => {
     registerBuiltInEditors();
 
     // 顺序即优先级：markdown 在前（`.md` 归富文本内核），
-    // code 在后（只作为 front matter 文件的接住者）。
+    // mindmap 在中间（`.mindmap` 归导图内核），
+    // code 在**最后**（它是备胎，认得前两个认得的所有扩展名，排前面会把它们全吃掉）。
     // 源码视图**不在**这张表里，它只挂在适配器对象上由外壳显式取用 ——
     // 塞进注册表的话，`resolveAdapter('a.md')` 就有了两个合法答案，
     // 哪一个先匹配到取决于注册顺序，那是没法推理的。
-    expect(listAdapters().map((adapter) => adapter.id)).toEqual(['markdown', 'code']);
+    expect(listAdapters().map((adapter) => adapter.id)).toEqual(['markdown', 'mindmap', 'code']);
+  });
+
+  it('导图内核的源码视图也是代码内核 —— 于是它自动获得视图三态', () => {
+    // `.mindmap` 的源码形态就是 JSON，而轻墨已经有一个 JSON 编辑器了。
+    // 外壳只看 `sourceView` 在不在，所以这一条就是「导图能不能切到源码视图」的全部依据。
+    expect(mindmapAdapter.sourceView).toBe(codeAdapter);
+    expect(languageForPath('图.mindmap')).toBe('json');
+  });
+});
+
+describe('导图的备胎链', () => {
+  registerBuiltInEditors();
+
+  const pick = (text?: string): string => resolveAdapter('图.mindmap', EDITOR_FALLBACK, text).id;
+
+  const body = (over: Record<string, unknown> = {}): string =>
+    JSON.stringify({ format: 'qingmo.mindmap', version: 1, root: { id: 'n1', topic: '根', children: [] }, ...over });
+
+  it('正常的 .mindmap 归导图内核', () => {
+    expect(pick(body())).toBe('mindmap');
+  });
+
+  it('空文件也归导图内核 —— 那不是坏文件，是「还没开始写」', () => {
+    expect(pick('')).toBe('mindmap');
+    expect(pick('\n  \n')).toBe('mindmap');
+  });
+
+  it('读不出来的 .mindmap 落到代码内核，而不是兜底纯文本', () => {
+    // 一级比一级少，但一级都不会打不开。退到代码内核意味着用户看到的
+    // 是一份**有 JSON 着色**的源码，能直接改；退到纯文本则是白底 textarea。
+    expect(pick('{ 这不是 JSON')).toBe('code');
+    expect(pick(JSON.stringify({ format: '别的格式', version: 1, root: {} }))).toBe('code');
+    expect(pick(JSON.stringify({ format: 'qingmo.mindmap', version: 1 }))).toBe('code');
+  });
+
+  it('节点 id 重复的文件也落到代码内核 —— 拖动会作用到别的节点上', () => {
+    const duplicated = body({
+      root: {
+        id: 'n1',
+        topic: '根',
+        children: [
+          { id: 'same', topic: '甲', children: [] },
+          { id: 'same', topic: '乙', children: [] },
+        ],
+      },
+    });
+    expect(pick(duplicated)).toBe('code');
+  });
+
+  it('代码内核认得 .mindmap —— 备胎要认得正主认得的东西', () => {
+    expect(codeAdapter.matches('图.mindmap')).toBe(true);
+    expect(mindmapAdapter.matches('图.mindmap')).toBe(true);
+    // 反过来不成立：导图内核不该去抢 `.md`
+    expect(mindmapAdapter.matches('笔记.md')).toBe(false);
   });
 });

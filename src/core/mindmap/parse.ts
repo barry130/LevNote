@@ -25,6 +25,7 @@ import {
   KNOWN_TOP_KEYS,
   MINDMAP_DEFAULT_LAYOUT,
   MINDMAP_FORMAT,
+  MINDMAP_LAYOUTS,
   MINDMAP_VERSION,
   type LineEnding,
   type MindmapDocument,
@@ -131,11 +132,11 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
   const rawLayout = raw.layout;
   if (typeof rawLayout === 'string' && rawLayout !== '') {
     layout = rawLayout;
-    if (rawLayout !== MINDMAP_DEFAULT_LAYOUT) {
+    if (!MINDMAP_LAYOUTS.includes(rawLayout)) {
       issues.push({
         severity: 'warning',
         code: 'UNKNOWN_LAYOUT',
-        message: `layout 是 ${JSON.stringify(rawLayout)}，本版本只认 ${MINDMAP_DEFAULT_LAYOUT}；已原样保留，但渲染按默认布局`,
+        message: `layout 是 ${JSON.stringify(rawLayout)}，本版本不认识；已原样保留，渲染按 ${MINDMAP_DEFAULT_LAYOUT}`,
       });
     }
   } else if (rawLayout !== undefined) {

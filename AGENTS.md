@@ -48,7 +48,12 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 ### 4–14
 
 4. **注册顺序即优先级**：`registerAdapter` 是 `push` + 先注册先匹配。
-   markdown 在前、code 在后（code 认得 `.md`，只作备胎）。
+   **备胎必须排在正主后面** —— 现在的顺序是 `markdown` → `mindmap` → `code`，
+   而 `code` 认得 `.md` 与 `.mindmap`（它是两者的源码形态）。
+   把它排前面会把两个正主全吃掉：`matches` 先命中、它又没有 `canHandle`，
+   注册表直接返回它，后面那个内核**一次都不会被调用**。
+   踩过一次（第一版就是 `markdown` → `code` → `mindmap`），
+   `modules/wiring.test.ts` 的备胎链测试当场抓住 —— 见 ADR 0025。
 5. **Markdown 扩展名名单只有一份**：`core/path.ts` 的 `MARKDOWN_EXTENSIONS`
    （`isMarkdownPath()`）。抄多份的后果是**双重落空** —— 用户拿到白底 textarea，
    而两边代码都没写错。`modules/wiring.test.ts` 跨模块断言钉住它。
@@ -123,6 +128,10 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **写回磁盘时被改写成什么样**（列表符号 / 分隔线 / 表格） | `modules/markdown/setup.ts` 的 `useDashSymbols`（`bullet` / `rule` 都设成 `'-'`）。**`remark-stringify` 的默认是 `'*'`**，改回去会让「打开一份用 `-` 写的文档 → **改一个字** → 保存」把全篇的 `-` 静默换成 `*`。清单与实测见 `docs/open-decisions.md` 的「原文保真的实测与收窄」 |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
+| **`.mindmap` 的读写** | `core/mindmap/`（纯函数、**不 import 任何内核** —— 「结构自持，不绑定具体内核」是 §7.1 的设计意图）。字段对应表见 `docs/format-spec.md` §7.1.2 |
+| **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
+| **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
+| **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
 | 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
 | **视图三态（富文本 / 源码 / 分屏）** | `core/document/store.ts` 的 `ViewMode`（**枚举，不是两个布尔**）+ `ui/ViewSwitcher.tsx`（状态栏里的三档）。分屏的两栏在 `ui/DocumentPane.tsx`：左 = `primary.sourceView`（可编辑），右 = `primary` 加 `readOnly` |
@@ -510,13 +519,15 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**905 条前端 + 15 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
-主包 1,749 kB（gzip 581 kB），已超 Vite 的 500 kB 警戒线 ——
+测试：**1,141 条前端 + 15 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+主包 1,872.79 kB（gzip 620.69 kB），已超 Vite 的 500 kB 警戒线 ——
 归因与拆分方案在 `ROADMAP.md` 第 18 项。
 打包产物 5.8 MB，其中 3.4 MB 是 mermaid 的懒加载 chunk（ADR 0020）。
 
-**最该先做的一件事**：**P4 思维导图**（`ROADMAP.md` 第 21–23 项）。
-两个开工前置 **V1 与 V2 都已测完**（2026-10-02），四个模块的前置验证到此全部有结论。
+**最该先做的一件事**：**P4 思维导图的第 23 项（全文检索）**。
+第 20–22 项已于 2026-10-02 完成 —— `.mindmap` 的读写、适配层、
+内核接入（第三个 `EditorAdapter` 实现）全部落地，四类一等公民里
+**Markdown 与思维导图两类已可独立使用**。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。
@@ -529,6 +540,11 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 > 维持 mind-elixir（ADR 0007 复评记录）；
 > V3（Milkdown 长文档输入延迟）已测完并落地（ADR 0004）；
 > V4（表格可视化编辑的成本）已由 M5 回答 —— 自研可行、成本可接受。
+>
+> **P4 接入内核时新踩的四个坑**（都写进 ADR 0025 与 `PITFALLS.md`）：
+> 注册顺序把 `code` 排在了导图前面（它认得 `.mindmap`，于是全被它吃掉）；
+> 「没改过就不写」的基准取错了时机（内核跑完首次布局会给顶层节点补 `direction`）；
+> jsdom 没有 `matchMedia` 而内核在构造函数里就要它；空文件的「原文」不能当回退目标。
 
 **空壳模块**（返回 `NOT_SUPPORTED`，等对应阶段落地）：
 `src-tauri/src/{watch,search,drawio}/mod.rs`。

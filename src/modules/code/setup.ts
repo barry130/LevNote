@@ -121,8 +121,13 @@ export function languageForPath(path: string): string {
       return 'typescript';
     case '.tsx':
       return 'tsx';
+    // 导图文件（`.mindmap`）就是 JSON。这条同时服务两个入口：
+    // 打开一份**被导图内核否决**的 `.mindmap`，以及给一份正常的 `.mindmap`
+    // 切到源码视图（`sourceView`）。后者尤其不能漏 ——
+    // 漏了的表现是「同一个文件，切到源码视图突然没有着色」。
     case '.json':
     case '.jsonc':
+    case '.mindmap':
       return 'json';
     case '.css':
       return 'css';

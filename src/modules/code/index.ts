@@ -41,6 +41,11 @@ const CODE_EXTENSIONS = new Set([
   ...MARKDOWN_EXTENSIONS,
   // 配置与数据
   '.json', '.jsonc', '.yml', '.yaml', '.toml', '.ini', '.cfg', '.conf', '.env', '.csv', '.tsv',
+  // 思维导图的**源码形态**。正常情况走导图内核；导图内核的 `canHandle` 否决
+  // （不是合法 JSON / 节点 id 有危险字符 / id 重复）时落到这里 ——
+  // 用户拿到的是一份带 JSON 着色的源码，能直接改。
+  // 与 `.md` 落在同一张名单里是同一条理由：**备胎要认得正主认得的东西**。
+  '.mindmap',
   // Web
   '.js', '.mjs', '.cjs', '.jsx', '.ts', '.mts', '.cts', '.tsx', '.css', '.scss', '.less', '.html', '.htm', '.vue', '.svelte',
   // 标记与图形

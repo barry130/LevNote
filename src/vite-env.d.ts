@@ -21,3 +21,18 @@
 interface ImportMetaEnv {
   readonly QINGMO_VERSION: string;
 }
+
+/**
+ * mind-elixir 的样式表。
+ *
+ * 它的 `package.json` 里 `"./style"` 只声明了 `import` 指向 `dist/MindElixir.css`，
+ * **没有 `types` 字段** —— 于是 TS 按 `moduleResolution: bundler` 去解析
+ * `MindElixir.css` 的类型，找不到，报 `TS2882`。
+ *
+ * 不能靠 `skipLibCheck` 绕过：那条只跳过 `.d.ts` **内部**的检查，
+ * 管不了「import 的目标有没有声明」。
+ *
+ * 声明成空模块是对的 —— 这个 import 的作用只有一个：**让打包器把 CSS 收进来**。
+ * 它没有任何导出，也不该有。
+ */
+declare module 'mind-elixir/style';

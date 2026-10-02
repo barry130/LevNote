@@ -172,3 +172,40 @@ if (typeof window !== 'undefined') {
   ensure(globalThis, 'DataTransfer', FakeDataTransfer);
   ensure(globalThis, 'ClipboardEvent', FakeClipboardEvent);
 }
+
+// ---------------------------------------------------------------------------
+// matchMedia（导图内核的构造函数要它）
+// ---------------------------------------------------------------------------
+
+/**
+ * jsdom **没有** `window.matchMedia`（实测 30.1.1）。
+ *
+ * 它不是「某个方法没实现」，而是整个函数不存在 —— 而 mind-elixir 在
+ * **构造函数里**就会调它两次（`dist/MindElixir.js` 实测）：
+ *
+ * - `matchMedia('(prefers-color-scheme: dark)')` —— 决定默认主题的明暗；
+ * - `matchMedia('(hover: none), (pointer: coarse)')` —— 判断是不是触屏。
+ *
+ * 所以缺了它，导图内核**根本创建不出来**：`new MindElixir(...)` 直接抛
+ * `window.matchMedia is not a function`。而这条错误会走 `onError`，
+ * 表现是「导图打不开」—— 看起来像产品坏了，其实是测试环境少了一个接口。
+ *
+ * `matches: false` 是有意选的：它表示「没有深色偏好、不是触屏」，
+ * 也就是**最保守的那一支**。返回 `true` 会让内核走进触屏分支，
+ * 那条路上的行为（多选、长按菜单）在 jsdom 里没有意义。
+ *
+ * 其余成员（`addListener` / `addEventListener`）一并给出：真实浏览器的
+ * `MediaQueryList` 上有它们，内核将来接上「系统主题变了」的监听时不用再回来补。
+ */
+if (typeof window !== 'undefined') {
+  ensure(window, 'matchMedia', (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => false,
+  }));
+}

@@ -41,6 +41,7 @@
     "highlight.js": "^11.12.0",
     "katex": "^0.18.9",
     "mermaid": "^11.17.2",
+    "mind-elixir": "5.15.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "remark-math": "^6.0.0",
