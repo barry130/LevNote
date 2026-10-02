@@ -1405,6 +1405,140 @@ describe('选中浮层工具条', () => {
   });
 });
 
+/**
+ * 块手柄。
+ *
+ * ## 这一组打的是**外壳与内核之间那条接线**
+ *
+ * 内核报「指针在哪一块上」→ 外壳画手柄 → 点开菜单 → 动作回到内核 → 文档变脏。
+ *
+ * 每一段单独都有测试（内核在 `modules/markdown/block.test.ts`，组件在
+ * `ui/BlockHandle.test.tsx`），但**它们之间的缝没人管**：
+ * `DocumentPane` 少转发一个 `onBlockHandleChange`，那七十多条测试一条都不会红，
+ * 而用户永远看不到手柄 —— 这正是 `App.test.tsx` 存在的理由。
+ */
+
+/** 手柄。没悬停 / 没有这个能力时是 null。 */
+function gripOf(container: HTMLElement): HTMLElement | null {
+  return container.querySelector('.bh-grip');
+}
+
+function blockMenuOf(container: HTMLElement): HTMLElement | null {
+  return container.querySelector('.bh-menu');
+}
+
+function blockMenuItem(container: HTMLElement, label: string): HTMLButtonElement {
+  const items = [...container.querySelectorAll('.bh-item')];
+  const found = items.find((el) => el.textContent?.includes(label) ?? false);
+  if (!(found instanceof HTMLButtonElement)) throw new Error(`块菜单里没有「${label}」`);
+  return found;
+}
+
+/**
+ * 把指针「放」到第 index 块上。
+ *
+ * 悬停命中的输入就是「指针下面那个元素」（内核按 DOM 元素反推，不走坐标），
+ * 所以这里直接派发到那一块的元素上 —— 这是它的真实语义，不是绕过。
+ */
+async function hoverBlockAt(container: HTMLElement, index: number): Promise<void> {
+  const block = editableOf(container).children[index];
+  if (!(block instanceof HTMLElement)) throw new Error(`编辑器里没有第 ${index} 块`);
+  await act(async () => {
+    block.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 300, clientY: 120 }));
+  });
+  await nextFrame();
+}
+
+/** 点一下手柄。走真实的指针那条路（`pointerdown` → `pointerup`）。 */
+async function tapGrip(container: HTMLElement): Promise<void> {
+  const grip = gripOf(container);
+  if (grip === null) throw new Error('没有块手柄');
+  await act(async () => {
+    grip.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 100, clientY: 100 }));
+  });
+  await act(async () => {
+    window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 100, clientY: 100 }));
+  });
+  await nextFrame();
+}
+
+describe('块手柄', () => {
+  it('指针停在一块上 → 手柄出现', async () => {
+    mounted = await mount((p) => p.put('note.md', '一\n\n二\n\n三\n'));
+    await mounted.open('note.md');
+
+    expect(gripOf(mounted.container), '没悬停时不该有手柄').toBeNull();
+
+    await hoverBlockAt(mounted.container, 1);
+
+    const grip = gripOf(mounted.container);
+    expect(grip).not.toBeNull();
+    // 与浮层同一条理由：手柄是编辑器区域的**兄弟**节点，不是子节点 ——
+    // 放进内核挂载的那层容器会被内核在挂载时抹掉
+    expect(grip?.parentElement?.classList.contains('editor-area')).toBe(true);
+  });
+
+  it('点手柄出菜单，四个动作都在', async () => {
+    mounted = await mount((p) => p.put('note.md', '一\n\n二\n\n三\n'));
+    await mounted.open('note.md');
+    await hoverBlockAt(mounted.container, 0);
+
+    expect(blockMenuOf(mounted.container), '没点之前不该有菜单').toBeNull();
+
+    await tapGrip(mounted.container);
+
+    expect(blockMenuOf(mounted.container)).not.toBeNull();
+    for (const label of ['上移', '下移', '复制一份', '删除']) {
+      expect(blockMenuItem(mounted.container, label), label).toBeDefined();
+    }
+  });
+
+  /**
+   * 这一条同时钉住两件事：动作真的回到了内核，以及**文档变脏了**。
+   * 块操作不产生 `input` / `paste`，漏了 `USER_EDIT_META` 就是静默丢数据 ——
+   * 用户点「下移」，界面显示成功，Ctrl+S 写回磁盘的是下移**之前**的文本。
+   */
+  it('点「下移」：顺序真的变了，而且状态栏变成「有未保存的改动」', async () => {
+    mounted = await mount((p) => p.put('note.md', '一\n\n二\n\n三\n'));
+    await mounted.open('note.md');
+    await hoverBlockAt(mounted.container, 0);
+    await tapGrip(mounted.container);
+
+    // 先把元素取出来：`mounted` 是可空类型，在 `act` 的闭包里会丢掉收窄
+    const moveDown = blockMenuItem(mounted.container, '下移');
+    await act(async () => {
+      moveDown.click();
+    });
+    await nextFrame();
+
+    const text = mounted.store.getSnapshot().doc?.text ?? '';
+    expect(text.indexOf('二')).toBeLessThan(text.indexOf('一'));
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+    expect(blockMenuOf(mounted.container), '动作做完要收菜单').toBeNull();
+  });
+
+  it('只读文档没有手柄', async () => {
+    mounted = await mount((p) => p.put('note.md', '一\n\n二\n', { readonly: true }));
+    await mounted.open('note.md');
+    await hoverBlockAt(mounted.container, 0);
+
+    expect(gripOf(mounted.container)).toBeNull();
+  });
+
+  /**
+   * 与浮层同一条分工：源码视图是「有，但这份文档用不上」，
+   * 而块手柄是「这个内核根本没有」—— 代码内核没有块级格式这个概念。
+   */
+  it('代码内核的文档没有手柄', async () => {
+    mounted = await mount((p) => p.put('main.py', 'print("abc")\n'));
+    await mounted.open('main.py');
+
+    expect(kernelOf(mounted.container)).toBe('代码 / 文本');
+    await hoverBlockAt(mounted.container, 0);
+    expect(gripOf(mounted.container)).toBeNull();
+  });
+});
+
 describe('斜杠菜单', () => {
   /**
    * 这一组打的是**从敲键盘到文件内容真的变了**这条完整链路：

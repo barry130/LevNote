@@ -11,10 +11,18 @@ import type { Node as ProseNode } from '@milkdown/kit/prose/model';
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
 
-import type { CursorPosition, EditorPosition, SelectionSnapshot, SlashState, TableState } from '../../core/editor/types.js';
+import type {
+  BlockHandleState,
+  CursorPosition,
+  EditorPosition,
+  SelectionSnapshot,
+  SlashState,
+  TableState,
+} from '../../core/editor/types.js';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { highlightCode } from '../../core/highlight/hljs.js';
 import { readScrollRatio } from '../../core/editor/position.js';
+import { blockIndexFromElement, readBlockAt, withinGutter } from './block.js';
 import { anchorOf, caretAnchorOf, describeSelection, describeSlash, describeTable } from './selection.js';
 
 const highlightKey = new PluginKey<DecorationSet>('qingmo-code-highlight');
@@ -23,6 +31,7 @@ const positionKey = new PluginKey('qingmo-position-reporter');
 const selectionKey = new PluginKey('qingmo-selection-reporter');
 const slashKey = new PluginKey('qingmo-slash-reporter');
 const tableKey = new PluginKey('qingmo-table-reporter');
+const blockHoverKey = new PluginKey('qingmo-block-hover');
 const emitKey = new PluginKey('qingmo-markdown-emit');
 const placeholderKey = new PluginKey('qingmo-placeholder');
 
@@ -322,6 +331,187 @@ export function slashReporterPlugin(getReporter: () => ((state: SlashState | nul
  */
 export function tableReporterPlugin(getReporter: () => ((state: TableState | null) => void) | undefined) {
   return $prose(() => floatingReporterPlugin<TableState>(tableKey, describeTable, getReporter));
+}
+
+// ---------------------------------------------------------------------------
+// 块手柄
+// ---------------------------------------------------------------------------
+
+/**
+ * 「指针停在哪一块上」的上报 —— 块手柄的输入。
+ *
+ * ## 它与另外四个浮层的上报骨架**不能共用**
+ *
+ * `floatingReporterPlugin` 的触发源是「选区 / 文档 / storedMarks 变了」加滚动，
+ * 而这一个的触发源是**鼠标移动** —— 鼠标移动完全不碰 state，
+ * 所以那个骨架一辈子都不会被唤醒。共用只能是硬塞。
+ *
+ * ## 滚动必须重算，而且要用**上一次的指针位置**
+ *
+ * 滚动不产生 `mousemove`，所以指针位置不变而它底下的块变了 ——
+ * 不重算的话，用户滚一下轮子，手柄就指着原来的那一块（现在已经不是指针下的那一块了）。
+ *
+ * ## 「指针指着哪一块」走 DOM 元素，不走坐标
+ *
+ * 两条独立的原因（完整版在 `block.ts` 的 `blockIndexFromElement`）：
+ * 坐标命中依赖 `elementFromPoint`，而 **jsdom 没有它** —— 走坐标等于
+ * 把「上移 / 删除 / 转为」全部命令都挡在测试之外；而且坐标命中答的是
+ * 「最近的一个文本位置」，不是「指针真的压在这一块上吗」。
+ *
+ * 拖动算落点**反过来**必须用坐标：那时指针下面压着的是手柄自己。
+ *
+ * ## 目标块（`target.index`）与上报值是**两件事**
+ *
+ * 上报值（这里交给 `getReporter`）是「指针现在在哪一块上」，指针离开编辑器就是 null；
+ * 而 `target.index` 是「手柄命令该作用在哪一块」，**只在 `close()` 时清**。
+ * 必须分开：用户要把鼠标从正文移到手柄上才能点它，而手柄在编辑器外面 ——
+ * 一离开就清目标，菜单上的每一个动作都会作用在「没有目标」上，
+ * 表现为**点了没反应**。
+ *
+ * ## 三处容易做错的地方
+ *
+ * 1. **按住鼠标时不许换目标块。** 拖动重排期间 `mousemove` 照常发，
+ *    不挡的话指针扫过哪一块、`target.index` 就变成哪一块 ——
+ *    用户拖的是第 3 块，松手却把第 7 块搬走了。
+ *    判据用 `event.buttons !== 0`（一次契约都不用加）。
+ * 2. **指针走到左边那条留白里要保住目标块。** 手柄摆在那儿，
+ *    纯按元素命中算会在中途报 null，手柄被卸载 → 永远点不到。
+ *    兜底在 `withinGutter`。
+ * 3. **滚动时指针坐标不变、底下的块变了。** 用上一次的指针位置重算 ——
+ *    坐标在这一版里只用来做留白兜底，所以存下来就够。
+ */
+export function blockHoverPlugin(
+  getReporter: () => ((state: BlockHandleState | null) => void) | undefined,
+  target: { index: number | null },
+) {
+  return $prose(() => {
+    /**
+     * 最后一次已知的指针位置（视口坐标）。只用来做留白兜底。
+     *
+     * 放在工厂作用域而不是插件实例上：`handleDOMEvents` 与 `view` 是**两个
+     * 不同的 props 字段**，它们都要读写同一份状态，只有闭包能共享。
+     */
+    let pointer: { x: number; y: number } | null = null;
+    /**
+     * 这一次重算该用哪个下标。
+     *
+     * - `undefined` = 「不是指针移动触发的」（滚动 / 文档变化）→ 沿用 `target.index`
+     * - `null` = 「指针移动了，但没压在任何一块上」
+     * - 数字 = 指针移动后命中的那一块
+     *
+     * 元素命中在 `mousemove` 里**当场**算掉，而不是推到帧里 —— 推到帧里就得
+     * 额外存一个 `EventTarget` 加一个布尔标记，而 `posAtDOM` 只走 docView 树、
+     * 不触发布局，当场的代价可以忽略。
+     */
+    let pending: number | null | undefined;
+    /** 最近一次上报出去的那一份（滚动重算时要拿它的 `anchor` 做留白判断）。 */
+    let current: BlockHandleState | null = null;
+    /** `view` 回调跑之前为 null（`props` 会先被读到）。 */
+    let scheduler: ReturnType<typeof createFrameScheduler> | null = null;
+
+    return new Plugin({
+      key: blockHoverKey,
+      props: {
+        // 全部返回 false = 只旁听，不拦截事件
+        handleDOMEvents: {
+          mousemove: (view, event) => {
+            // 按下鼠标 = 正在拖动 / 正在选文字：这一段里目标块必须冻住
+            if (event.buttons !== 0) return false;
+            pointer = { x: event.clientX, y: event.clientY };
+            pending = blockIndexFromElement(view, event.target);
+            scheduler?.schedule();
+            return false;
+          },
+          mouseleave: () => {
+            pointer = null;
+            pending = undefined;
+            scheduler?.schedule();
+            return false;
+          },
+        },
+      },
+      view: (editorView) => {
+        const run = createFrameScheduler(() => {
+          const report = getReporter();
+          if (!report) return;
+
+          let index: number | null = null;
+          if (pointer !== null) {
+            index = pending !== undefined ? pending : target.index;
+            // 元素命中不到（指针在块左边的留白里 —— 手柄就摆在那儿）时，
+            // 只要还在当前这一块的横向带子里，就继续算作指着它。
+            // 少了这一条，用户从正文移向手柄的中途手柄就被卸载了 ——
+            // 那几像素里「压着哪个块」的答案是没有块，而手柄恰好在其中
+            if (index === null && target.index !== null && current !== null && withinGutter(current.anchor, pointer.x, pointer.y)) {
+              index = target.index;
+            }
+          }
+
+          const next = index === null ? null : readBlockAt(editorView, index);
+          if (next === null) {
+            target.index = null;
+            current = null;
+            report(null);
+            return;
+          }
+
+          target.index = index;
+          // 同一块、同一几何就不重复上报：外壳那边每次上报都会 setState，
+          // 而鼠标一动就是一次，不挡的话每次移动都要重渲染一遍整个面板
+          if (current !== null && sameHover(current, next)) return;
+          current = next;
+          report(next);
+        });
+        scheduler = run;
+
+        // 滚动容器是 contenteditable 的父节点（`.qm-editor`）。
+        // 用 `parentElement` 而不是写死类名：类名改了这里不该跟着坏
+        const scroller = editorView.dom.parentElement;
+        const onScroll = () => {
+          // 坐标没变、只是几何变了：沿用当前那一块，重算它的位置
+          pending = undefined;
+          run.schedule();
+        };
+        scroller?.addEventListener('scroll', onScroll, { passive: true });
+
+        return {
+          update: (view, prevState) => {
+            if (view.state.doc === prevState.doc) return;
+            // 文档变了：下标可能已经指到别的地方去了，重新算一次。
+            // 指针不在编辑器里就**清掉**目标 —— 算不出来还留着，
+            // 菜单上的「删除」会删掉一块用户根本没在看的块
+            if (pointer === null) {
+              target.index = null;
+              current = null;
+            }
+            // 同滚动：指针没动，沿用 `target.index` 重算几何
+            pending = undefined;
+            run.schedule();
+          },
+          destroy: () => {
+            run.cancel();
+            scroller?.removeEventListener('scroll', onScroll);
+            scheduler = null;
+            current = null;
+          },
+        };
+      },
+    });
+  });
+}
+
+/** 两次悬停状态是不是同一块、同一位置。 */
+function sameHover(a: BlockHandleState, b: BlockHandleState): boolean {
+  return (
+    a.anchor.top === b.anchor.top &&
+    a.anchor.left === b.anchor.left &&
+    a.block === b.block &&
+    a.headingLevel === b.headingLevel &&
+    a.canMoveUp === b.canMoveUp &&
+    a.canMoveDown === b.canMoveDown &&
+    a.canDelete === b.canDelete &&
+    a.canTurnInto === b.canTurnInto
+  );
 }
 
 // ---------------------------------------------------------------------------

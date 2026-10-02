@@ -103,6 +103,14 @@ export interface EditorHandle {
    */
   readonly codeBlock?: EditorCodeBlock;
   /**
+   * 可选：块手柄命令面（拖动重排 / 块级快捷菜单）。
+   *
+   * 与 `table` / `codeBlock` 并列。不实现时外壳不显示手柄 ——
+   * 「块」是富文本文档树才有的概念，源码 / 纯文本内核里没有它，
+   * 硬要按行号模拟出一套「块」只会得到与富文本视图不一致的行为。
+   */
+  readonly blockHandle?: EditorBlockHandle;
+  /**
    * 可选：把光标移到某个标题处（大纲跳转）。
    *
    * 参数是「层级 + 标题文字」而不是「源文档行号」：行号只对
@@ -434,6 +442,96 @@ export interface EditorCodeBlock {
 }
 
 /**
+ * 鼠标停在哪一「块」上 —— 块手柄的输入。
+ *
+ * ## 这里的「块」是**顶层块**，不是段落
+ *
+ * 一块 = 文档树里 `doc` 的一个直接子节点：一个段落、一个标题、**整张列表**、
+ * 整个引用、一个代码块、一张表格。所以鼠标停在列表的第二项上时，
+ * 手柄指着的是**整张列表**，上移下移也是整张列表一起动 ——
+ * 这与 Typora 一致，也是唯一能让「上移下移」有确定含义的口径
+ * （只移动列表里的一项，那个项会脱离列表变成段落，用户要的不是这个）。
+ *
+ * ## 为什么位置也给在这里
+ *
+ * 手柄贴在块的左侧、菜单锚在块上，两者都要块的包围盒。与 `TableState` 同理：
+ * 内核量得到（它手里有 `nodeDOM`），外壳量不到（它不认识内核画的 DOM）。
+ */
+export interface BlockHandleState {
+  /** 这一块在视口里的包围盒（手柄据此贴在它左侧）。 */
+  readonly anchor: SelectionRect;
+  /**
+   * 这一块是什么。菜单据此把「当前格式」那一项点亮。
+   *
+   * **可以是 null**：表格 / 公式 / 分隔线 / 图片这类**原子块**不属于任何块级格式
+   * （它们不是「文本块的另一种形式」，转不过去也转不回来）。
+   * 如实给 null，好过假装它是段落 —— 假装的话菜单会点亮「正文」，
+   * 而用户点下去什么都不会发生。
+   */
+  readonly block: BlockFormat | null;
+  /** `block === 'heading'` 时的层级；其余情况为 null。 */
+  readonly headingLevel: number | null;
+  readonly canMoveUp: boolean;
+  readonly canMoveDown: boolean;
+  /**
+   * 能不能删除。
+   *
+   * 只剩一块**且它是空的**时为 false：那时删除等于什么都不做，
+   * 报上去让外壳把菜单项显示成禁用，而不是给一个点了没反应的项。
+   * （文档至少要有一个块，ProseMirror 的 schema 就是这么定的。）
+   */
+  readonly canDelete: boolean;
+  /** 能不能「转为」。原子块为 false。 */
+  readonly canTurnInto: boolean;
+}
+
+/**
+ * 块手柄能做的动作。
+ *
+ * 与 `TableOperation` 同理：这些是**动作的身份**，不是参数。
+ * 「转为」不在其中 —— 它需要带格式与层级，单独一个方法（见 `EditorBlockHandle.turnInto`）。
+ */
+export type BlockOperation = 'moveUp' | 'moveDown' | 'duplicate' | 'delete';
+
+/**
+ * 内核交回给外壳的**块手柄命令面**。
+ *
+ * ## 为什么这些动作需要内核来记「是哪一块」
+ *
+ * 外壳只知道「手柄现在贴在屏幕上哪个位置」，不知道那是文档里的哪一块 ——
+ * 位置与文档坐标之间隔着一次布局，而且用户从「看到手柄」到「点中菜单项」
+ * 中间隔着一次 React 渲染，那段时间里文档完全可能已经变了
+ * （同一段文字被打字推下去）。所以**内核自己记着目标块**，
+ * 与 `EditorCodeBlock` 刻意不暴露「第几个代码块」是同一条理由，
+ * 也是硬约束 10 的直接推论：外壳不许持有文档坐标。
+ *
+ * ## 目标块什么时候失效
+ *
+ * 只在 `close()` 时清掉，**不在鼠标离开编辑器时清** —— 用户要把鼠标从正文
+ * 移到手柄上才能点它，而手柄在编辑器外面。一离开就清，手柄会在 `click`
+ * 到达之前被卸载（与浮层工具条「失焦时不许上报 null」是同一个坑）。
+ * 文档变更时内核会重新算一次；算不出来（鼠标不在编辑器里）就清掉。
+ */
+export interface EditorBlockHandle {
+  /** 上移 / 下移 / 复制 / 删除。没有目标块时安静忽略。 */
+  run(operation: BlockOperation): void;
+  /** 把目标块转成另一种块级格式。`level` 只有 `heading` 用得上。 */
+  turnInto(block: BlockFormat, level?: number): void;
+  /**
+   * 拖动过程中的落点指示线。参数是**视口坐标**（指针位置）。
+   *
+   * 返回一条横线（`height` 为 0，外壳画成一条 2px 的线）表示「松手会插在这里」；
+   * 返回 null 表示「这里放不了」—— 指针不在编辑器里、或者量不出坐标。
+   * 外壳据此决定画不画指示线，**不自己算落点**（那需要文档坐标）。
+   */
+  dropIndicatorAt(x: number, y: number): SelectionRect | null;
+  /** 松手：把目标块移到 (x, y) 对应的位置。原地不动时安静忽略。 */
+  dropAt(x: number, y: number): void;
+  /** 关闭菜单 / 取消拖动：清掉内核记着的目标块。 */
+  close(): void;
+}
+
+/**
  * 内核要把一张图片落盘时的请求。
  *
  * ## 为什么是「内核交出字节、外壳负责落盘」
@@ -556,6 +654,24 @@ export interface EditorMountProps {
    * （标签常驻在每个代码块上，与光标在不在里面无关，理由见 `CodeBlockState`）。
    */
   onCodeBlockChange?: (state: CodeBlockState | null) => void;
+  /**
+   * 鼠标停在哪一块上（块手柄）。可选 —— 不实现的内核，外壳就不显示手柄。
+   *
+   * 参数为 `null` 表示「指针不在编辑器里、或不在任何一块上」。
+   * 与 `onCodeBlockChange` 的区别：那个非 null 的含义是「面板开着」（点击触发），
+   * 这个非 null 的含义就是字面的「指针停在这一块上」（悬停触发）。
+   *
+   * ## 它与「菜单开着」是两件事，不要混
+   *
+   * 用户要把鼠标从正文移到手柄上才能点它，而**手柄在编辑器外面** ——
+   * 所以指针离开编辑器的那一刻，这个回调一定会报 `null`，
+   * 而手柄必须还在、菜单也可能还开着。外壳因此不能拿 `null` 当「关掉菜单」的信号：
+   * 手柄的显隐由外壳自己合三个条件（有悬停 / 指针在手柄上 / 菜单开着），
+   * 菜单的关闭由外壳自己定时机（Esc / 点外面 / 滚动 / 内容变了）。
+   *
+   * 内核那边对应的保证是：目标块**不在这里清**，只在 `close()` 时清。
+   */
+  onBlockHandleChange?: (state: BlockHandleState | null) => void;
   /**
    * 把文档里的图片 `src` 解析成**能直接放进 `<img>` 的 URL**。
    *

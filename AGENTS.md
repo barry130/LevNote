@@ -126,6 +126,8 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
 | 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
 | **视图三态（富文本 / 源码 / 分屏）** | `core/document/store.ts` 的 `ViewMode`（**枚举，不是两个布尔**）+ `ui/ViewSwitcher.tsx`（状态栏里的三档）。分屏的两栏在 `ui/DocumentPane.tsx`：左 = `primary.sourceView`（可编辑），右 = `primary` 加 `readOnly` |
+| **块手柄（悬停命中 / 上移下移 / 转为 / 拖动落点）** | `modules/markdown/block.ts`（纯逻辑 + 几何，**悬停走 DOM 元素、落点走坐标**，两条路的分工写在文件头）+ `modules/markdown/plugin.ts` 的 `blockHoverPlugin`（**不共用浮层骨架**：触发源是鼠标移动）+ `ui/BlockHandle.tsx`（显隐合三个条件） |
+| **什么时候清掉「该操作哪一块」** | `ui/BlockHandle.tsx` 里那个 `visible === false` 的 effect。**不是「菜单关了」** —— 清早了第二次打开菜单会「点了没反应」，见 ADR 0024 |
 | 某个面板 | `ui/DocumentPane.tsx` / `TabBar.tsx` / `Sidebar.tsx` / `FindBar.tsx` … |
 | 设置页 | `ui/SettingsDialog.tsx`。**快捷键表与版本号都不许手写**：前者由 `CommandRegistry` 派生，后者经 `vite.config.ts` 的 `define` 从 `package.json` 注入（**必须写成 `import.meta.env.X`**，见硬约束 14） |
 | 文件读写、编码探测 | `src-tauri/src/fs/` |
@@ -138,7 +140,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 2. 各内核按需实现（不实现的要能被外壳识别为「没有这个能力」）；
 3. 外壳只问契约，不问内核。
 
-已有七例可以照着看：
+已有八例可以照着看：
 
 - `EditorHandle.search` / `goToOutlineItem` —— 可选能力，**缺了显示为禁用**；
 - `EditorAdapter.sourceView` —— 源码视图，**不注册进注册表**
@@ -179,6 +181,19 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
   所以滚动**只能**由内核读写 —— 外壳自己去 `querySelector` 就是按类名认 DOM。
   另外它**不是**「离开时问一次」：那一刻编辑器可能已经销毁，
   依赖卸载时序的东西会在某次重构里安静地坏掉。
+- `EditorMountProps.onBlockHandleChange` + `EditorHandle.blockHandle` —— 块手柄。
+  **它与前七例的触发源都不一样**：前面几个都挂在「选区 / 文档 / storedMarks 变了」上，
+  而这一例挂在**鼠标移动**上（鼠标移动完全不碰 state，那套骨架一辈子不会被唤醒），
+  所以它有自己的插件 `blockHoverPlugin`，不共用 `floatingReporterPlugin`。
+  三条容易做错的地方（完整版见 ADR 0024）：
+  ① 悬停命中**走 DOM 元素**（`event.target` → `posAtDOM`），不走 `posAtCoords` ——
+  后者依赖 `document.elementFromPoint`，而 jsdom 没有它，走坐标等于把
+  「上移 / 删除 / 转为」全部命令挡在测试之外；拖动算落点**反过来必须用坐标**，
+  因为那时指针下面压着的是手柄自己；
+  ② **目标块由内核记，但清它的时机在外壳** —— 判据是「手柄彻底不可交互」，
+  **不是「菜单关了」**（菜单关掉时指针还在手柄上，清早了第二次打开菜单就「点了没反应」）；
+  ③ **按住鼠标时不许换目标块**（判据 `event.buttons !== 0`）——
+  拖动期间 `mousemove` 照常发，不挡的话用户拖第 1 块、松手却搬走了第 3 块。
 
 **反例**（不要这样做）：在外壳里写 `if (adapter.id === 'markdown')` 或
 `resolveAdapterById('code')`。那等于把内核知识漏进外壳，

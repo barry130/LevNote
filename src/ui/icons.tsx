@@ -74,6 +74,29 @@ export function IconOutline(props: IconProps) {
   );
 }
 
+/**
+ * 块手柄（拖动握把）。
+ *
+ * 两列六个圆点，`fill` 而不是 `stroke` —— 这个图标是**点**，不是线。
+ * 所以它没有沿用 `Svg` 的 `fill="none"`，是这套图标里唯一一个例外；
+ * 色值仍然靠 `currentColor`，与其他图标一致。
+ */
+export function IconGrip(props: IconProps) {
+  const rows = [3.4, 8, 12.6];
+  const columns = [6.2, 9.8];
+  return (
+    <Svg {...props}>
+      {rows.map((y) =>
+        columns.map((x) => (
+          // `stroke="none"` 不能省：`Svg` 在根节点上设了 `stroke="currentColor"`，
+          // 圆点会被描一圈边而变成糖葫芦
+          <circle key={`${String(x)}-${String(y)}`} cx={x} cy={y} r={1.15} fill="currentColor" stroke="none" />
+        )),
+      )}
+    </Svg>
+  );
+}
+
 /** 命令面板。一个终端提示符 —— 比「放大镜」更像「输入一条命令」。 */
 export function IconCommand(props: IconProps) {
   return (

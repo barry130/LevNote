@@ -69,9 +69,12 @@ import type { Options as RemarkStringifyOptions } from 'remark-stringify';
 
 import type {
   BlockFormat,
+  BlockHandleState,
+  BlockOperation,
   CodeBlockState,
   CursorPosition,
   DiagramView,
+  EditorBlockHandle,
   EditorCodeBlock,
   EditorFormatting,
   EditorPosition,
@@ -86,6 +89,7 @@ import type {
 } from '../../core/editor/types.js';
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
 import { MERMAID_LANGUAGE, MERMAID_STARTER } from '../../core/mermaid.js';
+import { childStart, describeBlock, dropLineAt, isNoopMove, resolveDropIndex } from './block.js';
 import { CODE_BLOCK, codeBlockChromePlugin, type CodeBlockChromeHandlers } from './code-block-view.js';
 import { IMAGE, imageViewPlugin } from './image-view.js';
 import {
@@ -99,6 +103,7 @@ import { mathViewPlugin } from './math-view.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
 import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js';
 import {
+  blockHoverPlugin,
   codeHighlightPlugin,
   cursorReporterPlugin,
   markdownEmitPlugin,
@@ -166,6 +171,14 @@ export interface CreateMarkdownEditorOptions {
    * 同一条规则：给一个点了没反应的按钮，不如不给。
    */
   onDiagramOpen?: (diagram: DiagramView) => void;
+  /**
+   * 鼠标停在哪一块上（块手柄）。
+   *
+   * 参数为 `null` 表示「指针不在编辑器里、或不在任何一块上」。
+   * **它只表示悬停，不表示「菜单该关了」** —— 理由见
+   * `EditorMountProps.onBlockHandleChange`。
+   */
+  onBlockHandleChange?: (state: BlockHandleState | null) => void;
 }
 
 export interface MarkdownEditorInstance {
@@ -182,6 +195,7 @@ export interface MarkdownEditorInstance {
   readonly formatting: EditorFormatting;
   readonly table: EditorTable;
   readonly codeBlock: EditorCodeBlock;
+  readonly blockHandle: EditorBlockHandle;
   /** 大纲跳转：定位到指定层级的指定标题。 */
   goToHeading(level: number, text: string): boolean;
   destroy(): Promise<void>;
@@ -652,6 +666,230 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
       });
     },
   };
+}
+
+/**
+ * 块手柄命令面（拖动重排 + 块级快捷菜单）。
+ *
+ * ## 它操作的是**顶层块**，不是段落
+ *
+ * 一块 = `doc` 的一个直接子节点。所以鼠标停在列表的第二项上时，
+ * 「上移」移动的是**整张列表**。只移动列表里的一项会让那个项脱离列表变成段落，
+ * 用户要的不是这个（理由见 `BlockHandleState`）。
+ *
+ * ## 目标块由内核记着（`target`），不由外壳传进来
+ *
+ * 硬约束 10：外壳不许持有文档坐标。它只知道「手柄现在贴在屏幕上的哪个位置」，
+ * 而位置与文档坐标之间隔着一次布局；何况从「看到手柄」到「点中菜单项」
+ * 中间隔着一次 React 渲染，那段时间里文档完全可能已经变了。
+ * 所以内核记着下标，**在动作发生的那一刻**再去看文档。
+ *
+ * ## 上移 / 下移 / 复制 / 删除走位置操作，「转为」走选区
+ *
+ * 前四个不需要选区：它们就是「把第 i 个子节点搬走 / 复制一份 / 删掉」，
+ * 用 `tr.delete` + `tr.insert` 直说比「先选中再套命令」精确得多。
+ *
+ * 「转为」不同 —— 它必须复用 `formatting.toggleBlock`（也就是 `applyBlock`），
+ * 因为「把引用变成列表」「把列表里的项提出来」这些在 ProseMirror 里是
+ * **几条不同的命令**，而 `applyBlock` 已经把它们和它们的坑（例如
+ * 「在列表里 `setBlockType(paragraph)` 会成功但什么都没改」）都处理过了。
+ * 复用它唯一要做的准备是**把光标放进目标块** —— 它是按选区干活的。
+ *
+ * 代价是「转为」会把光标带到那一块里（另外四个不会）。这是刻意的：
+ * 用户刚把一块变成标题，光标落在标题里是他接下来要打字的地方。
+ */
+function createMarkdownBlockHandle(
+  editor: Editor,
+  target: { index: number | null },
+  formatting: EditorFormatting,
+): EditorBlockHandle {
+  /**
+   * 把光标放进第 index 个顶层块。返回是否成功。
+   *
+   * 只派发一条**选区事务**（不改文档），所以不必打 `USER_EDIT_META` ——
+   * 那一位是给「改了文档但没经过键盘事件」的编辑用的。
+   */
+  const moveCaretInto = (view: EditorView, index: number): boolean => {
+    const { doc } = view.state;
+    if (index < 0 || index >= doc.childCount) return false;
+    // `+1` 跨过块自己的开标签落进它内部；`near` 保证落点一定是 schema 允许放光标的位置
+    const inside = Math.min(childStart(doc, index) + 1, doc.content.size);
+    view.dispatch(view.state.tr.setSelection(TextSelection.near(doc.resolve(inside), 1)));
+    return true;
+  };
+
+  /**
+   * 把第 index 块搬到 targetIndex 位置。
+   *
+   * ## 两处位置算术都不能省
+   *
+   * 1. **`tr.insert` 的位置要在「已经删过」的坐标系里算。** `Transform` 上的
+   *    位置是**当前**文档的位置，不是原始文档的 —— 删除点之后的位置整体左移了
+   *    一个块高。不减这一下，往后拖的块会落错一格。
+   * 2. **光标原来在被搬的那一块里时要跟着搬。** ProseMirror 只会把选区映射到
+   *    删除点上，而插入发生在别处 —— 不带的话用户按「下移」，光标会跳到原位置
+   *    附近而不是跟着块走。
+   */
+  const moveBlock = (view: EditorView, index: number, targetIndex: number): void => {
+    if (isNoopMove(index, targetIndex)) return;
+
+    const { doc } = view.state;
+    const node = doc.child(index);
+    const from = childStart(doc, index);
+    const to = from + node.nodeSize;
+    const insertAt = childStart(doc, targetIndex);
+
+    const { from: selFrom, to: selTo } = view.state.selection;
+    const caretInside = selFrom >= from && selTo <= to;
+
+    const tr = view.state.tr.delete(from, to);
+    const at = insertAt >= to ? insertAt - node.nodeSize : insertAt;
+    tr.insert(at, node);
+    if (caretInside) {
+      tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(at + 1, tr.doc.content.size)), 1));
+    }
+    view.dispatch(tr);
+  };
+
+  const duplicateBlock = (view: EditorView, index: number): void => {
+    const { doc } = view.state;
+    const node = doc.child(index);
+    // 插在它自己后面。节点是不可变的，`insert` 天然就是插入一份副本
+    view.dispatch(view.state.tr.insert(childStart(doc, index) + node.nodeSize, node));
+  };
+
+  const deleteBlock = (view: EditorView, index: number): void => {
+    const { doc } = view.state;
+    const node = doc.child(index);
+    const from = childStart(doc, index);
+    const to = from + node.nodeSize;
+
+    const { from: selFrom, to: selTo } = view.state.selection;
+    const caretInside = selFrom >= from && selTo <= to;
+
+    const paragraph = view.state.schema.nodes['paragraph'];
+    const tr =
+      doc.childCount === 1 && paragraph !== undefined
+        ? // 只剩一块时**清空**它而不是删掉：schema 要求文档至少有一个块，
+          // 真删掉的话这次事务会被 schema 拒绝（抛 RangeError，用户看到「点了没反应」）
+          view.state.tr.replaceWith(from, to, paragraph.create())
+        : view.state.tr.delete(from, to);
+
+    if (caretInside) {
+      tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(from, tr.doc.content.size)), 1));
+    }
+    view.dispatch(tr);
+  };
+
+  return {
+    run: (operation: BlockOperation) => {
+      const index = target.index;
+      if (index === null) return;
+
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const described = describeBlock(view.state.doc, index);
+        if (described === null) return;
+
+        // 整段包在 `withUserEditOnView` 里：这几个动作都不产生 `input` / `paste`，
+        // 不打标记的话文档不会变脏 —— 用户按 Ctrl+S 写回磁盘的是**操作之前**的内容，
+        // 而界面显示「已保存」（硬约束 7，已经踩过六次）
+        withUserEditOnView(view, () => {
+          switch (operation) {
+            case 'moveUp':
+              if (described.canMoveUp) moveBlock(view, index, index - 1);
+              return;
+            case 'moveDown':
+              if (described.canMoveDown) moveBlock(view, index, index + 2);
+              return;
+            case 'duplicate':
+              duplicateBlock(view, index);
+              return;
+            case 'delete':
+              if (described.canDelete) deleteBlock(view, index);
+              return;
+          }
+        });
+      });
+    },
+
+    turnInto: (block: BlockFormat, level?: number) => {
+      const index = target.index;
+      if (index === null) return;
+
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const described = describeBlock(view.state.doc, index);
+        if (described === null || !described.canTurnInto) return;
+
+        /**
+         * 已经是这个格式 → **什么都不做**。
+         *
+         * `toggleBlock` 对同格式是**取消**语义（标题降回正文、列表脱出容器），
+         * 而「转为」的语义是「设成这个」。不挡这一下，用户点「转为 → 二级标题」
+         * 会把一个已经是 H2 的标题变成正文 —— 菜单上明明写着「转为二级标题」，
+         * 结果二级标题没了。外壳也会把当前那一项显示成禁用，这里是第二道。
+         */
+        if (isSameBlockFormat(described, block, level)) return;
+
+        if (!moveCaretInto(view, index)) return;
+        // 光标已经在目标块里了，剩下的交给那条已经处理过所有坑的路径
+        formatting.toggleBlock(block, level);
+      });
+    },
+
+    dropIndicatorAt: (x: number, y: number) =>
+      editor.action((ctx) => {
+        const index = target.index;
+        if (index === null) return null;
+
+        const view = ctx.get(editorViewCtx);
+        if (index >= view.state.doc.childCount) return null;
+
+        const drop = resolveDropIndex(view, x, y);
+        return drop === null ? null : dropLineAt(view, drop);
+      }),
+
+    dropAt: (x: number, y: number) => {
+      const index = target.index;
+      if (index === null) return;
+
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        if (index >= view.state.doc.childCount) return;
+
+        const drop = resolveDropIndex(view, x, y);
+        if (drop === null) return;
+
+        withUserEditOnView(view, () => {
+          moveBlock(view, index, drop);
+        });
+      });
+    },
+
+    /**
+     * 只清内核记着的目标块。
+     *
+     * 外壳那边还有一个「悬停状态」是它自己存着的（那是 React state，
+     * 由 `onBlockHandleChange` 喂），**它自己清** —— 内核清不掉别人的 state。
+     * 两边都清，手柄才会真的消失。
+     */
+    close: () => {
+      target.index = null;
+    },
+  };
+}
+
+/** 一块当前的格式是不是就是「要转成的那个」。用于挡住 `toggleBlock` 的取消语义。 */
+function isSameBlockFormat(
+  described: Omit<BlockHandleState, 'anchor'>,
+  block: BlockFormat,
+  level?: number,
+): boolean {
+  if (described.block !== block) return false;
+  // 只有标题需要比层级：H2 与 H3 是两个不同的格式，而 `block` 都是 'heading'
+  if (block !== 'heading') return true;
+  return described.headingLevel === (level ?? 1);
 }
 
 /**
@@ -1234,6 +1472,16 @@ export async function createMarkdownEditor(
    */
   const codeBlockHandlers = codeBlockPickerHandlers(picker, options.onDiagramOpen);
 
+  /**
+   * 块手柄记着的目标块（顶层下标）。
+   *
+   * 由 `blockHoverPlugin` 写、由 `blockHandle` 读 —— 两者之间只共享这一个字段，
+   * 因为「指针悬停在哪一块」只有插件知道，而「该操作哪一块」只有命令面要用。
+   * 见 `blockHoverPlugin` 的注释：它**不在鼠标离开编辑器时清**，
+   * 只在 `close()` 与「文档变了且指针不在编辑器里」时清。
+   */
+  const blockTarget: { index: number | null } = { index: null };
+
   const editor = await Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, options.root);
@@ -1344,6 +1592,7 @@ export async function createMarkdownEditor(
     .use(selectionReporterPlugin(() => options.onSelectionChange))
     .use(slashReporterPlugin(() => options.onSlashChange))
     .use(tableReporterPlugin(() => options.onTableChange))
+    .use(blockHoverPlugin(() => options.onBlockHandleChange, blockTarget))
     .use($prose(() => placeholderPlugin(options.placeholder ?? '')))
     .use(
       $prose((ctx) => {
@@ -1374,6 +1623,14 @@ export async function createMarkdownEditor(
    * `onChange` 报上来的值，而初始文档永远不上报（见 `markdownEmitPlugin`）。
    */
   current = editor.action((ctx) => ctx.get(serializerCtx)(ctx.get(editorViewCtx).state.doc));
+
+  /**
+   * 建一次、两处用（`handle.formatting` 与块手柄的「转为」）。
+   *
+   * 块手柄的「转为」**必须**复用同一条路径，不能自己写一份 ——
+   * 见 `createMarkdownBlockHandle` 的注释。
+   */
+  const formatting = createMarkdownFormatting(editor);
 
   return {
     getMarkdown: () => current,
@@ -1491,11 +1748,13 @@ export async function createMarkdownEditor(
 
     search: createMarkdownSearch(editor),
 
-    formatting: createMarkdownFormatting(editor),
+    formatting,
 
     table: createMarkdownTable(editor),
 
     codeBlock: createMarkdownCodeBlock(editor, picker),
+
+    blockHandle: createMarkdownBlockHandle(editor, blockTarget, formatting),
 
     /**
      * 大纲跳转：按「层级 + 标题文字」在文档树里找标题节点。

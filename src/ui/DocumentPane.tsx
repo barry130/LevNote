@@ -21,10 +21,12 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { BomKind, LineEndingName } from '../core/document/types.js';
 import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
 import type {
+  BlockHandleState,
   CodeBlockState,
   CursorPosition,
   DiagramView,
   EditorAdapter,
+  EditorBlockHandle,
   EditorCodeBlock,
   EditorFormatting,
   EditorHandle,
@@ -40,6 +42,7 @@ import { resolveAdapter } from '../core/editor/registry.js';
 import { SPLIT_RATIO_MAX, SPLIT_RATIO_MIN } from '../core/settings.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
+import { BlockHandle } from './BlockHandle.js';
 import { CodeBlockPicker } from './CodeBlockPicker.js';
 import { DiagramViewer } from './DiagramViewer.js';
 import { Lightbox } from './Lightbox.js';
@@ -284,6 +287,25 @@ export function DocumentPane({
   const [codeBlock, setCodeBlock] = useState<CodeBlockState | null>(null);
   const [codeBlockOps, setCodeBlockOps] = useState<EditorCodeBlock | null>(null);
   /**
+   * 块手柄的两份输入，与上面几组同构。
+   *
+   * `blockHandle` 非 null 的含义就是字面的「鼠标停在这一块上」，
+   * 指针离开编辑器它会变 null —— **但那不等于「手柄该藏起来」**：
+   * 手柄在编辑器外面，用户要点它就必须先离开编辑器。
+   * 所以这里只负责把内核报的值存下来，**显隐由 `BlockHandle` 自己合三个条件**
+   * （见那个组件的文件头）。
+   */
+  const [blockHover, setBlockHover] = useState<BlockHandleState | null>(null);
+  const [blockHandleOps, setBlockHandleOps] = useState<EditorBlockHandle | null>(null);
+  /**
+   * 块菜单开着吗。
+   *
+   * **由外壳决定开关时机**，内核只提供「操作哪一块」。四个关闭时机：
+   * Esc / 点菜单外面 / 滚动（菜单会跟内容分家）/ 执行完一个动作。
+   * 内容变了也关 —— 那条走 `handleEditorChange`。
+   */
+  const [blockMenuOpen, setBlockMenuOpen] = useState(false);
+  /**
    * 灯箱里正在看的那张图。null 表示灯箱关着。
    *
    * 只存**已经解析好的那一个**（内核给什么就是什么），不拿 `src` 再解析一次 ——
@@ -405,6 +427,15 @@ export function DocumentPane({
     (value: string) => {
       lastReportedRef.current = value;
       store.updateText(value);
+      /**
+       * 内容变了就收起块菜单。
+       *
+       * 菜单里记着的那一块可能已经被推到了别处（比如上一行插进了一段字），
+       * 而菜单还停在原来的屏幕位置上 —— 用户点「删除」删掉的会是**另一块**。
+       * 内核那边也会重新算一次目标块，但两边的判断合起来才安全：
+       * 这里关掉菜单，就不存在「菜单与目标对不上」的窗口了。
+       */
+      setBlockMenuOpen(false);
     },
     [store],
   );
@@ -429,6 +460,8 @@ export function DocumentPane({
       setTableOps(handle.table ?? null);
       // 同理：只有支持代码块语言的内核才交出 `codeBlock`
       setCodeBlockOps(handle.codeBlock ?? null);
+      // 同理：只有富文本内核才有「块」这个概念，源码 / 纯文本内核不交 `blockHandle`
+      setBlockHandleOps(handle.blockHandle ?? null);
 
       /**
        * 恢复上次离开时的光标与滚动。
@@ -571,6 +604,9 @@ export function DocumentPane({
     setTableOps(null);
     setCodeBlock(null);
     setCodeBlockOps(null);
+    setBlockHover(null);
+    setBlockHandleOps(null);
+    setBlockMenuOpen(false);
     // 灯箱也要关：换标签页之后还留着一张上一个文档的图，用户会以为它属于新文档
     setLightbox(null);
   }, [kernelKey]);
@@ -598,6 +634,23 @@ export function DocumentPane({
   const closeLightbox = useCallback(() => setLightbox(null), []);
   /** 与 `closeLightbox` 同理：必须是稳定引用（`DiagramViewer` 的 Esc 监听依赖它）。 */
   const closeDiagram = useCallback(() => setDiagram(null), []);
+
+  /**
+   * 开关块菜单。
+   *
+   * ## 关闭时**不**通知内核清目标块
+   *
+   * 清目标块的时机在 `BlockHandle` 里，判据是「手柄彻底不可交互了」
+   * （指针离开手柄、又不在任何一块上）—— 不是「菜单关了」。
+   * 菜单关掉的那一刻指针还在手柄上，用户随时会再点一次；
+   * 那时清掉目标，第二次打开的菜单里每个动作都会「点了没反应」。
+   *
+   * 同理**不要**在这里清 `blockHover` —— 那是内核报上来的事实，
+   * 外壳自己清会让两边不一致（按 Esc 时指针还停在这一块上，
+   * 手柄本该继续显示，清了它就闪一下再回来）。
+   */
+  const openBlockMenu = useCallback(() => setBlockMenuOpen(true), []);
+  const closeBlockMenu = useCallback(() => setBlockMenuOpen(false), []);
 
   /**
    * 切换视图三态。
@@ -695,6 +748,10 @@ export function DocumentPane({
         onSlashChange={setSlash}
         onTableChange={setTable}
         onCodeBlockChange={setCodeBlock}
+        // 只读文档不给手柄：手柄上全是「改文档」的动作，而只读文档里
+        // 那些动作会被 schema / 只读视图挡下 —— 用户看到的是一个能点但什么都不发生的菜单。
+        // 直接不给（`undefined`）比「给了再禁用每一项」更简单，也更诚实
+        onBlockHandleChange={doc.readonly ? undefined : setBlockHover}
         resolveImageUrl={store.resolveImageUrl}
         onImagePaste={handleImagePaste}
         onImageClick={setLightbox}
@@ -882,6 +939,19 @@ export function DocumentPane({
             codeBlock={codeBlockOps}
             lineNumbers={codeLineNumbers}
             onToggleLineNumbers={onToggleCodeLineNumbers}
+          />
+        )}
+
+        {/* 块手柄。它与上面几个浮层的**不同**在于：手柄常驻在悬停的那一块旁边，
+            点开才出菜单。所以「要不要画」由组件自己合三个条件判断
+            （有悬停 / 指针在手柄上 / 菜单开着），这里只做能力判断 */}
+        {blockHandleOps !== null && !doc?.readonly && (
+          <BlockHandle
+            hover={blockHover}
+            blockHandle={blockHandleOps}
+            menuOpen={blockMenuOpen}
+            onOpenMenu={openBlockMenu}
+            onCloseMenu={closeBlockMenu}
           />
         )}
 

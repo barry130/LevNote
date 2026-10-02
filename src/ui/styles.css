@@ -1959,6 +1959,158 @@ body {
   accent-color: var(--bamboo);
 }
 
+/* ---------------------------------------------------------------------------
+   块手柄（悬停在某一块左侧时浮出的握把 + 点开后的块级菜单）
+   ---------------------------------------------------------------------------
+   层级分两档，刻意不一样：
+
+   - 握把 **28**，比表格工具条 / 语言面板（29）、选中工具条 / 斜杠菜单（30）都低。
+     它是一个**常驻的悬停提示**，而上面那几个是「用户此刻正在操作」的东西 ——
+     两者撞上时后者必须在上面（同表格工具条那条注释的理由）。
+   - 菜单 **30**，与斜杠菜单同档：点开之后它就是用户正在操作的东西，
+     而且它比握把后出现在 DOM 里，同档时自然盖住握把。
+
+   握把与落点线都用 `position: fixed` + 内联 `left/top` 摆放 ——
+   坐标是内核算的（`BlockHandleState.anchor`），外壳只负责画。 */
+
+.bh-grip {
+  position: fixed;
+  z-index: 28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--slate);
+  cursor: grab;
+  /* 手柄自己不该被选中 */
+  user-select: none;
+  /* 拖动时不要触发触摸端的滚动 —— 我们自己接管了指针事件 */
+  touch-action: none;
+}
+
+/* 悬停与「菜单开着」是同一套视觉：它俩都表示「这个手柄现在有效」 */
+.bh-grip:hover,
+.bh-grip.open {
+  border-color: var(--line);
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.bh-grip:active {
+  cursor: grabbing;
+}
+
+/* 拖动期间指针要「穿过去」打到正文上：落点是用坐标算的，而坐标命中内部
+   也走 `elementFromPoint` —— 手柄不透明的话指针下面永远是它，落点算不出来。
+   顺带也不再抢悬停（指针这会儿正在别的块上方） */
+.bh-grip.dragging {
+  pointer-events: none;
+}
+
+.bh-grip:focus-visible {
+  outline: 2px solid var(--bamboo);
+  outline-offset: 1px;
+}
+
+/* 拖动中的落点指示线。`pointer-events: none` 是必须的 ——
+   它跟着指针走，可交互的话会在指针正下方把 `mousemove` 全吃掉 */
+.bh-drop-line {
+  position: fixed;
+  z-index: 30;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bamboo);
+  pointer-events: none;
+}
+
+.bh-menu {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  /* 十二项各 28px + 内边距。窗口很矮时也要留得住 —— 撑到屏幕外就点不到了 */
+  max-height: min(348px, 60vh);
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  /* 浮层自己不该被选中 */
+  user-select: none;
+}
+
+.bh-item {
+  /* 菜单是 flex 纵向 + 可滚动，不加这个的话项会被压扁 */
+  flex: none;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: 13px/1 var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 与斜杠菜单 / 语言面板同一条规矩：键盘高亮与鼠标悬停是同一个状态，
+   只认 `.highlighted`，不另设 `:hover`，免得出现两处高亮 */
+.bh-item.highlighted {
+  background: var(--selection);
+  border-color: var(--bamboo);
+}
+
+.bh-item:focus-visible {
+  outline: 2px solid var(--bamboo);
+  outline-offset: 1px;
+}
+
+/* 不能用的时候**留在原地变灰**，而不是消失 ——
+   消失会让「删除」在只剩一块时突然挪位，用户下一次就会点错 */
+.bh-item:disabled {
+  color: var(--slate);
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 分组之间的分隔线。用伪元素画而不是 `border-top`：
+   项高固定 28px，`border-top` 会挤掉 1px 内容高度，高亮块的圆角就与相邻项错位 */
+.bh-item.separated {
+  position: relative;
+  margin-top: 5px;
+}
+
+.bh-item.separated::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: 4px;
+  left: 4px;
+  height: 1px;
+  background: var(--line);
+}
+
+.bh-label {
+  flex: none;
+}
+
+/* `margin-left: auto` 而不是一个 `<span class="grow">`：`.grow` 在这个项目里
+   是按父容器定义的（`.statusbar .grow` 等），不是全局类，搬过来会静默失效 */
+.bh-hint {
+  margin-left: auto;
+  color: var(--slate);
+  font: 12px/1 var(--mono);
+}
+
 
 
 /* ---------------------------------------------------------------------------

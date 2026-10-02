@@ -21,6 +21,7 @@ function MarkdownEditor({
   onSlashChange,
   onTableChange,
   onCodeBlockChange,
+  onBlockHandleChange,
   resolveImageUrl,
   onImagePaste,
   onImageClick,
@@ -48,6 +49,8 @@ function MarkdownEditor({
   onTableChangeRef.current = onTableChange;
   const onCodeBlockChangeRef = useRef(onCodeBlockChange);
   onCodeBlockChangeRef.current = onCodeBlockChange;
+  const onBlockHandleChangeRef = useRef(onBlockHandleChange);
+  onBlockHandleChangeRef.current = onBlockHandleChange;
   const resolveImageUrlRef = useRef(resolveImageUrl);
   resolveImageUrlRef.current = resolveImageUrl;
   const onImagePasteRef = useRef(onImagePaste);
@@ -86,6 +89,7 @@ function MarkdownEditor({
           onSlashChange: (state) => onSlashChangeRef.current?.(state),
           onTableChange: (state) => onTableChangeRef.current?.(state),
           onCodeBlockChange: (state) => onCodeBlockChangeRef.current?.(state),
+          onBlockHandleChange: (state) => onBlockHandleChangeRef.current?.(state),
           // 这两个都**必须**转发（而不是直接传 `resolveImageUrl` / `onImagePaste`）：
           // 内核的 NodeView 与 handlePaste 在创建时就把它们捕获了，直接传的话
           // 之后 React 重渲染产生的新函数永远不会被内核看到 ——
@@ -118,6 +122,7 @@ function MarkdownEditor({
           formatting: created.formatting,
           table: created.table,
           codeBlock: created.codeBlock,
+          blockHandle: created.blockHandle,
           goToOutlineItem: ({ level, text }) => created.goToHeading(level, text),
           getPosition: () => created.getPosition(),
           setPosition: (position) => created.setPosition(position),
