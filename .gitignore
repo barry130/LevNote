@@ -23,3 +23,7 @@ docs/samples/v3-longdoc*.md
 # V3 自动化的两个本地产物：Edge 调试用的一次性用户目录、跑出来的 JSON 读数
 .v3-edge-*/
 .v3-out/
+
+# V2（mind-elixir 500 节点压测）跑出来的 JSON 读数。
+# 压测台（v2-page.html）与探针（v2-probe.mjs）是资产，读数不是 —— 它们随机器负载漂。
+.v2-out/

@@ -66,6 +66,8 @@ export default tseslint.config(
       // ② `.v3-out/` 是 V3 跑出来的 JSON 与临时脚本。
       '.v3-edge-*/**',
       '.v3-out/**',
+      // ③ `.v2-out/` 是 V2（mind-elixir 压测）跑出来的 JSON 读数。
+      '.v2-out/**',
     ],
   },
 

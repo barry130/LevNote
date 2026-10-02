@@ -515,15 +515,17 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 归因与拆分方案在 `ROADMAP.md` 第 18 项。
 打包产物 5.8 MB，其中 3.4 MB 是 mermaid 的懒加载 chunk（ADR 0020）。
 
-**最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V3**
-（Milkdown 长文档输入延迟 ≤ 50ms）。它的结论决定后续「Markdown 编辑体验怎么走」，
-而且**只能在真实 WebView 里测**（jsdom 的耗时没有参考价值）。
-跑的时候**一并测原文保真**（往返不篡改未编辑的 Markdown）——
-那是 horseMD 最值钱的差异点，我们从未测过。见 `MEMORY` 里的「一个重要的外部信号」。
+**最该先做的一件事**：跑 `docs/open-decisions.md` 里的 **V1**
+（draw.io `viewer.min.js` 能否独立渲染多页与压缩变体、体积是否 ≤ 6 MB）。
+它是 **P5 的开工前置**，也是四个模块里最后一个还没验的前置。
+（V1 的替代方案见 `open-decisions.md` 的 V1 行 —— 不能独立就退化为「连 viewer 也按需下载」。）
 
 > **一条纪律**：`open-decisions.md` 里的 V1–V4 在没有结论之前，**不要再新增待验证项**。
-> 现状：V4（表格可视化编辑的成本）**已由 M5 回答** —— 自研可行、成本可接受；
-> V1 / V2 / V3 仍未跑。
+> 现状：**只剩 V1 没跑**。
+> V2（mind-elixir 500 节点）2026-10-02 已测完 —— 判据修正为 `refresh`，
+> 结论是「成本由顶层分支数决定」，维持 mind-elixir（ADR 0007 复评记录）；
+> V3（Milkdown 长文档输入延迟）已测完并落地（ADR 0004）；
+> V4（表格可视化编辑的成本）已由 M5 回答 —— 自研可行、成本可接受。
 
 **空壳模块**（返回 `NOT_SUPPORTED`，等对应阶段落地）：
 `src-tauri/src/{watch,search,drawio}/mod.rs`。

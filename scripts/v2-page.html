@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>V2 · mind-elixir 压测台</title>
+<link rel="stylesheet" href="/mind-elixir/MindElixir.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; }
+  #v2-host { width: 100vw; height: 100vh; }
+  #v2-status {
+    position: fixed; left: 8px; bottom: 8px; z-index: 100000;
+    font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; color: #222;
+    background: #ffffffd9; border: 1px solid #ddd; border-radius: 3px;
+    padding: 4px 6px; pointer-events: none; max-width: 60vw;
+  }
+</style>
+</head>
+<body>
+<div id="v2-host"></div>
+<div id="v2-status">booting</div>
+<script type="module">
+import MindElixir from '/mind-elixir/MindElixir.js';
+
+/**
+ * V2 压测台 —— **只负责把导图造出来、把操作暴露出来**。
+ *
+ * 它**不测量**。所有读数都由 `v2-probe.mjs`（Event Timing / rAF 打点）产出，
+ * 两者分开是因为测量的定义要能单独读、单独改：
+ * 这个文件回答「怎么把 500 个节点弄到屏幕上」，探针回答「怎么把延迟量准」。
+ *
+ * ## 为什么不用本仓库的 `src/`
+ *
+ * V2 问的是「mind-elixir 这个内核扛不扛得住 500 节点」，
+ * 不是「轻墨的 P4 集成做得好不好」。所以这里只依赖**外部装的 mind-elixir 包**
+ * （ADR 0007：验证用的依赖不进 `package.json`），
+ * 页面本身是几个静态文件，由 `v2-run.mjs` 里那个几十行的 http 服务喂出去。
+ * 好处是它同时证明了「这个包能独立跑起来」——那是 P4 的前置条件之一。
+ *
+ * ## 暴露给驱动器的三个层次
+ *
+ * | 层 | 方法 | 用途 |
+ * |---|---|---|
+ * | 造/拆 | `mount` / `unmount` / `info` | 每次测量前把地图恢复成同一个初始状态 |
+ * | 摆姿势 | `startEditing` / `focusContainer` / `selectFirstChild` | 让下一条**真实按键**能进到内核 |
+ * | 归因 | `opRefresh` / `opGetData` / `opLinkDiv` / `opAddChildDirect` | 直接调 API 计时，把「浏览器事件开销」与「内核自己的开销」分开 |
+ *
+ * 最后一层是刻意的：判据是「输入到反馈」，但**读数超标之后要归因**。
+ * 只测「按 Tab 到出画面」这个总数，超标了也不知道该怪谁。
+ */
+
+const host = document.getElementById('v2-host');
+const statusEl = document.getElementById('v2-status');
+const setStatus = (text) => { statusEl.textContent = text; };
+
+let mind = null;
+let seq = 0;
+
+function makeNode(topic) {
+  seq += 1;
+  return { id: `v2-${seq}`, topic, children: [] };
+}
+
+/**
+ * 造一棵**恰好** `n` 个节点的树。
+ *
+ * 三种形状，因为它们压的不是同一段代码：
+ * - `balanced@k`（分支 k，默认 6）：深度约 log_k n。压的是 `linkDiv` 里的**递归**（`dt` 画子连线）。
+ * - `wide`（根 + n-1 个直接子节点）：压的是 `linkDiv` 主循环里
+ *   `map.querySelectorAll("me-main > me-wrapper")` 那一趟 —— n-1 个平铺的分支。
+ *
+ * 分支因子可调是**必须**的，不是可选项：实测 `linkDiv` 的成本由
+ * **「顶层分支数」**决定（主循环里每一轮都写一次 `style.borderColor`
+ * 再读一次 `offsetWidth`，强制同步布局），而不是总节点数 ——
+ * 所以「500 节点卡不卡」这个问题**没有唯一答案**，答案取决于树的形状。
+ * 只跑一种形状会把一个形状相关的结论说成一个普遍结论。
+ */
+function buildTree(n, shape, branch) {
+  const root = makeNode('根节点');
+  let count = 1;
+  if (shape === 'wide') {
+    while (count < n) {
+      root.children.push(makeNode(`节点 ${count + 1}`));
+      count += 1;
+    }
+    return root;
+  }
+  const width = Number.isFinite(branch) && branch >= 2 ? branch : 6;
+  const queue = [root];
+  while (count < n && queue.length > 0) {
+    const parent = queue.shift();
+    const take = Math.min(width, n - count);
+    for (let i = 0; i < take; i += 1) {
+      const child = makeNode(`节点 ${count + 1}`);
+      parent.children.push(child);
+      queue.push(child);
+      count += 1;
+    }
+  }
+  return root;
+}
+
+function countNodes(root) {
+  let total = 0;
+  const stack = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    total += 1;
+    const kids = node.children;
+    if (kids) for (const kid of kids) stack.push(kid);
+  }
+  return total;
+}
+
+/** 当前地图的节点数 —— 从内核自己的数据里数，不是从我们的构造器里数（两者不一致就是 bug）。 */
+function liveNodeCount() {
+  if (!mind) return 0;
+  return countNodes(mind.nodeData);
+}
+
+/**
+ * 挂载。**每次都先拆干净** —— 测量要求「每个重复都在同一个初始状态上开始」，
+ * 而结构操作（加子节点 / 加兄弟 / 删除）会改变节点数。
+ * 靠撤销来复位是不行的：撤销自己会触发一次 `refresh()`（整篇重画），
+ * 那会把上一个重复的尾巴带进下一个重复的读数里。
+ */
+function mount(n, shape, branch) {
+  unmount();
+  seq = 0;
+  const data = { nodeData: buildTree(n, shape, branch), direction: 1 };
+  const t0 = performance.now();
+  mind = new MindElixir({ el: host, direction: 1, editable: true });
+  mind.init(data);
+  const syncMs = performance.now() - t0;
+  setStatus(`mounted ${shape}${branch ? `@${branch}` : ''} n=${n}`);
+  return {
+    syncMs: Number(syncMs.toFixed(2)),
+    nodes: liveNodeCount(),
+    domTopics: host.querySelectorAll('me-tpc').length,
+    lines: host.querySelectorAll('.lines > *').length,
+    subLines: host.querySelectorAll('.subLines > *').length,
+  };
+}
+
+function unmount() {
+  if (mind) {
+    try { mind.destroy(); } catch { /* 拆到一半的对象再抛错也没有补救余地 */ }
+    mind = null;
+  }
+  host.innerHTML = '';
+  setStatus('idle');
+}
+
+function selectFirstChild() {
+  const root = mind.nodeData;
+  const kids = root.children;
+  const target = kids && kids.length > 0 ? kids[0] : root;
+  mind.selectNode(mind.findEle(target.id));
+  return target.id;
+}
+
+/**
+ * 选**最左边那个叶子**。
+ *
+ * 结构操作必须选叶子，不能选「第一个子节点」——在 `balanced` 树里第一个子节点是
+ * 一个内部节点，`Delete` 会把**整棵子树**删掉（实测 88 个节点一次删到 45），
+ * 于是「删一个节点」这一档的代价与形状强相关，两种形状的读数就没法比了。
+ * 叶子则是「删一个节点就是删一个节点」，两种形状下可比。
+ */
+function selectFirstLeaf() {
+  const stack = [mind.nodeData];
+  let leaf = mind.nodeData;
+  while (stack.length > 0) {
+    const node = stack.pop();
+    const kids = node.children;
+    if (!kids || kids.length === 0) {
+      leaf = node;
+      break;
+    }
+    for (let i = kids.length - 1; i >= 0; i -= 1) stack.push(kids[i]);
+  }
+  mind.selectNode(mind.findEle(leaf.id));
+  return leaf.id;
+}
+
+/**
+ * 编辑框**消失**那一刻的快照。
+ *
+ * 为什么要单独记它：实测在 `wide · 500 节点` 下，敲到第 28 个字符时编辑框会
+ * 被内核在 `blur` 处理器里 `remove()` 掉 —— 后面所有字符就都落到别处去了。
+ * 只报「这一档失败」是**不够**的：失败可能是「窗口被抢了前台」（环境问题，
+ * 重跑即可）也可能是「内核自己把它关了」（产品问题）。两者的下一步完全不同，
+ * 而它们在报告里长得一模一样。
+ *
+ * `blur` 是编辑框消失的**唯一**原因（内核的处理器挂在它上面），
+ * 所以在那一刻记下 `hasFocus` / `visibilityState` 就能把这两种情况分开。
+ */
+let lastEditBlur = null;
+/**
+ * 开始编辑一个节点。
+ *
+ * 两个都必须做，缺一个下一条按键就进不去内核：
+ * 1. `beginEdit()` 造出 `#input-box`（一个 `contenteditable="plaintext-only"` 的 div）；
+ * 2. **`focus()`** —— 内核自己只把选区塞进那个 div（`Ze`），
+ *    而 CDP 的按键是发给**焦点元素**的。少了这一步，字符会落到 `body` 上，
+ *    表现为「读数全是 0」，也就是看起来像性能极好。
+ */
+function startEditing() {
+  const id = selectFirstChild();
+  mind.beginEdit();
+  const box = document.getElementById('input-box');
+  if (box) {
+    lastEditBlur = null;
+    box.addEventListener(
+      'blur',
+      () => {
+        lastEditBlur = {
+          atMs: Math.round(performance.now()),
+          hasFocus: document.hasFocus(),
+          visibility: document.visibilityState,
+          activeElement: document.activeElement
+            ? document.activeElement.id || document.activeElement.tagName.toLowerCase()
+            : null,
+        };
+      },
+      { once: true },
+    );
+    box.focus();
+  }
+  return { id, box: box !== null, focused: document.activeElement === box };
+}
+
+/**
+ * 把焦点交给地图容器（`tabindex="0"`，见内核源码里的 `setAttribute("tabindex","0")`）。
+ * 结构操作（Tab / Enter / Delete）的监听挂在容器上，所以必须先聚焦它。
+ */
+function focusContainer() {
+  mind.container.focus();
+  return document.activeElement === mind.container;
+}
+
+/**
+ * 直接调 API 计时：把「内核自己的开销」从「浏览器事件派发开销」里剥出来。
+ *
+ * 两个读数，缺一不可：
+ * - `syncMs` 是**同步耗时**（内核自己跑了多久）；
+ * - `到帧ms` 是**到下一帧开始**（`rAF` 回调里取），也就是用户什么时候能看见。
+ *
+ * 只报 `syncMs` 会漏掉「内核干得很快、但那一帧要等很久才轮到」这种情况 ——
+ * 而那种情况下用户照样是卡的。两者之差就是「排队 + 绘制」的成本。
+ */
+function timed(fn) {
+  const t0 = performance.now();
+  const extra = fn();
+  const syncMs = performance.now() - t0;
+  return new Promise((done) => {
+    requestAnimationFrame(() => {
+      done({
+        syncMs: Number(syncMs.toFixed(2)),
+        到帧ms: Number((performance.now() - t0).toFixed(2)),
+        extra,
+      });
+    });
+  });
+}
+
+const page = {
+  mount,
+  unmount,
+  info() {
+    const box = document.getElementById('input-box');
+    const active = document.activeElement;
+    const root = mind.nodeData;
+    const first = root.children && root.children.length > 0 ? root.children[0] : root;
+    return {
+      nodes: liveNodeCount(),
+      domTopics: host.querySelectorAll('me-tpc').length,
+      lines: host.querySelectorAll('.lines > *').length,
+      subLines: host.querySelectorAll('.subLines > *').length,
+      editBox: box !== null,
+      editBoxText: box ? box.textContent : null,
+      /** 编辑框消失那一刻的环境快照（`null` = 没消失过）。 */
+      editBlur: lastEditBlur,
+      // 第一个子节点的 topic：用来证明「回车提交」真的把文字写回去了，
+      // 而不是只证明「编辑框消失了」（blur 也会让它消失）。
+      firstChildTopic: first.topic,
+      firstChildRenderedText: (() => {
+        const el = host.querySelector(`[data-nodeid="me${first.id}"] > .text`);
+        return el ? el.textContent : null;
+      })(),
+      activeElement: active ? (active.id || active.tagName.toLowerCase()) : null,
+      hasFocus: document.hasFocus(),
+      visibility: document.visibilityState,
+      // 地图的实际像素尺寸 —— 它是「这个读数是在一张真的被排版出来的图上量的」的凭据。
+      // jsdom 那种包围盒全 0 的环境下，这一组会全是 0，读数就没有意义。
+      hostBox: (() => {
+        const r = host.getBoundingClientRect();
+        return { w: Math.round(r.width), h: Math.round(r.height) };
+      })(),
+      mapBox: (() => {
+        const map = host.querySelector('.map-canvas');
+        if (!map) return null;
+        const r = map.getBoundingClientRect();
+        return { w: Math.round(r.width), h: Math.round(r.height) };
+      })(),
+    };
+  },
+  selectFirstChild,
+  selectFirstLeaf,
+  startEditing,
+  focusContainer,
+
+  // --- 归因用：直接调 API，绕过浏览器事件 ---------------------------------
+  opRefresh() { return timed(() => { mind.refresh(); }); },
+  opLinkDiv() { return timed(() => { mind.linkDiv(); }); },
+  opGetData() {
+    return timed(() => {
+      const text = mind.getDataString();
+      return { chars: text.length };
+    });
+  },
+  opAddChildDirect() {
+    // **必须先选中**：`addChild()` 内部是 `const n = e || this.currentNode`，
+    // 而 `currentNode` 是从 `currentNodes` 末尾取的 —— 没有选区时它**直接返回**，
+    // 一点活都不干。第一次跑就踩到了：节点数 88 → 88，
+    // 而读数是一个漂亮的 0.02ms（「归因」档差点变成一份假数据）。
+    selectFirstLeaf();
+    return timed(() => { mind.addChild(); });
+  },
+  opInsertSiblingDirect() {
+    selectFirstLeaf();
+    return timed(() => { mind.insertSibling('after'); });
+  },
+  opRemoveDirect() {
+    selectFirstLeaf();
+    return timed(() => { mind.removeNodes(mind.currentNodes); });
+  },
+};
+
+window.__v2page = page;
+window.__v2ready = true;
+setStatus('ready');
+</script>
+</body>
+</html>

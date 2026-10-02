@@ -19,8 +19,10 @@
 - 安装包约 **3.2 MB**（Tauri 2，不是 Electron）；KaTeX 与 Mermaid 都按需加载，不进主程序。
 
 > **当前进度**：四类里 **2/4 已落地**（Markdown、代码 / 文本）；
-> 思维导图（mind-elixir）与 draw.io 是 P4 / P5，各自被一项验证前置
-> （V2 压测 / V1 查看器独立渲染）。见 [`ROADMAP.md`](ROADMAP.md)。
+> 思维导图（mind-elixir 5.15.1）与 draw.io 是 P4 / P5。
+> 思维导图的前置验证 **V2 已完成**（500 节点压测：成本由顶层分支数决定，
+> ≤150 条顶层分支全部在判据内）→ 可开工；draw.io 仍被 **V1**
+> （查看器能否独立渲染 + 体积）前置。见 [`ROADMAP.md`](ROADMAP.md)。
 
 ---
 
