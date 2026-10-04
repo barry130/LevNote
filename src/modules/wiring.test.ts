@@ -11,7 +11,7 @@
  * 不测任何解析行为 —— 那是内核测试的事。
  */
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { listAdapters, resolveAdapter } from '../core/editor/registry.js';
 import { MARKDOWN_EXTENSIONS } from '../core/path.js';
@@ -59,8 +59,8 @@ describe('源码视图的接线', () => {
     expect(EDITOR_FALLBACK.sourceView).toBeUndefined();
   });
 
-  it('源码视图不注册进注册表 —— 否则同一个 .md 会有两个合法答案', () => {
-    registerBuiltInEditors();
+  it('源码视图不注册进注册表 —— 否则同一个 .md 会有两个合法答案', async () => {
+    await registerBuiltInEditors();
 
     // 顺序即优先级：markdown 在前（`.md` 归富文本内核），
     // mindmap 在中间（`.mindmap` 归导图内核），
@@ -80,7 +80,10 @@ describe('源码视图的接线', () => {
 });
 
 describe('导图的备胎链', () => {
-  registerBuiltInEditors();
+  // 注册是异步的（内核走动态 import，见 index.ts），断言前必须等它落地
+  beforeAll(async () => {
+    await registerBuiltInEditors();
+  });
 
   const pick = (text?: string): string => resolveAdapter('图.mindmap', EDITOR_FALLBACK, text).id;
 

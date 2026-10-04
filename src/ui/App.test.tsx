@@ -19,7 +19,7 @@ import { StrictMode } from 'react';
 import type { ReactElement } from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { DocumentStore } from '../core/document/store.js';
 import { DEFAULT_SETTINGS, type ViewSettings } from '../core/settings.js';
@@ -43,7 +43,15 @@ import type {
   WriteOutcome,
   WriteRequest,
 } from '../core/document/types.js';
+import { registerBuiltInEditors } from '../modules/index.js';
 import { App } from './App.js';
+
+// 注册表现在是异步的（P3 第 18 项：三个内核走动态 import，注册挪去了
+// main.tsx 的首帧之前）。渲染 App 的用例依赖一张**已填好**的注册表 ——
+// resolveAdapter 是同步查表，表还空着就会把一切都静默兜到纯文本上。
+beforeAll(async () => {
+  await registerBuiltInEditors();
+});
 
 declare global {
   // React 要求测试环境显式声明这一点，否则 act() 会警告并跳过批处理
@@ -273,6 +281,19 @@ async function mount(
       container.remove();
     },
   };
+}
+
+/**
+ * 导出模块是**按需动态加载**的（P3 第 18 项）：`file.exportHtml` 命令第一次
+ * 执行时才去 import 它，装载要花几个宏任务（vitest 按需转换模块）。
+ * 轮询等待落盘结果，而不是睡固定轮数 —— 装载时长不是这个用例要断言的东西。
+ */
+async function waitForExportWrite(rounds = 50): Promise<void> {
+  for (let i = 0; i < rounds; i += 1) {
+    if (mounted !== null && mounted.provider.writes.length > 0) return;
+    await settle(1);
+  }
+  throw new Error('导出一直没有落盘（导出模块装载失败？）');
 }
 
 function statusOf(container: HTMLElement): string {
@@ -630,6 +651,7 @@ describe('自包含 HTML 导出', () => {
     await mounted.open('C:\\notes\\note.md');
 
     await mounted.click('导出 HTML');
+    await waitForExportWrite();
 
     expect(mounted.provider.writes).toHaveLength(1);
     const written = mounted.provider.writes[0]!;
@@ -667,6 +689,7 @@ describe('自包含 HTML 导出', () => {
     await mounted.open('note.md');
 
     await mounted.click('导出 HTML');
+    await waitForExportWrite();
 
     const html = mounted.provider.writes[0]!.text;
     // 不能凭空把 img/a.png 当成可读路径去读 —— 那样只会读错文件或读不到
@@ -680,6 +703,7 @@ describe('自包含 HTML 导出', () => {
     await mounted.open('note.weird');
 
     await mounted.click('导出 HTML');
+    await waitForExportWrite();
 
     const html = mounted.provider.writes[0]!.text;
     expect(html).toContain('qm-plain');

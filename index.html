@@ -6,7 +6,16 @@
     <title>轻墨</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      引导位。React 挂载时会整个替换掉 #root 的内容，所以这段「正在启动」
+      只在内核 chunk 加载的那一小段里可见（本地磁盘，通常几十毫秒）；
+      #boot-status 平时隐藏，只有 main.tsx 的启动兜底走到「意外失败」时
+      才会被写上错误并显示 —— 启动坏了也要有一句话说出来，不能白屏。
+    -->
+    <div id="root">
+      <div style="font-family: system-ui, sans-serif; padding: 2rem; color: #6b7280">正在启动轻墨…</div>
+    </div>
+    <div id="boot-status" hidden></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

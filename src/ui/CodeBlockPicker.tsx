@@ -35,7 +35,6 @@ import type { KeyboardEvent } from 'react';
 
 import { rankCommands } from '../core/commands/fuzzy.js';
 import type { CodeBlockState, EditorCodeBlock } from '../core/editor/types.js';
-import { supportedLanguages } from '../core/highlight/hljs.js';
 import { computeFloatingPlacement } from './floating.js';
 
 interface LanguageRow {
@@ -102,18 +101,39 @@ const LABELS: Readonly<Record<string, { label: string; keywords: readonly string
   yaml: { label: 'YAML', keywords: ['yml'] },
 };
 
-const LANGUAGE_ROWS: readonly LanguageRow[] = [
-  PLAIN_ROW,
-  ...supportedLanguages()
-    /*
-     * `plaintext` 不列：上面那一项「纯文本」就是它，但两者在 markdown 里
-     * 写出来并不一样（```` ``` ```` 与 ```` ```plaintext ````）。
-     * 两个都列会让人以为要选两次。已经在用 `plaintext` 的文件仍然可以
-     * 通过下面那个「使用 “…”」选项选回去。
-     */
-    .filter((id) => id !== 'plaintext')
-    .map((id) => ({ id, label: LABELS[id]?.label ?? id, keywords: LABELS[id]?.keywords ?? [] })),
-];
+/**
+ * 完整的语言清单 —— **打开面板时才加载**（P3 第 18 项）。
+ *
+ * 数据仍然来自 `supportedLanguages()`（也就是 `hljs` 自己），这里**不另立一份清单**：
+ * 另立的那一份迟早会和真正能高亮的语言对不上，而那种错是静默的 ——
+ * 用户从列表里选了一个语言，高亮却退回自动识别，他看不出为什么。
+ * 变的只是加载时机：hljs 本体跟着内核 chunk 走，主包不再为它付钱；
+ * 面板是点击触发的浮层，点开那一刻模块早就在内存里了（同一个实例），
+ * 这次 import 实际只等一个微任务。
+ *
+ * `plaintext` 不列：PLAIN_ROW 那一项「纯文本」就是它，但两者在 markdown 里
+ * 写出来并不一样（```` ``` ```` 与 ```` ```plaintext ````）。
+ * 两个都列会让人以为要选两次。已经在用 `plaintext` 的文件仍然可以
+ * 通过那个「使用 “…”」选项选回去。
+ */
+/** 清单到位前的替身：只有「纯文本」一项，真正的清单一个微任务后就到。 */
+const PRELOAD_ROWS: readonly LanguageRow[] = [PLAIN_ROW];
+
+let languageRowsPromise: Promise<readonly LanguageRow[]> | null = null;
+
+function languageRows(): Promise<readonly LanguageRow[]> {
+  languageRowsPromise ??= import('../core/highlight/hljs.js').then(({ supportedLanguages }) => [
+    PLAIN_ROW,
+    ...supportedLanguages()
+      .filter((id) => id !== 'plaintext')
+      .map((id) => ({
+        id,
+        label: LABELS[id]?.label ?? id,
+        keywords: LABELS[id]?.keywords ?? [],
+      })),
+  ]);
+  return languageRowsPromise;
+}
 
 export interface CodeBlockPickerProps {
   state: CodeBlockState;
@@ -131,8 +151,20 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
   const [query, setQuery] = useState('');
   const [placement, setPlacement] = useState<{ left: number; top: number } | null>(null);
 
+  /**
+   * 完整清单（`languageRows()`）加载完之前是 `null` —— 面板先用「纯文本」
+   * 一项顶着：清单本体跟着 hljs 走，而 hljs 在内核 chunk 里，打开面板那一刻
+   * 几乎总是已经就位，这次等待通常连一帧都不到。
+   */
+  const [allRows, setAllRows] = useState<readonly LanguageRow[] | null>(null);
+
+  useEffect(() => {
+    void languageRows().then(setAllRows);
+  }, []);
+
   const rows = useMemo<LanguageRow[]>(() => {
     const typed = query.trim();
+    const universe = allRows ?? PRELOAD_ROWS;
 
     /**
      * 空查询时把**当前语言**补到最前面，前提是它不在候选里。
@@ -144,21 +176,21 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
      * 点它等于原样保留，点 `JavaScript` 才会把围栏改成正式标识。
      */
     const current: LanguageRow[] =
-      typed === '' && language !== '' && !LANGUAGE_ROWS.some((row) => row.id === language)
+      typed === '' && language !== '' && !universe.some((row) => row.id === language)
         ? [{ id: language, label: language, keywords: [] }]
         : [];
 
-    const hits = rankCommands(query, LANGUAGE_ROWS, (item) => ({
+    const hits = rankCommands(query, universe, (item) => ({
       title: item.label,
       keywords: item.keywords,
       id: item.id,
     })).map((hit) => hit.item);
 
-    if (typed === '' || LANGUAGE_ROWS.some((row) => row.id === typed)) return [...current, ...hits];
+    if (typed === '' || universe.some((row) => row.id === typed)) return [...current, ...hits];
     // 原样用用户输入的值。少了这一项，「hljs 不认识的围栏」（`mermaid` 之类）
     // 就没法从界面上选出来 —— 用户会被卡在列表里找不到自己的语言
     return [...hits, { id: typed, label: `使用 “${typed}”`, keywords: [] }];
-  }, [query, language]);
+  }, [query, language, allRows]);
 
   /**
    * 初始高亮落在**当前语言**那一行上，而不是永远从第一行开始。

@@ -7,7 +7,6 @@
  * 命名约定：`域.动作`。域只用于面板分组与将来的快捷键自定义界面。
  */
 
-import { exportHtml } from '../export/export-document.js';
 import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
 
@@ -35,6 +34,12 @@ async function runExport(ctx: CommandContext): Promise<void> {
     bodyHtml = null;
   }
 
+  /**
+   * 导出模块**用在时才加载**（P3 第 18 项）：它拖着 hljs 与整套 remark
+   * （为了公式与代码块的 HTML 化），而导出是一个低频动作 —— 让主包为了
+   * 它多解析三百 KB 不划算。动态 import 之余没有任何行为变化。
+   */
+  const { exportHtml } = await import('../export/export-document.js');
   const result = await exportHtml({
     path: doc.path,
     title: doc.displayName.replace(/\.[^.]+$/, ''),

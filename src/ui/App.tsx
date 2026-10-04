@@ -52,7 +52,11 @@ import {
 } from '../core/settings.js';
 import { applyTheme, cycleTheme, resolveTheme, systemPrefersDark, type ThemePreference } from '../core/theme/theme.js';
 import type { WorkspaceStore } from '../core/workspace/store.js';
-import { registerBuiltInEditors } from '../modules/index.js';
+import {
+  editorRegistrationFailures,
+  registerBuiltInEditors,
+  type KernelLoadFailure,
+} from '../modules/index.js';
 import { ActivityBar } from './ActivityBar.js';
 import { Mark } from './brand.js';
 import { CommandPalette } from './CommandPalette.js';
@@ -63,10 +67,6 @@ import { SearchPanel } from './SearchPanel.js';
 import { Sidebar } from './Sidebar.js';
 import { SettingsDialog } from './SettingsDialog.js';
 import { TabBar } from './TabBar.js';
-
-// 注册表要在任何一次 resolveAdapter 之前填好。放在模块顶层是刻意的：
-// 只要这个模块被加载（外壳必然如此），注册就一定发生过。
-registerBuiltInEditors();
 
 /**
  * 工具栏按钮。
@@ -236,6 +236,19 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   useEffect(() => () => searchStore.dispose(), [searchStore]);
 
   /**
+   * 内核加载失败是**降级**，降级不许静默（硬约束 2）：少了哪个内核、为什么，
+   * 要在界面上说出来。注册由 main.tsx 在首帧前 await，这里再问一次拿到的是
+   * 同一个已完成的 Promise，所以这个 effect 实际是「启动后读一次结果」。
+   * 只在有失败时 setState —— 空数组的渲染结果相同，不值得惊动 React。
+   */
+  useEffect(() => {
+    void registerBuiltInEditors().then(() => {
+      const failed = editorRegistrationFailures();
+      if (failed.length > 0) setKernelFailures(failed);
+    });
+  }, []);
+
+  /**
    * 待定位的检索结果，连同它的编号。
    *
    * ## 为什么它进 state、并且交给面板在内核就绪时落地
@@ -328,6 +341,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** 启动时没能加载的内核（P3 第 18 项）。空数组 = 全部就位，横幅不出现。 */
+  const [kernelFailures, setKernelFailures] = useState<readonly KernelLoadFailure[]>([]);
   const [dragging, setDragging] = useState(false);
   const [liveSidebarWidth, setLiveSidebarWidth] = useState<number | null>(null);
 
@@ -958,6 +973,16 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         }}
         onReorder={(from, to) => workspace.moveTab(from, to)}
       />
+
+      {kernelFailures.length > 0 && (
+        <div className="banner error">
+          <span className="grow">
+            <strong>有 {kernelFailures.length} 个编辑内核没能加载</strong>
+            （{kernelFailures.map((f) => `${f.id}：${f.reason}`).join('；')}）。
+            相关文档会以纯文本打开 —— 其余功能不受影响。重启应用通常会解决。
+          </span>
+        </div>
+      )}
 
       {openError && (
         <div className="banner error">

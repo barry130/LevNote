@@ -137,6 +137,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
 | 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
+| **内核怎么被加载与注册** | `modules/index.ts`（**动态 import**，ADR 0028）。三个内核按 markdown → mindmap → code 逐个 await 后注册（顺序即优先级，与解析时序无关）；单个内核加载失败记进 `editorRegistrationFailures()`，外壳出横幅但启动照常。注册由 `main.tsx` 在**首帧之前** await —— 表还空着就渲染，`.md` 会被静默兜到纯文本。兜底内核（plaintext）保持静态：最后防线不能自己也是异步的 |
 | **视图三态（富文本 / 源码 / 分屏）** | `core/document/store.ts` 的 `ViewMode`（**枚举，不是两个布尔**）+ `ui/ViewSwitcher.tsx`（状态栏里的三档）。分屏的两栏在 `ui/DocumentPane.tsx`：左 = `primary.sourceView`（可编辑），右 = `primary` 加 `readOnly` |
 | **块手柄（悬停命中 / 上移下移 / 转为 / 拖动落点）** | `modules/markdown/block.ts`（纯逻辑 + 几何，**悬停走 DOM 元素、落点走坐标**，两条路的分工写在文件头）+ `modules/markdown/plugin.ts` 的 `blockHoverPlugin`（**不共用浮层骨架**：触发源是鼠标移动）+ `ui/BlockHandle.tsx`（显隐合三个条件） |
 | **什么时候清掉「该操作哪一块」** | `ui/BlockHandle.tsx` 里那个 `visible === false` 的 effect。**不是「菜单关了」** —— 清早了第二次打开菜单会「点了没反应」，见 ADR 0024 |
@@ -523,8 +524,8 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
 测试：**1,259 条前端 + 53 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
-主包 1,892.10 kB（gzip 626.59 kB），已超 Vite 的 500 kB 警戒线 ——
-归因与拆分方案在 `ROADMAP.md` 第 18 项，是当前最该做的一件事。
+主包 341.92 kB（gzip 107.53 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
+三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
 2.654 MiB（`public/drawio/`，按需注入、不进 bundle，ADR 0027）。
 
@@ -537,8 +538,9 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 draw.io 已可在 Markdown 里引用查看。P5 剩下的按需下载（26）与离线构建（27）
 需要真实分发环境先行。
 
-**最该先做的一件事**：**P3-18 主包拆分**（三个内核改成按需动态加载）——
-1.89 MB 的主包是现在最大的技术债，拆分方案在 `ROADMAP.md` 第 18 项。
+**最该先做的一件事**：**P3-14 文件监听**（notify + debouncer 落地，替换
+「窗口焦点回来时扫 mtime」的兜底）—— 外部改动检测是目前唯一还靠轮询
+兜底的核心路径。其余按 ROADMAP 顺序：P3-16 PDF 导出、P3-17 i18n 骨架。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。
