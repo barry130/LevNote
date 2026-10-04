@@ -123,6 +123,9 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 图片显示（NodeView）与灯箱 | `modules/markdown/image-view.ts`（画占位与加载态）+ `ui/Lightbox.tsx`（外壳画全屏预览） |
 | **什么算 Mermaid 图表** | `core/mermaid.ts` 的 `isMermaidLanguage` / `MERMAID_STARTER`。**判定只有这一份**，三处共用（NodeView、导出、斜杠菜单插入）—— 抄成三份的下场是「编辑器画得出、导出不画」 |
 | **Mermaid 怎么渲染** | `core/mermaid-render.ts`。动态 `import('mermaid')`、**必须传容器**（不传它会往真实 `document.body` 挂临时节点）、容器必须**参与布局**（`display: none` 会让 `getBBox()` 全 0）。jsdom 里画不出图，所以测试用假渲染器 |
+| **`doc-block` 怎么解析** | `core/docblock.ts`。属性区 + `---` + 载荷，载荷**逐字节原样**；不认识的键进 `extra` 原样保留（规范 §5 向前兼容，丢了就是单向数据损失）。永远不抛 —— 内容来自用户文件，失败走 `errors` |
+| **`.drawio` 缺哪些 stencil 库** | `core/drawio.ts` 的 `stencilLibsOf` / `missingStencilLibs`。**渲染前从 XML 风格串里算**（`shape=mxgraph.<库名>.`），与内置清单求差 —— 不要改成「事后看请求 404」（并发归属不了，XHR 打点是全局猴子补丁） |
+| **draw.io 查看器怎么渲染** | `core/drawio-render.ts`。上游产物在 `public/drawio/`（ESLint 全量忽略），**出现图表引用才注入**脚本；注入前十条资源路径必须全部占住（「无网络」的唯一开关，漏一条就静默联网）。渲染器可注入（`DrawIoIo`），与 `MermaidIo` 同一条纪律。**不接主题**（颜色在图的 XML 里，画布恒白） |
 | 图 / 源码双态与全屏入口 | `modules/markdown/code-block-view.ts`（`data-mode`）+ `ui/DiagramViewer.tsx`（外壳画全屏） |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
 | **写回磁盘时被改写成什么样**（列表符号 / 分隔线 / 表格） | `modules/markdown/setup.ts` 的 `useDashSymbols`（`bullet` / `rule` 都设成 `'-'`）。**`remark-stringify` 的默认是 `'*'`**，改回去会让「打开一份用 `-` 写的文档 → **改一个字** → 保存」把全篇的 `-` 静默换成 `*`。清单与实测见 `docs/open-decisions.md` 的「原文保真的实测与收窄」 |
@@ -519,18 +522,23 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,204 条前端 + 53 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
-主包 1,886.68 kB（gzip 624.53 kB），已超 Vite 的 500 kB 警戒线 ——
-归因与拆分方案在 `ROADMAP.md` 第 18 项。
-打包产物 5.8 MB，其中 3.4 MB 是 mermaid 的懒加载 chunk（ADR 0020）。
+测试：**1,259 条前端 + 53 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+主包 1,892.10 kB（gzip 626.59 kB），已超 Vite 的 500 kB 警戒线 ——
+归因与拆分方案在 `ROADMAP.md` 第 18 项，是当前最该做的一件事。
+打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
+2.654 MiB（`public/drawio/`，按需注入、不进 bundle，ADR 0027）。
 
 **P4 思维导图已全部完成（2026-10-04）**：`.mindmap` 的读写、适配层、内核接入、
 **工作区全文检索**（第 23 项，见 ADR 0026）全部落地，四类一等公民里
 **Markdown、思维导图、代码文本三类已可独立使用**。
 
-**最该先做的一件事**：**P5 的第 25 项（内置只读 draw.io 查看器）**。
-V1（`viewer.min.js` 独立渲染）已测完、决策维持，但
-**给 P5 的四条硬要求写在 ADR 0005 文末，动手前先读那一段**。
+**P5-25 内置只读 draw.io 查看器已完成（2026-10-04，ADR 0027）**：Markdown 里的
+`kind: diagram` doc-block 渲染成真图，reference / inline 两种模式，四类一等公民里
+draw.io 已可在 Markdown 里引用查看。P5 剩下的按需下载（26）与离线构建（27）
+需要真实分发环境先行。
+
+**最该先做的一件事**：**P3-18 主包拆分**（三个内核改成按需动态加载）——
+1.89 MB 的主包是现在最大的技术债，拆分方案在 `ROADMAP.md` 第 18 项。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。

@@ -66,6 +66,9 @@ import type { EditorView, NodeView, ViewMutationRecord } from '@milkdown/kit/pro
 import { $prose } from '@milkdown/kit/utils';
 
 import type { SelectionRect } from '../../core/editor/types.js';
+import { referencedDiagramSrc, parseDocBlock } from '../../core/docblock.js';
+import { missingStencilLibs } from '../../core/drawio.js';
+import { renderDrawio } from '../../core/drawio-render.js';
 import { isMermaidLanguage } from '../../core/mermaid.js';
 import { renderMermaid } from '../../core/mermaid-render.js';
 import type { ResolvedTheme } from '../../core/theme/theme.js';
@@ -113,6 +116,16 @@ export interface CodeBlockChromeRequest {
 
 export interface CodeBlockChromeHandlers {
   readonly openPicker: (request: CodeBlockChromeRequest) => void;
+  /**
+   * 把 `doc-block` 引用的 `src` 读成那份图表文件的原文（P5 第 25 项）。
+   *
+   * 与图片的 `resolve` 同一条分工：`src` 相对**当前文档目录**，只有外壳知道
+   * 文档在哪、也只有它能读文件。返回 `null` 表示读不到 —— NodeView 据此
+   * 在图区画带路径的说明，绝不留白。
+   *
+   * 不实现时 `doc-block` 的图表引用一律走「读不到」的说明路径。
+   */
+  readonly resolveDiagram?: (src: string) => Promise<string | null>;
   /**
    * 用户要**放大看**这个块的图。
    *
@@ -195,10 +208,19 @@ class CodeBlockView implements NodeView {
   /**
    * 图区正在画（或已经画完）的那一份「源码 + 主题」。
    *
-   * 两个都要记：前者决定「源码改了要不要重画」，后者决定「换了明暗要不要重画」。
-   * `null` 表示图区是空的。
+   * 两个都要记：前者决定「源码改了要不要重画」，后者决定「换了明暗要不要重画」
+   * （只有 mermaid 在乎主题 —— drawio 的颜色写在图自己的 XML 里，见
+   * `renderDrawio` 的注释）。`null` 表示图区是空的。
    */
-  private painted: { source: string; theme: ResolvedTheme } | null = null;
+  private painted:
+    | { readonly kind: 'mermaid'; readonly source: string; readonly theme: ResolvedTheme }
+    | { readonly kind: 'docblock'; readonly source: string }
+    | null = null;
+  /**
+   * 交给「放大看」的那份**源**。mermaid 是块文本本身；doc-block 是被渲染的
+   * 那份 XML（引用模式下与块文本不是一回事）。`null` = 现在没有图。
+   */
+  private diagramSource: string | null = null;
   /** 竞态令牌 —— 与 ImageView / MathView 同一个坑：先发的请求后回来会盖住新的。 */
   private token = 0;
 
@@ -299,6 +321,22 @@ class CodeBlockView implements NodeView {
     return isMermaidLanguage(this.language());
   }
 
+  /**
+   * 这个块按**哪一种图表**画；`null` 表示它不是图表块（按普通代码块显示）。
+   *
+   * - `mermaid` —— 源码即图（ADR 0020）；
+   * - `docblock` —— 属性区声明了 `kind: diagram` 的 doc-block（ADR 0002）。
+   *   只有声明了 kind 的才进图区：`kind: code` 的引用块就该显示为代码，
+   *   硬画成图反而把用户写的东西藏起来了。
+   */
+  private diagramKind(): 'mermaid' | 'docblock' | null {
+    if (this.isMermaid()) return 'mermaid';
+    if (this.language() === 'doc-block') {
+      return parseDocBlock(this.node.textContent).attrs.kind === 'diagram' ? 'docblock' : null;
+    }
+    return null;
+  }
+
   /** 当前语言标识；空串表示未指定。 */
   private language(): string {
     const raw = this.node.attrs['language'];
@@ -377,10 +415,10 @@ class CodeBlockView implements NodeView {
   ensureDiagram(): void {
     const source = this.node.textContent;
     const theme = currentTheme();
-    const wanted = this.isMermaid() && source.trim() !== '';
+    const kind = this.diagramKind();
 
-    if (!wanted) {
-      // 不是 mermaid（或还没写内容）：把图区清空。
+    if (kind === null || source.trim() === '') {
+      // 不是图表块（或还没写内容）：把图区清空。
       // 空的图区由 CSS 藏起来，所以「清空」只是别留下上一次的图
       this.clearDiagram();
       this.syncMode();
@@ -403,18 +441,26 @@ class CodeBlockView implements NodeView {
     }
 
     const painted = this.painted;
-    if (painted !== null && painted.source === source && painted.theme === theme) {
+    const paintedFresh =
+      painted !== null &&
+      painted.kind === kind &&
+      painted.source === source &&
+      // 只有 mermaid 在乎主题（颜色是渲染时定死的）；drawio 的颜色在 XML 里
+      (painted.kind !== 'mermaid' || painted.theme === theme);
+    if (paintedFresh) {
       this.syncMode();
       return;
     }
 
-    void this.renderDiagram(source, theme);
+    if (kind === 'mermaid') void this.renderDiagram(source, theme);
+    else void this.renderDocBlock(source);
   }
 
   private clearDiagram(): void {
     if (this.painted === null && this.diagram.childElementCount === 0) return;
     this.painted = null;
     this.svg = null;
+    this.diagramSource = null;
     this.diagram.classList.remove('is-loading', 'is-failed', 'is-ok');
     this.diagram.replaceChildren();
     this.syncZoom();
@@ -433,14 +479,15 @@ class CodeBlockView implements NodeView {
   private requestViewer(): void {
     const svg = this.svg;
     if (svg === null) return;
-    this.getHandlers()?.openViewer({ svg, source: this.node.textContent });
+    this.getHandlers()?.openViewer({ svg, source: this.diagramSource ?? this.node.textContent });
   }
 
   private async renderDiagram(source: string, theme: ResolvedTheme): Promise<void> {
     // 同步记下「正在画的是这一份」：于是并发的第二次 `ensureDiagram`
     // 不会重复发起，而 `syncMode()` 也知道现在该显示图区（哪怕是「正在渲染」）
-    this.painted = { source, theme };
+    this.painted = { kind: 'mermaid', source, theme };
     this.svg = null;
+    this.diagramSource = source;
     this.paintDiagramNote('正在渲染图表…', 'is-loading');
     this.syncZoom();
     this.syncMode();
@@ -469,6 +516,96 @@ class CodeBlockView implements NodeView {
     this.syncMode();
   }
 
+  /**
+   * 画一个 `doc-block` 图表引用（P5 第 25 项）。
+   *
+   * 与 mermaid 那条路的差别只有**「源」从哪来**：
+   *
+   * - `mode: reference` —— 去外部文件读（经 `resolveDiagram` 契约，只有外壳
+   *   知道路径与怎么读）；
+   * - `mode: inline` —— 载荷本身就是文档（规范 §2.2），不需要读任何东西。
+   *
+   * 解析失败、读不到、渲染失败，全部落成图区里**带原因的一句话** ——
+   * 这个块的降级形态是「显示源码」，而失败时退回源码会把原因藏起来
+   * （图区被 CSS 隐藏了），与 mermaid 失败时占着图区的理由相同。
+   */
+  private async renderDocBlock(source: string): Promise<void> {
+    this.painted = { kind: 'docblock', source };
+    this.svg = null;
+    this.syncZoom();
+    this.syncMode();
+
+    const mine = (this.token += 1);
+    const parsed = parseDocBlock(source);
+    const src = referencedDiagramSrc(parsed);
+    const inline = parsed.attrs.mode === 'inline';
+
+    let xml: string | null = null;
+    let failed: string | null = null;
+
+    if (parsed.errors.includes('MISSING_TERMINATOR')) {
+      failed = 'doc-block 缺少结束行 —— 属性区和载荷之间必须有一整行「---」。';
+    } else if (src !== null) {
+      this.paintDiagramNote(`正在读取 ${src} …`, 'is-loading');
+      xml = (await this.getHandlers()?.resolveDiagram?.(src)) ?? null;
+      if (xml === null) failed = `读不到引用的文件：${src}`;
+    } else if (inline) {
+      // 载荷全是空白与「没有载荷」是同一件事 —— 都要把图该写在哪儿说出来。
+      // 不留给 renderDrawio 的空内容短路：那句「内容是空的」没有这句可操作
+      if (parsed.payload !== null && parsed.payload.trim() !== '') {
+        xml = parsed.payload;
+      } else {
+        failed = 'inline 载荷是空的 —— 图的内容应该写在「---」之后。';
+      }
+    } else {
+      failed = '声明了 kind: diagram，但没有 src 引用，也不是 inline 载荷。';
+    }
+
+    if (!this.alive || mine !== this.token) return;
+
+    if (failed !== null || xml === null) {
+      this.paintDiagramNote(failed ?? '读不到引用的文件。', 'is-failed');
+      this.syncZoom();
+      this.syncMode();
+      return;
+    }
+
+    // 「放大看」交出去的源是**这份 XML**（引用模式下与块文本不是一回事）
+    this.diagramSource = xml;
+
+    const host = document.createElement('div');
+    host.className = 'qm-cb-drawio';
+    // 在渲染**之前**算缺库：这是纯文本分析，与渲染并发与否无关
+    const missing = missingStencilLibs(xml);
+    // host 必须先挂进文档再渲染：mxGraph 量容器尺寸来决定画布大小，
+    // 游离节点量出来是 0 —— 与 mermaid 的「容器必须参与布局」是同一类问题
+    this.diagram.replaceChildren(host);
+
+    const result = await renderDrawio(xml, host);
+    if (!this.alive || mine !== this.token) return;
+
+    if (!result.ok) {
+      this.paintDiagramNote(result.message, 'is-failed');
+      this.syncZoom();
+      this.syncMode();
+      return;
+    }
+
+    this.diagram.classList.remove('is-loading', 'is-failed');
+    this.diagram.classList.add('is-ok');
+    if (missing.length > 0) {
+      // stencil 缺失是**静默降级**（mxGraph 画成矩形、标签照旧）——
+      // 所以必须由我们把这件事说出来。硬约束 2 在查看器上的落点
+      const note = document.createElement('div');
+      note.className = 'qm-cb-note qm-cb-note-warn';
+      note.textContent = `未内置的形状库：${missing.join('、')} —— 相关形状已按矩形显示。`;
+      this.diagram.appendChild(note);
+    }
+    this.svg = result.svg;
+    this.syncZoom();
+    this.syncMode();
+  }
+
   /** 画「渲染失败 / 正在渲染」这类说明，而不是一张图。 */
   private paintDiagramNote(text: string, state: 'is-loading' | 'is-failed'): void {
     this.diagram.classList.remove('is-loading', 'is-failed', 'is-ok');
@@ -490,11 +627,15 @@ class CodeBlockView implements NodeView {
 
   /** 当前该显示图还是源码。 */
   private wantDiagram(): boolean {
-    if (!this.isMermaid() || this.editing) return false;
-    if (this.node.textContent.trim() === '') return false;
+    if (this.editing) return false;
+    const source = this.node.textContent;
+    if (source.trim() === '') return false;
     const painted = this.painted;
-    const theme = currentTheme();
-    return painted !== null && painted.source === this.node.textContent && painted.theme === theme;
+    if (painted === null || painted.kind !== this.diagramKind() || painted.source !== source) {
+      return false;
+    }
+    if (painted.kind === 'mermaid') return painted.theme === currentTheme();
+    return true;
   }
 
   private syncMode(): void {

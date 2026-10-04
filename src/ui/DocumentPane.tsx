@@ -843,6 +843,7 @@ export function DocumentPane({
         // 直接不给（`undefined`）比「给了再禁用每一项」更简单，也更诚实
         onBlockHandleChange={doc.readonly ? undefined : setBlockHover}
         resolveImageUrl={store.resolveImageUrl}
+        resolveDocBlock={store.resolveDocBlock}
         onImagePaste={handleImagePaste}
         onImageClick={setLightbox}
         onDiagramOpen={setDiagram}
@@ -989,6 +990,7 @@ export function DocumentPane({
                   // 图片与图表在预览栏里**照常可点**：那两件事只读不改文档，
                   // 而且「点一下放大看」正是用户想在预览里做的事
                   resolveImageUrl={store.resolveImageUrl}
+                  resolveDocBlock={store.resolveDocBlock}
                   onImageClick={setLightbox}
                   onDiagramOpen={setDiagram}
                   onError={handlePreviewError}

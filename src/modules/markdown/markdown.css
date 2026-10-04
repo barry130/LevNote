@@ -234,6 +234,29 @@
 }
 
 /*
+ * doc-block 的查看器宿主（P5 第 25 项）。
+ *
+ * 查看器自己会画一层白底画布与工具栏（mxGraph 的 DOM），这里只负责
+ * 把它压进图区：宽度跟住容器、滚动交给图区已有的 overflow-x。
+ * 画布底色是查看器自己声明的（图的配色在 XML 里，画布恒白），不在这里覆盖。
+ */
+.qm-editor .qm-cb-drawio {
+  min-width: 0;
+}
+
+.qm-editor .qm-cb-drawio .mxgraph {
+  max-width: 100%;
+}
+
+/* 缺 stencil 库的提示与失败说明同一段样式，但颜色用「警示」而不是「错误」——
+   图是画出来了的，只是形状退化了 */
+.qm-editor .qm-cb-note-warn {
+  margin-top: 0.6em;
+  padding-top: 0.5em;
+  border-top: 1px dashed var(--qm-line-soft);
+}
+
+/*
  * 语言标签。摆法与配色**照抄导出的 `pre[data-language]::after`**
  * （同样贴在右上角、同样的字号与圆角、同样 lowercase）——
  * 导出用伪元素是因为那份 HTML 里不该多出一个不可交互的按钮，

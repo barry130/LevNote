@@ -158,6 +158,11 @@ export interface CreateMarkdownEditorOptions {
    */
   resolveImageUrl?: (src: string) => Promise<string | null>;
   /**
+   * 把 `doc-block` 引用的 `src` 读成那份图表文件的原文（P5 第 25 项）。
+   * 返回 null 表示「读不到」，内核在图区画带路径的说明。理由见契约注释。
+   */
+  resolveDocBlock?: (src: string) => Promise<string | null>;
+  /**
    * 粘贴了一张图片：交出字节，换回**写进文档的相对路径**。
    * 返回 null 表示放弃（格式不认识 / 文档没保存过 / 落盘失败）。
    */
@@ -1258,8 +1263,17 @@ interface CodeBlockPicker {
 function codeBlockPickerHandlers(
   picker: CodeBlockPicker,
   onDiagramOpen: ((diagram: DiagramView) => void) | undefined,
+  resolveDocBlock: ((src: string) => Promise<string | null>) | undefined,
 ): CodeBlockChromeHandlers {
   return {
+    /**
+     * 把 `doc-block` 引用的文件读回来。
+     *
+     * **必须经 ref 语义（函数在 NodeView 构造时被捕获）**，所以由
+     * `createMarkdownEditor` 把 options 里的那份**包一层**传进来 ——
+     * 与 `resolveImageUrl` 的转发是同一个坑（见 `MarkdownEditor.tsx`）。
+     */
+    resolveDiagram: (src) => resolveDocBlock?.(src) ?? Promise.resolve(null),
     openPicker: (request) => {
       picker.target = { token: request.token, resolvePos: request.resolvePos };
       picker.notify({ anchor: request.anchor, language: request.language });
@@ -1470,7 +1484,7 @@ export async function createMarkdownEditor(
    * 建一次就固定下来。传给插件的是「取它的函数」——
    * 这样插件拿到的是同一个对象，而不是每次调用都新建一个。
    */
-  const codeBlockHandlers = codeBlockPickerHandlers(picker, options.onDiagramOpen);
+  const codeBlockHandlers = codeBlockPickerHandlers(picker, options.onDiagramOpen, options.resolveDocBlock);
 
   /**
    * 块手柄记着的目标块（顶层下标）。

@@ -23,6 +23,7 @@ function MarkdownEditor({
   onCodeBlockChange,
   onBlockHandleChange,
   resolveImageUrl,
+  resolveDocBlock,
   onImagePaste,
   onImageClick,
   onDiagramOpen,
@@ -53,6 +54,8 @@ function MarkdownEditor({
   onBlockHandleChangeRef.current = onBlockHandleChange;
   const resolveImageUrlRef = useRef(resolveImageUrl);
   resolveImageUrlRef.current = resolveImageUrl;
+  const resolveDocBlockRef = useRef(resolveDocBlock);
+  resolveDocBlockRef.current = resolveDocBlock;
   const onImagePasteRef = useRef(onImagePaste);
   onImagePasteRef.current = onImagePaste;
   const onImageClickRef = useRef(onImageClick);
@@ -95,6 +98,9 @@ function MarkdownEditor({
           // 之后 React 重渲染产生的新函数永远不会被内核看到 ——
           // 而这两个回调恰恰会变（文档路径变了、provider 换了）。
           resolveImageUrl: async (src) => (await resolveImageUrlRef.current?.(src)) ?? null,
+          // 与 resolveImageUrl 同一条理由：NodeView 在创建时捕获这个函数，
+          // 直接传的话 React 重渲染产生的新函数永远不会被内核看到
+          resolveDocBlock: async (src) => (await resolveDocBlockRef.current?.(src)) ?? null,
           onImagePaste: async (request) => (await onImagePasteRef.current?.(request)) ?? null,
           // 点击不必转发成新函数：它没有返回值，也不会被内核异步持有 ——
           // 但内核**只在构造 NodeView 时**读一次这个属性，所以仍然要经 ref，

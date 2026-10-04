@@ -714,6 +714,19 @@ export interface EditorMountProps {
    */
   resolveImageUrl?: (src: string) => Promise<string | null>;
   /**
+   * 把 `doc-block` 引用的 `src` 解析成那份**图表文件的原文**（P5 第 25 项）。
+   *
+   * 与 `resolveImageUrl` 是同一个分工的另一半：`doc-block` 的 `src` 是相对
+   * 当前文档目录的路径（一律正斜杠），而「文档在哪」「怎么读文件」都是
+   * 外壳的事 —— 内核连自己正在编辑哪个文件都不该知道。
+   *
+   * 返回 `null` 表示「这份引用读不到」，内核据此在图区画一个带路径的
+   * 说明 —— 用户必须知道缺的是哪一个文件，而不是看到一片空白。
+   *
+   * 不实现时 `doc-block` 按普通代码块显示（ADR 0002 定下的降级形态）。
+   */
+  resolveDocBlock?: (src: string) => Promise<string | null>;
+  /**
    * 粘贴了一张图片：内核把字节交出来，外壳负责落盘并**返回写进文档的相对路径**。
    *
    * 返回 `null` 表示放弃（格式不认识、文档没保存过、落盘失败）——

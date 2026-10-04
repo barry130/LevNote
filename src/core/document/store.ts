@@ -10,6 +10,7 @@
  */
 
 import { randomSalt, readImageAsUrl, writePastedImage } from './images.js';
+import { dirname, joinPath } from '../path.js';
 import {
   asAppError,
   type AppErrorShape,
@@ -211,6 +212,30 @@ export class DocumentStore {
     const doc = this.state.doc;
     if (!doc) return null;
     return readImageAsUrl(this.provider, doc.path, src);
+  };
+
+  /**
+   * 把 `doc-block` 引用的 `src`（相对当前文档目录）读成**图表文件原文**。
+   *
+   * 与 `resolveImageUrl` 同一条链路的另一半（P5 第 25 项）：路径归并走
+   * `joinPath`（分隔符统一成文档路径的风格，硬约束 12），读取走
+   * `readTextFile` —— 与打开文档同一个解码器，`.drawio` 是 XML 文本。
+   *
+   * **不缓存**（与 `resolveImageUrl` 同一条理由）且**不抛**（调用链尽头是
+   * NodeView 的一次渲染，未捕获的拒绝只会变成一个没人处理的 Promise）；
+   * 读不到返回 `null`，内核据此画带路径的说明 —— 失败要说出来，不能留白。
+   */
+  resolveDocBlock = async (src: string): Promise<string | null> => {
+    const doc = this.state.doc;
+    if (!doc) return null;
+    const absolute = joinPath(dirname(doc.path), src);
+    if (absolute === null) return null;
+    try {
+      const file = await this.provider.readTextFile(absolute);
+      return file.text;
+    } catch {
+      return null;
+    }
   };
 
   /**

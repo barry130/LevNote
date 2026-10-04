@@ -72,6 +72,10 @@ export default tseslint.config(
       //    stencils.min.js 7.3 MB）、样本与读数，外加几个一次性的下载/诊断脚本。
       //    那些产物是**被观测的对象**，不是我们的代码 —— lint 它们只会得到一堆噪声。
       '.v1-out/**',
+      // ⑤ `public/drawio/` 是随应用分发的 **draw.io 上游产物**（viewer.min.js、
+      //    stencil / shape 库，ADR 0005：只许原样分发）。与 `.v1-out/` 同一条理由：
+      //    被观测的对象不是我们的代码，lint 只会得到「not found by the project service」噪声。
+      'public/drawio/**',
     ],
   },
 

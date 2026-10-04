@@ -518,3 +518,32 @@ describe('isDirty', () => {
     expect(isDirty({ ...base, encoding: 'GBK' })).toBe(false);
   });
 });
+
+describe('resolveDocBlock（P5 第 25 项：doc-block 引用的图表文件）', () => {
+  it('src 按当前文档的目录解析，读出引用文件原文', async () => {
+    provider.put('/p/a.md', '文档');
+    provider.put('/p/figs/x.drawio', '<mxfile><diagram/></mxfile>');
+    await store.open('/p/a.md');
+
+    expect(await store.resolveDocBlock('figs/x.drawio')).toBe('<mxfile><diagram/></mxfile>');
+  });
+
+  it('src 里的分隔符统一成文档路径的风格（硬约束 12：写入路径与回读路径必须是同一个字符串）', async () => {
+    provider.put('/p/a.md', '文档');
+    provider.put('/p/figs/x.drawio', '<mxfile/>');
+    await store.open('/p/a.md');
+
+    expect(await store.resolveDocBlock('figs\\x.drawio')).toBe('<mxfile/>');
+  });
+
+  it('读不到就返回 null，不抛 —— 调用链尽头是 NodeView 的一次渲染', async () => {
+    provider.put('/p/a.md', '文档');
+    await store.open('/p/a.md');
+
+    await expect(store.resolveDocBlock('missing.drawio')).resolves.toBeNull();
+  });
+
+  it('没有打开的文档时返回 null', async () => {
+    await expect(store.resolveDocBlock('x.drawio')).resolves.toBeNull();
+  });
+});
