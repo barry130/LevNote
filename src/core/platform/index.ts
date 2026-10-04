@@ -12,6 +12,7 @@ import {
   createDesktopProvider,
   createDesktopSearcher,
   onFilesChangedDesktop,
+  printHtmlDesktop,
   watchFilesDesktop,
   type FsChangeBatch,
 } from './desktop.js';
@@ -58,4 +59,17 @@ export function watchFiles(paths: readonly string[]): Promise<readonly string[]>
 /** 订阅文件系统变更批次。返回解绑函数；浏览器预览里它永远不会被触发。 */
 export function onFilesChanged(handler: (batch: FsChangeBatch) => void): Promise<() => void> {
   return isDesktop() ? onFilesChangedDesktop(handler) : Promise.resolve(() => undefined);
+}
+
+// ---- 打印 / 导出 PDF（P3 第 16 项，ADR 0030） ------------------------------
+//
+// 与检索同一条分工：浏览器预览没有「打印子窗口」这个能力，给**明确拒绝**
+// 而不是点了没反应。命令面板里这个命令在浏览器里是禁用的，这里再拦一道
+// 是因为动作本身可被别的入口调用。
+
+export function printHtml(html: string, title: string): Promise<void> {
+  if (!isDesktop()) {
+    return Promise.reject(new Error('打印 / 导出 PDF 只在桌面版可用'));
+  }
+  return printHtmlDesktop(html, title);
 }

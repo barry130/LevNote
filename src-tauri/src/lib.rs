@@ -14,6 +14,10 @@ pub mod watch;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // 打印 / 导出 PDF 的内容通道（P3 第 16 项，ADR 0030）：打印窗口按
+        // 会话 id 从内存表里取 HTML。必须在这里注册 —— 自定义协议是
+        // 进程级的，晚于窗口创建就接不上了。
+        .register_uri_scheme_protocol("qingmo-print", |_ctx, request| export::print::serve(&request))
         // 全文检索的取消位。放在 managed state 里，因为命令是在阻塞线程池上跑的，
         // 而「谁在跑、该不该停」这件事必须有一个进程内的、跨线程的落点。
         .manage(search::SearchState::default())
@@ -29,6 +33,7 @@ pub fn run() {
             search::search_in_workspace,
             search::cancel_search,
             watch::watch_replace,
+            export::print::print_html,
         ])
         .setup(|app| {
             // 文件监听器要在任何 watch_replace 之前就位（它的回调需要 AppHandle

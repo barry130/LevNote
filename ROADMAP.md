@@ -43,7 +43,7 @@
 | 14 | Rust 侧 `watch` 落地（`notify` + debouncer） | ✅ 2026-10-04 | notify 8 + notify-debouncer-mini 0.7（主版本锁死）。**整表替换 API**（`watch_replace(paths) -> failed`，幂等，Rust 侧做差量）；根目录递归、散文件非递归；Rust 侧防抖 250ms + 批内去重。**事件是通知、mtime 才是判决** —— 冲突提示仍由 `checkExternalChange` 裁决，事件丢了最多慢一拍；焦点全量比对保留作兜底。外部改写 250ms 内可见、目录树自动跟上。见 ADR 0029 |
 | 15 | 设置页 | ✅ | 已完成（M9，ADR 0021）。主题 / 行号 / 软换行 / 位置记忆 + 快捷键一览 + 关于 |
 | 15b | **版本号三处不一致** | ⏳ | `package.json` / `src-tauri/Cargo.toml` / `src-tauri/tauri.conf.json` 都还是 `0.1.0`，而 `CHANGELOG.md` 已经写到 `0.3.9`。设置页的「关于」现在**如实**显示 `package.json` 的值（`0.1.0`），所以这个不一致是**可见的**。修它要同时改三处（改 `Cargo.toml` 会触发一次完整 Rust 重建），属于发版动作 |
-| 16 | PDF 导出（WebView 打印管线） | ⏳ | 与自包含导出共用渲染结果 |
+| 16 | PDF 导出（WebView 打印管线） | ✅ 2026-10-04 | 与自包含导出**共用同一份渲染**（`buildSelfContainedHtml`，连 `@media print` 纸张样式都是那一份）。出口是系统打印对话框（wry 0.57 未暴露程序化 PrintToPdf，unsafe 够 COM 不值得）：Rust 开子窗口、HTML 经内存自定义协议 `qingmo-print://` 供给（无大小限制、窗口销毁即清）、注入脚本自动弹对话框 + 页顶引导条。命令 `file.exportPdf`，浏览器预览里禁用。见 ADR 0030 |
 | 17 | i18n 骨架（先抽文案，不急翻译） | ⏳ | 越晚做越贵 |
 | 18 | 主包拆分（内核动态 import + 注册等待态） | ✅ 2026-10-04 | 外壳 1,892.10 → **341.92 kB**（gzip 626.59 → **107.53**），跌破 Vite 警戒线。内核三个 chunk 在首帧前并行加载（启动解析总量不变，「按需加载内核」是后续项）；导出模块与语言清单顺带挪出主包。注册等待态放在 main.tsx 而非 App state（否则 1,200 条测试全要异步化）。浏览器实测启动链路通过。见 ADR 0028 |
 | 19 | 标签页切换保留撤销栈与光标 | ⏳ | 需先实测内存占用（见 ADR 0010 的重审条件） |

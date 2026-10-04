@@ -127,7 +127,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.drawio` 缺哪些 stencil 库** | `core/drawio.ts` 的 `stencilLibsOf` / `missingStencilLibs`。**渲染前从 XML 风格串里算**（`shape=mxgraph.<库名>.`），与内置清单求差 —— 不要改成「事后看请求 404」（并发归属不了，XHR 打点是全局猴子补丁） |
 | **draw.io 查看器怎么渲染** | `core/drawio-render.ts`。上游产物在 `public/drawio/`（ESLint 全量忽略），**出现图表引用才注入**脚本；注入前十条资源路径必须全部占住（「无网络」的唯一开关，漏一条就静默联网）。渲染器可注入（`DrawIoIo`），与 `MermaidIo` 同一条纪律。**不接主题**（颜色在图的 XML 里，画布恒白） |
 | 图 / 源码双态与全屏入口 | `modules/markdown/code-block-view.ts`（`data-mode`）+ `ui/DiagramViewer.tsx`（外壳画全屏） |
-| 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作） |
+| 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作）。**打印 PDF 与它共用同一份渲染**：`print-document.ts` 动作 + `src-tauri/src/export/print.rs`（内存自定义协议 + 打印子窗口，ADR 0030） |
 | **写回磁盘时被改写成什么样**（列表符号 / 分隔线 / 表格） | `modules/markdown/setup.ts` 的 `useDashSymbols`（`bullet` / `rule` 都设成 `'-'`）。**`remark-stringify` 的默认是 `'*'`**，改回去会让「打开一份用 `-` 写的文档 → **改一个字** → 保存」把全篇的 `-` 静默换成 `*`。清单与实测见 `docs/open-decisions.md` 的「原文保真的实测与收窄」 |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
@@ -524,7 +524,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,265 条前端 + 58 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,269 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 341.92 kB（gzip 107.53 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -543,7 +543,12 @@ draw.io 已可在 Markdown 里引用查看。P5 剩下的按需下载（26）与
 notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mtime 才是
 判决；整表替换 API（`watch_replace`），焦点全量比对保留作兜底。
 
-**最该先做的一件事**：按 ROADMAP 顺序 —— P3-16 PDF 导出、P3-17 i18n 骨架；
+**P3-16 打印 / 导出 PDF 已完成（2026-10-04，ADR 0030）**：与自包含 HTML
+共用 `buildSelfContainedHtml` 渲染，出口是系统打印对话框（wry 未暴露
+程序化 PrintToPdf）；HTML 经内存自定义协议 `qingmo-print://` 供给打印
+子窗口，窗口销毁即清。
+
+**最该先做的一件事**：按 ROADMAP 顺序 —— P3-17 i18n 骨架；
 P3 收尾之后是 P6 的往返保真度自检与自定义快捷键。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，

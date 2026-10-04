@@ -9,6 +9,7 @@
 
 import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
+import { isDesktop, printHtml } from '../platform/index.js';
 
 function activeDocument(ctx: CommandContext) {
   return ctx.workspace.activeStore?.getSnapshot().doc ?? null;
@@ -18,15 +19,28 @@ function hasDocument(ctx: CommandContext): boolean {
   return activeDocument(ctx) !== null;
 }
 
-async function runExport(ctx: CommandContext): Promise<void> {
+interface ExportInput {
+  readonly path: string;
+  readonly title: string;
+  readonly bodyHtml: string | null;
+  readonly fallbackText: string;
+}
+
+/**
+ * 两种导出（自包含 HTML / 打印 PDF）共用的输入组装。
+ *
+ * 组装只做一件事：问内核要语义 HTML（要不到就给原文）。渲染在导出模块里，
+ * 出口在各自的动作里 —— 两边共用同一份 `buildSelfContainedHtml` 结果，
+ * 「导出的 HTML」和「打印出来的 PDF」永远不会长得不一样。
+ */
+async function composeExportInput(ctx: CommandContext): Promise<ExportInput | null> {
   const doc = activeDocument(ctx);
-  if (!doc) return;
+  if (!doc) return null;
 
   const handle = ctx.ui.editor();
 
   // toHtml() 返回 null 是**合法结果**（纯文本内核就是如此），不是错误。
   // 抛错也按 null 处理：导出成纯文本总比导不出来强。
-  // 不写初始值：try 与 catch 两条路径都会赋值，`= null` 是永远读不到的死赋值。
   let bodyHtml: string | null;
   try {
     bodyHtml = handle ? await handle.toHtml() : null;
@@ -34,22 +48,40 @@ async function runExport(ctx: CommandContext): Promise<void> {
     bodyHtml = null;
   }
 
+  return {
+    path: doc.path,
+    title: doc.displayName.replace(/\.[^.]+$/, ''),
+    bodyHtml,
+    fallbackText: doc.text,
+  };
+}
+
+async function runExport(ctx: CommandContext): Promise<void> {
+  const input = await composeExportInput(ctx);
+  if (input === null) return;
+
   /**
    * 导出模块**用在时才加载**（P3 第 18 项）：它拖着 hljs 与整套 remark
    * （为了公式与代码块的 HTML 化），而导出是一个低频动作 —— 让主包为了
    * 它多解析三百 KB 不划算。动态 import 之余没有任何行为变化。
    */
   const { exportHtml } = await import('../export/export-document.js');
-  const result = await exportHtml({
-    path: doc.path,
-    title: doc.displayName.replace(/\.[^.]+$/, ''),
-    bodyHtml,
-    fallbackText: doc.text,
-    provider: ctx.provider,
-  });
+  const result = await exportHtml({ ...input, provider: ctx.provider });
 
   if (result.status === 'saved') await ctx.ui.notify(result.message, '导出完成');
   else if (result.status === 'failed') await ctx.ui.notify(result.message, '导出失败');
+}
+
+async function runPrintExport(ctx: CommandContext): Promise<void> {
+  const input = await composeExportInput(ctx);
+  if (input === null) return;
+
+  // 与 HTML 导出共用同一个按需加载理由：渲染模块不进主包（P3 第 18 项）
+  const { printDocument } = await import('../export/print-document.js');
+  const result = await printDocument({ ...input, provider: ctx.provider, printHtml });
+
+  if (result.status === 'opened') await ctx.ui.notify(result.message, '打印 / 导出 PDF');
+  else await ctx.ui.notify(result.message, '导出失败');
 }
 
 export const BUILT_IN_COMMANDS: readonly Command[] = [
@@ -130,6 +162,16 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     keywords: ['export', 'html', 'daochu'],
     enabled: hasDocument,
     run: runExport,
+  },
+  {
+    id: 'file.exportPdf',
+    title: '打印 / 导出为 PDF',
+    category: '导出',
+    keywords: ['pdf', 'print', 'dayin', 'daochu'],
+    // 浏览器预览没有打印子窗口，禁用比「点了报错」诚实；
+    // printHtml 里还有一道明确拒绝，防的是别的入口直接调动作。
+    enabled: (ctx) => hasDocument(ctx) && isDesktop(),
+    run: runPrintExport,
   },
 
   // ---- 标签页 -----------------------------------------------------------

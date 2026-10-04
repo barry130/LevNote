@@ -11,6 +11,11 @@
 //!    中文缺字回退是这块最容易翻车的地方，P2 必须用中英混排样本验一遍。
 //! 3. **Markdown → PDF**：走 WebView 的打印管线（WebView2 `PrintToPdf` /
 //!    WKWebView 打印），复用渲染结果而不是另做一套排版引擎，保证「所见即所得」。
+//!    已于 P3-16 落地（`print.rs`，ADR 0030）：wry 没暴露程序化的 PrintToPdf，
+//!    实际走的是「子窗口 + 自定义协议供 HTML + `window.print()` 弹系统打印对话框」，
+//!    「另存为 PDF」是打印对话框里的一个目的地。
+
+pub mod print;
 
 use crate::error::{AppError, AppResult};
 
