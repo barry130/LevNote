@@ -28,9 +28,12 @@ pub fn run() {
             fs::runtime_info,
             search::search_in_workspace,
             search::cancel_search,
+            watch::watch_replace,
         ])
-        .setup(|_app| {
-            // P1 只需要它启动起来；窗口状态恢复、最近打开记录等放在外壳层（P2）
+        .setup(|app| {
+            // 文件监听器要在任何 watch_replace 之前就位（它的回调需要 AppHandle
+            // 才能把事件发出去）。窗口状态恢复、最近打开记录等放在外壳层（P2）。
+            watch::init(app.handle().clone()).map_err(|e| e.to_string())?;
             Ok(())
         })
         .run(tauri::generate_context!())

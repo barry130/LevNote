@@ -555,6 +555,99 @@ describe('文件树', () => {
   });
 });
 
+describe('文件监听推送（P3 第 14 项：handleFsChanges）', () => {
+  /** handleFsChanges 内部是 void Promise，给它一拍落地。 */
+  function flush(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  it('命中的打开文档会被点名重查 —— 干净文档静默跟上磁盘', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\a.md', '旧版');
+    const workspace = new WorkspaceStore(provider);
+    await workspace.open('C:\\n\\a.md');
+
+    // 外部程序改写了文件
+    provider.put('C:\\n\\a.md', '外部改动');
+    workspace.handleFsChanges(['C:\\n\\a.md', 'C:\\n\\别的.md']);
+    await flush();
+
+    const store = workspace.storeOf(workspace.getSnapshot().tabs[0]?.id ?? -1);
+    expect(store?.getSnapshot().doc?.text).toBe('外部改动');
+  });
+
+  it('不相关的路径不会惊动文档', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\a.md', 'A');
+    const workspace = new WorkspaceStore(provider);
+    await workspace.open('C:\\n\\a.md');
+
+    workspace.handleFsChanges(['C:\\其他目录\\x.md']);
+    await flush();
+
+    expect(workspace.activeStore?.getSnapshot().doc?.text).toBe('A');
+    expect(workspace.activeStore?.getSnapshot().status).toBe('clean');
+  });
+
+  it('空批次无事发生', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\a.md', 'A');
+    const workspace = new WorkspaceStore(provider);
+    await workspace.open('C:\\n\\a.md');
+
+    workspace.handleFsChanges([]);
+    await flush();
+
+    expect(workspace.activeStore?.getSnapshot().doc?.text).toBe('A');
+  });
+
+  it('已加载的目录会被重拉，把外部新建的文件刷进树里', async () => {
+    const provider = new FakeProvider();
+    provider.dirs.set('C:\\w', [file('a.md', 'C:\\w\\a.md')]);
+    const workspace = new WorkspaceStore(provider);
+    await workspace.openFolder('C:\\w');
+    expect(workspace.getSnapshot().tree.dirs['C:\\w']).toHaveLength(1);
+
+    // 外部新建了一个文件
+    provider.dirs.set('C:\\w', [file('a.md', 'C:\\w\\a.md'), file('b.md', 'C:\\w\\b.md')]);
+    workspace.handleFsChanges(['C:\\w\\b.md']);
+    await flush();
+
+    expect(workspace.getSnapshot().tree.dirs['C:\\w']).toHaveLength(2);
+  });
+
+  it('没加载过的目录不拉 —— 界面上没有的层级不值得一次 IO', async () => {
+    const provider = new FakeProvider();
+    provider.dirs.set('C:\\w', []);
+    const workspace = new WorkspaceStore(provider);
+    await workspace.openFolder('C:\\w');
+
+    workspace.handleFsChanges(['C:\\w\\深层\\新文件.md']);
+    await flush();
+
+    expect(workspace.getSnapshot().tree.dirs['C:\\w\\深层']).toBeUndefined();
+    // 父目录不在已加载集合里，根目录也不会被误刷
+    expect(workspace.getSnapshot().tree.dirs['C:\\w']).toEqual([]);
+  });
+
+  it('变更路径本身是已加载目录时重拉那一层（目录被删 / 改名）', async () => {
+    const provider = new FakeProvider();
+    provider.dirs.set('C:\\w', [dir('src', 'C:\\w\\src')]);
+    provider.dirs.set('C:\\w\\src', [file('b.ts', 'C:\\w\\src\\b.ts')]);
+    const workspace = new WorkspaceStore(provider);
+    await workspace.openFolder('C:\\w');
+    await workspace.toggleDir('C:\\w\\src');
+    expect(workspace.getSnapshot().tree.dirs['C:\\w\\src']).toHaveLength(1);
+
+    // src 整个被删了：重拉会失败，树要把失败说出来（硬约束 2），不是静默装没事
+    provider.failListDir = true;
+    workspace.handleFsChanges(['C:\\w\\src']);
+    await flush();
+
+    expect(workspace.getSnapshot().tree.error?.message).toContain('读不出目录');
+  });
+});
+
 describe('dispose', () => {
   it('dispose 之后子 store 的变化不会再惊动工作区', async () => {
     const provider = new FakeProvider();

@@ -144,6 +144,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 某个面板 | `ui/DocumentPane.tsx` / `TabBar.tsx` / `Sidebar.tsx` / `FindBar.tsx` … |
 | 设置页 | `ui/SettingsDialog.tsx`。**快捷键表与版本号都不许手写**：前者由 `CommandRegistry` 派生，后者经 `vite.config.ts` 的 `define` 从 `package.json` 注入（**必须写成 `import.meta.env.X`**，见硬约束 14） |
 | 文件读写、编码探测 | `src-tauri/src/fs/` |
+| **外部文件改动的发现**（监听 / 防抖 / 冲突提示） | `src-tauri/src/watch/`（Rust：notify + 防抖 + 整表替换，ADR 0029）+ `core/workspace/store.ts` 的 `handleFsChanges`（只做点名，mtime 才是判决） |
 
 ### 内核能力怎么加（不要破坏外壳的边界）
 
@@ -523,7 +524,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,259 条前端 + 53 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,265 条前端 + 58 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 341.92 kB（gzip 107.53 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -538,9 +539,12 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 draw.io 已可在 Markdown 里引用查看。P5 剩下的按需下载（26）与离线构建（27）
 需要真实分发环境先行。
 
-**最该先做的一件事**：**P3-14 文件监听**（notify + debouncer 落地，替换
-「窗口焦点回来时扫 mtime」的兜底）—— 外部改动检测是目前唯一还靠轮询
-兜底的核心路径。其余按 ROADMAP 顺序：P3-16 PDF 导出、P3-17 i18n 骨架。
+**P3-14 文件监听已完成（2026-10-04，ADR 0029）**：`watch/mod.rs` 空壳转正，
+notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mtime 才是
+判决；整表替换 API（`watch_replace`），焦点全量比对保留作兜底。
+
+**最该先做的一件事**：按 ROADMAP 顺序 —— P3-16 PDF 导出、P3-17 i18n 骨架；
+P3 收尾之后是 P6 的往返保真度自检与自定义快捷键。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。
@@ -569,7 +573,7 @@ draw.io 已可在 Markdown 里引用查看。P5 剩下的按需下载（26）与
 > **凡是「等内核就绪才该落地」的意图，都走 ready 回调 + prop，不走命令式戳一下。**
 
 **空壳模块**（返回 `NOT_SUPPORTED`，等对应阶段落地）：
-`src-tauri/src/{watch,search,drawio}/mod.rs`。
+`src-tauri/src/drawio/mod.rs`（`watch` 已于 2026-10-04 转正，见 ADR 0029）。
 
 ---
 

@@ -28,9 +28,10 @@ regex = "1"
 # 见文件底部「indexmap 为什么出现在这里」。
 indexmap = { version = "1.9", features = ["std"] }
 
-# 文件系统监听（外部修改 / 目录树刷新）：P3 启用时再打开，避免 P1 引入未使用依赖
-# notify = "7"
-# notify-debouncer-mini = "0.4"
+# 文件系统监听（P3 第 14 项）：notify 8 做底层事件，debouncer-mini 0.7 收口
+# （它构建在 notify 8 上 —— 两者的主版本必须一致，否则会编译进两份 notify）。
+notify = "8"
+notify-debouncer-mini = "0.7"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

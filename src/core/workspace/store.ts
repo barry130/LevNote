@@ -22,7 +22,7 @@
 
 import type { AppErrorShape, DirEntry, DocumentProvider } from '../document/types.js';
 import { DocumentStore, type DocumentStatus } from '../document/store.js';
-import { basename } from '../path.js';
+import { basename, dirname } from '../path.js';
 import { ancestorsOf } from './tree.js';
 
 export interface TabSummary {
@@ -435,6 +435,37 @@ export class WorkspaceStore {
     for (const tab of this.tabs) {
       await tab.store.checkExternalChange();
     }
+  }
+
+  /**
+   * 文件监听推来的一批变更路径（P3 第 14 项，ADR 0029）。
+   *
+   * 只做**点名**：打开着的文档里只有路径命中事件的那几份需要重查 mtime
+   * （弹不弹冲突仍由 `checkExternalChange` 的 mtime 比对裁决 —— 事件是
+   * 通知不是判决，丢了、重了都不会造成错误的冲突提示）；目录树只重拉
+   * 「已经加载过的」受影响目录，没展开的层级不在界面上，重拉纯属浪费。
+   *
+   * 窗口焦点时的全量比对（`checkExternalChanges`）保留作兜底 ——
+   * 事件系统可能丢，焦点比对是那个「迟到最后但一定会到」的检查。
+   */
+  handleFsChanges(paths: readonly string[]): void {
+    if (paths.length === 0) return;
+    const changed = new Set(paths);
+
+    for (const tab of this.tabs) {
+      const path = tab.store.getSnapshot().doc?.path;
+      if (path !== undefined && changed.has(path)) void tab.store.checkExternalChange();
+    }
+
+    const dirs = new Set<string>();
+    for (const path of paths) {
+      const parent = dirname(path);
+      if (parent !== null && this.tree.dirs[parent] !== undefined) dirs.add(parent);
+      // 变更路径本身就是一个已加载的目录（被删 / 改名 / 内容变化）：
+      // 重拉它自己的那一层，让树把消失的子行摘掉
+      if (this.tree.dirs[path] !== undefined) dirs.add(path);
+    }
+    for (const dir of dirs) void this.loadDir(dir);
   }
 
   // ---- 文件树 -----------------------------------------------------------

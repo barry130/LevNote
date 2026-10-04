@@ -18,6 +18,7 @@
  */
 
 import { Channel, invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { confirm, message, open, save } from '@tauri-apps/plugin-dialog';
 
 import { asAppError, type BinaryWriteOutcome, type DirEntry, type DocumentProvider, type FileStat, type RuntimeInfo, type TextFile, type WriteOutcome, type WriteRequest } from '../document/types.js';
@@ -181,5 +182,43 @@ export function createDesktopSearcher(): WorkspaceSearcher {
       // 「取消得比注册还早」—— 那一次取消已经被 Rust 侧记下，会在检索开始时生效。
       await invoke<boolean>('cancel_search', { searchId });
     },
+  };
+}
+
+// --------------------------------------------------------------------- 文件监听
+
+/**
+ * 文件监听（P3 第 14 项，ADR 0029）：把监视集合**整体替换**成 `paths`。
+ *
+ * 返回的是**没能监视上**的路径（通常为空 —— 只在「路径在事件窗口里刚被删掉」
+ * 这类竞态里出现）。调用方记日志即可：下一次替换会自动重试，而用户真正需要
+ * 的信息会由目录树刷新与冲突检测给出。
+ *
+ * 语义细节在 Rust 侧 `watch/mod.rs`：差量 watch/unwatch、250ms 防抖、
+ * 目录递归 / 文件非递归。
+ */
+export async function watchFilesDesktop(paths: readonly string[]): Promise<readonly string[]> {
+  return invoke<string[]>('watch_replace', { paths: [...paths] });
+}
+
+/** 一批可能变化了的路径；`error` 非空表示监听后端自身出了问题。 */
+export interface FsChangeBatch {
+  readonly paths: readonly string[];
+  readonly error?: string;
+}
+
+/**
+ * 订阅文件系统变更事件（`fs://changed`）。
+ *
+ * 与检索不同，这里**用全局事件而不是 Channel**：Channel 是一次调用专用的，
+ * 而监听的生命周期跟着「应用开着」走 —— 它天生就是一个总线订阅。
+ * 返回解绑函数，App 卸载时调用（React 严格模式会挂两次）。
+ */
+export async function onFilesChangedDesktop(
+  handler: (batch: FsChangeBatch) => void,
+): Promise<() => void> {
+  const unlisten = await listen<FsChangeBatch>('fs://changed', (event) => handler(event.payload));
+  return () => {
+    void unlisten();
   };
 }

@@ -30,7 +30,8 @@ import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
 import { basename, isMarkdownPath } from '../core/path.js';
-import { askConfirm, createWorkspaceSearcher, isDesktop } from '../core/platform/index.js';
+import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, watchFiles } from '../core/platform/index.js';
+import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
 import { WorkspaceSearchStore, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
 import {
@@ -789,7 +790,10 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [registry, platform, context]);
 
-  // ---- 外部改动：窗口重新获得焦点时比对 mtime ---------------------------
+  // ---- 外部改动：窗口重新获得焦点时比对 mtime（兜底） --------------------
+  //
+  // 主通道是文件监听（下面那个 effect）：事件丢了、漏了、监听没起来，
+  // 焦点回归时这次全量比对仍然能把「文件被外部改了」找回来。
 
   useEffect(() => {
     const onFocus = () => {
@@ -798,6 +802,60 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [workspace]);
+
+  // ---- 外部改动：文件监听（P3 第 14 项，ADR 0029） -----------------------
+
+  useEffect(() => {
+    if (!isDesktop()) return;
+
+    let disposed = false;
+    let cleanup: (() => void) | null = null;
+    void onFilesChanged((batch) => {
+      if (disposed) return;
+      if (batch.error !== undefined) {
+        // 监听后端自身出了问题（比如被监视的目录被删）。说一句原因，
+        // 但不弹横幅 —— 下一批事件与焦点兜底会继续工作
+        console.warn('文件监听出错：', batch.error);
+        return;
+      }
+      workspace.handleFsChanges(batch.paths);
+    }).then((unlisten) => {
+      if (disposed) unlisten();
+      else cleanup = unlisten;
+    });
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
+  }, [workspace]);
+
+  /**
+   * 把「想监视什么」推给 Rust 侧（整表替换，幂等）。
+   *
+   * 集合 = 工作区根目录（递归）+ 不在根目录下的打开文件（非递归）。
+   * 根目录下的文件已被递归覆盖，单独再 watch 一遍 notify 会报错。
+   * 依赖是 `watchPathsKey`（字符串）而不是对象 —— 集合内容没变就不发。
+   */
+  const watchPathsKey = useMemo(() => {
+    const paths: string[] = [];
+    const root = tree?.root ?? null;
+    if (root !== null) paths.push(root);
+    for (const tab of tabs) {
+      if (root !== null && isInside(tab.path, root)) continue;
+      paths.push(tab.path);
+    }
+    return JSON.stringify(paths);
+  }, [tree, tabs]);
+
+  useEffect(() => {
+    if (!isDesktop()) return;
+    // 全关了也要把集合清空 —— 否则 Rust 侧会一直守着一个已经关闭的目录
+    const paths: string[] = JSON.parse(watchPathsKey) as string[];
+    void watchFiles(paths).then((failed) => {
+      if (failed.length > 0) console.warn('这些路径没能监视（多半已不存在，下次刷新会重试）：', failed);
+    });
+  }, [watchPathsKey]);
 
   // ---- 拖入文件 / 目录打开，有未保存改动时拦下关闭 ----------------------
 
