@@ -2455,6 +2455,22 @@ body {
   color: var(--ink);
 }
 
+/* 快捷键行内的「改 / 恢复默认 / 保存 / 取消」小按钮：全局 button 样式的收窄版 */
+.settings-keys-row button {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.settings-keys-row button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 录制期的冲突 / 错误说明：跟着相关命令行走，醒目但不吵 */
+.settings-keys-conflict {
+  color: #b3541e;
+}
+
 .settings button {
   appearance: none;
   border: 1px solid var(--line);

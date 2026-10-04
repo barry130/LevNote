@@ -525,7 +525,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,278 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,294 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 341.92 kB（gzip 107.53 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -554,8 +554,13 @@ notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mt
 **新命令的标题与分组直接写进 `core/i18n/messages.ts`，definitions.ts 里
 用 `t('command.…')` 取** —— 不要再写中文裸字符串。
 
-**最该先做的一件事**：按 ROADMAP 顺序 —— P6 的往返保真度自检与
-自定义快捷键、P3-19 标签页切换的内存实测；P7 是发版杂项。
+**P6-31 自定义快捷键已完成（2026-10-04，ADR 0032）**：设置页每行可录制，
+冲突显式顶掉（覆盖表三态：缺省 = 默认 / 写法 = 覆盖 / `''` = 清除）。
+**给命令加默认快捷键仍写在 definitions.ts**；覆盖表是用户偏好，
+`App` 的 effect 负责把 `settings.keybindings` 整表推给注册表。
+
+**最该先做的一件事**：按 ROADMAP 顺序 —— P6 的往返保真度自检（第 29 项，
+基线已量）与 P3-19 标签页切换的内存实测；P7 是发版杂项。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。

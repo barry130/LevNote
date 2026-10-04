@@ -6,9 +6,11 @@ import {
   hasModifier,
   isAllowedInEditable,
   isEditableTarget,
+  isSafeGlobalSpec,
   matchesKeybinding,
   normalizeKey,
   parseKeybinding,
+  specFromEvent,
 } from './keybinding.js';
 
 /** 造一个只带这几个字段的假事件 —— 匹配逻辑只读这五个属性。 */
@@ -138,5 +140,52 @@ describe('normalizeKey / detectPlatform / isEditableTarget', () => {
     expect(isEditableTarget(element({ isContentEditable: true }))).toBe(true);
     expect(isEditableTarget(element({ tagName: 'DIV' }))).toBe(false);
     expect(isEditableTarget(null)).toBe(false);
+  });
+});
+
+describe('specFromEvent（P6 第 31 项：录制）', () => {
+  it('Mod 按平台归一成主修饰键，与内置定义同一套语言', () => {
+    expect(specFromEvent(key({ key: 'j', ctrlKey: true }), 'other')).toBe('Mod+J');
+    expect(specFromEvent(key({ key: 'j', metaKey: true }), 'mac')).toBe('Mod+J');
+    // 非主修饰键用显式写法：mac 上的 Ctrl、Windows 上的 Win
+    expect(specFromEvent(key({ key: 'j', ctrlKey: true }), 'mac')).toBe('Ctrl+J');
+    expect(specFromEvent(key({ key: 'j', metaKey: true }), 'other')).toBe('Win+J');
+  });
+
+  it('修饰键与 Shift 的组合按固定顺序输出', () => {
+    expect(specFromEvent(key({ key: 'S', ctrlKey: true, shiftKey: true, altKey: true }), 'other')).toBe(
+      'Mod+Alt+Shift+S',
+    );
+  });
+
+  it('只按修饰键时返回 null —— 录制还在等键名', () => {
+    expect(specFromEvent(key({ key: 'Control' }), 'other')).toBeNull();
+    expect(specFromEvent(key({ key: 'Shift' }), 'other')).toBeNull();
+    expect(specFromEvent(key({ key: 'Meta', ctrlKey: true }), 'other')).toBeNull();
+    expect(specFromEvent(key({ key: 'CapsLock' }), 'other')).toBeNull();
+  });
+
+  it('特殊键名走归一化，写出来的 spec 能被 parseKeybinding 吃回去', () => {
+    const roundTrip = (init: Partial<KeyboardEvent> & { key: string }) => {
+      const spec = specFromEvent(key(init), 'other');
+      return spec === null ? null : parseKeybinding(spec, 'other');
+    };
+    expect(roundTrip({ key: 'F3' })).toMatchObject({ key: 'f3' });
+    expect(roundTrip({ key: 'ArrowDown', ctrlKey: true })).toMatchObject({ key: 'arrowdown', ctrl: true });
+    expect(roundTrip({ key: 'Enter', altKey: true })).toMatchObject({ key: 'enter', alt: true });
+  });
+});
+
+describe('isSafeGlobalSpec（P6 第 31 项：录制的安全闸）', () => {
+  it('带修饰键的写法安全；裸字母不安全；功能键 / Esc 安全', () => {
+    expect(isSafeGlobalSpec('Mod+J', 'other')).toBe(true);
+    expect(isSafeGlobalSpec('j', 'other')).toBe(false);
+    expect(isSafeGlobalSpec('F3', 'other')).toBe(true);
+    expect(isSafeGlobalSpec('Escape', 'other')).toBe(true);
+  });
+
+  it('解析不了的写法一律不安全（防御：不该出现的值不能放行）', () => {
+    expect(isSafeGlobalSpec('', 'other')).toBe(false);
+    expect(isSafeGlobalSpec('Mod+', 'other')).toBe(false);
   });
 });

@@ -80,6 +80,17 @@ export interface ViewSettings {
    * 而不是只说「不恢复标签页」—— 那会让用户以为关掉它只是少了个便利。
    */
   readonly restoreSession: boolean;
+  /**
+   * 快捷键覆盖（P6 第 31 项，ADR 0032）：命令 id → 快捷键写法。
+   *
+   * **空字符串 = 显式清除**这条命令的快捷键，键不存在 = 用内置默认 ——
+   * 三态缺一不可：被新快捷键顶掉的那条命令必须停在「无快捷键」，
+   * 而不是悄悄回到默认值继续响应（那会让两个命令抢同一个键）。
+   *
+   * 值是 `Mod+J` 这类规范写法（`specFromEvent` 的产物），
+   * 显示交给 `formatKeybinding`，不在这里存排版好的字符串。
+   */
+  readonly keybindings: Readonly<Record<string, string>>;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -93,6 +104,7 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   rememberPositions: true,
   splitRatio: 0.5,
   restoreSession: true,
+  keybindings: {},
 };
 
 /** 侧栏的两栏。活动栏上的两个按钮各对应一个。 */
@@ -174,7 +186,18 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     rememberPositions: asBoolean(record['rememberPositions'], DEFAULT_SETTINGS.rememberPositions),
     splitRatio: clampSplitRatio(record['splitRatio']),
     restoreSession: asBoolean(record['restoreSession'], DEFAULT_SETTINGS.restoreSession),
+    keybindings: asKeybindingOverrides(record['keybindings']),
   };
+}
+
+/** 快捷键覆盖的逐项校验：只要「对象且值全是字符串」，其余整个回落为空。 */
+function asKeybindingOverrides(value: unknown): Readonly<Record<string, string>> {
+  if (typeof value !== 'object' || value === null) return DEFAULT_SETTINGS.keybindings;
+  const out: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof entry === 'string') out[key] = entry;
+  }
+  return out;
 }
 
 export function saveSettings(storage: StorageLike | null, settings: ViewSettings): void {

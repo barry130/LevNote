@@ -21,9 +21,9 @@
  * 带确认。
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { formatKeybinding, type Platform } from '../core/commands/keybinding.js';
+import { formatKeybinding, isSafeGlobalSpec, specFromEvent, type Platform } from '../core/commands/keybinding.js';
 import type { CommandRegistry } from '../core/commands/registry.js';
 import type { Command } from '../core/commands/types.js';
 import { askConfirm } from '../core/platform/index.js';
@@ -43,7 +43,12 @@ export interface SettingsDialogProps {
 
 interface ShortcutGroup {
   readonly category: string;
-  readonly rows: ReadonlyArray<{ readonly command: Command; readonly binding: string | null }>;
+  readonly rows: ReadonlyArray<{
+    readonly command: Command;
+    readonly binding: string | null;
+    /** 用户改过这条命令的快捷键（含显式清除）—— 「恢复默认」按钮只在这种行出现 */
+    readonly overridden: boolean;
+  }>;
 }
 
 function Toggle({
@@ -77,6 +82,10 @@ export function SettingsDialog({
   onClose,
 }: SettingsDialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  // 快捷键录制（P6 第 31 项）：正在改哪条命令、已经录到的写法、录制期错误
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [recorded, setRecorded] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     dialogRef.current?.focus();
@@ -92,9 +101,14 @@ export function SettingsDialog({
    * 与 `ui.escape` 命令并存不是重复：命令那条要经过全局快捷键表，
    * 而这里这条保证「哪怕焦点在对话框内部、或者某条命令被禁用」也关得掉。
    * 两条都只是把 `settingsOpen` 设成 false，重复执行是幂等的。
+   *
+   * **录制快捷键时这条要让路**：Esc 在录制状态下是「取消录制」，
+   * 不是「关闭设置」。两个监听同为 window 捕获、按注册顺序先后执行，
+   * 所以这里必须显式检查录制状态，否则录不了任何含 Esc 语义的东西。
    */
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (editingId !== null) return;
       if (event.key !== 'Escape') return;
       event.preventDefault();
       event.stopPropagation();
@@ -102,21 +116,85 @@ export function SettingsDialog({
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [onClose]);
+  }, [onClose, editingId]);
+
+  /**
+   * 录制监听：编辑中的每一次按键（捕获阶段，先于全局快捷键表）被收成
+   * 规范写法。只按修饰键时 `specFromEvent` 给 null —— 继续等真正的键名。
+   * `preventDefault` + `stopPropagation` 让录制期间的全局快捷键全部失效
+   * （否则录 `Mod+S` 的那一刻文档就先被保存了）。
+   */
+  useEffect(() => {
+    if (editingId === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setEditingId(null);
+        setRecorded(null);
+        setError(null);
+        return;
+      }
+      const spec = specFromEvent(event, platform);
+      if (spec === null) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setRecorded(spec);
+      // 单字母 / 数字键在输入框里会被打字占用（见 isAllowedInEditable 的
+      // 白名单理由），录进来就是「设置完打不了字」—— 当场说明，不让保存
+      setError(isSafeGlobalSpec(spec, platform) ? null : '单个字母或数字键会被输入占用，请带上 Ctrl、Alt 之类的修饰键。');
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [editingId, platform]);
+
+  /** 把录制结果写进偏好；如果这个写法已被别的命令占用，把它**显式顶掉**（置空）。 */
+  const saveRecording = () => {
+    if (editingId === null || recorded === null || error !== null) return;
+    const next: Record<string, string> = { ...settings.keybindings, [editingId]: recorded };
+    const owner = registry.findOwnerOf(recorded, platform, editingId);
+    if (owner !== null) next[owner.id] = '';
+    onChange({ keybindings: next });
+    setEditingId(null);
+    setRecorded(null);
+    setError(null);
+  };
+
+  /** 回到内置默认；若默认写法已被别的命令覆盖占用，同样把它显式顶掉。 */
+  const restoreDefault = (command: Command) => {
+    const next: Record<string, string> = { ...settings.keybindings };
+    if (!Object.prototype.hasOwnProperty.call(next, command.id)) return;
+    delete next[command.id];
+    if (command.keybinding) {
+      const owner = registry.findOwnerOf(command.keybinding, platform, command.id);
+      if (owner !== null) next[owner.id] = '';
+    }
+    onChange({ keybindings: next });
+  };
+
+  /** 冲突提示：录到的写法此刻被谁占着（编辑自己除外）。 */
+  const conflictOwner = useMemo(() => {
+    if (editingId === null || recorded === null || error !== null) return null;
+    return registry.findOwnerOf(recorded, platform, editingId);
+  }, [editingId, recorded, error, registry, platform]);
 
   const groups = useMemo<ShortcutGroup[]>(() => {
-    const byCategory = new Map<string, Array<{ command: Command; binding: string | null }>>();
+    /**
+     * 与旧版不同：**所有命令都进这张表**。过去「没有快捷键的命令不进」
+     * 是因为表只是「一览」；现在每一条都可以被指派快捷键，
+     * 不显示出来的命令就永远指派不了 —— 那才是真正的「知道的人才知道」。
+     */
+    const byCategory = new Map<string, Array<{ command: Command; binding: string | null; overridden: boolean }>>();
     for (const command of registry.list()) {
       const binding = registry.displayBinding(command, platform, formatKeybinding);
-      // 没有快捷键的命令不进这张表：它是「快捷键一览」，不是第二份命令面板
-      if (binding === null) continue;
+      const overridden = Object.prototype.hasOwnProperty.call(settings.keybindings, command.id);
       const bucket = byCategory.get(command.category);
-      const row = { command, binding };
+      const row = { command, binding, overridden };
       if (bucket) bucket.push(row);
       else byCategory.set(command.category, [row]);
     }
     return [...byCategory].map(([category, rows]) => ({ category, rows }));
-  }, [registry, platform]);
+  }, [registry, platform, settings.keybindings]);
 
   return (
     <div
@@ -207,19 +285,64 @@ export function SettingsDialog({
             <h3>快捷键</h3>
             <p className="settings-hint">
               这张表由命令注册表生成，与命令面板、工具栏同源 —— 不会出现「加了功能这里没更新」。
+              点「改」后按下新的组合键；被顶掉的原命令会显示为「未设置」。
             </p>
             {groups.map((group) => (
               <div className="settings-keys" key={group.category}>
                 <div className="settings-keys-category">{group.category}</div>
-                {group.rows.map(({ command, binding }) => (
+                {group.rows.map(({ command, binding, overridden }) => (
                   <div className="settings-keys-row" key={command.id}>
                     <span>{command.title}</span>
                     <span className="grow" />
-                    <kbd className="palette-key">{binding}</kbd>
+                    {editingId === command.id ? (
+                      <>
+                        <kbd className="palette-key">{recorded ?? '按下新的组合键…'}</kbd>
+                        <button type="button" disabled={recorded === null || error !== null} onClick={saveRecording}>
+                          保存
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(null);
+                            setRecorded(null);
+                            setError(null);
+                          }}
+                        >
+                          取消
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <kbd className="palette-key">{binding ?? '未设置'}</kbd>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(command.id);
+                            setRecorded(null);
+                            setError(null);
+                          }}
+                        >
+                          改
+                        </button>
+                        {overridden && (
+                          <button type="button" onClick={() => restoreDefault(command)}>
+                            恢复默认
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
             ))}
+            {editingId !== null && error !== null && (
+              <p className="settings-hint settings-keys-conflict">{error}</p>
+            )}
+            {editingId !== null && error === null && conflictOwner !== null && (
+              <p className="settings-hint settings-keys-conflict">
+                「{conflictOwner.title}」当前也用这个组合键 —— 保存后它将显示为「未设置」。
+              </p>
+            )}
           </section>
 
           <section className="settings-section">

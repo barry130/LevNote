@@ -70,6 +70,49 @@ export function normalizeKey(key: string): string {
   return KEY_ALIASES[lower] ?? lower;
 }
 
+/** 只按下了修饰键本身（还在等真正的键名）时，`specFromEvent` 返回 null。 */
+const MODIFIER_KEYS = new Set(['shift', 'control', 'alt', 'meta', 'capslock', 'fn']);
+
+/**
+ * 把「用户刚按下的这一次键」变成规范的快捷键写法（P6 第 31 项）。
+ *
+ * 返回 null 的两种情况：
+ * - **只按了修饰键**（或 CapsLock / Fn 这类不该被录制的键）—— 录制还在进行中；
+ * - 键名归一化后为空（理论上不会发生，防御一下）。
+ *
+ * 修饰键写法按平台归一：macOS 上 Cmd → `Mod`、Ctrl → `Ctrl`；
+ * 其余平台反过来。这样存进偏好里的 spec 与内置定义同一套语言，
+ * `parseKeybinding` 可以原样吃回去 —— 换平台迁移偏好时语义也对得上。
+ */
+export function specFromEvent(event: KeyboardEvent, platform: Platform): string | null {
+  const normalized = normalizeKey(event.key);
+  if (normalized === '' || MODIFIER_KEYS.has(normalized)) return null;
+  // 单字符键按惯例存大写（与内置定义的 `Mod+S` 一致）；多字符键名保持小写
+  const key = normalized.length === 1 ? normalized.toUpperCase() : normalized;
+
+  const parts: string[] = [];
+  if (platform === 'mac') {
+    if (event.metaKey) parts.push('Mod');
+    if (event.ctrlKey) parts.push('Ctrl');
+  } else {
+    if (event.ctrlKey) parts.push('Mod');
+    if (event.metaKey) parts.push('Win');
+  }
+  if (event.altKey) parts.push('Alt');
+  if (event.shiftKey) parts.push('Shift');
+  parts.push(key);
+  return parts.join('+');
+}
+
+/** 这个写法在全局监听里是**安全**的 —— 不会抢走用户的打字。 */
+export function isSafeGlobalSpec(spec: string, platform: Platform): boolean {
+  try {
+    return isAllowedInEditable(parseKeybinding(spec, platform));
+  } catch {
+    return false;
+  }
+}
+
 export class KeybindingSyntaxError extends Error {
   constructor(spec: string, reason: string) {
     super(`快捷键写法无法解析：${JSON.stringify(spec)} —— ${reason}`);

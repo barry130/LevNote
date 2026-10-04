@@ -2520,8 +2520,9 @@ describe('设置页', () => {
     expect(text).toContain('Ctrl+P');
     expect(text).toContain('保存');
     expect(text).toContain('Ctrl+S');
-    // 没有快捷键的命令不进这张表（它是快捷键一览，不是第二份命令面板）
-    expect(text).not.toContain('从磁盘重新加载');
+    // 没有默认快捷键的命令也在表里（P6 第 31 项起每一条都可指派），显示为「未设置」
+    expect(text).toContain('从磁盘重新加载');
+    expect(text).toContain('未设置');
   });
 
   it('改主题立即生效，并且落进偏好存储', async () => {

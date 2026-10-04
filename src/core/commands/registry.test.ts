@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { formatKeybinding } from './keybinding.js';
 import { CommandRegistry } from './registry.js';
 import type { Command } from './types.js';
 
@@ -103,5 +104,68 @@ describe('displayBinding', () => {
     const registry = new CommandRegistry();
     registry.register(command('plain'));
     expect(registry.displayBinding(registry.find('plain')!, 'other', () => 'x')).toBeNull();
+  });
+});
+
+describe('快捷键覆盖（P6 第 31 项：自定义快捷键）', () => {
+  it('覆盖表替换默认快捷键，resolve 按覆盖后的走', () => {
+    const registry = new CommandRegistry();
+    registry.register(command('file.save', 'Mod+S'));
+    registry.setKeybindingOverrides({ 'file.save': 'Mod+K' });
+
+    expect(registry.resolve(key({ key: 's', ctrlKey: true }), 'other', false)).toBeNull();
+    expect(registry.resolve(key({ key: 'k', ctrlKey: true }), 'other', false)?.id).toBe('file.save');
+  });
+
+  it('没有覆盖的命令不受影响；空字符串 = 显式清除，不再响应', () => {
+    const registry = new CommandRegistry();
+    registry.register(command('a', 'Mod+A'));
+    registry.register(command('b', 'Mod+B'));
+    registry.setKeybindingOverrides({ b: '' });
+
+    expect(registry.resolve(key({ key: 'a', ctrlKey: true }), 'other', false)?.id).toBe('a');
+    expect(registry.resolve(key({ key: 'b', ctrlKey: true }), 'other', false)).toBeNull();
+    expect(registry.displayBinding(registry.find('b')!, 'other', formatKeybinding)).toBeNull();
+  });
+
+  it('displayBinding 显示的是覆盖后的写法', () => {
+    const registry = new CommandRegistry();
+    registry.register(command('a', 'Mod+A'));
+    registry.setKeybindingOverrides({ a: 'Mod+Shift+A' });
+
+    expect(registry.displayBinding(registry.find('a')!, 'other', formatKeybinding)).toBe('Ctrl+Shift+A');
+  });
+
+  it('findOwnerOf 按解析后的字段找占用者 —— 写法不同、按键相同也算同一个', () => {
+    const registry = new CommandRegistry();
+    registry.register(command('a', 'Mod+Shift+S'));
+    registry.register(command('b', 'Mod+K'));
+
+    // 顺序不同、大小写不同，但解析出来是同一个快捷键
+    expect(registry.findOwnerOf('Shift+Mod+s', 'other')?.id).toBe('a');
+    expect(registry.findOwnerOf('Mod+K', 'other')?.id).toBe('b');
+    expect(registry.findOwnerOf('Mod+X', 'other')).toBeNull();
+  });
+
+  it('findOwnerOf 的 except 排除正在编辑的那条 —— 改回自己当前的快捷键不算冲突', () => {
+    const registry = new CommandRegistry();
+    registry.register(command('a', 'Mod+A'));
+
+    expect(registry.findOwnerOf('Mod+A', 'other', 'a')).toBeNull();
+    expect(registry.findOwnerOf('Mod+A', 'other')?.id).toBe('a');
+  });
+
+  it('重复设置覆盖是幂等的整表替换 —— 旧表里多余的键会被摘掉', () => {
+    const registry = new CommandRegistry();
+    registry.register(command('a', 'Mod+A'));
+    registry.register(command('b', 'Mod+B'));
+
+    registry.setKeybindingOverrides({ a: 'Mod+X', b: 'Mod+Y' });
+    registry.setKeybindingOverrides({ a: 'Mod+X' });
+
+    // b 的覆盖已随整表替换摘掉，回到默认 Mod+B；旧表里的 Mod+Y 不再响应
+    expect(registry.resolve(key({ key: 'y', ctrlKey: true }), 'other', false)).toBeNull();
+    expect(registry.resolve(key({ key: 'b', ctrlKey: true }), 'other', false)?.id).toBe('b');
+    expect(registry.resolve(key({ key: 'x', ctrlKey: true }), 'other', false)?.id).toBe('a');
   });
 });

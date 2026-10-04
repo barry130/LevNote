@@ -14,6 +14,13 @@ export class CommandRegistry {
   private readonly order: string[] = [];
   /** `平台:写法` → 解析结果。快捷键在每次按键时都要比对，不能每次重新解析。 */
   private readonly bindings = new Map<string, Keybinding | null>();
+  /**
+   * 用户自定义的快捷键覆盖（P6 第 31 项）：命令 id → 写法。
+   *
+   * 空字符串 = **显式清除**（这条命令没有快捷键了），与「键不存在 = 用默认」
+   * 是两回事 —— 缺了区分，被顶掉的命令会在用户以为它没反应的地方继续响应。
+   */
+  private overrides: Readonly<Record<string, string>> = {};
 
   /**
    * 注册一条命令。重复 id 会**覆盖**（并保留原位置）。
@@ -29,6 +36,26 @@ export class CommandRegistry {
     for (const key of [...this.bindings.keys()]) {
       if (key.endsWith(`:${command.keybinding ?? ''}`)) this.bindings.delete(key);
     }
+  }
+
+  /**
+   * 整表替换快捷键覆盖（与文件监视 ADR 0029 同一条形状哲学：整表替换、
+   * 幂等，调用方不用记「现在生效的是哪几条」，重启后发一次全量即收敛）。
+   *
+   * 解析缓存整个作废：覆盖表一换，任何写法都可能变。
+   */
+  setKeybindingOverrides(overrides: Readonly<Record<string, string>>): void {
+    this.overrides = { ...overrides };
+    this.bindings.clear();
+  }
+
+  /** 这条命令此刻**实际生效**的快捷键写法；null = 没有绑定（含被显式清除）。 */
+  effectiveSpec(command: Command): string | null {
+    const overridden = Object.prototype.hasOwnProperty.call(this.overrides, command.id)
+      ? this.overrides[command.id]
+      : (command.keybinding ?? null);
+    // 空字符串只可能是显式清除的值，默认定义里不该出现
+    return overridden === '' ? null : (overridden ?? null);
   }
 
   unregister(id: string): void {
@@ -84,9 +111,11 @@ export class CommandRegistry {
   resolve(event: KeyboardEvent, platform: Platform, editable: boolean): Command | null {
     for (const id of this.order) {
       const command = this.commands.get(id);
-      if (!command?.keybinding) continue;
+      if (!command) continue;
+      const spec = this.effectiveSpec(command);
+      if (spec === null) continue;
 
-      const binding = this.bindingOf(command.keybinding, platform);
+      const binding = this.bindingOf(spec, platform);
       if (binding === null) continue;
       if (editable && !isAllowedInEditable(binding)) continue;
       if (!matchesKeybinding(binding, event)) continue;
@@ -96,11 +125,41 @@ export class CommandRegistry {
     return null;
   }
 
-  /** 供 UI 显示某个命令的快捷键。解析失败时返回 null。 */
+  /** 供 UI 显示某个命令的快捷键（含覆盖）。没有绑定或解析失败时返回 null。 */
   displayBinding(command: Command, platform: Platform, format: (binding: Keybinding, platform: Platform) => string): string | null {
-    if (!command.keybinding) return null;
-    const binding = this.bindingOf(command.keybinding, platform);
+    const spec = this.effectiveSpec(command);
+    if (spec === null) return null;
+    const binding = this.bindingOf(spec, platform);
     return binding === null ? null : format(binding, platform);
+  }
+
+  /**
+   * 谁此刻占着这个写法（P6 第 31 项，冲突提示用）。
+   *
+   * 按**解析后**的字段比对而不是字符串比对：`Mod+Shift+S` 与 `Shift+Mod+s`
+   * 是同一个快捷键。`except` 用来排除正在被改的那条命令
+   * （把 A 改回它自己现在的快捷键不算冲突）。
+   */
+  findOwnerOf(spec: string, platform: Platform, except?: string): Command | null {
+    const target = this.bindingOf(spec, platform);
+    if (target === null) return null;
+    for (const command of this.list()) {
+      if (except !== undefined && command.id === except) continue;
+      const other = this.effectiveSpec(command);
+      if (other === null) continue;
+      const binding = this.bindingOf(other, platform);
+      if (
+        binding !== null &&
+        binding.ctrl === target.ctrl &&
+        binding.meta === target.meta &&
+        binding.alt === target.alt &&
+        binding.shift === target.shift &&
+        binding.key === target.key
+      ) {
+        return command;
+      }
+    }
+    return null;
   }
 
   clear(): void {

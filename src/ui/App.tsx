@@ -745,6 +745,12 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     return created;
   }, []);
 
+  // 快捷键覆盖（P6 第 31 项）：整表推给注册表。settings 里改了快捷键（设置页）
+  // 会产生新的 keybindings 对象，这里重推一次 —— setKeybindingOverrides 是幂等的。
+  useEffect(() => {
+    registry.setKeybindingOverrides(settings.keybindings);
+  }, [registry, settings.keybindings]);
+
   const runCommand = useCallback(
     (id: string) => {
       const command = registry.find(id);
