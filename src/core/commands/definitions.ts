@@ -9,6 +9,7 @@
 
 import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
+import { t } from '../i18n/index.js';
 import { isDesktop, printHtml } from '../platform/index.js';
 
 function activeDocument(ctx: CommandContext) {
@@ -88,8 +89,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   // ---- 文件 -------------------------------------------------------------
   {
     id: 'file.open',
-    title: '打开文件',
-    category: '文件',
+    title: t('command.file.open.title'),
+    category: t('command.category.file'),
     keybinding: 'Mod+O',
     keywords: ['open', 'dakaishejian'],
     run: (ctx) => {
@@ -98,8 +99,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'file.openFolder',
-    title: '打开文件夹',
-    category: '文件',
+    title: t('command.file.openFolder.title'),
+    category: t('command.category.file'),
     keybinding: 'Mod+Shift+O',
     keywords: ['open folder', 'workspace', 'gongzuoqu'],
     run: (ctx) => {
@@ -108,8 +109,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'file.save',
-    title: '保存',
-    category: '文件',
+    title: t('command.file.save.title'),
+    category: t('command.category.file'),
     keybinding: 'Mod+S',
     keywords: ['save', 'baocun'],
     enabled: (ctx) => {
@@ -126,8 +127,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'file.saveAs',
-    title: '另存为',
-    category: '文件',
+    title: t('command.file.saveAs.title'),
+    category: t('command.category.file'),
     keybinding: 'Mod+Shift+S',
     keywords: ['save as', 'lingcunwei'],
     enabled: hasDocument,
@@ -137,8 +138,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'file.reload',
-    title: '从磁盘重新加载',
-    category: '文件',
+    title: t('command.file.reload.title'),
+    category: t('command.category.file'),
     keywords: ['reload', 'chongxinjiazai'],
     enabled: hasDocument,
     run: (ctx) => {
@@ -147,8 +148,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'file.closeTab',
-    title: '关闭当前标签页',
-    category: '文件',
+    title: t('command.file.closeTab.title'),
+    category: t('command.category.file'),
     keybinding: 'Mod+W',
     keywords: ['close', 'guanbi'],
     enabled: hasDocument,
@@ -156,8 +157,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'file.exportHtml',
-    title: '导出为自包含 HTML',
-    category: '导出',
+    title: t('command.file.exportHtml.title'),
+    category: t('command.category.export'),
     keybinding: 'Mod+Shift+E',
     keywords: ['export', 'html', 'daochu'],
     enabled: hasDocument,
@@ -165,8 +166,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'file.exportPdf',
-    title: '打印 / 导出为 PDF',
-    category: '导出',
+    title: t('command.file.exportPdf.title'),
+    category: t('command.category.export'),
     keywords: ['pdf', 'print', 'dayin', 'daochu'],
     // 浏览器预览没有打印子窗口，禁用比「点了报错」诚实；
     // printHtml 里还有一道明确拒绝，防的是别的入口直接调动作。
@@ -177,8 +178,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   // ---- 标签页 -----------------------------------------------------------
   {
     id: 'tab.next',
-    title: '下一个标签页',
-    category: '标签页',
+    title: t('command.tab.next.title'),
+    category: t('command.category.tab'),
     keybinding: 'Ctrl+Tab',
     keywords: ['next tab'],
     enabled: (ctx) => ctx.workspace.getSnapshot().tabs.length > 1,
@@ -186,8 +187,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'tab.prev',
-    title: '上一个标签页',
-    category: '标签页',
+    title: t('command.tab.prev.title'),
+    category: t('command.category.tab'),
     keybinding: 'Ctrl+Shift+Tab',
     keywords: ['previous tab'],
     enabled: (ctx) => ctx.workspace.getSnapshot().tabs.length > 1,
@@ -197,8 +198,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   // ---- 视图 -------------------------------------------------------------
   {
     id: 'view.toggleSidebar',
-    title: '切换侧边栏',
-    category: '视图',
+    title: t('command.view.toggleSidebar.title'),
+    category: t('command.category.view'),
     keybinding: 'Mod+B',
     keywords: ['sidebar', 'cebianlan'],
     run: (ctx) => ctx.ui.toggleSidebar(),
@@ -215,23 +216,23 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
      * `CommandRegistry.enabled`，这里是那套约定的第六个。
      */
     id: 'view.filesView',
-    title: '文件浏览器',
-    category: '视图',
+    title: t('command.view.filesView.title'),
+    category: t('command.category.view'),
     keywords: ['files', 'explorer', 'wenjianliulanqi', '文件树'],
     run: (ctx) => ctx.ui.openFilesView(),
   },
   {
     id: 'view.toggleOutline',
-    title: '切换大纲',
-    category: '视图',
+    title: t('command.view.toggleOutline.title'),
+    category: t('command.category.view'),
     keybinding: 'Mod+Shift+L',
     keywords: ['outline', 'dagang'],
     run: (ctx) => ctx.ui.toggleOutline(),
   },
   {
     id: 'view.toggleSource',
-    title: '切换源码模式',
-    category: '视图',
+    title: t('command.view.toggleSource.title'),
+    category: t('command.category.view'),
     /**
      * 与 horseMD 的「源码模式切换」同一个键位。
      *
@@ -265,16 +266,16 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
    */
   {
     id: 'view.rich',
-    title: '富文本视图',
-    category: '视图',
+    title: t('command.view.rich.title'),
+    category: t('command.category.view'),
     keybinding: 'Mod+1',
     keywords: ['rich', 'wysiwyg', 'fuwenben', '预览', '所见即所得'],
     run: (ctx) => ctx.ui.setViewMode('rich'),
   },
   {
     id: 'view.source',
-    title: '源码视图',
-    category: '视图',
+    title: t('command.view.source.title'),
+    category: t('command.category.view'),
     keybinding: 'Mod+2',
     keywords: ['source', 'yuanma', '源码', 'markdown'],
     enabled: (ctx) => ctx.ui.canToggleSourceView(),
@@ -282,8 +283,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'view.split',
-    title: '源码 + 预览（并排）',
-    category: '视图',
+    title: t('command.view.split.title'),
+    category: t('command.category.view'),
     keybinding: 'Mod+3',
     keywords: ['split', 'side by side', 'bingshu', '分屏', '双栏', 'fenping'],
     enabled: (ctx) => ctx.ui.canToggleSourceView(),
@@ -291,8 +292,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'view.cycleTheme',
-    title: '切换主题',
-    category: '视图',
+    title: t('command.view.cycleTheme.title'),
+    category: t('command.category.view'),
     keybinding: 'Mod+Shift+T',
     keywords: ['theme', 'zhuti', 'dark', 'light'],
     run: (ctx) => ctx.ui.cycleTheme(),
@@ -301,8 +302,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   // ---- 导航 -------------------------------------------------------------
   {
     id: 'find.open',
-    title: '在当前文档中查找',
-    category: '导航',
+    title: t('command.find.open.title'),
+    category: t('command.category.navigate'),
     keybinding: 'Mod+F',
     keywords: ['find', 'search', 'chazhao'],
     enabled: hasDocument,
@@ -310,8 +311,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'search.inFolder',
-    title: '在文件夹中检索',
-    category: '导航',
+    title: t('command.search.inFolder.title'),
+    category: t('command.category.navigate'),
     /**
      * 与 VSCode 同一个键位。
      *
@@ -327,24 +328,24 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   },
   {
     id: 'palette.open',
-    title: '命令面板',
-    category: '导航',
+    title: t('command.palette.open.title'),
+    category: t('command.category.navigate'),
     keybinding: 'Mod+P',
     keywords: ['command palette', 'minglingmianban'],
     run: (ctx) => ctx.ui.openPalette(),
   },
   {
     id: 'app.settings',
-    title: '设置',
-    category: '应用',
+    title: t('command.app.settings.title'),
+    category: t('command.category.app'),
     keybinding: 'Mod+,',
     keywords: ['settings', 'preferences', 'shezhi', 'pianhao'],
     run: (ctx) => ctx.ui.openSettings(),
   },
   {
     id: 'ui.escape',
-    title: '关闭浮层',
-    category: '导航',
+    title: t('command.ui.escape.title'),
+    category: t('command.category.navigate'),
     keybinding: 'Escape',
     keywords: ['cancel', 'close'],
     run: (ctx) => {
