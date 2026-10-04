@@ -30,8 +30,9 @@ import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
 import { basename, isMarkdownPath } from '../core/path.js';
-import { askConfirm, isDesktop } from '../core/platform/index.js';
+import { askConfirm, createWorkspaceSearcher, isDesktop } from '../core/platform/index.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
+import { WorkspaceSearchStore, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
 import {
   clearSession,
   EMPTY_SESSION,
@@ -55,9 +56,10 @@ import { registerBuiltInEditors } from '../modules/index.js';
 import { ActivityBar } from './ActivityBar.js';
 import { Mark } from './brand.js';
 import { CommandPalette } from './CommandPalette.js';
-import { DocumentPane, type PaneViewInfo } from './DocumentPane.js';
+import { DocumentPane, type PaneRevealRequest, type PaneViewInfo } from './DocumentPane.js';
 import { FindBar } from './FindBar.js';
 import { OutlinePanel } from './OutlinePanel.js';
+import { SearchPanel } from './SearchPanel.js';
 import { Sidebar } from './Sidebar.js';
 import { SettingsDialog } from './SettingsDialog.js';
 import { TabBar } from './TabBar.js';
@@ -131,9 +133,17 @@ export interface AppProps {
   provider: DocumentProvider;
   /** 测试与嵌入场景可以注入初始偏好，跳过 localStorage */
   initialSettings?: ViewSettings;
+  /**
+   * 工作区检索的执行者。
+   *
+   * 与 `provider` 一样由宿主注入，而不是在这里调平台 —— 理由不是「方便测试」，
+   * 而是**入口只有一个**：`main.tsx` 造 provider 与 workspace，检索执行者
+   * 属于同一类东西。默认值只是给嵌入场景留的便利。
+   */
+  searcher?: WorkspaceSearcher;
 }
 
-export function App({ workspace, provider, initialSettings }: AppProps) {
+export function App({ workspace, provider, initialSettings, searcher: injectedSearcher }: AppProps) {
   const state = useSyncExternalStore(workspace.subscribe, workspace.getSnapshot);
   const { tabs, activeId, tree, openError } = state;
 
@@ -193,15 +203,133 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
    */
   const [paneInfo, setPaneInfo] = useState<PaneViewInfo | null>(null);
 
+  const activeStore = activeId === null ? null : workspace.storeOf(activeId);
+  const activeTab = tabs.find((tab) => tab.id === activeId) ?? null;
+  const activePath = activeTab?.path ?? null;
+
+  // ---- 工作区检索 -------------------------------------------------------
+
+  /**
+   * 检索会话。
+   *
+   * 它自己管三件时序事（防抖、取消、丢弃过期批次），外壳只负责把根目录喂给它、
+   * 把点击结果翻译成「打开文件 + 定位」。理由见 `core/search/workspace.ts`。
+   *
+   * 浏览器预览拿到的是**明确拒绝**的执行者 —— 那里没有真实目录，
+   * 造一个「能搜」的假象只会让「预览里搜不到」变成查不出来的谜。
+   *
+   * 「能不能检索」问的是**执行者自己**（`searcher.available`），不是平台。
+   * 另问一次平台就是同一个问题两份答案，将来加一个平台就会得到
+   * 「按钮亮着、点下去被拒绝」。
+   */
+  const fallbackSearcher = useMemo(() => createWorkspaceSearcher(), []);
+  const searcher = injectedSearcher ?? fallbackSearcher;
+  const searchStore = useMemo(() => new WorkspaceSearchStore(searcher), [searcher]);
+  const canSearchFolder = searcher.available;
+
+  // 根目录跟着工作区走。**必须跟着**：换了文件夹还留着上一次的结果，
+  // 用户会点进去、然后打开一个跟他要找的东西无关的文件
+  useEffect(() => {
+    searchStore.setRoot(tree.root);
+  }, [searchStore, tree.root]);
+
+  useEffect(() => () => searchStore.dispose(), [searchStore]);
+
+  /**
+   * 待定位的检索结果，连同它的编号。
+   *
+   * ## 为什么它进 state、并且交给面板在内核就绪时落地
+   *
+   * 点一条结果要做三件事：打开文件 → 等内核就绪 → 定位。中间隔着一次
+   * **异步的**打开与至少一次 React 渲染，所以这个意图必须能活过渲染 ——
+   * 这决定了它必须住在面板**之上**（state），而不是一次性调用。
+   *
+   * 而「落地」必须发生在**内核就绪那一刻** —— 这与 `initialPosition`
+   * （位置记忆）是同一个时刻。内核是异步创建的，「外壳握着句柄戳一次」
+   * 的写法赶不上「内核刚就绪」与「面板重建」谁先谁后：StrictMode 的
+   * 模拟重挂（开发模式）实测踩中过 —— 定位刚落地、面板随后重挂，
+   * 选区与状态栏的光标读数一起被销毁，而外壳这边早已把待办清掉，
+   * 再也没有人补那一次定位。
+   * 把请求作为 prop 传给面板（`revealRequest`）、由它在 `handleEditorReady`
+   * 里应用，**任何一次内核重建都会重新落地**，这条竞态从设计上消失。
+   *
+   * ## 请求为什么在 `open()` 成功**之后**才立起来
+   *
+   * 那一刻 `activePath` 已经是目标文件，「请求是给谁的」与「现在看着谁」
+   * 天然一致，下面那个对账 effect 不需要区分「正在赶往目标」与「用户去了别处」。
+   * 打开失败（文件被删了）时不立请求，也不会留下一个永远落不了地的待办。
+   */
+  const [revealRequest, setRevealRequest] = useState<PaneRevealRequest | null>(null);
+  const revealTickRef = useRef(0);
+  /**
+   * 已经为哪些请求**切过视图**。
+   *
+   * 防死循环：富文本内核（Markdown / 导图）没有源码行列的概念，
+   * 只能回落到源码视图；回落会重建内核，不加这个标记的话，
+   * 一个定位不到的结果会让视图在富文本与源码之间来回弹。
+   */
+  const switchedRevealTicksRef = useRef(new Set<number>());
+  /** `handleRevealResult` 里读当前请求用的镜像，与位置记忆的 `positionsRef` 同一条理由。 */
+  const revealRequestRef = useRef<PaneRevealRequest | null>(null);
+  revealRequestRef.current = revealRequest;
+
+  const openSearchMatch = useCallback(
+    (path: string, match: WorkspaceMatch) => {
+      const tick = (revealTickRef.current += 1);
+      void (async () => {
+        const opened = await workspace.open(path);
+        if (opened) {
+          setRevealRequest({
+            path,
+            location: { line: match.line, column: match.column, length: match.length },
+            tick,
+          });
+        }
+      })();
+    },
+    [workspace],
+  );
+
+  /**
+   * 面板回报「这次定位落没落地」。
+   *
+   * ## 回落链
+   *
+   * ① 当前内核实现了 `revealSourceLocation` → 面板直接落地（applied = true）；
+   * ② 没有但这份文档有源码视图 → 切到源码视图，下一个内核就绪时面板会再试（只切一次）；
+   * ③ 都没有 → 放弃。**不能留着这个待办**：留着的下一次点击会先消费掉它，
+   *    表现是「点 A 没反应，点 B 跳到了 A」。
+   */
+  const handleRevealResult = useCallback(
+    (tick: number, applied: boolean) => {
+      if (applied) return;
+      const pending = revealRequestRef.current;
+      if (pending === null || pending.tick !== tick) return;
+      if (!switchedRevealTicksRef.current.has(tick) && paneInfo?.adapter?.sourceView !== undefined) {
+        switchedRevealTicksRef.current.add(tick);
+        workspace.activeStore?.setViewMode('source');
+        return;
+      }
+      setRevealRequest(null);
+    },
+    [paneInfo, workspace],
+  );
+
+  // 用户把标签页切走时收掉待办：它属于「跳到那个文件的那一行」这件事，
+  // 用户已经去了别处，留着只会在他切回来时跳一次 —— 那不是他要的。
+  // 请求立起的那一刻 activePath 已经是目标文件（见 openSearchMatch），
+  // 所以这里不需要区分「正在赶往目标」的窗口期。
+  useEffect(() => {
+    if (revealRequest !== null && activePath !== null && activePath !== revealRequest.path) {
+      setRevealRequest(null);
+    }
+  }, [activePath, revealRequest]);
+
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [liveSidebarWidth, setLiveSidebarWidth] = useState<number | null>(null);
-
-  const activeStore = activeId === null ? null : workspace.storeOf(activeId);
-  const activeTab = tabs.find((tab) => tab.id === activeId) ?? null;
-  const activePath = activeTab?.path ?? null;
 
   // ---- 位置记忆 ---------------------------------------------------------
 
@@ -531,6 +659,23 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
   const ui = useMemo<UiActions>(
     () => ({
       toggleSidebar: () => update({ sidebarVisible: !settings.sidebarVisible }),
+      /**
+       * 活动栏的「文件浏览器」。
+       *
+       * 与 `toggleSidebar` 分开，是因为它们要的是两种行为：
+       * `Ctrl+B` 是「把侧栏收起来 / 放出来」（**保留**用户正在看的那一栏），
+       * 而这个按钮是「我要看文件树」—— 侧栏正显示检索时，它应当**换过去**
+       * 而不是把整个侧栏关掉。
+       */
+      openFilesView: () => {
+        const showing = settings.sidebarVisible && settings.sidebarView === 'files';
+        update(showing ? { sidebarVisible: false } : { sidebarVisible: true, sidebarView: 'files' });
+      },
+      openSearchFolder: () => {
+        const showing = settings.sidebarVisible && settings.sidebarView === 'search';
+        update(showing ? { sidebarVisible: false } : { sidebarVisible: true, sidebarView: 'search' });
+      },
+      closeSearchFolder: () => update({ sidebarVisible: false }),
       toggleOutline: () => update({ outlineVisible: !settings.outlineVisible }),
       openPalette: () => setPaletteOpen(true),
       closePalette: () => setPaletteOpen(false),
@@ -563,7 +708,17 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
       notify: (message, title) => provider.notify(message, title),
       closeActiveTab,
     }),
-    [closeActiveTab, paneInfo, provider, settings.outlineVisible, settings.sidebarVisible, settings.theme, update, workspace],
+    [
+      closeActiveTab,
+      paneInfo,
+      provider,
+      settings.outlineVisible,
+      settings.sidebarView,
+      settings.sidebarVisible,
+      settings.theme,
+      update,
+      workspace,
+    ],
   );
 
   const context = useMemo<CommandContext>(() => ({ workspace, provider, ui }), [workspace, provider, ui]);
@@ -852,10 +1007,14 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
       <div className="body">
         <ActivityBar
           sidebarVisible={settings.sidebarVisible}
+          filesView={settings.sidebarView === 'files'}
+          searchView={settings.sidebarView === 'search'}
           outlineVisible={settings.outlineVisible}
           canOutline={outlineEnabled}
           canFind={isEnabled('find.open')}
-          onToggleSidebar={() => runCommand('view.toggleSidebar')}
+          canSearchFolder={canSearchFolder && isEnabled('search.inFolder')}
+          onToggleSidebar={() => runCommand('view.filesView')}
+          onSearchFolder={() => runCommand('search.inFolder')}
           onToggleOutline={() => runCommand('view.toggleOutline')}
           onFind={() => runCommand('find.open')}
           onPalette={() => runCommand('palette.open')}
@@ -865,15 +1024,25 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
         {settings.sidebarVisible && (
           <>
             <div className="sidebar-slot" style={{ width: sidebarWidth }}>
-              <Sidebar
-                tree={tree}
-                activePath={activePath}
-                onOpenFolder={() => void workspace.openFolder()}
-                onToggleDir={(path) => void workspace.toggleDir(path)}
-                onOpenFile={(path) => void workspace.open(path)}
-                onRefresh={() => void workspace.refreshTree()}
-                onToggleIgnored={() => workspace.setShowIgnored(!tree.showIgnored)}
-              />
+              {settings.sidebarView === 'search' ? (
+                <SearchPanel
+                  store={searchStore}
+                  root={tree.root}
+                  canSearch={canSearchFolder}
+                  onOpenMatch={openSearchMatch}
+                  onClose={() => update({ sidebarVisible: false })}
+                />
+              ) : (
+                <Sidebar
+                  tree={tree}
+                  activePath={activePath}
+                  onOpenFolder={() => void workspace.openFolder()}
+                  onToggleDir={(path) => void workspace.toggleDir(path)}
+                  onOpenFile={(path) => void workspace.open(path)}
+                  onRefresh={() => void workspace.refreshTree()}
+                  onToggleIgnored={() => workspace.setShowIgnored(!tree.showIgnored)}
+                />
+              )}
             </div>
             <div className="sidebar-resizer" onPointerDown={beginResize} role="separator" aria-orientation="vertical" />
           </>
@@ -895,6 +1064,8 @@ export function App({ workspace, provider, initialSettings }: AppProps) {
               onViewInfoChange={onViewInfoChange}
               initialPosition={initialPosition}
               onPositionChange={onPositionChange}
+              revealRequest={revealRequest}
+              onRevealResult={handleRevealResult}
             />
           ) : restoring ? (
             /*

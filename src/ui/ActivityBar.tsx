@@ -40,17 +40,25 @@ import {
   IconFiles,
   IconOutline,
   IconSearch,
+  IconSearchFolder,
   IconSettings,
 } from './icons.js';
 
 export interface ActivityBarProps {
   readonly sidebarVisible: boolean;
+  /** 侧栏里现在看的是文件树（而不是检索）。 */
+  readonly filesView: boolean;
+  /** 侧栏里现在看的是检索面板。 */
+  readonly searchView: boolean;
   readonly outlineVisible: boolean;
   /** 当前文档没有大纲时（非 Markdown、或者内核不支持），按钮置灰。 */
   readonly canOutline: boolean;
   /** 没有打开的文档时查找无处可查，按钮置灰。 */
   readonly canFind: boolean;
+  /** 没有打开文件夹（或平台不支持）时，跨文件检索无处可查。 */
+  readonly canSearchFolder: boolean;
   readonly onToggleSidebar: () => void;
+  readonly onSearchFolder: () => void;
   readonly onToggleOutline: () => void;
   readonly onFind: () => void;
   readonly onPalette: () => void;
@@ -59,10 +67,14 @@ export interface ActivityBarProps {
 
 export function ActivityBar({
   sidebarVisible,
+  filesView,
+  searchView,
   outlineVisible,
   canOutline,
   canFind,
+  canSearchFolder,
   onToggleSidebar,
+  onSearchFolder,
   onToggleOutline,
   onFind,
   onPalette,
@@ -73,12 +85,24 @@ export function ActivityBar({
       <button
         type="button"
         className="activity-item"
-        aria-pressed={sidebarVisible}
+        aria-pressed={sidebarVisible && filesView}
         title="文件浏览器（Ctrl+B）"
         onClick={onToggleSidebar}
       >
         <IconFiles size={22} />
         <span className="sr-only">文件浏览器</span>
+      </button>
+
+      <button
+        type="button"
+        className="activity-item"
+        aria-pressed={sidebarVisible && searchView}
+        disabled={!canSearchFolder}
+        title={canSearchFolder ? '在文件夹中检索（Ctrl+Shift+F）' : '在文件夹中检索：还没有打开文件夹'}
+        onClick={onSearchFolder}
+      >
+        <IconSearchFolder size={22} />
+        <span className="sr-only">在文件夹中检索</span>
       </button>
 
       <button

@@ -680,6 +680,235 @@ body {
   margin-left: 6px;
 }
 
+/* ---------------------------------------------------------------- 检索面板 */
+
+/* 它同时挂着 `.sidebar`（见 SearchPanel.tsx），所以列布局、头部样式都是共用的，
+   这里只声明「检索这一栏自己多出来的东西」 */
+
+.search-form {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--chrome-line);
+}
+
+.search-row {
+  display: flex;
+  gap: 4px;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--chrome-line);
+  background: var(--surface);
+  color: var(--chrome-fg);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--bamboo);
+}
+
+.search-input:disabled {
+  color: var(--slate);
+  background: var(--surface-sunken);
+}
+
+.search-row > button {
+  appearance: none;
+  flex: none;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--chrome-line);
+  background: var(--surface);
+  color: var(--chrome-fg);
+  cursor: pointer;
+}
+
+.search-row > button:hover:not(:disabled) {
+  border-color: var(--bamboo);
+  color: var(--bamboo);
+}
+
+.search-row > button:disabled {
+  color: var(--slate);
+  cursor: default;
+}
+
+.search-row > button.search-stop {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.search-toggles {
+  display: flex;
+  gap: 3px;
+}
+
+.search-toggle {
+  appearance: none;
+  font: 11px/1 var(--mono);
+  min-width: 26px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--chrome-muted);
+  cursor: pointer;
+}
+
+.search-toggle:hover {
+  background: var(--list-hover);
+  color: var(--chrome-fg);
+}
+
+/* 选中态挂在 `aria-pressed` 上：看起来是选中的与读屏说是选中的
+   永远来自同一个信号（与活动栏同一条理由） */
+.search-toggle[aria-pressed='true'] {
+  background: var(--chrome-active-bg);
+  border-color: var(--bamboo);
+  color: var(--chrome-fg);
+}
+
+.search-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--slate);
+}
+
+.search-note {
+  padding: 14px 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--slate);
+}
+
+.search-note p {
+  margin: 0 0 6px;
+}
+
+.search-status {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--chrome-muted);
+  border-bottom: 1px solid var(--chrome-line);
+}
+
+.search-progress {
+  color: var(--bamboo);
+}
+
+.search-results {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 12px;
+}
+
+/* 文件标题**吸顶**：结果列表可以很长，滚到一半时「这是哪个文件」必须还在 */
+.search-file {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--chrome-fg);
+  background: var(--surface-sunken);
+}
+
+.search-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-file-count {
+  margin-left: auto;
+  flex: none;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--chrome-muted);
+}
+
+.search-hit {
+  appearance: none;
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 10px 3px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--chrome-fg);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-hit:hover {
+  background: var(--list-hover);
+}
+
+.search-line-no {
+  flex: none;
+  width: 34px;
+  padding-top: 1px;
+  text-align: right;
+  font: 11px/1.5 var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--slate);
+}
+
+.search-line-text {
+  flex: 1;
+  min-width: 0;
+  font: 12px/1.5 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.search-mark {
+  background: var(--list-active);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* 零宽匹配（`^` / `\b` / `a*`）没有可高亮的字符。画一根细竖线 ——
+   什么都不画会让「搜到了但看不到」变成一句空话 */
+.search-caret {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: var(--bamboo);
+}
+
+.search-ellipsis {
+  color: var(--slate);
+}
+
 /* ---------------------------------------------------------------- 主工作区 */
 
 .workspace-main {

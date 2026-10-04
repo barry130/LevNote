@@ -129,6 +129,32 @@ function PlainTextEditor({
         }
         applyScrollRatio(element, position.scrollRatio);
       },
+      /**
+       * 按源码行列定位（工作区检索的跳转）。
+       *
+       * textarea 这里也是**精确**的：`value` 就是文件本身。
+       * 行号要自己数 —— textarea 没有行索引 API，只有一整个字符串。
+       * 从 0 开始逐行 `indexOf('\n')` 在长文档上是 O(行数)，
+       * 但这是一次点击触发一次，不值得为它建索引。
+       */
+      revealSourceLocation: ({ line, column, length }) => {
+        if (line < 1) return false;
+        const value = element.value;
+        let offset = 0;
+        for (let current = 1; current < line; current += 1) {
+          const next = value.indexOf('\n', offset);
+          // 行号越界（检索结果可能来自几秒前，那时用户已经改过文件）
+          if (next === -1) return false;
+          offset = next + 1;
+        }
+        const breakAt = value.indexOf('\n', offset);
+        const lineLength = (breakAt === -1 ? value.length : breakAt) - offset;
+        const from = offset + Math.min(Math.max(column, 0), lineLength);
+        const to = offset + Math.min(Math.max(column + length, 0), lineLength);
+        element.focus();
+        element.setSelectionRange(from, to);
+        return true;
+      },
     };
 
     onReady(handle);

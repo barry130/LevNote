@@ -123,6 +123,33 @@ export interface EditorHandle {
    */
   goToOutlineItem?(item: { level: number; text: string }): boolean;
   /**
+   * 可选：把光标移到**源文档**的某一行某一列（工作区检索的跳转）。
+   *
+   * ## 为什么它与 `goToOutlineItem` 是两个方法
+   *
+   * `goToOutlineItem` 收的是「层级 + 标题文字」—— 那个参数刻意避开了行号，
+   * 因为 Markdown 内核的文档树里没有「行」，硬翻译只能靠猜。
+   * 而工作区检索的结果**天然就是行号**：Rust 侧是一行一行扫出来的
+   * （见 `src-tauri/src/search/matcher.rs`），它给不出「第几个可见字符」。
+   * 两者要的是两种不同的东西，合成一个方法只会让其中一边永远传假参数。
+   *
+   * ## 单位
+   *
+   * `line` 是 **1 基**行号。`column` 与 `length` 的单位是 **UTF-16 码元**
+   * （= JS 字符串下标），与 `WorkspaceMatch` 一致 —— 下游是 JS 字符串与
+   * CodeMirror 的 `ch`，用别的单位都要在某一侧做一次转换，
+   * 而那次转换正是「跳到命中右边一格」的来源。
+   *
+   * ## 返回 false 的含义
+   *
+   * 「这个内核没法按源码行列定位」或「行号越界」。外壳据此**回落到源码视图**
+   * （见 `ui/App.tsx` 的 `pendingRevealRef`）：富文本内核的文档树里确实没有
+   * 「第几行」，硬猜一个位置比不跳更糟 —— 用户会以为检索结果指错了地方。
+   *
+   * 不实现这个方法的内核，外壳按同样的方式回落。
+   */
+  revealSourceLocation?(location: { line: number; column: number; length: number }): boolean;
+  /**
    * 可选：读出当前的光标与滚动位置（见 `EditorPosition`）。
    *
    * 返回 `null` 表示「此刻读不到」—— 例如内核已经销毁。外壳据此保留上一次的值，

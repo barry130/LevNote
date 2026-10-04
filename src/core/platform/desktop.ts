@@ -1,5 +1,15 @@
 /**
- * 桌面端文档来源：把调用转发给 Rust 侧的 `qingmo:*` 命令。
+ * 桌面端平台实现。
+ *
+ * 这个文件是**唯一**允许 import `@tauri-apps/*` 的地方（硬约束 1）。
+ * 它现在装两条互相独立的链路：
+ *
+ * - `createDesktopProvider()` —— 文档读写（`DocumentProvider`）；
+ * - `createDesktopSearcher()` —— 工作区检索（`WorkspaceSearcher`）。
+ *
+ * 两者**刻意不合成一个接口**：浏览器预览有内存虚拟盘（文档那条能用），
+ * 但它没有目录遍历（检索那条只能用不了）。合成一个的话，
+ * 「能不能检索」会变成一个需要逐个方法探测的问题。
  *
  * 为什么不用 `@tauri-apps/plugin-fs`：
  * - 我们需要「编码探测 + 原子写入 + mtime 冲突检测」，插件给的是通用读写，
@@ -7,10 +17,16 @@
  * - 自带命令的权限由我们自己的 capability 收口，比开放一整个 fs scope 更紧。
  */
 
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { confirm, message, open, save } from '@tauri-apps/plugin-dialog';
 
 import { asAppError, type BinaryWriteOutcome, type DirEntry, type DocumentProvider, type FileStat, type RuntimeInfo, type TextFile, type WriteOutcome, type WriteRequest } from '../document/types.js';
+import type {
+  WorkspaceBatch,
+  WorkspaceSearchRequest,
+  WorkspaceSearcher,
+  WorkspaceSummary,
+} from '../search/workspace.js';
 
 const TEXT_EXTENSIONS = ['md', 'markdown', 'txt', 'json', 'js', 'ts', 'tsx', 'jsx', 'css', 'html', 'xml', 'drawio', 'mindmap', 'yml', 'yaml', 'toml', 'rs', 'py', 'go', 'java', 'c', 'h', 'cpp', 'sh', 'sql', 'log', 'csv'];
 
@@ -127,4 +143,43 @@ export function createDesktopProvider(): DocumentProvider {
 /** 暴露给 UI 的「确认」对话框，语义比原生 confirm 更明确。 */
 export async function askConfirm(text: string, title = '轻墨'): Promise<boolean> {
   return confirm(text, { title, kind: 'warning' });
+}
+
+// --------------------------------------------------------------------- 检索
+
+/**
+ * 工作区检索的桌面端实现。
+ *
+ * ## 通道只管批次，结局是返回值
+ *
+ * `onEvent` 上推的是 `SearchBatch`，而**这一次检索怎么结束的**是 `invoke` 的返回值。
+ * 两条路的分工写死在 Rust 侧的 `search/mod.rs`：结局只有一个来源，
+ * 前端不必去猜「promise 与通道事件谁先到」。
+ *
+ * ## 为什么不用 `listen` / 事件系统
+ *
+ * `Channel` 是**这一次调用专用**的：它随请求一起传下去，检索结束就自动清理，
+ * 不需要在全局事件总线上起一个名字 —— 而全局事件名会带来「上一次检索的监听
+ * 还没摘干净」这类竞态。另外 `Channel` 自带消息序号（Tauri 的 JS 实现里
+ * 按 index 排队），批次不会乱序到达。
+ */
+export function createDesktopSearcher(): WorkspaceSearcher {
+  return {
+    available: true,
+
+    async run(request: WorkspaceSearchRequest, onBatch: (batch: WorkspaceBatch) => void) {
+      const channel = new Channel<WorkspaceBatch>();
+      // 必须在 `invoke` 之前挂上：通道不重放「挂之前」的消息（Tauri 的 JS 实现如此）
+      channel.onmessage = (batch) => {
+        onBatch(batch);
+      };
+      return invoke<WorkspaceSummary>('search_in_workspace', { request, onEvent: channel });
+    },
+
+    async cancel(searchId: number) {
+      // 返回值是「这个 id 现在有没有在跑的检索」。`false` 多半意味着
+      // 「取消得比注册还早」—— 那一次取消已经被 Rust 侧记下，会在检索开始时生效。
+      await invoke<boolean>('cancel_search', { searchId });
+    },
+  };
 }

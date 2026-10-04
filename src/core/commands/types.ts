@@ -25,11 +25,27 @@ import type { WorkspaceStore } from '../workspace/store.js';
  */
 export interface UiActions {
   toggleSidebar(): void;
+  /**
+   * 活动栏的「文件浏览器」：侧栏没开就开，开着检索就换过去，开着文件树就收起来。
+   *
+   * 与 `toggleSidebar` 分开的理由：`Ctrl+B` 是「收起 / 放出侧栏」，
+   * 它应当**保留**用户正在看的那一栏；而这个按钮的语义是「我要看文件树」。
+   */
+  openFilesView(): void;
   toggleOutline(): void;
   openPalette(): void;
   closePalette(): void;
   openFind(): void;
   closeFind(): void;
+  /**
+   * 打开跨文件检索面板（侧栏的那一栏）。
+   *
+   * 与 `openFind` 分开：那个是「在**当前文档**里找」（一个浮在编辑器下沿的栏），
+   * 这个是「在**整个文件夹**里找」（侧栏里的一栏）。两者可以同时开着，
+   * 而且用户会同时用到 —— 先用文件夹检索定位到文件，再在文件里找下一处。
+   */
+  openSearchFolder(): void;
+  closeSearchFolder(): void;
   openSettings(): void;
   closeSettings(): void;
   setTheme(preference: ThemePreference): void;

@@ -19,6 +19,17 @@ export interface ViewSettings {
   /** 侧栏宽度（像素） */
   readonly sidebarWidth: number;
   readonly sidebarVisible: boolean;
+  /**
+   * 侧栏里现在显示哪一栏。
+   *
+   * ## 为什么与 `sidebarVisible` 分开，而不是合成一个三态枚举
+   *
+   * 「看不看侧栏」与「侧栏里看什么」是两个独立的问题。合成 `'hidden' | 'files' | 'search'`
+   * 之后，「关掉侧栏再打开」会**丢掉用户上次看的是哪一栏** ——
+   * 而那恰恰是他最可能想要回来的东西（正在搜到一半、先关掉看一眼代码）。
+   * 分开之后，关掉再打开必然回到原来那一栏。
+   */
+  readonly sidebarView: SidebarView;
   readonly outlineVisible: boolean;
   /** 代码 / 纯文本内核是否软换行。Markdown 内核不适用。 */
   readonly wordWrap: boolean;
@@ -75,6 +86,7 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   theme: DEFAULT_THEME,
   sidebarWidth: 240,
   sidebarVisible: true,
+  sidebarView: 'files',
   outlineVisible: false,
   wordWrap: false,
   codeLineNumbers: true,
@@ -82,6 +94,13 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   splitRatio: 0.5,
   restoreSession: true,
 };
+
+/** 侧栏的两栏。活动栏上的两个按钮各对应一个。 */
+export type SidebarView = 'files' | 'search';
+
+function isSidebarView(value: unknown): value is SidebarView {
+  return value === 'files' || value === 'search';
+}
 
 export const SIDEBAR_MIN_WIDTH = 160;
 export const SIDEBAR_MAX_WIDTH = 480;
@@ -148,6 +167,7 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     theme: isThemePreference(record['theme']) ? record['theme'] : DEFAULT_SETTINGS.theme,
     sidebarWidth: clampSidebar(record['sidebarWidth']),
     sidebarVisible: asBoolean(record['sidebarVisible'], DEFAULT_SETTINGS.sidebarVisible),
+    sidebarView: isSidebarView(record['sidebarView']) ? record['sidebarView'] : DEFAULT_SETTINGS.sidebarView,
     outlineVisible: asBoolean(record['outlineVisible'], DEFAULT_SETTINGS.outlineVisible),
     wordWrap: asBoolean(record['wordWrap'], DEFAULT_SETTINGS.wordWrap),
     codeLineNumbers: asBoolean(record['codeLineNumbers'], DEFAULT_SETTINGS.codeLineNumbers),

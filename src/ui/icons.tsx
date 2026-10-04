@@ -64,6 +64,23 @@ export function IconSearch(props: IconProps) {
   );
 }
 
+/**
+ * 在文件夹中检索。
+ *
+ * 与 `IconSearch`（当前文档里查找）**刻意长得不一样**：放大镜放进文件夹轮廓里，
+ * 一眼能看出「范围是整个文件夹」。活动栏上两个放大镜挨着，
+ * 只靠 `title` 区分的话，用户每次都要停下来读提示。
+ */
+export function IconSearchFolder(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M1.7 4.4a1 1 0 0 1 1-1h3.2l1.5 1.6h5.9a1 1 0 0 1 1 1v6.6a1 1 0 0 1-1 1H2.7a1 1 0 0 1-1-1z" />
+      <circle cx="7.3" cy="7.7" r="2.2" />
+      <path d="M8.9 9.3 10.6 11" />
+    </Svg>
+  );
+}
+
 /** 大纲。 */
 export function IconOutline(props: IconProps) {
   return (

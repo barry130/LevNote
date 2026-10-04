@@ -122,6 +122,26 @@ export interface PaneViewInfo {
   readonly viewMode: ViewMode;
 }
 
+/**
+ * 一次检索定位请求（工作区检索 → 「跳到那个文件的那一行」）。
+ *
+ * 由外壳立起、面板落地。`tick` 是外壳侧自增的编号：同一条结果被再次点击时
+ * 请求的内容可能一模一样，面板靠编号分辨「这是新的一次请求」。
+ *
+ * 为什么由面板落地而不是外壳拿句柄自己定位：见 `revealRequest` prop 的注释。
+ */
+export interface PaneRevealRequest {
+  readonly path: string;
+  readonly location: {
+    /** 1 基行号。 */
+    readonly line: number;
+    /** 0 基列，UTF-16 码元（与 `WorkspaceMatch` 一致）。 */
+    readonly column: number;
+    readonly length: number;
+  };
+  readonly tick: number;
+}
+
 export interface DocumentPaneProps {
   store: DocumentStore;
   wordWrap: boolean;
@@ -156,6 +176,31 @@ export interface DocumentPaneProps {
    * 而不是 setState —— 否则用户每敲一个字都要重渲染整条链路。
    */
   onPositionChange?: (position: EditorPosition) => void;
+  /**
+   * 待落地的检索定位请求；null 表示没有。
+   *
+   * ## 为什么「落地」发生在面板里、而且发生在内核就绪那一刻
+   *
+   * 这与 `initialPosition`（位置记忆）是**同一个时刻、同一条理由**：
+   * 内核是异步创建的，外壳握着句柄「戳一次」的写法赶不上
+   * 「内核刚就绪」与「面板重建」谁先谁后 —— StrictMode 的模拟重挂
+   * （开发模式）实测踩中过：定位刚落了地，面板随后重挂，
+   * 选区与状态栏的光标读数一起被销毁。
+   * 把请求作为 prop 传下来、在 `handleEditorReady` 里应用，
+   * **任何一次内核重建都会重新落地**，竞态从设计上消失。
+   *
+   * 请求立起时外壳已经把目标文件打开并激活了，所以这里的对账只有一条：
+   * `request.path` 是否就是这份文档。
+   */
+  revealRequest?: PaneRevealRequest | null;
+  /**
+   * 一次定位请求落地（或确认落不了地）时回报。
+   *
+   * `applied` 为 false 说明当前内核**不认源码行列**（富文本内核没有这个概念）
+   * 或行号越界 —— 怎么回落（切源码视图 / 放弃）是外壳的决策，面板只如实上报。
+   * 同一次内核重建里成功过的请求不会重复回报（见 `appliedRevealTicksRef`）。
+   */
+  onRevealResult?: (tick: number, applied: boolean) => void;
 }
 
 export function DocumentPane({
@@ -169,6 +214,8 @@ export function DocumentPane({
   onViewInfoChange,
   initialPosition,
   onPositionChange,
+  revealRequest,
+  onRevealResult,
 }: DocumentPaneProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const { doc, status, error, conflict, busy, notice, viewMode } = state;
@@ -241,6 +288,7 @@ export function DocumentPane({
 
   const [cursor, setCursor] = useState<CursorPosition | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
+
   /** 内核启动失败的那一次实例标识。用标识而不是布尔值，换文件 / 切视图后自然重新尝试。 */
   const [failedKey, setFailedKey] = useState<string | null>(null);
   /**
@@ -342,6 +390,44 @@ export function DocumentPane({
    */
   const previewKey = `${session}:preview`;
   const previewFailed = previewFailedKey !== null && previewFailedKey === previewKey;
+
+  /**
+   * 检索定位请求的镜像、以及「哪些请求已经在这块面板里落地过」的台账。
+   *
+   * **台账刻意是面板实例自己的 ref**：它要挡的是「同一次内核重建里重复落地」，
+   * 而它**挡不住** StrictMode 的模拟重挂 —— 那次重挂会连这个 ref 一起销毁，
+   * 新面板实例拿着同一个请求重新落地。这正是要的：选区与光标读数因此活过重挂。
+   * 「用户切走标签页后不该再跳」由外壳收掉请求来保证（App 里的对账 effect）。
+   */
+  const revealRequestRef = useRef<PaneRevealRequest | null>(revealRequest ?? null);
+  revealRequestRef.current = revealRequest ?? null;
+  const appliedRevealTicksRef = useRef<Set<number>>(new Set());
+
+  /**
+   * 把当前请求落到现在这块面板上。落不了地时如实回报，由外壳决定回落。
+   *
+   * 放在 ref 里而不是 `useCallback`：`handleEditorReady` 会被**纯文本兜底内核
+   * 写进 effect 依赖**，它的标识一变内核就重建 —— 所以它依赖的每一件东西
+   * 都必须稳定，读「最新值」一律走 ref（与 `initialPositionRef` 同一条理由）。
+   */
+  const applyRevealRef = useRef<() => void>(() => undefined);
+  applyRevealRef.current = () => {
+    const request = revealRequestRef.current;
+    if (request === null || request.path !== doc?.path) return;
+    if (appliedRevealTicksRef.current.has(request.tick)) return;
+    const handle = handleRef.current;
+    // 句柄必须属于当前这次内核实例 —— 异步创建窗口里握着的可能是旧的（见 handleKeyRef）
+    if (handle === null || handleKeyRef.current !== kernelKey) return;
+    const applied = handle.revealSourceLocation?.(request.location) === true;
+    if (applied) appliedRevealTicksRef.current.add(request.tick);
+    onRevealResult?.(request.tick, applied);
+  };
+
+  // 请求在内核已经就绪时到达（点同一条结果、或同一文件里的另一条）：
+  // 没有内核创建事件可搭，就在 prop 变化的这次渲染之后直接落地。
+  useEffect(() => {
+    applyRevealRef.current();
+  }, [revealRequest]);
 
   /**
    * 选内核（**首选内核**，与视图模式无关）。
@@ -475,6 +561,10 @@ export function DocumentPane({
        */
       const remembered = initialPositionRef.current;
       if (remembered && handle.setPosition) handle.setPosition(remembered);
+
+      // 检索定位放在位置恢复**之后**：用户刚点的那条结果比「上次离开时的位置」新，
+      // 两个都想动光标时应该听用户的。
+      applyRevealRef.current();
 
       onHandle(handle);
     },

@@ -81,6 +81,13 @@ export interface CodeEditorInstance {
   setWordWrap(on: boolean): void;
   readonly search: EditorSearch;
   goToHeading(level: number, text: string): boolean;
+  /**
+   * 按**源码行列**定位（工作区检索的跳转）。
+   *
+   * 与 `goToHeading` 并列而不是并进去：两者的输入是两种东西
+   * （「层级 + 文字」vs「行 + 列」），理由见 `EditorHandle.revealSourceLocation`。
+   */
+  revealSourceLocation(location: { line: number; column: number; length: number }): boolean;
   destroy(): void;
 }
 
@@ -438,6 +445,30 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
         return true;
       }
       return false;
+    },
+
+    /**
+     * 按**源码行列**定位（工作区检索的跳转）。
+     *
+     * 代码内核这里是**精确**的：`view.state.doc` 就是文件本身，
+     * 行号与列号都是它的原生坐标 —— 不需要任何翻译。
+     *
+     * `column` 以 UTF-16 码元计（见契约注释），而 CodeMirror 的 `ch`
+     * 本来就是 UTF-16 下标，所以直接夹到行内即可，**不做任何单位换算**。
+     * 越界一律夹住而不是报错：检索结果可能来自几秒前，那时用户可能已经改过文件。
+     */
+    revealSourceLocation: ({ line, column, length }) => {
+      const doc = view.state.doc;
+      if (line < 1 || line > doc.lines) return false;
+      const target = doc.line(line);
+      const from = target.from + Math.min(Math.max(column, 0), target.length);
+      const to = target.from + Math.min(Math.max(column + length, 0), target.length);
+      view.dispatch({
+        selection: { anchor: from, head: to },
+        effects: EditorView.scrollIntoView(from, { y: 'center' }),
+      });
+      view.focus();
+      return true;
     },
 
     destroy: () => {

@@ -23,6 +23,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { DocumentStore } from '../core/document/store.js';
 import { DEFAULT_SETTINGS, type ViewSettings } from '../core/settings.js';
+import type {
+  WorkspaceBatch,
+  WorkspaceFileMatches,
+  WorkspaceSearchRequest,
+  WorkspaceSearcher,
+  WorkspaceSummary,
+} from '../core/search/workspace.js';
 import { WorkspaceStore } from '../core/workspace/store.js';
 import { typeInto } from '../test/typing.js';
 import type {
@@ -205,7 +212,12 @@ interface Mounted {
 
 async function mount(
   seed: (provider: FakeProvider) => void,
-  options: { strict?: boolean; settings?: Partial<ViewSettings> } = {},
+  options: {
+    strict?: boolean;
+    settings?: Partial<ViewSettings>;
+    /** 工作区检索的执行者。不给则用平台默认（jsdom 里是「明确拒绝」那个）。 */
+    searcher?: WorkspaceSearcher;
+  } = {},
 ): Promise<Mounted> {
   const provider = new FakeProvider();
   seed(provider);
@@ -217,7 +229,12 @@ async function mount(
 
   const settings: ViewSettings = { ...TEST_SETTINGS, ...options.settings };
   const element: ReactElement = (
-    <App workspace={workspace} provider={provider} initialSettings={settings} />
+    <App
+      workspace={workspace}
+      provider={provider}
+      initialSettings={settings}
+      {...(options.searcher === undefined ? {} : { searcher: options.searcher })}
+    />
   );
   await act(async () => {
     root.render(options.strict === false ? element : <StrictMode>{element}</StrictMode>);
@@ -2724,5 +2741,237 @@ describe('会话恢复', () => {
     expect(mounted.container.textContent).toContain('还没有打开文档');
     expect(mounted.container.textContent).not.toContain('打不开了');
     expect(mounted.container.textContent).not.toContain('没能存下来');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 在文件夹中检索（外壳接线）
+// ---------------------------------------------------------------------------
+
+/**
+ * 假检索执行者。
+ *
+ * 它**在 `run()` 里同步把批次推出去**（而不是留个钩子让用例手动推）——
+ * 这里要测的是外壳接线，不是流式时序（那已经在
+ * `core/search/workspace.test.ts` 与 `ui/SearchPanel.test.tsx` 里钉死了）。
+ * 同步推的好处是「点结果」之前不必再等一轮定时器。
+ */
+function fakeSearcher(files: WorkspaceFileMatches[], options: { available?: boolean } = {}): {
+  searcher: WorkspaceSearcher;
+  requests: WorkspaceSearchRequest[];
+  cancels: number[];
+} {
+  const requests: WorkspaceSearchRequest[] = [];
+  const cancels: number[] = [];
+  const batch: WorkspaceBatch = {
+    files,
+    matchedFiles: files.length,
+    totalMatches: files.reduce((sum, file) => sum + file.matches.length, 0),
+    scannedFiles: files.length,
+    scannedBytes: 512,
+    skippedBinary: 0,
+    skippedLarge: 0,
+    skippedUnreadable: 0,
+  };
+  return {
+    requests,
+    cancels,
+    searcher: {
+      available: options.available ?? true,
+      run(request, onBatch) {
+        requests.push(request);
+        onBatch(batch);
+        const summary: WorkspaceSummary = { ...batch, reason: 'completed', elapsedMs: 3 };
+        return Promise.resolve(summary);
+      },
+      cancel(searchId) {
+        cancels.push(searchId);
+        return Promise.resolve();
+      },
+    },
+  };
+}
+
+/** 侧栏停在检索那一栏。 */
+const SEARCH_SETTINGS: Partial<ViewSettings> = { sidebarVisible: true, sidebarView: 'search' };
+
+/** 打开一个文件夹当工作区。 */
+async function openFolder(m: Mounted, path: string): Promise<void> {
+  await act(async () => {
+    await m.workspace.openFolder(path);
+  });
+  await settle();
+}
+
+/** 往检索框里打字并等防抖到点。 */
+async function searchFor(container: HTMLElement, query: string): Promise<void> {
+  const input = container.querySelector<HTMLInputElement>('.search-input');
+  if (input === null) throw new Error('检索框不在场 —— 侧栏是不是没切到检索那一栏？');
+  await act(async () => {
+    // 先 bind 再用（unbound-method）：与文件里其他两处 native setter 的写法一致
+    const setNativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.bind(input);
+    setNativeValue?.(query);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  // 防抖 250ms（`SEARCH_DEBOUNCE_MS`）；多等一点把 invoke 的微任务也带上
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 320));
+  });
+  await settle();
+}
+
+function searchHits(container: HTMLElement): HTMLButtonElement[] {
+  return [...container.querySelectorAll<HTMLButtonElement>('.search-hit')];
+}
+
+describe('在文件夹中检索', () => {
+  it('打开文件夹之后，侧栏里的检索框可用', async () => {
+    mounted = await mount((p) => p.put('C:/w/a.md', '内容'), {
+      settings: SEARCH_SETTINGS,
+      searcher: fakeSearcher([]).searcher,
+    });
+    await openFolder(mounted, 'C:/w');
+
+    const input = mounted.container.querySelector<HTMLInputElement>('.search-input');
+    expect(input).not.toBeNull();
+    expect(input?.disabled).toBe(false);
+  });
+
+  it('没有打开文件夹时检索框是禁用的，并说明原因', async () => {
+    mounted = await mount(() => undefined, { settings: SEARCH_SETTINGS, searcher: fakeSearcher([]).searcher });
+
+    const input = mounted.container.querySelector<HTMLInputElement>('.search-input');
+    expect(input?.disabled).toBe(true);
+    expect(mounted.container.querySelector('.search-note')?.textContent).toContain('还没有打开文件夹');
+  });
+
+  it('平台不支持时（浏览器预览）检索框禁用，活动栏那个入口也点不动', async () => {
+    mounted = await mount((p) => p.put('C:/w/a.md', '内容'), {
+      settings: SEARCH_SETTINGS,
+      searcher: fakeSearcher([], { available: false }).searcher,
+    });
+    await openFolder(mounted, 'C:/w');
+
+    expect(mounted.container.querySelector<HTMLInputElement>('.search-input')?.disabled).toBe(true);
+    expect(mounted.container.querySelector('.search-note')?.textContent).toContain('只在桌面版可用');
+    // 「能不能检索」只有一处判断（`searcher.available`），所以入口不可能和面板打架
+    expect(activityItem(mounted.container, '在文件夹中检索')?.disabled).toBe(true);
+  });
+
+  it('检索结果列出来，点一条会打开那个文件', async () => {
+    mounted = await mount((p) => p.put('C:/w/notes.md', '# 标题\n\n正文\n'), {
+      settings: SEARCH_SETTINGS,
+      searcher: fakeSearcher([
+        { path: 'C:/w/notes.md', matches: [{ line: 3, column: 0, length: 2, text: '正文', textOffset: 0, tailCut: false }] },
+      ]).searcher,
+    });
+    const m = mounted;
+    await openFolder(m, 'C:/w');
+    await searchFor(m.container, '正文');
+
+    expect(searchHits(m.container)).toHaveLength(1);
+    expect(m.workspace.getSnapshot().tabs).toHaveLength(0);
+
+    await act(async () => {
+      searchHits(m.container)[0]?.click();
+    });
+    await settle(6);
+
+    const tabs = m.workspace.getSnapshot().tabs;
+    expect(tabs.map((tab) => tab.path)).toEqual(['C:/w/notes.md']);
+  });
+
+  it('★ 富文本没有行列概念 —— 点结果要回落到源码视图，而不是「点了没反应」', async () => {
+    mounted = await mount((p) => p.put('C:/w/notes.md', '# 标题\n\n正文\n'), {
+      settings: SEARCH_SETTINGS,
+      searcher: fakeSearcher([
+        { path: 'C:/w/notes.md', matches: [{ line: 3, column: 0, length: 2, text: '正文', textOffset: 0, tailCut: false }] },
+      ]).searcher,
+    });
+    // 取成局部量：窄化在 `act` 的回调里会失效（TS 不能证明它没被改过）
+    const m = mounted;
+    await openFolder(m, 'C:/w');
+    await searchFor(m.container, '正文');
+
+    await act(async () => {
+      searchHits(m.container)[0]?.click();
+    });
+    await settle(6);
+
+    expect(m.store.getSnapshot().viewMode).toBe('source');
+    // 源码视图真的挂起来了（CodeMirror 在场），而不是只改了一个枚举
+    expect(m.container.querySelector('.cm-content')).not.toBeNull();
+  });
+
+  it('★ 点同一条结果的两次点击都要生效（第二次不会「点了没反应」）', async () => {
+    // 同一个文件里的第二条结果不改变任何 state，effect 不会重跑 ——
+    // 少了 `revealTick` 这个自增信号，第二次点击就是一次静默失败
+    mounted = await mount((p) => p.put('C:/w/a.ts', 'const a = 1;\nconst b = 2;\nconst c = 3;\n'), {
+      settings: SEARCH_SETTINGS,
+      searcher: fakeSearcher([
+        {
+          path: 'C:/w/a.ts',
+          matches: [
+            { line: 1, column: 6, length: 1, text: 'const a = 1;', textOffset: 0, tailCut: false },
+            { line: 3, column: 6, length: 1, text: 'const c = 3;', textOffset: 0, tailCut: false },
+          ],
+        },
+      ]).searcher,
+    });
+    const m = mounted;
+    await openFolder(m, 'C:/w');
+    await searchFor(m.container, 'const');
+
+    const hits = searchHits(m.container);
+    expect(hits).toHaveLength(2);
+
+    await act(async () => {
+      hits[0]?.click();
+    });
+    await settle(6);
+    const first = cursorOf(m.container);
+
+    await act(async () => {
+      hits[1]?.click();
+    });
+    await settle(6);
+    const second = cursorOf(m.container);
+
+    expect(first).toContain('第 1 行');
+    expect(second).toContain('第 3 行');
+    expect(second).not.toBe(first);
+  });
+
+  it('换了文件夹之后，上一次的结果必须消失', async () => {
+    // 留着它比留一片空白更糟：用户会点进去，然后打开一个跟他要找的东西无关的文件
+    mounted = await mount((p) => p.put('C:/w/a.md', '内容'), {
+      settings: SEARCH_SETTINGS,
+      searcher: fakeSearcher([
+        { path: 'C:/w/a.md', matches: [{ line: 1, column: 0, length: 2, text: '内容', textOffset: 0, tailCut: false }] },
+      ]).searcher,
+    });
+    await openFolder(mounted, 'C:/w');
+    await searchFor(mounted.container, '内容');
+    expect(searchHits(mounted.container)).toHaveLength(1);
+
+    await openFolder(mounted, 'C:/other');
+    expect(searchHits(mounted.container)).toHaveLength(0);
+  });
+
+  it('活动栏的检索入口在侧栏已显示检索时再点一下就收起来', async () => {
+    mounted = await mount((p) => p.put('C:/w/a.md', '内容'), {
+      settings: SEARCH_SETTINGS,
+      searcher: fakeSearcher([]).searcher,
+    });
+    await openFolder(mounted, 'C:/w');
+
+    const item = activityItem(mounted.container, '在文件夹中检索');
+    expect(item).not.toBeNull();
+    await act(async () => {
+      item?.click();
+    });
+    await settle();
+
+    expect(mounted.container.querySelector('.search-panel')).toBeNull();
   });
 });

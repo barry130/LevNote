@@ -14,6 +14,9 @@ pub mod watch;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // 全文检索的取消位。放在 managed state 里，因为命令是在阻塞线程池上跑的，
+        // 而「谁在跑、该不该停」这件事必须有一个进程内的、跨线程的落点。
+        .manage(search::SearchState::default())
         .invoke_handler(tauri::generate_handler![
             fs::read_text_file,
             fs::write_text_file,
@@ -23,6 +26,8 @@ pub fn run() {
             fs::sniff_encoding,
             fs::list_dir,
             fs::runtime_info,
+            search::search_in_workspace,
+            search::cancel_search,
         ])
         .setup(|_app| {
             // P1 只需要它启动起来；窗口状态恢复、最近打开记录等放在外壳层（P2）

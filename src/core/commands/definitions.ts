@@ -157,6 +157,23 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => ctx.ui.toggleSidebar(),
   },
   {
+    /**
+     * 活动栏的「文件浏览器」。
+     *
+     * 它没有快捷键，也不是 `view.toggleSidebar` 的别名 —— 两者要的是两种行为：
+     * `Ctrl+B` 收起 / 放出侧栏（**保留**正在看的那一栏），
+     * 而这个按钮的语义是「我要看文件树」（侧栏正显示检索时应当换过去）。
+     *
+     * 仍然走命令而不是直接调 UI：活动栏上五个入口的可用性全部来自
+     * `CommandRegistry.enabled`，这里是那套约定的第六个。
+     */
+    id: 'view.filesView',
+    title: '文件浏览器',
+    category: '视图',
+    keywords: ['files', 'explorer', 'wenjianliulanqi', '文件树'],
+    run: (ctx) => ctx.ui.openFilesView(),
+  },
+  {
     id: 'view.toggleOutline',
     title: '切换大纲',
     category: '视图',
@@ -243,6 +260,23 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     keywords: ['find', 'search', 'chazhao'],
     enabled: hasDocument,
     run: (ctx) => ctx.ui.openFind(),
+  },
+  {
+    id: 'search.inFolder',
+    title: '在文件夹中检索',
+    category: '导航',
+    /**
+     * 与 VSCode 同一个键位。
+     *
+     * `Ctrl+Shift+F` 在这里是安全的：`isAllowedInEditable` 放行带修饰键的快捷键，
+     * 而 `F` 不带修饰键时在编辑器里就是普通输入。
+     */
+    keybinding: 'Mod+Shift+F',
+    keywords: ['search in folder', 'workspace search', 'grep', 'quanwen', 'sousuo', '全文检索', '在文件夹中查找'],
+    // 没有文件夹就无处可查。用**禁用**而不是隐藏：隐藏会让用户以为功能不存在
+    // （而它只是需要一个前置条件，命令面板里那行提示正好告诉他缺什么）
+    enabled: (ctx) => ctx.workspace.getSnapshot().tree.root !== null,
+    run: (ctx) => ctx.ui.openSearchFolder(),
   },
   {
     id: 'palette.open',

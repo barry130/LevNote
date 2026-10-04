@@ -6,8 +6,9 @@
  */
 
 import type { DocumentProvider } from '../document/types.js';
+import { UNSUPPORTED_SEARCHER, type WorkspaceSearcher } from '../search/workspace.js';
 import { createBrowserProvider } from './browser.js';
-import { createDesktopProvider } from './desktop.js';
+import { createDesktopProvider, createDesktopSearcher } from './desktop.js';
 
 /** Tauri 2 在注入脚本里挂 `__TAURI_INTERNALS__`；用它判断比看 userAgent 可靠。 */
 export function isDesktop(): boolean {
@@ -16,6 +17,17 @@ export function isDesktop(): boolean {
 
 export function createDocumentProvider(): DocumentProvider {
   return isDesktop() ? createDesktopProvider() : createBrowserProvider();
+}
+
+/**
+ * 工作区检索的执行者。
+ *
+ * 浏览器预览拿不到它 —— 内存虚拟盘里没有目录树，硬造一个「能搜」的假象
+ * 只会让「预览里搜不到」变成一个查不出来的谜。所以那里给的是
+ * **明确拒绝**的执行者，面板据此显示一句说明，而不是一个点了没反应的面板。
+ */
+export function createWorkspaceSearcher(): WorkspaceSearcher {
+  return isDesktop() ? createDesktopSearcher() : UNSUPPORTED_SEARCHER;
 }
 
 export { askConfirm } from './desktop.js';
