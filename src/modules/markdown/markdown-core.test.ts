@@ -445,3 +445,94 @@ describe('roundTrip（P6 第 29 项：往返保真自检的内核半边）', () 
     await editor.destroy();
   });
 });
+describe('blockTransform（P6 第 28 项：结构变换的内核半边）', () => {
+  it('selectedMarkdown 给出选区的 Markdown 源；空选区如实返回 null', async () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const editor = await createMarkdownEditor({
+      root,
+      defaultValue: '# 标题\n\n第一段正文。\n\n第二段正文。\n',
+      onChange: () => undefined,
+    });
+
+    // 刚打开时光标塌缩在文首 —— 没有可提取的内容，说清楚而不是给空串
+    expect(editor.blockTransform.selectedMarkdown()).toBeNull();
+
+    // 用查找的 reveal 放一个真实选区（跨节点匹配找不到，这里选单段内的词）
+    expect(editor.search.find({ query: '第二段正文', caseSensitive: false, wholeWord: false, regex: false })).toBe(1);
+    editor.search.reveal(0);
+    expect(editor.blockTransform.selectedMarkdown()).toBe('第二段正文\n');
+    await editor.destroy();
+  });
+
+  it('replaceSelectionWith 替换选区并打上用户编辑标记 —— 文档会变脏、变更会上报', async () => {
+    const changes: string[] = [];
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const editor = await createMarkdownEditor({
+      root,
+      defaultValue: '第一段。\n\n第二段。\n',
+      onChange: (text) => changes.push(text),
+    });
+
+    editor.search.find({ query: '第二段', caseSensitive: false, wholeWord: false, regex: false });
+    editor.search.reveal(0);
+    editor.blockTransform.replaceSelectionWith('> 被提取走了\n');
+
+    const markdown = editor.getMarkdown();
+    expect(markdown).toContain('> 被提取走了');
+    expect(markdown).not.toContain('第二段');
+
+    // 硬约束 7：这条命令不经过键盘事件，不打 USER_EDIT_META 就不会变脏、
+    // 不会上报 —— Ctrl+S 会写回替换前的内容
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    expect(changes.length).toBeGreaterThan(0);
+    expect(changes[changes.length - 1]).toContain('> 被提取走了');
+    await editor.destroy();
+  });
+
+  it('enclosingFence 报出光标所在围栏块的语言与原文（doc-block 的属性区在里面）', async () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const editor = await createMarkdownEditor({
+      root,
+      defaultValue: '前文\n\n```doc-block\nid: a\nkind: markdown\nmode: reference\nsrc: notes/x.md\n---\n```\n\n后文\n',
+      onChange: () => undefined,
+    });
+
+    // 光标不在围栏里 —— 如实返回 null
+    editor.search.find({ query: '前文', caseSensitive: false, wholeWord: false, regex: false });
+    editor.search.reveal(0);
+    expect(editor.blockTransform.enclosingFence()).toBeNull();
+
+    editor.search.find({ query: 'kind: markdown', caseSensitive: false, wholeWord: false, regex: false });
+    editor.search.reveal(0);
+    const fence = editor.blockTransform.enclosingFence();
+    expect(fence).not.toBeNull();
+    expect(fence!.info).toBe('doc-block');
+    expect(fence!.content).toContain('id: a');
+    expect(fence!.content).toContain('src: notes/x.md');
+    await editor.destroy();
+  });
+
+  it('replaceEnclosingFenceWith 把整个围栏块换成给定内容 —— 前后文原样保留', async () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const editor = await createMarkdownEditor({
+      root,
+      defaultValue: '前文\n\n```doc-block\nid: a\nkind: markdown\nmode: reference\nsrc: notes/x.md\n---\n```\n\n后文\n',
+      onChange: () => undefined,
+    });
+
+    editor.search.find({ query: 'id: a', caseSensitive: false, wholeWord: false, regex: false });
+    editor.search.reveal(0);
+    editor.blockTransform.replaceEnclosingFenceWith('这里是拉平后的正文。\n');
+
+    const markdown = editor.getMarkdown();
+    expect(markdown).toContain('这里是拉平后的正文。');
+    expect(markdown).not.toContain('doc-block');
+    expect(markdown).toContain('前文');
+    expect(markdown).toContain('后文');
+    await editor.destroy();
+  });
+});

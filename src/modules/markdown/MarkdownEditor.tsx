@@ -27,6 +27,7 @@ function MarkdownEditor({
   onImagePaste,
   onImageClick,
   onDiagramOpen,
+  onDocBlockOpen,
   onError,
   readOnly,
   placeholder,
@@ -62,6 +63,8 @@ function MarkdownEditor({
   onImageClickRef.current = onImageClick;
   const onDiagramOpenRef = useRef(onDiagramOpen);
   onDiagramOpenRef.current = onDiagramOpen;
+  const onDocBlockOpenRef = useRef(onDocBlockOpen);
+  onDocBlockOpenRef.current = onDocBlockOpen;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -108,6 +111,8 @@ function MarkdownEditor({
           onImageClick: (image) => onImageClickRef.current?.(image),
           // 与 onImageClick 同属「内核只在构造 NodeView 时读一次」的那类回调
           onDiagramOpen: (diagram) => onDiagramOpenRef.current?.(diagram),
+          // 同上：引用卡片的点击回调也只在构造时被捕获
+          onDocBlockOpen: (ref) => onDocBlockOpenRef.current?.(ref),
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），
@@ -131,6 +136,7 @@ function MarkdownEditor({
           table: created.table,
           codeBlock: created.codeBlock,
           blockHandle: created.blockHandle,
+          blockTransform: created.blockTransform,
           goToOutlineItem: ({ level, text }) => created.goToHeading(level, text),
           getPosition: () => created.getPosition(),
           setPosition: (position) => created.setPosition(position),

@@ -29,7 +29,7 @@ import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
-import { basename, isMarkdownPath } from '../core/path.js';
+import { basename, isMarkdownPath, resolveRelative } from '../core/path.js';
 import type { DocumentStore } from '../core/document/store.js';
 import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, watchFiles } from '../core/platform/index.js';
 import { isInside } from '../core/path.js';
@@ -171,6 +171,7 @@ interface PaneSlotProps {
   initialPosition: EditorPosition | null;
   revealRequest: PaneRevealRequest | null;
   onRevealResult: (tick: number, applied: boolean) => void;
+  onDocBlockOpen: (ref: { src: string; kind: string; title: string | null }) => void;
   reportHandle: (paneId: number, handle: EditorHandle | null) => void;
   reportViewInfo: (paneId: number, info: PaneViewInfo | null) => void;
   rememberPositionAt: (path: string, position: EditorPosition) => void;
@@ -188,6 +189,7 @@ function PaneSlot({
   initialPosition,
   revealRequest,
   onRevealResult,
+  onDocBlockOpen,
   reportHandle,
   reportViewInfo,
   rememberPositionAt,
@@ -217,6 +219,7 @@ function PaneSlot({
         onPositionChange={onPositionChange}
         revealRequest={revealRequest}
         onRevealResult={onRevealResult}
+        onDocBlockOpen={onDocBlockOpen}
       />
     </div>
   );
@@ -445,6 +448,29 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       })();
     },
     [workspace],
+  );
+
+  /**
+   * 打开一张 doc-block 引用卡片指向的文档（P6 第 28 项）。
+   *
+   * 点击只会发生在**活动面板**上（隐藏面板收不到点击），所以用
+   * `workspace.activeStore` 现读文档路径，不存在过期闭包的问题。
+   * `joinPath` 把 src 的正斜杠统一成文档路径的分隔符风格（硬约束 12）——
+   * 写入时用正斜杠、打开时按字符串换算，两份字符串必须能对上。
+   */
+  const openDocBlockReference = useCallback(
+    (ref: { src: string; kind: string; title: string | null }) => {
+      const docPath = workspace.activeStore?.getSnapshot().doc?.path ?? null;
+      // 光秃秃的文件名（没有目录信息）拼不出被引用文件的路径 —— 与
+      // `resolveDocBlock` 同一条纪律：不能猜，但要说出来，不能点了没反应
+      const absolute = docPath === null ? null : resolveRelative(docPath, ref.src);
+      if (absolute === null) {
+        void provider.notify(`无法确定 ${ref.src} 的位置 —— 这份文档没有可用的目录信息。`, '打开引用');
+        return;
+      }
+      void workspace.open(absolute);
+    },
+    [provider, workspace],
   );
 
   /**
@@ -1299,6 +1325,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
                 initialPosition={rememberPositions ? (positionsRef.current?.[tab.path] ?? null) : null}
                 revealRequest={revealRequest}
                 onRevealResult={handleRevealResult}
+                onDocBlockOpen={openDocBlockReference}
                 reportHandle={reportHandle}
                 reportViewInfo={reportViewInfo}
                 rememberPositionAt={rememberPositionAt}

@@ -188,6 +188,13 @@ export interface DocumentPaneProps {
    */
   onPositionChange?: (position: EditorPosition) => void;
   /**
+   * 用户点击了一个 doc-block 引用卡片（P6 第 28 项）——「打开被引用的文档」。
+   *
+   * 由内核上报（监听挂在卡片元素上，硬约束 11），面板原样转发。
+   * 「src 相对谁」的换算与打开动作都在外壳：只有外壳知道文档路径。
+   */
+  onDocBlockOpen?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
    * 待落地的检索定位请求；null 表示没有。
    *
    * ## 为什么「落地」发生在面板里、而且发生在内核就绪那一刻
@@ -228,6 +235,7 @@ export function DocumentPane({
   onPositionChange,
   revealRequest,
   onRevealResult,
+  onDocBlockOpen,
 }: DocumentPaneProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const { doc, status, error, conflict, busy, notice, viewMode } = state;
@@ -910,6 +918,7 @@ export function DocumentPane({
         onImagePaste={handleImagePaste}
         onImageClick={setLightbox}
         onDiagramOpen={setDiagram}
+        onDocBlockOpen={onDocBlockOpen}
         onError={handleEditorError}
       />
     ) : null;

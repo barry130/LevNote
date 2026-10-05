@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  resolveRelative,
   basename,
   dirname,
   extensionOf,
@@ -147,6 +148,21 @@ describe('segments / separatorOf', () => {
  * 将来的引用解析），所以「它到底包含什么」值得逐条钉住 ——
  * 尤其是它**不**包含什么，因为「多算一个」的后果是把用户的文件改坏。
  */
+describe('resolveRelative', () => {
+  it('相对 src 按文档路径的风格解析 —— 反斜杠文档得到反斜杠路径', () => {
+    expect(resolveRelative('C:\\笔记\\main.md', 'sub\\x.md')).toBe('C:\\笔记\\sub\\x.md');
+    expect(resolveRelative('notes\\main.md', 'detail.md')).toBe('notes\\detail.md');
+  });
+
+  it('正斜杠文档保持正斜杠', () => {
+    expect(resolveRelative('/home/u/notes/main.md', './detail.md')).toBe('/home/u/notes/detail.md');
+  });
+
+  it('文档没有目录信息时返回 null —— 不能猜', () => {
+    expect(resolveRelative('demo.md', 'x.png')).toBeNull();
+  });
+});
+
 describe('Markdown 扩展名名单', () => {
   it('名单里的每一个扩展名都被认出来，且大小写不敏感', () => {
     for (const ext of MARKDOWN_EXTENSIONS) {

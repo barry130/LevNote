@@ -11,6 +11,7 @@ import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
 import { describeRoundTrip, formatRoundTripReport } from '../fidelity.js';
 import { t } from '../i18n/index.js';
+import { extractToReference, flattenReference } from '../document/block-ops.js';
 import { isDesktop, printHtml } from '../platform/index.js';
 
 function activeDocument(ctx: CommandContext) {
@@ -112,6 +113,57 @@ async function runRoundTripCheck(ctx: CommandContext): Promise<void> {
 
   const report = describeRoundTrip(doc.savedText, roundTripped);
   await ctx.ui.notify(formatRoundTripReport(report), '往返保真');
+}
+
+/**
+ * 「提取为引用」的编排：把内核的文档操作与 provider 的文件操作接在一起。
+ *
+ * 依赖逐个注入而不是让 `block-ops.ts` 反过来 import 这里的 ctx ——
+ * 这样编排逻辑可以被假依赖单测钉住（见 `block-ops.test.ts`）。
+ */
+async function runExtractReference(ctx: CommandContext): Promise<void> {
+  const doc = activeDocument(ctx);
+  const transform = ctx.ui.editor()?.blockTransform;
+  if (doc === null || transform === undefined) return;
+  await extractToReference({
+    docPath: doc.path,
+    selectedMarkdown: () => transform.selectedMarkdown(),
+    replaceSelectionWith: (markdown) => transform.replaceSelectionWith(markdown),
+    enclosingFence: () => transform.enclosingFence(),
+    replaceEnclosingFenceWith: (markdown) => transform.replaceEnclosingFenceWith(markdown),
+    readTextFile: async (path) => {
+      try {
+        return await ctx.provider.readTextFile(path);
+      } catch {
+        return null;
+      }
+    },
+    writeTextFile: (path, text) => ctx.provider.writeTextFile({ path, text, create: true }).then(() => undefined),
+    notify: (message, title) => ctx.ui.notify(message, title),
+  });
+}
+
+/** 「拉平引用」的编排。与 `runExtractReference` 同一条分工。 */
+async function runInlineReference(ctx: CommandContext): Promise<void> {
+  const doc = activeDocument(ctx);
+  const transform = ctx.ui.editor()?.blockTransform;
+  if (doc === null || transform === undefined) return;
+  await flattenReference({
+    docPath: doc.path,
+    selectedMarkdown: () => transform.selectedMarkdown(),
+    replaceSelectionWith: (markdown) => transform.replaceSelectionWith(markdown),
+    enclosingFence: () => transform.enclosingFence(),
+    replaceEnclosingFenceWith: (markdown) => transform.replaceEnclosingFenceWith(markdown),
+    readTextFile: async (path) => {
+      try {
+        return await ctx.provider.readTextFile(path);
+      } catch {
+        return null;
+      }
+    },
+    writeTextFile: (path, text) => ctx.provider.writeTextFile({ path, text, create: true }).then(() => undefined),
+    notify: (message, title) => ctx.ui.notify(message, title),
+  });
 }
 
 export const BUILT_IN_COMMANDS: readonly Command[] = [
@@ -274,6 +326,24 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // 用禁用而不是隐藏：隐藏会让用户以为这个功能不存在。
     enabled: (ctx) => ctx.ui.canToggleSourceView(),
     run: (ctx) => ctx.ui.toggleSourceView(),
+  },
+  {
+    id: 'edit.extractReference',
+    title: t('command.edit.extractReference.title'),
+    category: t('command.category.edit'),
+    keywords: ['extract', 'reference', 'doc-block', 'tiqu', 'yinyong'],
+    // 只有 Markdown 内核实现了 blockTransform（doc-block 是 Markdown 的语法）；
+    // 其它内核禁用而不是隐藏 —— 与 view.toggleSource 同一条原则
+    enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.blockTransform !== undefined,
+    run: (ctx) => runExtractReference(ctx),
+  },
+  {
+    id: 'edit.inlineReference',
+    title: t('command.edit.inlineReference.title'),
+    category: t('command.category.edit'),
+    keywords: ['flatten', 'inline', 'doc-block', 'laping', 'zhankai'],
+    enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.blockTransform !== undefined,
+    run: (ctx) => runInlineReference(ctx),
   },
   /**
    * 三档视图的直接入口。

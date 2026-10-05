@@ -123,6 +123,17 @@ export interface EditorHandle {
    */
   readonly blockHandle?: EditorBlockHandle;
   /**
+   * 可选：块级结构变换命令面（P6 第 28 项，L3）。
+   *
+   * 「提取为引用 / 拉平引用」这两步都要在**文档模型**里动刀：哪一段被选中、
+   * 光标落在哪个围栏块里、替换之后选区去哪 —— 这些都是文档坐标，
+   * 只有内核知道。文件系统那一半（新建文件、读引用、命名）归外壳。
+   *
+   * 只有 Markdown 内核实现：doc-block 围栏是 Markdown 的语法，
+   * 代码 / 纯文本内核里不存在这个概念。不实现时外壳按禁用显示。
+   */
+  readonly blockTransform?: EditorBlockTransform;
+  /**
    * 可选：把光标移到某个标题处（大纲跳转）。
    *
    * 参数是「层级 + 标题文字」而不是「源文档行号」：行号只对
@@ -571,6 +582,43 @@ export interface EditorBlockHandle {
 }
 
 /**
+ * 光标所在的围栏块（```` ``` ````）。`info` 是语言标识（如 `doc-block`），
+ * `content` 是围栏内的**原文**（属性区与载荷都在里面，逐字节原样）。
+ */
+export interface EditorFenceInfo {
+  readonly info: string;
+  readonly content: string;
+}
+
+/**
+ * 块级结构变换命令面（P6 第 28 项的 L3：「提取为引用 / 拉平引用」）。
+ *
+ * 四个方法刻意是**两对**：读（选区 / 围栏的 Markdown 源）与写（用 Markdown 源
+ * 替换选区 / 围栏）。读写都走 Markdown 源而不是文档模型的结构体 ——
+ * 与 `roundTrip` 同一条理由：翻译成本该由内核自己做，外壳拿到的
+ * 应该是「直接可用的一份源文本」。
+ *
+ * 两个写方法都必须给事务打 `USER_EDIT_META`（硬约束 7）：它们绕过键盘事件
+ * 改文档，漏了就是「改完不变脏、Ctrl+S 写回旧内容」的静默丢数据。
+ */
+export interface EditorBlockTransform {
+  /**
+   * 当前选区的 Markdown 源。空选区 / 无法序列化时返回 `null` ——
+   * 外壳据此提示「先选中内容」，而不是静默产出一份空文件。
+   */
+  selectedMarkdown(): string | null;
+  /** 用给定的 Markdown 源**替换当前选区**。源为空串表示删除选区。 */
+  replaceSelectionWith(markdown: string): void;
+  /**
+   * 光标所在的围栏块。不在围栏块里时返回 `null`（外壳据此提示）。
+   * 只有光标**所在**的那一个 —— 不向上找多层。
+   */
+  enclosingFence(): EditorFenceInfo | null;
+  /** 用给定的 Markdown 源替换光标所在的**整个围栏块**（含围栏与属性区）。 */
+  replaceEnclosingFenceWith(markdown: string): void;
+}
+
+/**
  * 内核要把一张图片落盘时的请求。
  *
  * ## 为什么是「内核交出字节、外壳负责落盘」
@@ -774,6 +822,22 @@ export interface EditorMountProps {
    * 让用户知道「改了这段字，图就会变」。
    */
   onDiagramOpen?: (diagram: DiagramView) => void;
+  /**
+   * 用户点击了一个 doc-block **引用卡片**（P6 第 28 项）——
+   * 「去打开被引用的那份文档」。
+   *
+   * 与 `onImageClick` / `onDiagramOpen` 同一条纪律：监听挂在内核自己造的
+   * 元素上，外壳不按类名去认。交出来的是**解析好的属性**（src / kind / title），
+   * 不是让外壳拿围栏原文再解析一遍 —— 同一份东西不该解析两次。
+   *
+   * 只有 `mode: reference` 且 kind 是「卡片能表达」的类型（markdown / mindmap /
+   * text）才有点击；`kind: diagram` 走 `onDiagramOpen`（放大看图），`kind: code`
+   * 的引用照旧显示为代码（把用户写的东西藏进卡片后面没有意义）。
+   *
+   * 「src 相对谁」是**当前文档的目录** —— 换算成绝对路径是外壳的事，
+   * 因为只有外壳知道文档在哪。
+   */
+  onDocBlockOpen?: (ref: { src: string; kind: string; title: string | null }) => void;
   /**
    * 光标或滚动位置变了（位置记忆）。
    *

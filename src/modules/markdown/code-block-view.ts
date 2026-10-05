@@ -84,6 +84,15 @@ import { currentTheme } from '../../core/theme/theme.js';
  */
 export const CODE_BLOCK = 'code_block';
 
+/**
+ * 引用卡片（`mode: reference`）能覆盖的 kind。
+ *
+ * `diagram` 有自己的渲染路径；`code` 的引用就该显示为代码；
+ * `image` 与不认识的 kind 照旧显示原文 —— 展示层不知道它们是什么，
+ * 把原文藏起来等于替用户做决定。
+ */
+const CARD_KINDS = new Set(['markdown', 'mindmap', 'text']);
+
 /** 没有指定语言时，标签上显示的文字。 */
 export const PLAIN_TEXT_LABEL = '纯文本';
 
@@ -133,6 +142,12 @@ export interface CodeBlockChromeHandlers {
    * 重新渲染既慢，又可能因为时序画出不一样的图。
    */
   readonly openViewer: (diagram: { svg: string; source: string }) => void;
+  /**
+   * 用户点击了一个 doc-block **引用卡片**（P6 第 28 项）——
+   * 「去打开被引用的那份文档」。交出的是解析好的属性，
+   * 「src 相对谁」由外壳用当前文档目录换算（与 `resolveDiagram` 同一条分工）。
+   */
+  readonly openDocBlock?: (ref: { src: string; kind: string; title: string | null }) => void;
   /**
    * 语言标签所在的代码块从文档里消失了（被删掉、或整篇被替换）。
    *
@@ -215,6 +230,7 @@ class CodeBlockView implements NodeView {
   private painted:
     | { readonly kind: 'mermaid'; readonly source: string; readonly theme: ResolvedTheme }
     | { readonly kind: 'docblock'; readonly source: string }
+    | { readonly kind: 'card'; readonly source: string }
     | null = null;
   /**
    * 交给「放大看」的那份**源**。mermaid 是块文本本身；doc-block 是被渲染的
@@ -322,17 +338,29 @@ class CodeBlockView implements NodeView {
   }
 
   /**
-   * 这个块按**哪一种图表**画；`null` 表示它不是图表块（按普通代码块显示）。
+   * 这个块按**哪一种预览**画；`null` 表示它按普通代码块显示。
    *
    * - `mermaid` —— 源码即图（ADR 0020）；
    * - `docblock` —— 属性区声明了 `kind: diagram` 的 doc-block（ADR 0002）。
    *   只有声明了 kind 的才进图区：`kind: code` 的引用块就该显示为代码，
    *   硬画成图反而把用户写的东西藏起来了。
+   * - `card` —— `mode: reference` 的 markdown / mindmap / text 引用
+   *   （P6 第 28 项）。内容在**另一个文件**里，这里放一张说明卡片，
+   *   点击打开那份文档；`mode: inline` 的内容就在块里，照旧显示为代码。
+   *   `kind: code` 的引用也照旧显示为代码 —— 那是「这段代码在这里」的
+   *   原样呈现，藏进卡片后面没有意义。
    */
-  private diagramKind(): 'mermaid' | 'docblock' | null {
+  private diagramKind(): 'mermaid' | 'docblock' | 'card' | null {
     if (this.isMermaid()) return 'mermaid';
     if (this.language() === 'doc-block') {
-      return parseDocBlock(this.node.textContent).attrs.kind === 'diagram' ? 'docblock' : null;
+      const parsed = parseDocBlock(this.node.textContent);
+      if (parsed.attrs.kind === 'diagram') return 'docblock';
+      if (parsed.attrs.kind === 'code') return null;
+      if (parsed.attrs.mode === 'inline') return null;
+      if (parsed.attrs.kind !== null && CARD_KINDS.has(parsed.attrs.kind)) return 'card';
+      // 规范 §2.3 说「不认识的 kind 按 text 处理」，但那是**格式层**的兜底；
+      // 展示层不知道未知的 kind 会不会真的是别的什么东西，宁可照旧显示原文
+      return null;
     }
     return null;
   }
@@ -453,6 +481,7 @@ class CodeBlockView implements NodeView {
     }
 
     if (kind === 'mermaid') void this.renderDiagram(source, theme);
+    else if (kind === 'card') this.renderRefCard(source);
     else void this.renderDocBlock(source);
   }
 
@@ -623,6 +652,74 @@ class CodeBlockView implements NodeView {
       children.push(hint);
     }
     this.diagram.replaceChildren(...children);
+  }
+
+  /**
+   * 画一张 doc-block **引用卡片**（P6 第 28 项）。
+   *
+   * 与 `renderDocBlock` 的差别：那里要等异步的文件读取与渲染，这里**同步**
+   * 就画得完 —— 卡片只描述「这份内容在哪个文件里」，不替用户打开它。
+   * 所以竞态令牌照记不误（形状与另外两条渲染路径一致），但成功路径上
+   * 用不到它。
+   *
+   * 属性区有问题时如实画成带原因的说明，**绝不装作正常**：
+   * 缺 `src` 的引用点开了也是空白，那是「静默降级」。
+   */
+  private renderRefCard(source: string): void {
+    this.painted = { kind: 'card', source };
+    this.svg = null;
+    this.syncZoom();
+
+    const parsed = parseDocBlock(source);
+    const attrs = parsed.attrs;
+
+    if (parsed.errors.includes('MISSING_TERMINATOR')) {
+      this.paintDiagramNote('doc-block 缺少结束行 —— 属性区和载荷之间必须有一整行「---」。', 'is-failed');
+      this.syncMode();
+      return;
+    }
+    if (attrs.src === null || attrs.src === '') {
+      this.paintDiagramNote('引用缺少 src —— 这里应该写被引用文件的相对路径。', 'is-failed');
+      this.syncMode();
+      return;
+    }
+
+    this.diagram.classList.remove('is-loading', 'is-failed');
+    this.diagram.classList.add('is-ok');
+
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'qm-docref-card';
+
+    const badge = document.createElement('span');
+    badge.className = 'qm-docref-kind';
+    badge.textContent = attrs.kind ?? 'text';
+    card.appendChild(badge);
+
+    const title = document.createElement('span');
+    title.className = 'qm-docref-title';
+    title.textContent = attrs.title ?? attrs.src;
+    card.appendChild(title);
+
+    const from = document.createElement('span');
+    from.className = 'qm-docref-src';
+    from.textContent = `来自 ${attrs.src}`;
+    card.appendChild(from);
+
+    // 硬约束 11 的正路：监听挂在内核自己造的元素上，外壳经契约收事件。
+    // 点卡片 = 打开被引用的文档；点源码区仍然是进源码编辑，互不干扰。
+    card.addEventListener('click', (event) => {
+      event.preventDefault();
+      // 卡片在图区里，图区只有「光标不在块里」时显示；点击不会抢走编辑焦点
+      this.getHandlers()?.openDocBlock?.({
+        src: attrs.src ?? '',
+        kind: attrs.kind ?? 'text',
+        title: attrs.title,
+      });
+    });
+
+    this.diagram.replaceChildren(card);
+    this.syncMode();
   }
 
   /** 当前该显示图还是源码。 */

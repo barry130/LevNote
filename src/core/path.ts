@@ -174,6 +174,28 @@ export function isInside(path: string, directory: string): boolean {
   return a.startsWith(b);
 }
 
+/**
+ * 把 doc-block / 图片引用里的相对 `src` 解析成**绝对路径**（相对 docPath 所在目录）。
+ *
+ * 为什么不直接 `joinPath(dirname(docPath), src)`：`dirname` 会把分隔符信息
+ * **丢掉**——`notes\main.md` 的目录是裸名 `notes`，`joinPath` 对没有分隔符的
+ * base 只能按 `/` 拼，产出的 `notes/detail.md` 与磁盘上的 `notes\detail.md`
+ * 是**两个字符串**，任何按字符串比较的地方都会悄悄失配（硬约束 12 的变体：
+ * base 风格不明时，风格要向上取自完整的文档路径，而不是取自裸目录名）。
+ *
+ * 返回 null 表示 docPath 没有目录信息（光秃秃的文件名），不能猜。
+ */
+export function resolveRelative(docPath: string, relative: string): string | null {
+  const directory = dirname(docPath);
+  if (directory === null) return null;
+  const joined = joinPath(directory, relative);
+  if (joined === null) return null;
+  const separator = separatorOf(docPath);
+  if (separator === '\\') return joined.split('/').join('\\');
+  if (separator === '/') return joined.split('\\').join('/');
+  return joined;
+}
+
 /** 把路径拆成可显示的层级片段，用于面包屑。 */
 export function segments(path: string): string[] {
   return path.split(/[\\/]+/).filter((part) => part !== '');

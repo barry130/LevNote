@@ -470,3 +470,59 @@
 .qm-editor .qm-math.is-empty {
   cursor: text;
 }
+
+/*
+ * doc-block 引用卡片（P6 第 28 项）。
+ *
+ * 摆在图区里（与 mermaid / drawio 的预览同一条容器），所以「光标进块显示源码、
+ * 出块显示卡片」的双态是现成的 —— 用户要改引用的属性就点进源码里改。
+ * 整张卡片是一个 <button>：点击打开被引用的文档这件事要走键盘也能到，
+ * 不能只有鼠标能完成。
+ */
+.qm-editor .qm-docref-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35em;
+  width: min(100%, 34em);
+  margin: 0 auto;
+  padding: 0.9em 1.1em;
+  border: 1px solid var(--qm-line);
+  border-radius: 8px;
+  background: var(--qm-surface, var(--qm-code-bg));
+  font: inherit;
+  font-size: 0.9em;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--qm-ink);
+  cursor: pointer;
+}
+
+.qm-editor .qm-docref-card:hover {
+  border-color: var(--ink, var(--qm-line));
+}
+
+.qm-editor .qm-docref-kind {
+  font-size: 0.75em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--qm-slate);
+}
+
+.qm-editor .qm-docref-title {
+  font-weight: 600;
+  /* 长标题截断在卡片里，不把代码块撑宽 */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qm-editor .qm-docref-src {
+  font-size: 0.85em;
+  color: var(--qm-slate);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

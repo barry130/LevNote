@@ -10,7 +10,7 @@
  */
 
 import { randomSalt, readImageAsUrl, writePastedImage } from './images.js';
-import { dirname, joinPath } from '../path.js';
+import { resolveRelative } from '../path.js';
 import {
   asAppError,
   type AppErrorShape,
@@ -218,7 +218,7 @@ export class DocumentStore {
    * 把 `doc-block` 引用的 `src`（相对当前文档目录）读成**图表文件原文**。
    *
    * 与 `resolveImageUrl` 同一条链路的另一半（P5 第 25 项）：路径归并走
-   * `joinPath`（分隔符统一成文档路径的风格，硬约束 12），读取走
+   * `resolveRelative`（分隔符统一成**文档路径**的风格，硬约束 12），读取走
    * `readTextFile` —— 与打开文档同一个解码器，`.drawio` 是 XML 文本。
    *
    * **不缓存**（与 `resolveImageUrl` 同一条理由）且**不抛**（调用链尽头是
@@ -228,7 +228,7 @@ export class DocumentStore {
   resolveDocBlock = async (src: string): Promise<string | null> => {
     const doc = this.state.doc;
     if (!doc) return null;
-    const absolute = joinPath(dirname(doc.path), src);
+    const absolute = resolveRelative(doc.path, src);
     if (absolute === null) return null;
     try {
       const file = await this.provider.readTextFile(absolute);

@@ -1385,6 +1385,34 @@ describe('面板常驻（P3 第 19 项）', () => {
   });
 });
 
+describe('块级互操作（P6 第 28 项）', () => {
+  /**
+   * 这条打的是**最长的接缝**：内核卡片元素上的监听（硬约束 11）→
+   * `onDocBlockOpen` 契约 → 外壳用当前文档目录换算 `src`（硬约束 12）→
+   * `workspace.open` 打开成新标签。中间任何一层断了，用户看到的是
+   * 「点了卡片没反应」—— 所以断言要落在最终结果（活动标签是谁）上，
+   * 而不是中间层（回调被调过）。
+   */
+  it('点击引用卡片打开被引用的文档', async () => {
+    mounted = await mount((p) => {
+      p.put('notes\\main.md', '开头。\n\n```doc-block\nid: a\nkind: markdown\nmode: reference\nsrc: detail.md\n---\n```\n');
+      p.put('notes\\detail.md', '# 细节\n');
+    });
+    await mounted.open('notes\\main.md');
+
+    const card = mounted.container.querySelector<HTMLButtonElement>('.qm-docref-card');
+    expect(card).not.toBeNull();
+    await act(async () => {
+      card!.click();
+    });
+    await settle();
+
+    const snapshot = mounted.workspace.getSnapshot();
+    const active = snapshot.tabs.find((tab) => tab.id === snapshot.activeId);
+    expect(active?.path).toBe('notes\\detail.md');
+  });
+});
+
 describe('选中浮层工具条', () => {
   /**
    * 这一组打的是**三件事的接缝**，每一件单独测都测不出问题：

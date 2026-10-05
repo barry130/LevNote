@@ -75,6 +75,7 @@ import type {
   CursorPosition,
   DiagramView,
   EditorBlockHandle,
+  EditorBlockTransform,
   EditorCodeBlock,
   EditorFormatting,
   EditorPosition,
@@ -101,6 +102,8 @@ import {
 } from './math.js';
 import { mathViewPlugin } from './math-view.js';
 import { normalizeMarkdownAst } from './normalize-ast.js';
+import { withUserEdit, withUserEditOnView } from './user-edit.js';
+import { createBlockTransform } from './transform.js';
 import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js';
 import {
   blockHoverPlugin,
@@ -170,6 +173,11 @@ export interface CreateMarkdownEditorOptions {
   /** 用户点了文档里的一张图片（灯箱）。 */
   onImageClick?: (image: ImageInfo) => void;
   /**
+   * 用户点击了一个 doc-block 引用卡片（P6 第 28 项）——「打开被引用的文档」。
+   * 交出的是解析好的属性；src 相对当前文档目录，换算归外壳。
+   */
+  onDocBlockOpen?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
    * 用户要放大看一张 Mermaid 图表。
    *
    * 不实现时代码块上**不显示**放大按钮 —— 与「不实现 `onImageClick` 就不开灯箱」
@@ -207,6 +215,8 @@ export interface MarkdownEditorInstance {
   readonly table: EditorTable;
   readonly codeBlock: EditorCodeBlock;
   readonly blockHandle: EditorBlockHandle;
+  /** 块级结构变换（P6 第 28 项 L3）：提取为引用 / 拉平引用的文档模型那一半。 */
+  readonly blockTransform: EditorBlockTransform;
   /** 大纲跳转：定位到指定层级的指定标题。 */
   goToHeading(level: number, text: string): boolean;
   destroy(): Promise<void>;
@@ -322,51 +332,6 @@ function expand(text: string, pattern: RegExp | null, replacement: string, asReg
   return text.replace(new RegExp(pattern.source, pattern.flags.replace('g', '')), replacement);
 }
 
-/**
- * 把一次编辑标记成「用户发起的」。
- *
- * ## 少了这一步会**静默丢数据**
- *
- * `markdownEmitPlugin` 只在「刚发生过用户输入」的窗口内上报变更，而点工具条上的
- * 按钮**不产生任何 `input` / `paste` 事件** —— 没有这个标记，加粗之后文档不会变脏，
- * 用户按 Ctrl+S，写回磁盘的是加粗前的旧内容，而界面一直显示「已保存」。
- *
- * 这与 `USER_EDIT_META` 当初为「查找替换」加上的理由是**同一条**：
- * 由用户动作触发、但不经过键盘事件的编辑，必须自己声明身份。
- * 已经踩过三次 —— 查找替换、浮层格式化、斜杠菜单插入；表格操作是第四次。
- *
- * ## 为什么是临时换掉 `view.dispatch`
- *
- * 命令由 Milkdown 的 `CommandManager` 内部派发（`command(view.state, view.dispatch, view)`），
- * 中间没有任何可以插进去的钩子，也没有 `dispatchTransaction` 选项被用到。
- * 换掉再在 `finally` 里换回来，作用范围只有这一次同步调用 ——
- * 不是全局补丁，也不会漏到别的派发路径上。`dispatch` 是实例上的可写属性
- * （`prosemirror-view` 里声明为 `dispatch: (tr) => void`），所以这样做是合法的。
- *
- * 提到模块级是因为**表格操作也需要它**。做成两个各自独立的实现，
- * 迟早只给其中一处修 bug —— 而这类 bug 的形态是「数据静默丢失」。
- */
-function withUserEdit<T>(editor: Editor, run: () => T): T {
-  return editor.action((ctx) => withUserEditOnView(ctx.get(editorViewCtx), run));
-}
-
-/**
- * 同上，但直接作用在一个 `view` 上。
- *
- * 拆出这一层是因为**粘贴图片**的入口拿不到 `editor`：它挂在
- * `editorViewOptionsCtx` 的 `handlePaste` 上，那个对象在 `Editor.make()` 的
- * `config` 阶段就要交出去，那时编辑器实例还不存在。而 ProseMirror 会把
- * `view` 作为 `handlePaste` 的第一个参数给我们 —— 所以真正需要的只是它。
- */
-function withUserEditOnView<T>(view: EditorView, run: () => T): T {
-  const original = view.dispatch;
-  view.dispatch = (tr) => original.call(view, tr.setMeta(USER_EDIT_META, true));
-  try {
-    return run();
-  } finally {
-    view.dispatch = original;
-  }
-}
 
 /**
  * 浮层工具条要用的格式化命令面。
@@ -1270,6 +1235,7 @@ function codeBlockPickerHandlers(
   picker: CodeBlockPicker,
   onDiagramOpen: ((diagram: DiagramView) => void) | undefined,
   resolveDocBlock: ((src: string) => Promise<string | null>) | undefined,
+  onDocBlockOpen: ((ref: { src: string; kind: string; title: string | null }) => void) | undefined,
 ): CodeBlockChromeHandlers {
   return {
     /**
@@ -1291,6 +1257,7 @@ function codeBlockPickerHandlers(
      * 而全屏查看器要的也正是那一份 —— 重新渲染一遍既慢，又可能画出不一样的图。
      */
     openViewer: (diagram) => onDiagramOpen?.(diagram),
+    openDocBlock: (ref) => onDocBlockOpen?.(ref),
     closePicker: (token) => {
       // 只有**面板正对着的那个**代码块消失时才关。删掉别的代码块不该把面板带走 ——
       // 用户可能正打算给手里这个换个语言
@@ -1490,7 +1457,12 @@ export async function createMarkdownEditor(
    * 建一次就固定下来。传给插件的是「取它的函数」——
    * 这样插件拿到的是同一个对象，而不是每次调用都新建一个。
    */
-  const codeBlockHandlers = codeBlockPickerHandlers(picker, options.onDiagramOpen, options.resolveDocBlock);
+  const codeBlockHandlers = codeBlockPickerHandlers(
+    picker,
+    options.onDiagramOpen,
+    options.resolveDocBlock,
+    options.onDocBlockOpen,
+  );
 
   /**
    * 块手柄记着的目标块（顶层下标）。
@@ -1804,6 +1776,8 @@ export async function createMarkdownEditor(
     codeBlock: createMarkdownCodeBlock(editor, picker),
 
     blockHandle: createMarkdownBlockHandle(editor, blockTarget, formatting),
+
+    blockTransform: createBlockTransform(editor),
 
     /**
      * 大纲跳转：按「层级 + 标题文字」在文档树里找标题节点。
