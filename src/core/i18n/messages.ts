@@ -30,6 +30,7 @@ export const zhCN = {
   'command.category.view': '视图',
   'command.category.navigate': '导航',
   'command.category.app': '应用',
+  'command.category.diagnostics': '诊断',
 
   // ---- 文件 ---------------------------------------------------------------
   'command.file.open.title': '打开文件',
@@ -65,6 +66,9 @@ export const zhCN = {
 
   // ---- 应用 ---------------------------------------------------------------
   'command.app.settings.title': '设置',
+
+  // ---- 诊断 ---------------------------------------------------------------
+  'command.diagnostics.roundTrip.title': '往返保真自检（保存会改写什么）',
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

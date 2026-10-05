@@ -116,6 +116,8 @@ function PlainTextEditor({
       focus: () => element.focus(),
       // 纯文本没有富文本语义可导出，如实返回 null，由导出层退化为 <pre>
       toHtml: async () => null,
+      // 往返保真自检（P6 第 29 项）：textarea 保存写回的就是原文，往返是恒等
+      roundTrip: async (text) => text,
       search: createTextareaSearch(element),
       getPosition: (): EditorPosition => ({
         offset: element.selectionStart ?? 0,

@@ -124,6 +124,8 @@ function MarkdownEditor({
           focus: () => created.focus(),
           // 语义 HTML 片段。Milkdown 能给出结构，所以这里返回字符串而不是 null
           toHtml: async () => created.toHtml(),
+          // 往返保真自检（P6 第 29 项）：内核动作是同步的，按契约包成 Promise
+          roundTrip: async (text) => created.roundTrip(text),
           search: created.search,
           formatting: created.formatting,
           table: created.table,

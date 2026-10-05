@@ -106,6 +106,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 快捷键、命令、命令面板 | `core/commands/`（能力清单在 `definitions.ts`；**title/category 走 `core/i18n/` 的 `t()`**，见 ADR 0031） |
 | **用户可见文案** | `core/i18n/`（`messages.ts` 目录 + `index.ts` 的 `t()`；key 写错是编译错误，漏 key 回退到 key 本身） |
 | 查找替换的匹配语义 | `core/search/find.ts`（三个内核共用） |
+| **往返保真自检**（保存会改写什么） | `core/fidelity.ts`（行级比对，纯函数）+ `EditorHandle.roundTrip`（内核实现，见 ADR 0033） |
 | **视图偏好（主题 / 侧栏 / 行号 / 位置记忆开关）** | `core/settings.ts`（`localStorage`，逐字段校验）。**设置页只是它的一个界面** —— 加偏好项改这里，别在 `SettingsDialog.tsx` 里另起一份 |
 | **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
 | **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
@@ -525,7 +526,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,294 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,303 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 341.92 kB（gzip 107.53 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -559,8 +560,13 @@ notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mt
 **给命令加默认快捷键仍写在 definitions.ts**；覆盖表是用户偏好，
 `App` 的 effect 负责把 `settings.keybindings` 整表推给注册表。
 
-**最该先做的一件事**：按 ROADMAP 顺序 —— P6 的往返保真度自检（第 29 项，
-基线已量）与 P3-19 标签页切换的内存实测；P7 是发版杂项。
+**P6-29 往返保真度自检已完成（2026-10-05，ADR 0033）**：命令
+`diagnostics.roundTrip`（只读不写），`EditorHandle.roundTrip` 可选契约 +
+`core/fidelity.ts` 行级比对。**「解析 → 序列化」必须由内核实现**（复刻
+trailing 规则），外壳另起 remark 管线量出来的差异是假的。
+
+**最该先做的一件事**：按 ROADMAP 顺序 —— P3-19 标签页切换的内存实测（需先
+量再改）；P7 是发版杂项（版本号三处统一、依赖许可证清单）。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。

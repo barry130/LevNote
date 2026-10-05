@@ -33,7 +33,7 @@ import { history } from '@milkdown/kit/plugin/history';
 import { trailing } from '@milkdown/kit/plugin/trailing';
 import { lift } from '@milkdown/kit/prose/commands';
 import type { Node as ProseNode } from '@milkdown/kit/prose/model';
-import { DOMSerializer } from '@milkdown/kit/prose/model';
+import { DOMSerializer, Fragment } from '@milkdown/kit/prose/model';
 import type { Command, Transaction } from '@milkdown/kit/prose/state';
 import { TextSelection } from '@milkdown/kit/prose/state';
 import { deleteColumn, deleteTable, findTable, isInTable, selectedRect, TableMap, tableNodeTypes } from '@milkdown/kit/prose/tables';
@@ -196,6 +196,12 @@ export interface MarkdownEditorInstance {
   setPosition(position: EditorPosition): void;
   /** 语义 HTML 片段，不含 `<html>` / `<head>`。 */
   toHtml(): string;
+  /**
+   * 往返保真自检（P6 第 29 项）：把一段文本走一遍**本实例**的
+   * 「解析 → 序列化」，回答「打开 → 不改一个字 → 保存，会改写什么」。
+   * 与真实保存路径的对齐细节见实现处的注释。
+   */
+  roundTrip(text: string): string;
   readonly search: EditorSearch;
   readonly formatting: EditorFormatting;
   readonly table: EditorTable;
@@ -1758,6 +1764,35 @@ export async function createMarkdownEditor(
         const container = document.createElement('div');
         container.appendChild(fragment);
         return container.innerHTML;
+      }),
+
+    /**
+     * 往返保真自检（P6 第 29 项）。
+     *
+     * **必须复用实例自己的 parser / serializer**：normalize-ast 插件、
+     * `-` 列表符号、remark-stringify 选项都长在实例上 —— 外壳里另起一条
+     * remark 管线会漏掉这些配置，量出来的差异是假的。
+     *
+     * 结尾还要**复刻 trailing 插件的规则**（最后一个节点不是标题 / 段落时，
+     * 补一个空段落 —— 规则抄自 `@milkdown/plugin-trailing` 的 `shouldAppend`）。
+     * 真实的保存路径（初始文档、`setMarkdown`）都经过那次 appendTransaction，
+     * 不复刻的话，以代码块 / 表格结尾的文档会**漏报**「保存会多出一个空段落」。
+     */
+    roundTrip: (text) =>
+      editor.action((ctx) => {
+        const parse = ctx.get(parserCtx);
+        const serialize = ctx.get(serializerCtx);
+        const doc = parse(text);
+        const lastType = doc.lastChild?.type.name;
+        const needsTrailing = lastType !== undefined && lastType !== 'heading' && lastType !== 'paragraph';
+        const paragraphType = ctx.get(editorViewCtx).state.schema.nodes.paragraph;
+        // schema.nodes.paragraph 在 noUncheckedIndexedAccess 下是可能缺的键 ——
+        // 真缺了说明这个 schema 根本没有段落，trailing 无从谈起，按原文返回
+        const finalDoc =
+          needsTrailing && paragraphType !== undefined
+            ? doc.copy(doc.content.append(Fragment.from(paragraphType.create())))
+            : doc;
+        return serialize(finalDoc);
       }),
 
     search: createMarkdownSearch(editor),

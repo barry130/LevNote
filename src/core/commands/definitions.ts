@@ -9,6 +9,7 @@
 
 import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
+import { describeRoundTrip, formatRoundTripReport } from '../fidelity.js';
 import { t } from '../i18n/index.js';
 import { isDesktop, printHtml } from '../platform/index.js';
 
@@ -83,6 +84,34 @@ async function runPrintExport(ctx: CommandContext): Promise<void> {
 
   if (result.status === 'opened') await ctx.ui.notify(result.message, '打印 / 导出 PDF');
   else await ctx.ui.notify(result.message, '导出失败');
+}
+
+/**
+ * 往返保真自检（P6 第 29 项，ADR 0033）：拿磁盘上的原文走一遍内核自己的
+ * 「解析 → 序列化」，与原文逐行比对，如实报告「不改一个字保存会改写什么」。
+ *
+ * 只读不写 —— 它是给用户知情权的一个诊断动作，不是「修复」：
+ * 报告里的差异是内核**故意保留**的规范化（表格重排之类），改不改由人决定。
+ */
+async function runRoundTripCheck(ctx: CommandContext): Promise<void> {
+  const doc = activeDocument(ctx);
+  if (doc === null) return;
+  const handle = ctx.ui.editor();
+  if (handle?.roundTrip === undefined) return;
+
+  // 比对的基准是**磁盘那份**（savedText），不是当前编辑内容 ——
+  // 用户改过的部分是「他的改动」，不属于「内核会改写什么」这个问题
+  let roundTripped: string;
+  try {
+    roundTripped = await handle.roundTrip(doc.savedText);
+  } catch (thrown) {
+    const reason = thrown instanceof Error ? thrown.message : String(thrown);
+    await ctx.ui.notify(`往返保真自检失败：${reason}`, '往返保真');
+    return;
+  }
+
+  const report = describeRoundTrip(doc.savedText, roundTripped);
+  await ctx.ui.notify(formatRoundTripReport(report), '往返保真');
 }
 
 export const BUILT_IN_COMMANDS: readonly Command[] = [
@@ -341,6 +370,21 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     keybinding: 'Mod+,',
     keywords: ['settings', 'preferences', 'shezhi', 'pianhao'],
     run: (ctx) => ctx.ui.openSettings(),
+  },
+
+  // ---- 诊断 ---------------------------------------------------------------
+  {
+    id: 'diagnostics.roundTrip',
+    title: t('command.diagnostics.roundTrip.title'),
+    category: t('command.category.diagnostics'),
+    keywords: ['roundtrip', 'fidelity', 'diagnostics', 'wangfan', 'baozhen'],
+    // 内核没实现 roundTrip（导图内核）时禁用 —— 这是「没有这个能力」，
+    // 不是「这份文档用不上」，但一致的呈现仍是禁用而非隐藏
+    enabled: (ctx) => {
+      const doc = activeDocument(ctx);
+      return doc !== null && typeof ctx.ui.editor()?.roundTrip === 'function';
+    },
+    run: runRoundTripCheck,
   },
   {
     id: 'ui.escape',

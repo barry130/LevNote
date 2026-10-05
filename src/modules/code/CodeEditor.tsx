@@ -78,6 +78,9 @@ function CodeEditor({
       setValue: (text) => instanceRef.current?.setValue(text),
       focus: () => instanceRef.current?.focus(),
       toHtml: async () => instanceRef.current?.toHtml() ?? null,
+      // 往返保真自检（P6 第 29 项）：代码内核「源码即文档」，保存写回的就是
+      // 原文本身 —— 往返是恒等
+      roundTrip: async (text) => text,
       search: {
         // 转一层而不是直接把实例的 search 交出去：卸载后实例为 null，
         // 而外壳可能还握着这个 handle（React 的清理顺序不保证）。

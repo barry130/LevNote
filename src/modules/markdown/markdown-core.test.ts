@@ -419,3 +419,29 @@ describe('边界情况', () => {
     await expect(roundTrip('---\n')).resolves.toBeDefined();
   });
 });
+
+describe('roundTrip（P6 第 29 项：往返保真自检的内核半边）', () => {
+  it('对已规范化的文本是恒等 —— 自检能报出「零改写」', async () => {
+    // 与初始化规范化后的输出同构：ATX 标题、`-` 列表、普通段落
+    const source = '# 标题\n\n一段正文。\n\n- 甲\n- 乙\n';
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const editor = await createMarkdownEditor({ root, defaultValue: source, onChange: () => undefined });
+
+    expect(editor.roundTrip(source)).toBe(editor.getMarkdown());
+    await editor.destroy();
+  });
+
+  it('文档以代码块结尾时复刻 trailing 规则 —— 补上的空段落与真实保存路径一致', async () => {
+    const source = '```js\nlet a = 1;\n```\n';
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const editor = await createMarkdownEditor({ root, defaultValue: source, onChange: () => undefined });
+
+    // getMarkdown() 是真实保存路径的产物：初始化时 trailing 已经补了空段落。
+    // roundTrip 不经过 dispatch，必须自己复刻同一条规则才不会漏报
+    expect(editor.roundTrip(source)).toBe(editor.getMarkdown());
+    expect(editor.getMarkdown()).toContain('```');
+    await editor.destroy();
+  });
+});
