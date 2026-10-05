@@ -579,8 +579,9 @@ Markdown 内核每空闲实例 ≈ 0.27 MB、CodeMirror ≈ 1.9 MB（V8 堆，N=
 
 **P7-34 依赖许可证清单已完成（2026-10-05）**：`npm run licenses` 生成
 `docs/dependency-licenses.md`（302 个 npm 生产依赖 + 452 个 Rust crates）；
-版本号三处统一为 0.3.23。**项目自己的 LICENSE 文件还没有** —— 那是法律决策，
-留给人类拍板，不要代选。
+版本号三处统一。**项目已采用 MIT 许可证（2026-10-05，用户拍板）**：根目录
+`LICENSE` + `package.json` / `packages/interop-spec/package.json` / `Cargo.toml`
+的 license 元数据，三处版本号随 0.3.25 统一。
 
 **P6-28 块级互操作第一阶段已完成（2026-10-05，ADR 0035）**：**提取为引用 /
 拉平引用**（L3）—— 内核 `EditorHandle.blockTransform` 契约（只有 Markdown 内核实现，
@@ -592,9 +593,9 @@ markdown/mindmap/text 的 reference 引用画成卡片、点击打开（`onDocBl
 （`notes\main.md` → `notes` → 拼成 `/`）—— 解析引用用 `core/path.ts` 的
 `resolveRelative`，不要直接拼。L2 就地编辑与内嵌预览**推迟**，要单独的 ADR。
 
-**最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
-真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、
-P7-36/37（商标与域名）、LICENSE 选型（法律决策）。
+**最该先做的一件事**：P6-28b 引用的就地编辑（L2）—— 先写 ADR 再动手
+（推迟理由见 ADR 0035）。除此之外剩下的都需要真实世界资源：P5-26/27（分发环境）、
+P7-32/33（签名主体）、P7-35（Mac）、P7-36/37（商标与域名）。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。

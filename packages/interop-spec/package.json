@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "轻墨块级互操作规范 v0：doc-block 语法的类型、解析、序列化与校验",
+  "license": "MIT",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {

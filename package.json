@@ -1,9 +1,10 @@
 {
   "name": "qingmo",
   "private": true,
-  "version": "0.3.23",
+  "version": "0.3.25",
   "type": "module",
   "description": "轻墨 — Typora / Notepad++ / 思维导图 / draw.io 四合一的轻量桌面编辑器",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "npm run typecheck && vite build",

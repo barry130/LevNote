@@ -141,4 +141,5 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
   **Typora**（闭源商业软件）、**Notepad++**（GPLv3，任何代码复用都会传染整个项目）。
 - `draw.io` 源码为 Apache-2.0，但**商标另有约定**：不得使用其名称与图标作为产品标识，
   不得以暗示关联或背书的方式使用。UI 中只写「支持 `.drawio` 格式」。
-- 第三方依赖的许可证清单见 `ROADMAP.md` 的 P7 项。
+- 本项目以 **[MIT](LICENSE)** 许可证发布；第三方依赖的许可证分组清单在
+  [`docs/dependency-licenses.md`](docs/dependency-licenses.md)（`npm run licenses` 重新生成）。

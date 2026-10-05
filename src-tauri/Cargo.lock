@@ -2550,7 +2550,7 @@ dependencies = [
 
 [[package]]
 name = "qingmo"
-version = "0.3.23"
+version = "0.3.25"
 dependencies = [
  "chardetng",
  "encoding_rs",

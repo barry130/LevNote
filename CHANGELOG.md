@@ -7,6 +7,14 @@
 
 ---
 
+## [0.3.25] — 2026-10-05
+
+### 新增
+
+- **项目采用 MIT 许可证**：根目录新增 `LICENSE` 文件，`package.json` / `Cargo.toml`
+  补上 license 元数据。第三方依赖的许可证分组清单见
+  [`docs/dependency-licenses.md`](docs/dependency-licenses.md)（升级依赖后 `npm run licenses` 重新生成）。
+
 ## [0.3.24] — 2026-10-05
 
 ### 新增

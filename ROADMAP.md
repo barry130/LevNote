@@ -752,7 +752,7 @@ Rust 侧），前端**没有引入任何新依赖**。
 |---|---|---|---|
 | 32 | macOS 签名与公证 | ⏳ | 需 Apple 开发者账号（99 美元/年），**申请有周期，应提前启动** |
 | 33 | Windows 代码签名（OV / EV） | ⏳ | 需企业主体 |
-| 34 | 依赖许可证清单 | ✅ 2026-10-05 | `npm run licenses` 生成 `docs/dependency-licenses.md`（npm 生产依赖 + Rust crates，按许可证分组）；严格条款自动复核=0，升级依赖后重跑。版本号三处统一为 0.3.23。**缺 LICENSE 文件本身** —— 项目自己的许可证待定（法律决策，未由 AI 代选） |
+| 34 | 依赖许可证清单 | ✅ 2026-10-05 | `npm run licenses` 生成 `docs/dependency-licenses.md`（npm 生产依赖 + Rust crates，按许可证分组）；严格条款自动复核=0，升级依赖后重跑。版本号三处统一。**LICENSE 文件已补**：2026-10-05 采用 **MIT**（用户拍板），根目录 `LICENSE` + `package.json` / `Cargo.toml` license 元数据 |
 | 35 | 每周 macOS 渲染冒烟 | ❌ | 阻塞：需要一台可用的 Mac（ADR 0006） |
 | 36 | 商标查询（第 9 / 42 类） | ⏳ | 中国商标网 |
 | 37 | 域名与名称占用检查 | ⏳ | |
