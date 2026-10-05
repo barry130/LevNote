@@ -920,6 +920,17 @@ body {
   min-height: 0;
 }
 
+/*
+ * 常驻面板的槽位（P3 第 19 项）。`display: contents` 让槽位自己不生成盒子，
+ * 面板的横幅与编辑区直接成为 `workspace-main` 的 flex 成员 —— DOM 上多了
+ * 一层（每个标签一个槽位），布局上与单面板时代完全一致。
+ * 隐藏非活动面板走行内样式 `display: none`（在 PaneSlot 里）：
+ * 行内样式压过这里的 `display: contents`，只在隐藏时生效。
+ */
+.pane-slot {
+  display: contents;
+}
+
 .editor-area {
   display: flex;
   flex-direction: column;

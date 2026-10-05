@@ -144,6 +144,17 @@ export interface PaneRevealRequest {
 
 export interface DocumentPaneProps {
   store: DocumentStore;
+  /**
+   * 这个面板现在是不是活动标签的那一个。
+   *
+   * 面板常驻（P3 第 19 项）之后外壳里同时挂着 N 份面板，非活动的整槽隐藏。
+   * 隐藏要连带两件事：**收起一切浮层与全屏视图**（它们的键盘监听挂在 window
+   * 的捕获阶段，见下方 effect 的注释），以及**不再收「浮层类」上报**
+   * （隐藏的内核不会有人输入，但外部改写之类的路径可能让它重报一次，
+   * 收下来就是一份位置已经失效的浮层状态）。
+   * 内容与位置的上报**不在此列**：内容永远是真相，位置按「谁上报记谁」。
+   */
+  active: boolean;
   wordWrap: boolean;
   /** 代码块是否显示行号。视图偏好，不写进文档。 */
   codeLineNumbers: boolean;
@@ -205,6 +216,7 @@ export interface DocumentPaneProps {
 
 export function DocumentPane({
   store,
+  active,
   wordWrap,
   codeLineNumbers,
   onToggleCodeLineNumbers,
@@ -811,6 +823,57 @@ export function DocumentPane({
   const activeEncodingKey = doc ? encodingKey(doc.encoding, doc.bom) : '';
 
   /**
+   * 隐藏面板不收「浮层类」上报。
+   *
+   * 正常情况下隐藏的内核不会有人输入，但外部改写 → 内容重推这类路径
+   * 会让内核重报一次选区 —— 收下来的浮层状态带着**面板隐藏时算出的坐标**，
+   * 等用户切回来，浮层就画在错误的位置上。判定走 ref：包装器标识必须稳定
+   * （内核把回调存进 ref），真正的开关是「此刻活动吗」。
+   */
+  const activeRef = useRef(active);
+  activeRef.current = active;
+
+  const reportSelection = useCallback((value: SelectionSnapshot | null) => {
+    if (activeRef.current) setSelection(value);
+  }, []);
+  const reportSlash = useCallback((value: SlashState | null) => {
+    if (activeRef.current) setSlash(value);
+  }, []);
+  const reportTable = useCallback((value: TableState | null) => {
+    if (activeRef.current) setTable(value);
+  }, []);
+  const reportCodeBlock = useCallback((value: CodeBlockState | null) => {
+    if (activeRef.current) setCodeBlock(value);
+  }, []);
+  const reportBlockHover = useCallback((value: BlockHandleState | null) => {
+    if (activeRef.current) setBlockHover(value);
+  }, []);
+
+  /**
+   * 面板被隐藏（切到别的标签）时收起一切浮层与全屏视图。
+   *
+   * 浮层的键盘监听挂在 window 的捕获阶段（硬约束 9）—— 面板藏起来
+   * **并不会摘掉那些监听**，不收起的话隐藏面板的菜单会截走活动面板的按键：
+   * 回车先把段落拆开、Esc 把别人的浮层关掉。灯箱与图表全屏同理，
+   * 而且它们本来就是「此刻屏幕上的这一份」，人已经不在这份文档上了。
+   *
+   * 能力标记（`formatting` / `tableOps` / `codeBlockOps` / `blockHandleOps`）
+   * **不清**：那是内核就绪时交出的能力清单，不是浮层状态，
+   * 清了就要等下一次内核重建才恢复。
+   */
+  useEffect(() => {
+    if (active) return;
+    setSelection(null);
+    setSlash(null);
+    setTable(null);
+    setCodeBlock(null);
+    setBlockHover(null);
+    setBlockMenuOpen(false);
+    setLightbox(null);
+    setDiagram(null);
+  }, [active]);
+
+  /**
    * 左栏（不分屏时是唯一一栏）的编辑器元素。
    *
    * 抽成变量而不是写两遍 JSX：分屏与不分屏的**左栏完全相同**，
@@ -834,14 +897,14 @@ export function DocumentPane({
         onReady={handleEditorReady}
         onCursorChange={setCursor}
         onPositionChange={handlePositionChange}
-        onSelectionChange={setSelection}
-        onSlashChange={setSlash}
-        onTableChange={setTable}
-        onCodeBlockChange={setCodeBlock}
+        onSelectionChange={reportSelection}
+        onSlashChange={reportSlash}
+        onTableChange={reportTable}
+        onCodeBlockChange={reportCodeBlock}
         // 只读文档不给手柄：手柄上全是「改文档」的动作，而只读文档里
         // 那些动作会被 schema / 只读视图挡下 —— 用户看到的是一个能点但什么都不发生的菜单。
         // 直接不给（`undefined`）比「给了再禁用每一项」更简单，也更诚实
-        onBlockHandleChange={doc.readonly ? undefined : setBlockHover}
+        onBlockHandleChange={doc.readonly ? undefined : reportBlockHover}
         resolveImageUrl={store.resolveImageUrl}
         resolveDocBlock={store.resolveDocBlock}
         onImagePaste={handleImagePaste}

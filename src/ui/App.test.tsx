@@ -300,12 +300,31 @@ function statusOf(container: HTMLElement): string {
   return container.querySelector('.status-pill')?.textContent?.trim() ?? '';
 }
 
+/**
+ * 活动面板的槽位 —— `.pane-slot` 里没有被行内 `display: none` 藏掉的那一个。
+ *
+ * 面板常驻（P3 第 19 项）之后，切走的标签仍挂在 DOM 里（整槽隐藏），
+ * 状态栏又是每个面板自己画的 footer —— 不先落到可见槽位，
+ * `querySelector` 会按 DOM 顺序摸到**隐藏面板**的状态栏。
+ * 没有任何面板时返回 null（调用方自行决定退回容器级查询）。
+ */
+function activePane(container: HTMLElement): HTMLElement | null {
+  const slots = [...container.querySelectorAll<HTMLElement>('.pane-slot')];
+  return slots.find((el) => el.style.display !== 'none') ?? null;
+}
+
+/** 活动面板的状态栏；没有面板时退回容器级查询（空状态下没有 per-pane 状态栏可查）。 */
+function statusbarOf(container: HTMLElement): HTMLElement | null {
+  const pane = activePane(container);
+  return (pane ?? container).querySelector<HTMLElement>('.statusbar');
+}
+
 function kernelOf(container: HTMLElement): string {
-  return container.querySelector('.statusbar .kernel')?.textContent?.trim() ?? '';
+  return statusbarOf(container)?.querySelector('.kernel')?.textContent?.trim() ?? '';
 }
 
 function statisticsOf(container: HTMLElement): string {
-  return container.querySelector('.statusbar .statistics')?.textContent?.trim() ?? '';
+  return statusbarOf(container)?.querySelector('.statistics')?.textContent?.trim() ?? '';
 }
 
 /**
@@ -1096,9 +1115,20 @@ describe('分屏：源码与预览并排', () => {
 
     await mounted.open('b.md');
 
-    // b 是新打开的文档，默认富文本 —— 没有分屏、更没有 a 的内容
-    expect(splitPanes(mounted.container).length).toBe(0);
-    expect(mounted.container.textContent).not.toContain('甲');
+    // b 是新打开的文档，默认富文本 —— 没有分屏、更没有 a 的内容。
+    // 面板常驻（P3 第 19 项）之后 a 的面板还挂在 DOM 里（撤销栈一并保留），
+    // 但整槽 `display: none`：「不在屏幕上」的判据从「不在 DOM 里」
+    // 变成了「不可见」—— 查询必须先落到可见槽位上。
+    const visible = activePane(mounted.container);
+    expect(visible).not.toBeNull();
+    expect(splitPanes(visible!).length).toBe(0);
+    expect(visible!.textContent).not.toContain('甲');
+
+    // 隐藏槽位原样保留着 a 的分屏预览 —— 这是常驻的代价，也是常驻的意义
+    const slots = [...mounted.container.querySelectorAll<HTMLElement>('.pane-slot')];
+    expect(slots.length).toBe(2);
+    expect(slots[0]!.style.display).toBe('none');
+    expect(slots[1]!.style.display).toBe('');
   });
 
   it('右栏的预览不产生浮层工具条 —— 在只读渲染里选中文字不该弹出「加粗」', async () => {
@@ -1291,6 +1321,67 @@ describe('状态栏统计', () => {
     });
     await settle();
     expect(statisticsOf(mounted.container)).toBe('1 行 · 1 字 · 1 字符 · 约 1 分钟');
+  });
+});
+
+describe('面板常驻（P3 第 19 项）', () => {
+  /**
+   * 常驻的目标是「切回来就是离开时的样子」：撤销栈、光标、滚动都留在内核里。
+   * 内存实测（Markdown ≈ 0.27 MB / CodeMirror ≈ 1.9 MB 每空闲实例，见 ADR 0034）
+   * 回答了「敢不敢常驻」；这里钉住的是**行为**本身：
+   * 切走的面板不销毁（同一个编辑器 DOM 节点）、它的浮层会被收起
+   * （浮层键盘监听挂在 window 捕获阶段，不收起会截走活动面板的按键）。
+   */
+  it('切走再切回来，编辑器还是同一个实例 —— 内容原样，内核没有重建', async () => {
+    mounted = await mount((p) => {
+      p.put('a.md', '甲文\n');
+      p.put('b.md', '乙文\n');
+    });
+
+    await mounted.open('a.md');
+    const editable = activePane(mounted.container)!.querySelector<HTMLElement>('.qm-editor .ProseMirror');
+    expect(editable).not.toBeNull();
+    await act(async () => {
+      await typeInto(editable!, '改');
+    });
+
+    await mounted.open('b.md');
+    const first = mounted.workspace.getSnapshot().tabs[0];
+    await act(async () => {
+      mounted?.workspace.activate(first!.id);
+    });
+    await settle();
+
+    // 同一个 DOM 节点 = 内核没有重建 = 撤销栈与光标原样保留
+    const editableAfter = activePane(mounted.container)!.querySelector<HTMLElement>('.qm-editor .ProseMirror');
+    expect(editableAfter).not.toBeNull();
+    expect(editableAfter).toBe(editable);
+    expect(editableAfter!.textContent).toContain('甲文');
+  });
+
+  it('切走时上一份文档的浮层被收起 —— 隐藏面板不许截走活动面板的按键', async () => {
+    mounted = await mount((p) => {
+      p.put('a.md', '正文 abc 结尾\n');
+      p.put('b.md', '乙文\n');
+    });
+
+    await mounted.open('a.md');
+    await selectText(mounted.container, 'abc');
+    expect(toolbarOf(mounted.container)).not.toBeNull();
+
+    await mounted.open('b.md');
+    // a 的面板还挂着（常驻），但它刚才报上来的选区浮层必须收掉：
+    // 浮层的键盘监听挂在 window 捕获阶段（硬约束 9），
+    // 留着的话用户在 b 里按 Esc / 回车，先响应的是藏在 a 里的那个浮层
+    expect(toolbarOf(mounted.container)).toBeNull();
+
+    // 切回 a，浮层不会凭空恢复 —— 它等的是一次新的选区
+    const first = mounted.workspace.getSnapshot().tabs[0];
+    await act(async () => {
+      mounted?.workspace.activate(first!.id);
+    });
+    await settle();
+    expect(toolbarOf(mounted.container)).toBeNull();
   });
 });
 
@@ -2469,7 +2560,8 @@ describe('图片：粘贴落盘 + 显示 + 灯箱', () => {
 
 /** 状态栏里的「第 N 行，第 M 列」。内核不报光标时整段隐藏，所以读不到就是空串。 */
 function cursorOf(container: HTMLElement): string {
-  const spans = [...container.querySelectorAll('.statusbar span')];
+  const bar = statusbarOf(container);
+  const spans = [...(bar?.querySelectorAll('span') ?? [])];
   return spans.find((item) => item.textContent?.includes('行，第'))?.textContent?.trim() ?? '';
 }
 

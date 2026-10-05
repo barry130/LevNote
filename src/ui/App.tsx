@@ -30,6 +30,7 @@ import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
 import { basename, isMarkdownPath } from '../core/path.js';
+import type { DocumentStore } from '../core/document/store.js';
 import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, watchFiles } from '../core/platform/index.js';
 import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
@@ -52,7 +53,7 @@ import {
   type ViewSettings,
 } from '../core/settings.js';
 import { applyTheme, cycleTheme, resolveTheme, systemPrefersDark, type ThemePreference } from '../core/theme/theme.js';
-import type { WorkspaceStore } from '../core/workspace/store.js';
+import type { TabSummary, WorkspaceStore } from '../core/workspace/store.js';
 import {
   editorRegistrationFailures,
   registerBuiltInEditors,
@@ -144,6 +145,83 @@ export interface AppProps {
   searcher?: WorkspaceSearcher;
 }
 
+/**
+ * 一个常驻面板的槽位：把 `DocumentPane` 包起来，负责三件「每个面板各自」的事。
+ *
+ * 1. **隐藏**：非活动面板整槽 `display: none`。用行内样式而不是类，
+ *    因为外壳样式表里 `.pane-slot` 是 `display: contents`（让面板的横幅与
+ *    编辑区直接成为 `workspace-main` 的 flex 成员，DOM 层级与单面板时代一致），
+ *    行内样式压过它只改这一处，不新开一个「谁赢了看打包顺序」的战场（硬约束 13）。
+ * 2. **按面板分桶的汇报**：`onHandle` / `onViewInfoChange` 必须是**按槽位稳定**
+ *    的引用 —— `DocumentPane` 把它们挂在 effect 依赖里（卸载清理靠它们上报 null），
+ *    引用一变就会反复触发「上报 null」。所以在这里用 `useCallback` 固定，
+ *    带上 `tab.id` 让外壳能分清是哪个面板在说话。
+ * 3. **位置记忆逐面板取**：`initialPosition` 是这份文档自己的位置，
+ *    不是「当前激活文档」的 —— 挂载发生在首次激活那一刻，两者天然一致。
+ */
+interface PaneSlotProps {
+  tab: TabSummary;
+  active: boolean;
+  store: DocumentStore;
+  wordWrap: boolean;
+  codeLineNumbers: boolean;
+  onToggleCodeLineNumbers: (next: boolean) => void;
+  splitRatio: number;
+  onSplitRatioChange: (next: number) => void;
+  initialPosition: EditorPosition | null;
+  revealRequest: PaneRevealRequest | null;
+  onRevealResult: (tick: number, applied: boolean) => void;
+  reportHandle: (paneId: number, handle: EditorHandle | null) => void;
+  reportViewInfo: (paneId: number, info: PaneViewInfo | null) => void;
+  rememberPositionAt: (path: string, position: EditorPosition) => void;
+}
+
+function PaneSlot({
+  tab,
+  active,
+  store,
+  wordWrap,
+  codeLineNumbers,
+  onToggleCodeLineNumbers,
+  splitRatio,
+  onSplitRatioChange,
+  initialPosition,
+  revealRequest,
+  onRevealResult,
+  reportHandle,
+  reportViewInfo,
+  rememberPositionAt,
+}: PaneSlotProps) {
+  const onHandle = useCallback((handle: EditorHandle | null) => reportHandle(tab.id, handle), [reportHandle, tab.id]);
+  const onViewInfoChange = useCallback(
+    (info: PaneViewInfo | null) => reportViewInfo(tab.id, info),
+    [reportViewInfo, tab.id],
+  );
+  const onPositionChange = useCallback(
+    (position: EditorPosition) => rememberPositionAt(tab.path, position),
+    [rememberPositionAt, tab.path],
+  );
+  return (
+    <div className="pane-slot" style={active ? undefined : { display: 'none' }}>
+      <DocumentPane
+        store={store}
+        active={active}
+        wordWrap={wordWrap}
+        codeLineNumbers={codeLineNumbers}
+        onToggleCodeLineNumbers={onToggleCodeLineNumbers}
+        splitRatio={splitRatio}
+        onSplitRatioChange={onSplitRatioChange}
+        onHandle={onHandle}
+        onViewInfoChange={onViewInfoChange}
+        initialPosition={initialPosition}
+        onPositionChange={onPositionChange}
+        revealRequest={revealRequest}
+        onRevealResult={onRevealResult}
+      />
+    </div>
+  );
+}
+
 export function App({ workspace, provider, initialSettings, searcher: injectedSearcher }: AppProps) {
   const state = useSyncExternalStore(workspace.subscribe, workspace.getSnapshot);
   const { tabs, activeId, tree, openError } = state;
@@ -207,6 +285,71 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   const activeStore = activeId === null ? null : workspace.storeOf(activeId);
   const activeTab = tabs.find((tab) => tab.id === activeId) ?? null;
   const activePath = activeTab?.path ?? null;
+
+  // ---- 面板常驻（P3 第 19 项）-------------------------------------------
+
+  /**
+   * 每个面板的句柄与视图信息，按标签 id 分桶。
+   *
+   * 面板常驻之后外壳里同时挂着 N 份内核，而命令面（保存 / 查找 / 格式化）
+   * 与「能不能切源码」只应该属于**活动的那一份**。每个面板都经
+   * `reportHandle` / `reportViewInfo` 汇报：先进桶，再只有活动面板那一份
+   * 进入外壳状态。少了这道分发，「关闭一个后台标签」的卸载清理
+   * （面板卸载时上报 null）会把活动面板的句柄一起清掉 —— 查找栏当场失灵。
+   */
+  const handlesRef = useRef(new Map<number, EditorHandle>());
+  const infosRef = useRef(new Map<number, PaneViewInfo>());
+  /** 汇报回调是稳定引用，读「现在谁活动」走 ref（与 `revealRequestRef` 同一条理由）。 */
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
+
+  /**
+   * 已经访问过的标签 —— 这些标签的面板**常驻**（P3 第 19 项）。
+   *
+   * 面板常驻 = 切走的标签不再卸载，内核（撤销栈、光标、滚动）原样保留，
+   * 切回来就是离开时的样子。为什么不全部挂载：会话恢复一次带出十个标签的话，
+   * 启动就要付十份内核创建的成本；「访问过才常驻」让启动只付活动标签那一份，
+   * 而撤销栈本来就只可能在访问过的标签里积累。
+   *
+   * 内存实测（2026-10-05，见 ADR 0034）：空闲内核每实例 Markdown ≈ 0.27 MB、
+   * CodeMirror ≈ 1.9 MB（V8 堆），几十个标签在可接受范围 —— 这是「敢常驻」的依据。
+   */
+  const [visitedIds, setVisitedIds] = useState<ReadonlySet<number>>(() => new Set());
+  if (activeId !== null && !visitedIds.has(activeId)) {
+    // 渲染期更新（React 官方认可的「从 props/state 派生」写法）：
+    // 必须与 activeId 在同一次提交里生效，否则「切到一个没去过的标签」的
+    // 第一帧会因为没有面板可渲染而闪一下空状态，面板挂载也被推迟一帧。
+    setVisitedIds((previous) => {
+      if (previous.has(activeId)) return previous;
+      const next = new Set(previous);
+      next.add(activeId);
+      return next;
+    });
+  }
+
+  const reportHandle = useCallback((paneId: number, next: EditorHandle | null) => {
+    if (next === null) handlesRef.current.delete(paneId);
+    else handlesRef.current.set(paneId, next);
+    if (paneId !== activeIdRef.current) return;
+    handleRef.current = next;
+    setHandle(next);
+  }, []);
+
+  const reportViewInfo = useCallback((paneId: number, info: PaneViewInfo | null) => {
+    if (info === null) infosRef.current.delete(paneId);
+    else infosRef.current.set(paneId, info);
+    if (paneId !== activeIdRef.current) return;
+    setPaneInfo(info);
+  }, []);
+
+  // 激活标签变化时，把命令面与视图信息换成新活动面板桶里那一份。
+  // 常驻面板被重新激活时内核没有重建、**不会重新汇报** —— 必须主动来取。
+  useEffect(() => {
+    const next = activeId === null ? null : (handlesRef.current.get(activeId) ?? null);
+    handleRef.current = next;
+    setHandle(next);
+    setPaneInfo(activeId === null ? null : (infosRef.current.get(activeId) ?? null));
+  }, [activeId]);
 
   // ---- 工作区检索 -------------------------------------------------------
 
@@ -364,16 +507,6 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   positionsRef.current ??= loadPositions(storage);
   const positionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /**
-   * 位置上报时要往哪份文档上记。
-   *
-   * 用 ref 而不是把它塞进 `onPositionChange` 的依赖：后者一变，
-   * 面板那边虽然用 ref 转发了，但「切标签页」本来就会重建面板 ——
-   * 没必要再多一次回调标识变化。
-   */
-  const activePathRef = useRef(activePath);
-  activePathRef.current = activePath;
-
   const rememberPositions = settings.rememberPositions;
 
   const flushPositions = useCallback(() => {
@@ -384,11 +517,17 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     savePositions(storage, positionsRef.current ?? EMPTY_POSITIONS);
   }, [storage]);
 
-  const onPositionChange = useCallback(
-    (position: EditorPosition) => {
+  /**
+   * 把一份位置记到**指定的路径**上。
+   *
+   * 路径由调用方（面板槽位）给出，而不是在这里读「当前激活的文档」：
+   * 面板常驻之后（P3 第 19 项），隐藏面板在极端情况下也会上报位置
+   * （比如外部改写触发内核重建选区），按「谁上报记谁」才不会把
+   * 隐藏文档的位置写到活动文档头上。
+   */
+  const rememberPositionAt = useCallback(
+    (path: string, position: EditorPosition) => {
       if (!rememberPositions) return;
-      const path = activePathRef.current;
-      if (path === null) return;
 
       positionsRef.current = rememberPosition(positionsRef.current ?? EMPTY_POSITIONS, path, position);
 
@@ -431,16 +570,10 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   }, [activePath, flushPositions]);
 
   /**
-   * 这份文档上次离开时的位置。
-   *
-   * 依赖只写 `activePath`：`positionsRef` 是 ref，它的变化不会触发重算，
-   * 但**也不需要** —— 面板是按 `activeId` 挂载的，切回来时这个 useMemo
-   * 会跟着 `activePath` 重新求值，读到的一定是最新的那份。
+   * 「上次读到哪儿」现在由 `PaneSlot` 逐面板去取（`positionsRef.current?.[tab.path]`），
+   * 不再有一个全局的 `initialPosition`：面板常驻之后每份文档都有自己的挂载时刻，
+   * 挂载那一刻 `activePath` 就是它自己，逐面板取值与「当时激活的是谁」天然一致。
    */
-  const initialPosition = useMemo(
-    () => (rememberPositions && activePath !== null ? (positionsRef.current?.[activePath] ?? null) : null),
-    [activePath, rememberPositions],
-  );
 
   const clearPositions = useCallback(() => {
     positionsRef.current = EMPTY_POSITIONS;
@@ -648,15 +781,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   }, [settings.theme, systemDark]);
 
   // ---- 编辑器命令面 -----------------------------------------------------
-
-  const onHandle = useCallback((next: EditorHandle | null) => {
-    handleRef.current = next;
-    setHandle(next);
-  }, []);
-
-  const onViewInfoChange = useCallback((info: PaneViewInfo | null) => {
-    setPaneInfo(info);
-  }, []);
+  // 面板的汇报入口已改成按面板分桶的 `reportHandle` / `reportViewInfo`
+  // （见「面板常驻」一节），这里不再有单一面板的回调。
 
   const closeActiveTab = useCallback(() => {
     void (async () => {
@@ -973,6 +1099,21 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
   const sidebarWidth = liveSidebarWidth ?? settings.sidebarWidth;
 
+  /**
+   * 常驻面板 = 访问过、还开着的标签。`storeOf` 类型上允许 null（store 与 tab
+   * 同生共死，实际不会），滤掉以防万一 —— 面板组件要求非空。
+   */
+  const mountedPanes = useMemo(
+    () =>
+      tabs
+        .filter((tab) => visitedIds.has(tab.id))
+        .flatMap((tab) => {
+          const store = workspace.storeOf(tab.id);
+          return store === null ? [] : [{ tab, store }];
+        }),
+    [tabs, visitedIds, workspace],
+  );
+
   return (
     <div className="shell">
       <header className="titlebar">
@@ -1138,24 +1279,31 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         )}
 
         <div className="workspace-main">
-          {activeStore !== null ? (
-            <DocumentPane
-              // 换标签页就换一个面板实例：内核与文档是一对一的，
-              // 让它们跟着标签页走比在同一个面板里换内核安全得多
-              key={activeId}
-              store={activeStore}
-              wordWrap={settings.wordWrap}
-              codeLineNumbers={settings.codeLineNumbers}
-              onToggleCodeLineNumbers={(next) => update({ codeLineNumbers: next })}
-              splitRatio={settings.splitRatio}
-              onSplitRatioChange={(next) => update({ splitRatio: next })}
-              onHandle={onHandle}
-              onViewInfoChange={onViewInfoChange}
-              initialPosition={initialPosition}
-              onPositionChange={onPositionChange}
-              revealRequest={revealRequest}
-              onRevealResult={handleRevealResult}
-            />
+          {mountedPanes.length > 0 ? (
+            /*
+              面板常驻（P3 第 19 项）：每个访问过的标签一个槽位，非活动的整槽隐藏。
+              切标签页不再销毁内核 —— 撤销栈、光标、滚动原样保留（这正是本项的目标），
+              代价是常驻内存，实测数字与「为什么不全部挂载」见 `visitedIds` 的注释与 ADR 0034。
+            */
+            mountedPanes.map(({ tab, store }) => (
+              <PaneSlot
+                key={tab.id}
+                tab={tab}
+                active={tab.id === activeId}
+                store={store}
+                wordWrap={settings.wordWrap}
+                codeLineNumbers={settings.codeLineNumbers}
+                onToggleCodeLineNumbers={(next) => update({ codeLineNumbers: next })}
+                splitRatio={settings.splitRatio}
+                onSplitRatioChange={(next) => update({ splitRatio: next })}
+                initialPosition={rememberPositions ? (positionsRef.current?.[tab.path] ?? null) : null}
+                revealRequest={revealRequest}
+                onRevealResult={handleRevealResult}
+                reportHandle={reportHandle}
+                reportViewInfo={reportViewInfo}
+                rememberPositionAt={rememberPositionAt}
+              />
+            ))
           ) : restoring ? (
             /*
               恢复中。**不能省**：恢复要逐个读磁盘上的文件，那段时间 `activeId`

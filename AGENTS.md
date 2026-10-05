@@ -137,6 +137,8 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
 | **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
+| **依赖许可证清单** | `npm run licenses`（`scripts/gen-license-report.mjs`）→ `docs/dependency-licenses.md`。**生成物不要手改**：升级依赖后重跑，严格条款自动复核（双许可可选宽松支不列）。npm 侧只统计生产依赖 |
+| **面板常驻（标签切换不销毁内核）** | `ui/App.tsx` 的 `PaneSlot` + `visitedIds`（访问过才常驻，ADR 0034）。**句柄按面板分桶**（`reportHandle` / `reportViewInfo`）；隐藏面板收浮层的契约在 `DocumentPane` 的 `active` prop。`initialPosition` 逐面板取，不再有全局的 |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
 | 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
 | **内核怎么被加载与注册** | `modules/index.ts`（**动态 import**，ADR 0028）。三个内核按 markdown → mindmap → code 逐个 await 后注册（顺序即优先级，与解析时序无关）；单个内核加载失败记进 `editorRegistrationFailures()`，外壳出横幅但启动照常。注册由 `main.tsx` 在**首帧之前** await —— 表还空着就渲染，`.md` 会被静默兜到纯文本。兜底内核（plaintext）保持静态：最后防线不能自己也是异步的 |
@@ -526,7 +528,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,303 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,305 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 341.92 kB（gzip 107.53 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -565,8 +567,23 @@ notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mt
 `core/fidelity.ts` 行级比对。**「解析 → 序列化」必须由内核实现**（复刻
 trailing 规则），外壳另起 remark 管线量出来的差异是假的。
 
-**最该先做的一件事**：按 ROADMAP 顺序 —— P3-19 标签页切换的内存实测（需先
-量再改）；P7 是发版杂项（版本号三处统一、依赖许可证清单）。
+**P3-19 面板常驻已完成（2026-10-05，ADR 0034）**：先实测后改 ——
+Markdown 内核每空闲实例 ≈ 0.27 MB、CodeMirror ≈ 1.9 MB（V8 堆，N=30 采样）。
+**访问过的标签页面板常驻**（`PaneSlot` + `DocumentPane` 的 `active` prop），
+切回即离开时的样子（撤销栈、光标、滚动、分屏状态）。两条新红线：
+**句柄与视图信息按面板分桶**（`reportHandle` / `reportViewInfo`，否则关一个
+后台标签会把活动面板的句柄一起清掉）；**隐藏面板必须收浮层、不收浮层上报**
+（浮层键盘监听在 window 捕获阶段，不收起会截走活动标签的按键）。
+内核永远不在隐藏状态下创建（挂载发生在首次激活那一刻，测量才不会全 0）。
+
+**P7-34 依赖许可证清单已完成（2026-10-05）**：`npm run licenses` 生成
+`docs/dependency-licenses.md`（302 个 npm 生产依赖 + 452 个 Rust crates）；
+版本号三处统一为 0.3.23。**项目自己的 LICENSE 文件还没有** —— 那是法律决策，
+留给人类拍板，不要代选。
+
+**最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
+真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、
+P7-36/37（商标与域名）、LICENSE 选型（法律决策）。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。
