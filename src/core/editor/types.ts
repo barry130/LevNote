@@ -678,6 +678,41 @@ export interface DiagramView {
 }
 
 /**
+ * 一份 doc-block 引用的**结构摘要**（P6 第 28 项 L2，ADR 0036）。
+ *
+ * 判别联合：内核按 `kind` 决定画什么，各变体的字段就是它要画的全部数据。
+ * 计算在外壳（`core/document/block-preview.ts`）—— 文件是外壳的领域，
+ * 内核只画；所以读不到、解析失败也走 `kind: 'error'` **作为数据回来**，
+ * 由内核如实画出原因（硬约束 2），而不是让外壳再开一条报错通道。
+ *
+ * 刻意**没有全文渲染**：markdown 显示与编辑器不一样的「半个渲染结果」
+ * 比不显示更糟，结构摘要是如实的话（ADR 0036 决策 3）。
+ */
+export type DocBlockPreview =
+  | {
+      readonly kind: 'markdown';
+      readonly wordCount: number;
+      /** 标题树（已剥行内标记，最多 8 条）。 */
+      readonly headings: readonly { readonly level: number; readonly text: string }[];
+    }
+  | {
+      readonly kind: 'text';
+      readonly lineCount: number;
+      /** 首 40 行纯文本片段（不高亮 —— 片段只用于「认出这是哪个文件」）。 */
+      readonly snippet: string;
+    }
+  | {
+      readonly kind: 'mindmap';
+      readonly nodeCount: number;
+      readonly rootTitle: string;
+    }
+  | {
+      readonly kind: 'error';
+      /** 给用户看的原因。 */
+      readonly reason: string;
+    };
+
+/**
  * 挂载一个内核所需的全部输入。
  *
  * **回调一律用属性签名**（`onChange: (v: string) => void`），不用方法简写
@@ -838,6 +873,29 @@ export interface EditorMountProps {
    * 因为只有外壳知道文档在哪。
    */
   onDocBlockOpen?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
+   * 用户点了引用卡片上的「就地编辑」（P6 第 28 项 L2，ADR 0036）——
+   * 「把被引用的文档在同一面板里打开来改，改完能一键回来」。
+   *
+   * 与 `onDocBlockOpen` 的差别只在**导航方式**：普通打开是「新标签页」，
+   * 就地编辑是「同面板钻取 + 返回栈」（外壳记下来路，标签栏出现返回 chip）。
+   * 编辑本身走的都是被引用文档自己的真实文档路径 —— 单一编辑面不变量
+   * 不因入口不同而改变。
+   *
+   * 不实现时按钮照画，点了没有反应？不 —— 内核在没挂这个回调时**不画**
+   * 这个按钮（能力缺失不假装存在）。
+   */
+  onDocBlockEditInPlace?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
+   * 引用卡片的「预览」展开要的**结构摘要**（ADR 0036 决策 3）。
+   *
+   * 分工与 `resolveImageUrl` 同款：内核只画，数据外壳算 —— 被引用文件在磁盘上，
+   * 读文件是外壳的领域。返回 null 表示外壳没挂这个能力（卡片就不画预览按钮）；
+   * 读不到、解析失败返回 `kind: 'error'` 变体，内核如实画出原因。
+   *
+   * 摘要**不缓存**：展开即读，笔记场景的文件都很小，缓存只会带来过期风险。
+   */
+  resolveDocBlockPreview?: (ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>;
   /**
    * 光标或滚动位置变了（位置记忆）。
    *

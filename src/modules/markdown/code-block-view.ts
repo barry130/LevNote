@@ -65,7 +65,7 @@ import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state';
 import type { EditorView, NodeView, ViewMutationRecord } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
 
-import type { SelectionRect } from '../../core/editor/types.js';
+import type { DocBlockPreview, SelectionRect } from '../../core/editor/types.js';
 import { referencedDiagramSrc, parseDocBlock } from '../../core/docblock.js';
 import { missingStencilLibs } from '../../core/drawio.js';
 import { renderDrawio } from '../../core/drawio-render.js';
@@ -148,6 +148,19 @@ export interface CodeBlockChromeHandlers {
    * 「src 相对谁」由外壳用当前文档目录换算（与 `resolveDiagram` 同一条分工）。
    */
   readonly openDocBlock?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
+   * 用户点了卡片上的「就地编辑」（P6 第 28 项 L2，ADR 0036）——
+   * 「把被引用的文档在同一面板里打开来改」。与 `openDocBlock` 的差别只在
+   * 导航方式（钻取 + 返回栈），编辑走的都是被引用文档自己的真实路径。
+   */
+  readonly editDocBlockInPlace?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
+   * 卡片「预览」展开要的**结构摘要**（ADR 0036 决策 3）。
+   *
+   * 与 `resolveDiagram` 同一条分工：文件是外壳的领域，内核只画。
+   * 读不到、解析失败以 `kind: 'error'` 作为**数据**回来，照样要画出来。
+   */
+  readonly resolveDocBlockPreview?: (ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>;
   /**
    * 语言标签所在的代码块从文档里消失了（被删掉、或整篇被替换）。
    *
@@ -239,6 +252,12 @@ class CodeBlockView implements NodeView {
   private diagramSource: string | null = null;
   /** 竞态令牌 —— 与 ImageView / MathView 同一个坑：先发的请求后回来会盖住新的。 */
   private token = 0;
+  /** 引用卡片的摘要展开了吗。重画卡片（源码变过）就收起 —— 摘要对应的是那一刻。 */
+  private previewOpen = false;
+  /** 摘要请求的竞态令牌（与 `token` 分开：互不覆盖对方的在途请求）。 */
+  private previewToken = 0;
+  /** 当前挂着的摘要元素。`null` = 没展开。 */
+  private previewEl: HTMLElement | null = null;
 
   constructor(
     node: ProseNode,
@@ -664,11 +683,20 @@ class CodeBlockView implements NodeView {
    *
    * 属性区有问题时如实画成带原因的说明，**绝不装作正常**：
    * 缺 `src` 的引用点开了也是空白，那是「静默降级」。
+   *
+   * 卡片是 `div` 而不是整块可点的 `button`（第二版起）：动作到三个之后
+   * button 里不能再嵌 button —— 主区（点 = 打开）+ 动作行（预览 / 就地编辑）
+   * 分开画（ADR 0036 决策 4）。动作按钮**只在对应能力真的挂着时才画**：
+   * 一个点下去没有反应的按钮是「假按钮」，比不画更糟。
    */
   private renderRefCard(source: string): void {
     this.painted = { kind: 'card', source };
     this.svg = null;
     this.syncZoom();
+    // 重画 = 源码变过。展开着的摘要对应的是上一份属性，收起（想看再展开，
+    // 摘要本来就是展开即读的）
+    this.previewOpen = false;
+    this.previewToken += 1;
 
     const parsed = parseDocBlock(source);
     const attrs = parsed.attrs;
@@ -687,39 +715,189 @@ class CodeBlockView implements NodeView {
     this.diagram.classList.remove('is-loading', 'is-failed');
     this.diagram.classList.add('is-ok');
 
-    const card = document.createElement('button');
-    card.type = 'button';
+    const ref = { src: attrs.src, kind: attrs.kind ?? 'text', title: attrs.title };
+    const handlers = this.getHandlers();
+
+    const card = document.createElement('div');
     card.className = 'qm-docref-card';
+
+    // 主区：整块可点 = 打开被引用的文档（与第一版行为一致）。
+    // 硬约束 11 的正路：监听挂在内核自己造的元素上，外壳经契约收事件；
+    // 点源码区仍然是进源码编辑，互不干扰。
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'qm-docref-main';
 
     const badge = document.createElement('span');
     badge.className = 'qm-docref-kind';
-    badge.textContent = attrs.kind ?? 'text';
-    card.appendChild(badge);
+    badge.textContent = ref.kind;
+    main.appendChild(badge);
 
     const title = document.createElement('span');
     title.className = 'qm-docref-title';
-    title.textContent = attrs.title ?? attrs.src;
-    card.appendChild(title);
+    title.textContent = ref.title ?? ref.src;
+    main.appendChild(title);
 
     const from = document.createElement('span');
     from.className = 'qm-docref-src';
-    from.textContent = `来自 ${attrs.src}`;
-    card.appendChild(from);
+    from.textContent = `来自 ${ref.src}`;
+    main.appendChild(from);
 
-    // 硬约束 11 的正路：监听挂在内核自己造的元素上，外壳经契约收事件。
-    // 点卡片 = 打开被引用的文档；点源码区仍然是进源码编辑，互不干扰。
-    card.addEventListener('click', (event) => {
+    main.addEventListener('click', (event) => {
       event.preventDefault();
-      // 卡片在图区里，图区只有「光标不在块里」时显示；点击不会抢走编辑焦点
-      this.getHandlers()?.openDocBlock?.({
-        src: attrs.src ?? '',
-        kind: attrs.kind ?? 'text',
-        title: attrs.title,
-      });
+      // 卡片在图区里，图区只有「光标不在块里」时显示；点击不会抢走编辑焦点。
+      // 派发时**现问** getHandlers（与第一版一致）：渲染时的快照只用来决定
+      // 画不画按钮，不拿来派发
+      this.getHandlers()?.openDocBlock?.(ref);
     });
+    card.appendChild(main);
+
+    const actions = document.createElement('div');
+    actions.className = 'qm-docref-actions';
+
+    if (handlers?.resolveDocBlockPreview !== undefined) {
+      const preview = document.createElement('button');
+      preview.type = 'button';
+      preview.className = 'qm-docref-action';
+      preview.textContent = '预览';
+      // 坑 9 的配套：不拦掉 mousedown，焦点先挪到按钮上，ProseMirror 的选区
+      // 随之丢掉 —— 卡片虽然在「非编辑」形态，同一条纪律不豁免
+      preview.addEventListener('mousedown', (event) => event.preventDefault());
+      preview.addEventListener('click', (event) => {
+        event.preventDefault();
+        // 摘要只要 src + kind（title 是卡片展示用的）—— 契约的字段面就给它多少
+        this.togglePreview({ src: ref.src, kind: ref.kind });
+      });
+      actions.appendChild(preview);
+    }
+
+    if (handlers?.editDocBlockInPlace !== undefined) {
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'qm-docref-action';
+      edit.textContent = '就地编辑';
+      edit.addEventListener('mousedown', (event) => event.preventDefault());
+      edit.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.getHandlers()?.editDocBlockInPlace?.(ref);
+      });
+      actions.appendChild(edit);
+    }
+
+    if (actions.childElementCount > 0) card.appendChild(actions);
 
     this.diagram.replaceChildren(card);
     this.syncMode();
+  }
+
+  /**
+   * 展开 / 收起引用摘要。
+   *
+   * 摘要是异步的（外壳要读文件），所以竞态令牌照上 —— 收起再展开、
+   * 或者摘要没回来卡片就重画了，先发的旧响应都不能盖住新状态。
+   * 等待期间先画「正在读」：点了立刻有反应，比转圈半天什么都看不见强。
+   */
+  private togglePreview(ref: { src: string; kind: string }): void {
+    const handlers = this.getHandlers();
+    if (handlers === undefined) return;
+
+    if (this.previewOpen) {
+      this.previewOpen = false;
+      this.previewToken += 1;
+      this.paintPreview();
+      return;
+    }
+    if (handlers.resolveDocBlockPreview === undefined) return;
+
+    this.previewOpen = true;
+    const mine = (this.previewToken += 1);
+    this.paintPreview();
+
+    void handlers
+      .resolveDocBlockPreview(ref)
+      .catch((thrown: unknown): DocBlockPreview => ({
+        kind: 'error',
+        reason: thrown instanceof Error ? thrown.message : String(thrown),
+      }))
+      .then((preview) => {
+        if (!this.alive || mine !== this.previewToken) return;
+        // null = 外壳此刻给不出摘要（按钮画了之后能力被摘掉）。收起比
+        // 画一个空的框诚实
+        if (preview === null) {
+          this.previewOpen = false;
+          this.paintPreview();
+          return;
+        }
+        this.paintPreview(preview);
+      });
+  }
+
+  /**
+   * 按当前 `previewOpen` 画（或摘掉）摘要区。
+   *
+   * 摘要挂在卡片**下面**（同一个 `diagram` 容器里），收起就是把它摘掉 ——
+   * 卡片本身不动，展开收起不重画整张卡片。
+   */
+  private paintPreview(preview?: DocBlockPreview): void {
+    if (this.previewEl !== null) {
+      this.previewEl.remove();
+      this.previewEl = null;
+    }
+    if (!this.previewOpen) return;
+
+    const el = document.createElement('div');
+    el.className = 'qm-docref-preview';
+
+    if (preview === undefined) {
+      el.classList.add('is-loading');
+      el.textContent = '正在读摘要……';
+    } else if (preview.kind === 'error') {
+      el.classList.add('is-failed');
+      el.textContent = preview.reason;
+    } else if (preview.kind === 'markdown') {
+      const meta = document.createElement('div');
+      meta.className = 'qm-docref-preview-meta';
+      meta.textContent = `约 ${preview.wordCount} 字`;
+      el.appendChild(meta);
+      if (preview.headings.length === 0) {
+        const none = document.createElement('div');
+        none.className = 'qm-docref-preview-empty';
+        none.textContent = '没有标题';
+        el.appendChild(none);
+      } else {
+        const list = document.createElement('ul');
+        list.className = 'qm-docref-preview-outline';
+        for (const item of preview.headings) {
+          const li = document.createElement('li');
+          // 层级缩进直接写在行内：六级标题不值得为它写六条 CSS 规则
+          li.style.paddingLeft = `${(item.level - 1) * 14}px`;
+          li.textContent = item.text;
+          list.appendChild(li);
+        }
+        el.appendChild(list);
+      }
+    } else if (preview.kind === 'text') {
+      const meta = document.createElement('div');
+      meta.className = 'qm-docref-preview-meta';
+      meta.textContent = `共 ${preview.lineCount} 行`;
+      el.appendChild(meta);
+      const snippet = document.createElement('pre');
+      snippet.className = 'qm-docref-preview-snippet';
+      snippet.textContent = preview.snippet;
+      el.appendChild(snippet);
+    } else {
+      const title = document.createElement('div');
+      title.className = 'qm-docref-preview-meta';
+      title.textContent = preview.rootTitle;
+      el.appendChild(title);
+      const meta = document.createElement('div');
+      meta.className = 'qm-docref-preview-empty';
+      meta.textContent = `${preview.nodeCount} 个节点`;
+      el.appendChild(meta);
+    }
+
+    this.diagram.appendChild(el);
+    this.previewEl = el;
   }
 
   /** 当前该显示图还是源码。 */

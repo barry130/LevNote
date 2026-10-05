@@ -13,12 +13,18 @@ import type { TabSummary } from '../core/workspace/store.js';
 export interface TabBarProps {
   tabs: readonly TabSummary[];
   activeId: number | null;
+  /**
+   * 「就地编辑」的返回目标（P6 第 28 项 L2，ADR 0036）：当前活动标签页是
+   * 从哪个标签页钻过来的。null = 没有钻取上下文，不画 chip。
+   */
+  backTo: { id: number; name: string } | null;
+  onBack: () => void;
   onActivate: (id: number) => void;
   onClose: (id: number) => void;
   onReorder: (from: number, to: number) => void;
 }
 
-export function TabBar({ tabs, activeId, onActivate, onClose, onReorder }: TabBarProps) {
+export function TabBar({ tabs, activeId, backTo, onBack, onActivate, onClose, onReorder }: TabBarProps) {
   /** 正在被拖的标签页下标。用 state 而不是 dataTransfer：拖拽过程中要实时画落点。 */
   const [dragging, setDragging] = useState<number | null>(null);
   const [overAt, setOverAt] = useState<number | null>(null);
@@ -33,6 +39,17 @@ export function TabBar({ tabs, activeId, onActivate, onClose, onReorder }: TabBa
 
   return (
     <div className="tabbar" role="tablist">
+      {backTo !== null && (
+        /*
+         * 「↩ 返回」chip（ADR 0036）：点卡片上的「就地编辑」钻进来之后，
+         * 一键回来源 —— 面板常驻保证回去时撤销栈 / 光标 / 滚动原样。
+         * 放在标签页列表的**最左边**：它是当前标签页的导航上下文，
+         * 不是一枚可点开的标签页。
+         */
+        <button type="button" className="tab-back" title={`返回 ${backTo.name}`} onClick={onBack}>
+          ↩ {backTo.name}
+        </button>
+      )}
       {tabs.map((tab, index) => (
         <div
           key={tab.id}

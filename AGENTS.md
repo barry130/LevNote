@@ -137,7 +137,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
 | **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
-| **块级互操作（提取 / 拉平 / 引用卡片）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
+| **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
 | **依赖许可证清单** | `npm run licenses`（`scripts/gen-license-report.mjs`）→ `docs/dependency-licenses.md`。**生成物不要手改**：升级依赖后重跑，严格条款自动复核（双许可可选宽松支不列）。npm 侧只统计生产依赖 |
 | **面板常驻（标签切换不销毁内核）** | `ui/App.tsx` 的 `PaneSlot` + `visitedIds`（访问过才常驻，ADR 0034）。**句柄按面板分桶**（`reportHandle` / `reportViewInfo`）；隐藏面板收浮层的契约在 `DocumentPane` 的 `active` prop。`initialPosition` 逐面板取，不再有全局的 |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
@@ -529,7 +529,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,329 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,349 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 341.92 kB（gzip 107.53 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -591,11 +591,24 @@ markdown/mindmap/text 的 reference 引用画成卡片、点击打开（`onDocBl
 `withUserEdit` 拆进了 `modules/markdown/user-edit.ts`，**不要再各写一份**。
 新坑：`joinPath(dirname(docPath), src)` 在目录是裸名时**丢分隔符风格**
 （`notes\main.md` → `notes` → 拼成 `/`）—— 解析引用用 `core/path.ts` 的
-`resolveRelative`，不要直接拼。L2 就地编辑与内嵌预览**推迟**，要单独的 ADR。
+`resolveRelative`，不要直接拼。
 
-**最该先做的一件事**：P6-28b 引用的就地编辑（L2）—— 先写 ADR 再动手
-（推迟理由见 ADR 0035）。除此之外剩下的都需要真实世界资源：P5-26/27（分发环境）、
-P7-32/33（签名主体）、P7-35（Mac）、P7-36/37（商标与域名）。
+**P6-28 块级互操作第二阶段已完成（2026-10-05，ADR 0036）**：**L2 就地编辑** =
+**同面板钻取 + 返回栈** —— 卡片上的「就地编辑」把被引用文档按**正常文档路径**
+打开（自己的 store / 脏标记 / Ctrl+S / 文件监听），来路记在目标标签页的
+`drilledFrom` 上，标签栏出现「↩ 返回」chip（`workspace.openInPlace` /
+`goBackDrill`；普通 open 命中已有标签页会清来路，closeTab 顺手清掉指着自己的）。
+**嵌套内核否决**（六条理由在 ADR，核心是「同一份文件只有一个编辑面」的
+不变量），跨文档分屏立项时才重审。**引用摘要**：外壳算（`block-preview.ts`，
+`resolveDocBlockPreview` 契约）内核画 —— markdown 给标题树 + 字数、text 给
+行数 + 片段、mindmap 给根主题 + 节点数，读不到把原因当数据画出来；
+**markdown 刻意不渲染成 HTML**（半渲染器 ≠ 编辑器，比不显示更糟）。
+卡片的动作按钮**只在对应能力挂着时才画**（setup.ts 里 handler 必须按
+undefined 原样传，包一层永远存在的函数会画出假按钮）。
+
+**最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
+真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、
+P7-36/37（商标与域名）。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。

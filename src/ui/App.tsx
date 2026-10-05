@@ -23,11 +23,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { DocumentProvider } from '../core/document/types.js';
+import { buildDocBlockPreview } from '../core/document/block-preview.js';
 import { registerBuiltInCommands } from '../core/commands/definitions.js';
 import { detectPlatform, isEditableTarget, type Platform } from '../core/commands/keybinding.js';
 import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
-import type { EditorHandle, EditorPosition } from '../core/editor/types.js';
+import type { DocBlockPreview, EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
 import { basename, isMarkdownPath, resolveRelative } from '../core/path.js';
 import type { DocumentStore } from '../core/document/store.js';
@@ -172,6 +173,8 @@ interface PaneSlotProps {
   revealRequest: PaneRevealRequest | null;
   onRevealResult: (tick: number, applied: boolean) => void;
   onDocBlockOpen: (ref: { src: string; kind: string; title: string | null }) => void;
+  onDocBlockEditInPlace: (ref: { src: string; kind: string; title: string | null }) => void;
+  resolveDocBlockPreview: (ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>;
   reportHandle: (paneId: number, handle: EditorHandle | null) => void;
   reportViewInfo: (paneId: number, info: PaneViewInfo | null) => void;
   rememberPositionAt: (path: string, position: EditorPosition) => void;
@@ -190,6 +193,8 @@ function PaneSlot({
   revealRequest,
   onRevealResult,
   onDocBlockOpen,
+  onDocBlockEditInPlace,
+  resolveDocBlockPreview,
   reportHandle,
   reportViewInfo,
   rememberPositionAt,
@@ -220,6 +225,8 @@ function PaneSlot({
         revealRequest={revealRequest}
         onRevealResult={onRevealResult}
         onDocBlockOpen={onDocBlockOpen}
+        onDocBlockEditInPlace={onDocBlockEditInPlace}
+        resolveDocBlockPreview={resolveDocBlockPreview}
       />
     </div>
   );
@@ -288,6 +295,17 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   const activeStore = activeId === null ? null : workspace.storeOf(activeId);
   const activeTab = tabs.find((tab) => tab.id === activeId) ?? null;
   const activePath = activeTab?.path ?? null;
+  /**
+   * 「就地编辑」的返回目标（P6 第 28 项 L2，ADR 0036）：当前标签页是从哪个
+   * 标签页钻过来的。来路已被关掉时不显示 chip（store 会在 closeTab 时清理，
+   * 这里再兜一层）。
+   */
+  const drillBackTo = (() => {
+    const fromId = activeTab?.drilledFrom ?? null;
+    if (fromId === null) return null;
+    const from = tabs.find((tab) => tab.id === fromId);
+    return from === undefined ? null : { id: fromId, name: from.displayName };
+  })();
 
   // ---- 面板常驻（P3 第 19 项）-------------------------------------------
 
@@ -451,27 +469,85 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   );
 
   /**
-   * 打开一张 doc-block 引用卡片指向的文档（P6 第 28 项）。
+   * 把引用卡片交来的 `src` 换算成**绝对路径**（P6 第 28 项）。
    *
-   * 点击只会发生在**活动面板**上（隐藏面板收不到点击），所以用
-   * `workspace.activeStore` 现读文档路径，不存在过期闭包的问题。
-   * `joinPath` 把 src 的正斜杠统一成文档路径的分隔符风格（硬约束 12）——
-   * 写入时用正斜杠、打开时按字符串换算，两份字符串必须能对上。
+   * 「打开」与「就地编辑」共用这一步。点击只会发生在**活动面板**上
+   * （隐藏面板收不到点击），所以用 `workspace.activeStore` 现读文档路径，
+   * 不存在过期闭包的问题。`resolveRelative` 把 src 的正斜杠统一成
+   * 文档路径的分隔符风格（硬约束 12）—— 写入时用正斜杠、打开时按字符串
+   * 换算，两份字符串必须能对上。
+   *
+   * 光秃秃的文件名（没有目录信息）拼不出被引用文件的路径 —— 与
+   * `resolveDocBlock` 同一条纪律：不能猜，但要说出来，不能点了没反应。
    */
-  const openDocBlockReference = useCallback(
-    (ref: { src: string; kind: string; title: string | null }) => {
+  const resolveDocBlockSrc = useCallback(
+    (ref: { src: string }): string | null => {
       const docPath = workspace.activeStore?.getSnapshot().doc?.path ?? null;
-      // 光秃秃的文件名（没有目录信息）拼不出被引用文件的路径 —— 与
-      // `resolveDocBlock` 同一条纪律：不能猜，但要说出来，不能点了没反应
       const absolute = docPath === null ? null : resolveRelative(docPath, ref.src);
       if (absolute === null) {
         void provider.notify(`无法确定 ${ref.src} 的位置 —— 这份文档没有可用的目录信息。`, '打开引用');
-        return;
       }
-      void workspace.open(absolute);
+      return absolute;
     },
     [provider, workspace],
   );
+
+  /** 打开一张引用卡片指向的文档（L1：新标签页）。 */
+  const openDocBlockReference = useCallback(
+    (ref: { src: string; kind: string; title: string | null }) => {
+      const absolute = resolveDocBlockSrc(ref);
+      if (absolute === null) return;
+      void workspace.open(absolute);
+    },
+    [resolveDocBlockSrc, workspace],
+  );
+
+  /**
+   * 就地编辑（L2，ADR 0036）：同面板钻取 —— 被引用文档走**正常文档路径**
+   * 打开（自己的 store、脏标记、保存、文件监听），只是把来路（当前标签页）
+   * 记在目标标签页上，标签栏出现「↩ 返回」chip；返回时 P3-19 的面板常驻
+   * 保证光标 / 滚动 / 撤销栈原样。
+   */
+  const editDocBlockInPlace = useCallback(
+    (ref: { src: string; kind: string; title: string | null }) => {
+      const fromId = workspace.getSnapshot().activeId;
+      const absolute = resolveDocBlockSrc(ref);
+      if (absolute === null || fromId === null) return;
+      void workspace.openInPlace(fromId, absolute);
+    },
+    [resolveDocBlockSrc, workspace],
+  );
+
+  /**
+   * 卡片「预览」展开要的结构摘要（ADR 0036 决策 3）。
+   *
+   * 读文件归外壳（provider 可能抛错，这里统一兜成 null）；计算复用
+   * `block-preview.ts`（依赖注入可单测）。宿主文档路径与 `resolveDocBlockSrc`
+   * 同一条理由现读 —— 摘要请求只会从活动面板的卡片上发起。
+   */
+  const resolveDocBlockPreview = useCallback(
+    (ref: { src: string; kind: string }) => {
+      const docPath = workspace.activeStore?.getSnapshot().doc?.path ?? null;
+      if (docPath === null) {
+        return Promise.resolve({ kind: 'error' as const, reason: '无法确定这份文档的位置' });
+      }
+      const readTextFile = async (path: string) => {
+        try {
+          return await provider.readTextFile(path);
+        } catch {
+          return null;
+        }
+      };
+      return buildDocBlockPreview({ readTextFile }, docPath, ref);
+    },
+    [provider, workspace],
+  );
+
+  /** 沿「就地编辑」的来路返回（chip 点击）。 */
+  const goBackFromDrill = useCallback(() => {
+    const current = workspace.getSnapshot().activeId;
+    if (current !== null) workspace.goBackDrill(current);
+  }, [workspace]);
 
   /**
    * 面板回报「这次定位落没落地」。
@@ -1189,6 +1265,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       <TabBar
         tabs={tabs}
         activeId={activeId}
+        backTo={drillBackTo}
+        onBack={goBackFromDrill}
         onActivate={(id) => workspace.activate(id)}
         onClose={(id) => {
           const tab = tabs.find((item) => item.id === id);
@@ -1326,6 +1404,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
                 revealRequest={revealRequest}
                 onRevealResult={handleRevealResult}
                 onDocBlockOpen={openDocBlockReference}
+                onDocBlockEditInPlace={editDocBlockInPlace}
+                resolveDocBlockPreview={resolveDocBlockPreview}
                 reportHandle={reportHandle}
                 reportViewInfo={reportViewInfo}
                 rememberPositionAt={rememberPositionAt}

@@ -32,6 +32,12 @@ export interface TabSummary {
   readonly dirty: boolean;
   readonly status: DocumentStatus;
   readonly readonly: boolean;
+  /**
+   * 这个标签页是从哪个标签页「就地编辑」钻过来的（P6 第 28 项 L2，ADR 0036）。
+   * null = 不是钻取打开的。只用于导航（标签栏的返回 chip），不进会话恢复 ——
+   * 标签 id 每次启动重新编号，跨会话保留只会指错。
+   */
+  readonly drilledFrom: number | null;
 }
 
 export interface TreeState {
@@ -85,6 +91,8 @@ interface Tab {
   readonly id: number;
   readonly store: DocumentStore;
   readonly unsubscribe: () => void;
+  /** 见 `TabSummary.drilledFrom`。不可变字段，更新走整对象替换。 */
+  readonly drilledFrom: number | null;
 }
 
 const EMPTY_TREE: TreeState = {
@@ -96,16 +104,17 @@ const EMPTY_TREE: TreeState = {
   error: null,
 };
 
-function summarize(id: number, store: DocumentStore): TabSummary | null {
-  const { doc, status } = store.getSnapshot();
+function summarize(tab: Tab): TabSummary | null {
+  const { doc, status } = tab.store.getSnapshot();
   if (!doc) return null;
   return {
-    id,
+    id: tab.id,
     path: doc.path,
     displayName: doc.displayName,
     dirty: status === 'dirty',
     status,
     readonly: doc.readonly,
+    drilledFrom: tab.drilledFrom,
   };
 }
 
@@ -121,7 +130,8 @@ function sameSummaries(a: readonly TabSummary[], b: readonly TabSummary[]): bool
       x.displayName !== y.displayName ||
       x.dirty !== y.dirty ||
       x.status !== y.status ||
-      x.readonly !== y.readonly
+      x.readonly !== y.readonly ||
+      x.drilledFrom !== y.drilledFrom
     ) {
       return false;
     }
@@ -166,7 +176,7 @@ export class WorkspaceStore {
   private syncTabs(): void {
     const tabs: TabSummary[] = [];
     for (const tab of this.tabs) {
-      const summary = summarize(tab.id, tab.store);
+      const summary = summarize(tab);
       if (summary !== null) tabs.push(summary);
     }
     if (sameSummaries(tabs, this.state.tabs) && this.state.activeId === this.activeId) return;
@@ -220,6 +230,11 @@ export class WorkspaceStore {
   async open(path: string): Promise<boolean> {
     const existing = this.tabs.find((tab) => tab.store.getSnapshot().doc?.path === path);
     if (existing) {
+      // 普通打开命中已有标签页时，清掉旧的「来路」：用户显式打开这个文件，
+      // 意味着之前从引用卡片钻过来的那次导航已经作废（chip 再挂着就是错的）
+      if (existing.drilledFrom !== null) {
+        this.tabs = this.tabs.map((tab) => (tab.id === existing.id ? { ...tab, drilledFrom: null } : tab));
+      }
       this.activate(existing.id);
       return true;
     }
@@ -237,13 +252,51 @@ export class WorkspaceStore {
     const id = this.nextId;
     this.nextId += 1;
     const unsubscribe = store.subscribe(() => this.syncTabs());
-    this.tabs = [...this.tabs, { id, store, unsubscribe }];
+    this.tabs = [...this.tabs, { id, store, unsubscribe, drilledFrom: null }];
     this.activeId = id;
     this.syncTabs();
 
     // 打开文件时把它所在的目录链展开，否则用户看到的是一个和侧栏无关的文档
     if (this.tree.root !== null) await this.revealInTree(path);
     return true;
+  }
+
+  /**
+   * 「就地编辑」（P6 第 28 项 L2，ADR 0036）：从 `fromId` 那个标签页出发，
+   * 打开 `path` 并把来路记在目标标签页上（标签栏出现「↩ 返回」chip）。
+   *
+   * 编辑走的完全是正常文档路径 —— 这里只多做两件事：记来路、切过去。
+   * 先走普通 `open()`（去重、激活、文件树展开都是它的），**再**把来路记上去，
+   * 顺序不能反：`open()` 的去重路径会清 `drilledFrom`。
+   */
+  async openInPlace(fromId: number, path: string): Promise<boolean> {
+    const from = this.tabOf(fromId);
+    if (from === null) return this.open(path);
+
+    const ok = await this.open(path);
+    if (!ok) return false;
+
+    const target = this.tabs.find((tab) => tab.store.getSnapshot().doc?.path === path);
+    // 文档引用自己（path 与来源相同）时不记来路 —— 自己↩自己没有意义
+    if (target === undefined || target.id === fromId) return true;
+
+    this.tabs = this.tabs.map((tab) => (tab.id === target.id ? { ...tab, drilledFrom: fromId } : tab));
+    this.syncTabs();
+    return true;
+  }
+
+  /**
+   * 沿「就地编辑」的来路返回。返回即清来路（chip 消失；想再过去，
+   * 标签页还在标签栏里）。来路标签页已被关掉时把悬空来路清掉就好 ——
+   * `closeTab` 会顺手清，这里是兜底。
+   */
+  goBackDrill(id: number): void {
+    const tab = this.tabOf(id);
+    if (tab === null || tab.drilledFrom === null) return;
+    const from = tab.drilledFrom;
+    this.tabs = this.tabs.map((item) => (item.id === id ? { ...item, drilledFrom: null } : item));
+    if (this.tabOf(from) !== null) this.activate(from);
+    else this.syncTabs();
   }
 
   async openViaDialog(): Promise<boolean> {
@@ -313,7 +366,7 @@ export class WorkspaceStore {
       // 订阅放在 `updateText` **之后**：否则上面那次写入会立刻触发一次
       // `syncTabs()`，而那时这个标签页还没进 `this.tabs`，通知的是半成品状态
       const unsubscribe = store.subscribe(() => this.syncTabs());
-      this.tabs = [...this.tabs, { id, store, unsubscribe }];
+      this.tabs = [...this.tabs, { id, store, unsubscribe, drilledFrom: null }];
       restored += 1;
     }
 
@@ -374,6 +427,12 @@ export class WorkspaceStore {
     tab.unsubscribe();
     tab.store.dispose();
     this.tabs = this.tabs.filter((item) => item.id !== id);
+
+    // 关掉的标签页可能是别人的「来路」—— `goBackDrill` 对悬空来路有兜底，
+    // 但 chip 显示「↩ 一个不存在的标签页」本身就是错的，在这里清干净
+    if (this.tabs.some((item) => item.drilledFrom === id)) {
+      this.tabs = this.tabs.map((item) => (item.drilledFrom === id ? { ...item, drilledFrom: null } : item));
+    }
 
     if (this.activeId === id) {
       // 优先接管右边的标签页，没有就接管左边 —— 与主流编辑器的行为一致

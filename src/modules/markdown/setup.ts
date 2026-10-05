@@ -74,6 +74,7 @@ import type {
   CodeBlockState,
   CursorPosition,
   DiagramView,
+  DocBlockPreview,
   EditorBlockHandle,
   EditorBlockTransform,
   EditorCodeBlock,
@@ -177,6 +178,16 @@ export interface CreateMarkdownEditorOptions {
    * 交出的是解析好的属性；src 相对当前文档目录，换算归外壳。
    */
   onDocBlockOpen?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
+   * 用户点了卡片上的「就地编辑」（P6 第 28 项 L2，ADR 0036）。
+   * 不实现时卡片**不画**这个按钮 —— 点了没反应的按钮比没有更糟。
+   */
+  onDocBlockEditInPlace?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
+   * 卡片「预览」展开要的结构摘要（ADR 0036 决策 3）。数据在这里算
+   * （`core/document/block-preview.ts`），内核只画；不实现时同样不画按钮。
+   */
+  resolveDocBlockPreview?: (ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>;
   /**
    * 用户要放大看一张 Mermaid 图表。
    *
@@ -1236,6 +1247,8 @@ function codeBlockPickerHandlers(
   onDiagramOpen: ((diagram: DiagramView) => void) | undefined,
   resolveDocBlock: ((src: string) => Promise<string | null>) | undefined,
   onDocBlockOpen: ((ref: { src: string; kind: string; title: string | null }) => void) | undefined,
+  onDocBlockEditInPlace: ((ref: { src: string; kind: string; title: string | null }) => void) | undefined,
+  resolveDocBlockPreview: ((ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>) | undefined,
 ): CodeBlockChromeHandlers {
   return {
     /**
@@ -1258,6 +1271,12 @@ function codeBlockPickerHandlers(
      */
     openViewer: (diagram) => onDiagramOpen?.(diagram),
     openDocBlock: (ref) => onDocBlockOpen?.(ref),
+    // 内核按「这个字段在不在」决定画不画动作按钮 —— 能力没挂时必须是
+    // undefined（包一层永远存在的函数会让按钮永远画出来，成了假按钮）
+    editDocBlockInPlace:
+      onDocBlockEditInPlace === undefined ? undefined : (ref) => onDocBlockEditInPlace(ref),
+    resolveDocBlockPreview:
+      resolveDocBlockPreview === undefined ? undefined : (ref) => resolveDocBlockPreview(ref),
     closePicker: (token) => {
       // 只有**面板正对着的那个**代码块消失时才关。删掉别的代码块不该把面板带走 ——
       // 用户可能正打算给手里这个换个语言
@@ -1462,6 +1481,8 @@ export async function createMarkdownEditor(
     options.onDiagramOpen,
     options.resolveDocBlock,
     options.onDocBlockOpen,
+    options.onDocBlockEditInPlace,
+    options.resolveDocBlockPreview,
   );
 
   /**

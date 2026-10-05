@@ -1400,16 +1400,83 @@ describe('块级互操作（P6 第 28 项）', () => {
     });
     await mounted.open('notes\\main.md');
 
-    const card = mounted.container.querySelector<HTMLButtonElement>('.qm-docref-card');
-    expect(card).not.toBeNull();
+    // 卡片主区是 <button>（点 = 打开）—— 第二版起卡片本身是 div，
+    // 动作按钮（预览 / 就地编辑）与主区分开画（ADR 0036 决策 4）
+    const main = mounted.container.querySelector<HTMLButtonElement>('.qm-docref-main');
+    expect(main).not.toBeNull();
     await act(async () => {
-      card!.click();
+      main!.click();
     });
     await settle();
 
     const snapshot = mounted.workspace.getSnapshot();
     const active = snapshot.tabs.find((tab) => tab.id === snapshot.activeId);
     expect(active?.path).toBe('notes\\detail.md');
+  });
+
+  /**
+   * L2 就地编辑（ADR 0036）：点卡片上的「就地编辑」，被引用文档走正常
+   * 文档路径打开，但来路记在目标标签页上 —— 标签栏出现「↩ 返回」chip，
+   * 点 chip 回到来源标签页。断言落在**最终结果**（活动标签 + chip 状态）上：
+   * 中间任何一层断了（契约、路径换算、返回栈），用户看到的就是「点了没反应」。
+   */
+  it('「就地编辑」钻到被引用文档，返回 chip 一键回来源', async () => {
+    mounted = await mount((p) => {
+      p.put('notes\\main.md', '开头。\n\n```doc-block\nid: a\nkind: markdown\nmode: reference\nsrc: detail.md\n---\n```\n');
+      p.put('notes\\detail.md', '# 细节\n');
+    });
+    await mounted.open('notes\\main.md');
+
+    const mainId = mounted.workspace.getSnapshot().activeId;
+
+    const edit = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.qm-docref-action')).find(
+      (button) => button.textContent === '就地编辑',
+    );
+    expect(edit).not.toBeUndefined();
+    await act(async () => {
+      edit!.click();
+    });
+    await settle();
+
+    const afterDrill = mounted.workspace.getSnapshot();
+    const detailTab = afterDrill.tabs.find((tab) => tab.id === afterDrill.activeId);
+    expect(detailTab?.path).toBe('notes\\detail.md');
+    expect(detailTab?.drilledFrom).toBe(mainId);
+
+    // 标签栏出现返回 chip，文字是来源标签页的名字
+    const chip = mounted.container.querySelector<HTMLButtonElement>('.tab-back');
+    expect(chip?.textContent).toContain('main.md');
+
+    await act(async () => {
+      chip!.click();
+    });
+    await settle();
+
+    const afterBack = mounted.workspace.getSnapshot();
+    expect(afterBack.tabs.find((tab) => tab.id === afterBack.activeId)?.path).toBe('notes\\main.md');
+    // 回来之后 chip 消失 —— 来路已经清掉
+    expect(mounted.container.querySelector('.tab-back')).toBeNull();
+  });
+
+  it('预览展开画出结构摘要 —— 读文件是外壳的活，画是内核的', async () => {
+    mounted = await mount((p) => {
+      p.put('notes\\main.md', '开头。\n\n```doc-block\nid: a\nkind: markdown\nmode: reference\nsrc: detail.md\n---\n```\n');
+      p.put('notes\\detail.md', '# 细节手册\n\n先装依赖。\n');
+    });
+    await mounted.open('notes\\main.md');
+
+    const preview = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.qm-docref-action')).find(
+      (button) => button.textContent === '预览',
+    );
+    expect(preview).not.toBeUndefined();
+    await act(async () => {
+      preview!.click();
+    });
+    await settle();
+
+    const box = mounted.container.querySelector('.qm-docref-preview');
+    expect(box?.textContent).toContain('细节手册');
+    expect(box?.textContent).toContain('字');
   });
 });
 

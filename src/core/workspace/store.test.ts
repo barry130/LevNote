@@ -669,3 +669,102 @@ describe('dispose', () => {
     expect(notified).toBe(0);
   });
 });
+describe('就地编辑的返回栈（P6 第 28 项 L2，ADR 0036）', () => {
+  it('openInPlace 打开目标文档、激活它，并把来路记在目标标签页上', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\main.md', '# 主文档');
+    provider.put('C:\\n\\detail.md', '# 细节');
+    const workspace = new WorkspaceStore(provider);
+
+    await workspace.open('C:\\n\\main.md');
+    const mainId = workspace.getSnapshot().activeId ?? -1;
+
+    expect(await workspace.openInPlace(mainId, 'C:\\n\\detail.md')).toBe(true);
+    const detailId = workspace.getSnapshot().activeId ?? -1;
+    expect(workspace.getSnapshot().tabs.find((tab) => tab.id === detailId)?.drilledFrom).toBe(mainId);
+  });
+
+  it('goBackDrill 回到来源标签页，并清掉来路（chip 消失）', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\main.md', '# 主文档');
+    provider.put('C:\\n\\detail.md', '# 细节');
+    const workspace = new WorkspaceStore(provider);
+
+    await workspace.open('C:\\n\\main.md');
+    const mainId = workspace.getSnapshot().activeId ?? -1;
+    await workspace.openInPlace(mainId, 'C:\\n\\detail.md');
+    const detailId = workspace.getSnapshot().activeId ?? -1;
+
+    workspace.goBackDrill(detailId);
+    expect(workspace.getSnapshot().activeId).toBe(mainId);
+    expect(workspace.getSnapshot().tabs.find((tab) => tab.id === detailId)?.drilledFrom).toBeNull();
+  });
+
+  it('目标已经开着时也记来路 —— 钻取的是「导航」，不是「再开一份」', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\main.md', '# 主文档');
+    provider.put('C:\\n\\detail.md', '# 细节');
+    const workspace = new WorkspaceStore(provider);
+
+    await workspace.open('C:\\n\\detail.md');
+    await workspace.open('C:\\n\\main.md');
+    const mainId = workspace.getSnapshot().activeId ?? -1;
+
+    await workspace.openInPlace(mainId, 'C:\\n\\detail.md');
+    const state = workspace.getSnapshot();
+    expect(state.tabs).toHaveLength(2);
+    expect(state.tabs.find((tab) => tab.path === 'C:\\n\\detail.md')?.drilledFrom).toBe(mainId);
+    expect(state.activeId).toBe(state.tabs.find((tab) => tab.path === 'C:\\n\\detail.md')?.id);
+  });
+
+  it('普通 open 命中已有标签页时清掉旧来路 —— 显式打开让导航作废', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\main.md', '# 主文档');
+    provider.put('C:\\n\\detail.md', '# 细节');
+    provider.put('C:\\n\\other.md', '# 别的');
+    const workspace = new WorkspaceStore(provider);
+
+    await workspace.open('C:\\n\\main.md');
+    const mainId = workspace.getSnapshot().activeId ?? -1;
+    await workspace.openInPlace(mainId, 'C:\\n\\detail.md');
+
+    // 切到别的标签页再普通打开 detail：来路该清掉
+    await workspace.open('C:\\n\\other.md');
+    await workspace.open('C:\\n\\detail.md');
+    const detailId = workspace.getSnapshot().activeId ?? -1;
+    expect(workspace.getSnapshot().tabs.find((tab) => tab.id === detailId)?.drilledFrom).toBeNull();
+  });
+
+  it('关闭来路标签页时，指着自己的来路一并清掉 —— chip 不能指向不存在的标签页', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\main.md', '# 主文档');
+    provider.put('C:\\n\\detail.md', '# 细节');
+    provider.put('C:\\n\\other.md', '# 别的');
+    const workspace = new WorkspaceStore(provider);
+
+    await workspace.open('C:\\n\\other.md');
+    const otherId = workspace.getSnapshot().activeId ?? -1;
+    await workspace.openInPlace(otherId, 'C:\\n\\detail.md');
+    const detailId = workspace.getSnapshot().activeId ?? -1;
+    expect(workspace.getSnapshot().tabs.find((tab) => tab.id === detailId)?.drilledFrom).toBe(otherId);
+
+    workspace.closeTab(otherId, true);
+    expect(workspace.getSnapshot().tabs.find((tab) => tab.id === detailId)?.drilledFrom).toBeNull();
+    // 悬空来路上 goBackDrill 不应该炸，也不应该乱切
+    expect(() => workspace.goBackDrill(detailId)).not.toThrow();
+    expect(workspace.getSnapshot().activeId).toBe(detailId);
+  });
+
+  it('文档引用自己时不记来路 —— 自己↩自己没有意义', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\main.md', '# 主文档');
+    const workspace = new WorkspaceStore(provider);
+
+    await workspace.open('C:\\n\\main.md');
+    const mainId = workspace.getSnapshot().activeId ?? -1;
+
+    expect(await workspace.openInPlace(mainId, 'C:\\n\\main.md')).toBe(true);
+    expect(workspace.getSnapshot().activeId).toBe(mainId);
+    expect(workspace.getSnapshot().tabs.find((tab) => tab.id === mainId)?.drilledFrom).toBeNull();
+  });
+});

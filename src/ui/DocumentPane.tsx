@@ -26,6 +26,7 @@ import type {
   CursorPosition,
   DiagramView,
   EditorAdapter,
+  DocBlockPreview,
   EditorBlockHandle,
   EditorCodeBlock,
   EditorFormatting,
@@ -195,6 +196,16 @@ export interface DocumentPaneProps {
    */
   onDocBlockOpen?: (ref: { src: string; kind: string; title: string | null }) => void;
   /**
+   * 用户点了卡片上的「就地编辑」（P6 第 28 项 L2，ADR 0036）。
+   * 与 `onDocBlockOpen` 同一条转发纪律：内核上报，面板原样转发。
+   */
+  onDocBlockEditInPlace?: (ref: { src: string; kind: string; title: string | null }) => void;
+  /**
+   * 卡片「预览」展开要的结构摘要。摘要的计算在 App（读文件归外壳），
+   * 面板只转发。不传时内核不画预览按钮。
+   */
+  resolveDocBlockPreview?: (ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>;
+  /**
    * 待落地的检索定位请求；null 表示没有。
    *
    * ## 为什么「落地」发生在面板里、而且发生在内核就绪那一刻
@@ -236,6 +247,8 @@ export function DocumentPane({
   revealRequest,
   onRevealResult,
   onDocBlockOpen,
+  onDocBlockEditInPlace,
+  resolveDocBlockPreview,
 }: DocumentPaneProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const { doc, status, error, conflict, busy, notice, viewMode } = state;
@@ -919,6 +932,8 @@ export function DocumentPane({
         onImageClick={setLightbox}
         onDiagramOpen={setDiagram}
         onDocBlockOpen={onDocBlockOpen}
+        onDocBlockEditInPlace={onDocBlockEditInPlace}
+        resolveDocBlockPreview={resolveDocBlockPreview}
         onError={handleEditorError}
       />
     ) : null;

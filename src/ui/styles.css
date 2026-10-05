@@ -331,6 +331,32 @@ body {
   height: 4px;
 }
 
+/*
+ * 「↩ 返回」chip（P6 第 28 项 L2，ADR 0036）：当前标签页是从某个标签页
+ * 「就地编辑」钻过来的时候显示。它是**导航上下文**，不是一枚标签页 ——
+ * 所以用与标签页不同的素色，钉在列表最左边，不被标签页滚动区带走
+ * （滚动容器是 .tabbar 自己；chip 会一起滚，但排在最前，通常可见）。
+ */
+.tab-back {
+  flex: none;
+  align-self: center;
+  margin-left: 8px;
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--tabbar-bg);
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted-ink, var(--ink));
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab-back:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
 .tab {
   display: flex;
   align-items: center;

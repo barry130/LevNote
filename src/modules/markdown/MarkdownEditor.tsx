@@ -28,6 +28,8 @@ function MarkdownEditor({
   onImageClick,
   onDiagramOpen,
   onDocBlockOpen,
+  onDocBlockEditInPlace,
+  resolveDocBlockPreview,
   onError,
   readOnly,
   placeholder,
@@ -65,6 +67,10 @@ function MarkdownEditor({
   onDiagramOpenRef.current = onDiagramOpen;
   const onDocBlockOpenRef = useRef(onDocBlockOpen);
   onDocBlockOpenRef.current = onDocBlockOpen;
+  const onDocBlockEditInPlaceRef = useRef(onDocBlockEditInPlace);
+  onDocBlockEditInPlaceRef.current = onDocBlockEditInPlace;
+  const resolveDocBlockPreviewRef = useRef(resolveDocBlockPreview);
+  resolveDocBlockPreviewRef.current = resolveDocBlockPreview;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -113,6 +119,10 @@ function MarkdownEditor({
           onDiagramOpen: (diagram) => onDiagramOpenRef.current?.(diagram),
           // 同上：引用卡片的点击回调也只在构造时被捕获
           onDocBlockOpen: (ref) => onDocBlockOpenRef.current?.(ref),
+          // 卡片上的两个动作按钮同理：NodeView 构造时读一次属性，
+          // 不经 ref 的话重渲染产生的新函数永远进不了内核
+          onDocBlockEditInPlace: (ref) => onDocBlockEditInPlaceRef.current?.(ref),
+          resolveDocBlockPreview: async (ref) => (await resolveDocBlockPreviewRef.current?.(ref)) ?? null,
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），
