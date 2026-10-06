@@ -25,6 +25,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { formatKeybinding, type Platform } from '../core/commands/keybinding.js';
+import { ENCODING_COMMAND_IDS } from '../core/commands/definitions.js';
 import type { CommandRegistry } from '../core/commands/registry.js';
 import { t } from '../core/i18n/index.js';
 
@@ -111,6 +112,13 @@ export const MENUS: readonly MenuDef[] = [
     items: ['format.bold', 'format.italic', 'format.strikethrough', 'format.inlineCode'],
   },
   {
+    // Notepad++ 的「搜索」菜单位置：查找 / 跨文件检索 / 命令面板是同一类
+    // 「去找点什么」的动作，与编辑动作分开一条菜单更好找
+    id: 'search',
+    accel: 'S',
+    items: ['find.open', 'search.inFolder', 'separator', 'palette.open'],
+  },
+  {
     id: 'view',
     accel: 'V',
     items: [
@@ -136,6 +144,13 @@ export const MENUS: readonly MenuDef[] = [
     ],
   },
   {
+    // Notepad++ 的「编码」菜单：每一项是「保存时按这个编码写盘」。
+    // 选项清单只有 core/encodings.ts 一份，命令 id 从 definitions.ts 导出
+    id: 'encoding',
+    accel: 'C',
+    items: ENCODING_COMMAND_IDS,
+  },
+  {
     id: 'theme',
     accel: 'T',
     items: ['theme.system', 'theme.paper', 'theme.ink', 'separator', 'view.cycleTheme'],
@@ -152,7 +167,9 @@ const MENU_LABELS: Readonly<Record<string, string>> = {
   edit: t('menu.edit'),
   paragraph: t('menu.paragraph'),
   format: t('menu.format'),
+  search: t('menu.search'),
   view: t('menu.view'),
+  encoding: t('menu.encoding'),
   theme: t('menu.theme'),
   help: t('menu.help'),
 };
@@ -285,6 +302,10 @@ export function MenuBar({ menus = MENUS, registry, platform, isEnabled, onRun, i
                       platform={platform}
                       enabled={isEnabled(item)}
                       checked={isChecked?.(item)}
+                      // 勾选列按**整条菜单**保留：菜单里只要有一项可勾选，
+                      // 所有项（含不可勾选的）都留出那个槽位 —— 否则同一菜单里
+                      // 标签的起点会随「有没有勾选列」左右横跳
+                      reserveCheck={menuHasChecks(menu, isChecked)}
                       onRun={runAndClose}
                     />
                   ),
@@ -298,21 +319,30 @@ export function MenuBar({ menus = MENUS, registry, platform, isEnabled, onRun, i
   );
 }
 
+/** 这条菜单里有没有可勾选的项（决定要不要给整条菜单保留勾选列）。 */
+function menuHasChecks(menu: MenuDef, isChecked: ((id: string) => boolean | undefined) | undefined): boolean {
+  if (isChecked === undefined) return false;
+  return menu.items.some((item) => item !== 'separator' && isChecked(item) !== undefined);
+}
+
 interface MenuItemProps {
   command: string;
   registry: CommandRegistry;
   platform: Platform;
   enabled: boolean;
-  /** `undefined` = 不可勾选（不画勾选列）；`true/false` = 可勾选（画 ✓ / 留空槽）。 */
+  /** `undefined` = 这一项没有开关语义；`true/false` = 可勾选（画 ✓ / 留空槽）。 */
   checked?: boolean;
+  /** 本菜单里存在可勾选项时，不可勾选的项也要留出勾选列，让标签起点对齐。 */
+  reserveCheck?: boolean;
   onRun: (id: string) => void;
 }
 
-function MenuItem({ command, registry, platform, enabled, checked, onRun }: MenuItemProps) {
+function MenuItem({ command, registry, platform, enabled, checked, reserveCheck, onRun }: MenuItemProps) {
   const definition = registry.find(command);
   // 定义缺失不该让整个菜单挂掉 —— 画成禁用项，name 显示 id（开发期就该发现）
   const title = definition?.title ?? command;
   const shortcut = definition === undefined ? null : registry.displayBinding(definition, platform, formatKeybinding);
+  const showCheck = checked !== undefined || reserveCheck === true;
   return (
     <button
       type="button"
@@ -324,7 +354,7 @@ function MenuItem({ command, registry, platform, enabled, checked, onRun }: Menu
       aria-checked={checked}
       onClick={() => onRun(command)}
     >
-      {checked !== undefined && (
+      {showCheck && (
         <span className="menubar-item-check" aria-hidden="true">
           {checked ? '✓' : ''}
         </span>

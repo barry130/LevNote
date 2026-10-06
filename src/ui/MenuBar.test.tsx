@@ -45,10 +45,11 @@ class FakeRegistry {
 const registry = new FakeRegistry() as unknown as CommandRegistry;
 const PLATFORM: Platform = 'other';
 
-/** 小菜单：覆盖分隔线、禁用、快捷键三种形态。 */
+/** 小菜单：覆盖分隔线、禁用、快捷键三种形态；末尾一个是**纯命令菜单**（没有可勾选项）。 */
 const SMALL_MENUS: readonly MenuDef[] = [
   { id: 'file', accel: 'F', items: ['file.open', 'separator', 'file.save'] },
   { id: 'view', accel: 'V', items: ['view.rich'] },
+  { id: 'app', accel: 'A', items: ['format.bold'] },
 ];
 
 const roots: Root[] = [];
@@ -120,7 +121,7 @@ describe('菜单栏（ADR 0037）', () => {
   it('顶层菜单带助记字母画出来 —— 平时没有任何下拉', async () => {
     const mounted = await mount();
     const buttons = mounted.menuButtons();
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(3);
     expect(buttons[0]?.textContent).toBe('文件(F)');
     expect(buttons[1]?.textContent).toBe('视图(V)');
     expect(mounted.dropdown()).toBeNull();
@@ -156,15 +157,18 @@ describe('菜单栏（ADR 0037）', () => {
     expect(mounted.dropdown()).toBeNull();
   });
 
-  it('勾选状态：可勾选项画 ✓ 或留空槽，不可勾选项不画勾选列', async () => {
+  it('勾选状态：可勾选项画 ✓；同菜单其余项留空槽对齐；整菜单无可勾选项才不画列', async () => {
     const mounted = await mount({
       isChecked: (id) => (id === 'view.rich' ? true : id === 'file.save' ? false : undefined),
     });
     await mounted.openMenuAt(0);
 
     const fileItems = [...mounted.dropdown()!.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]')];
-    // file.open 不可勾选：连勾选列都没有；file.save 可勾选但未选中：留空槽
-    expect(fileItems[0]?.querySelector('.menubar-item-check')).toBeNull();
+    // file.save 可勾选 → **整个菜单**保留勾选列；file.open 不可勾选：留空槽
+    //（标签起点跟可勾选项对齐，不随勾选列有无而漂移 —— 视图/主题菜单不对齐的教训）
+    const openCheck = fileItems[0]?.querySelector<HTMLElement>('.menubar-item-check');
+    expect(openCheck).not.toBeNull();
+    expect(openCheck!.textContent).toBe('');
     const saveCheck = fileItems[1]?.querySelector<HTMLElement>('.menubar-item-check');
     expect(saveCheck).not.toBeNull();
     expect(saveCheck!.textContent).toBe('');
@@ -174,6 +178,11 @@ describe('菜单栏（ADR 0037）', () => {
     const rich = mounted.dropdown()!.querySelector<HTMLButtonElement>('button[role="menuitem"]');
     expect(rich?.querySelector<HTMLElement>('.menubar-item-check')?.textContent).toBe('✓');
     expect(rich?.getAttribute('aria-checked')).toBe('true');
+
+    await mounted.openMenuAt(2);
+    const bold = mounted.dropdown()!.querySelector<HTMLButtonElement>('button[role="menuitem"]');
+    // 这个菜单没有任何可勾选项 → 连勾选列都不画，标签顶到最前
+    expect(bold?.querySelector('.menubar-item-check')).toBeNull();
   });
 
   it('Esc 收起菜单，并且不让事件继续传播（全局 ui.escape 不许被连带触发）', async () => {
@@ -221,22 +230,30 @@ describe('菜单栏（ADR 0037）', () => {
     expect(document.activeElement?.textContent).toBe('保存Ctrl+S');
   });
 
-  it('MENUS（真实结构）覆盖七个菜单，项全部是命令 id —— 菜单里没有第二个真相来源', () => {
+  it('MENUS（真实结构）覆盖九个菜单，项全部是命令 id —— 菜单里没有第二个真相来源', () => {
     expect(MENUS.map((menu) => menu.id)).toEqual([
       'file',
       'edit',
       'paragraph',
       'format',
+      'search',
       'view',
+      'encoding',
       'theme',
       'help',
     ]);
     for (const menu of MENUS) {
       for (const item of menu.items) {
-        if (item !== 'separator') expect(item).toMatch(/^[a-z][a-zA-Z0-9.]+$/);
+        // 连字符来自编码命令的 slug（encoding.set.utf-8-none）
+        if (item !== 'separator') expect(item).toMatch(/^[a-z][a-zA-Z0-9.-]+$/);
       }
     }
     expect(MENUS[0]?.items).toContain('file.save');
-    expect(MENUS[5]?.items).toContain('theme.ink');
+    // 编码菜单的项来自 ENCODINGS 清单生成的命令（encoding.set.*），不是手写 id
+    expect(MENUS[6]?.items.filter((item) => item !== 'separator').every((item) => item.startsWith('encoding.set.'))).toBe(
+      true,
+    );
+    expect(MENUS[6]?.items.length).toBeGreaterThan(0);
+    expect(MENUS[7]?.items).toContain('theme.ink');
   });
 });

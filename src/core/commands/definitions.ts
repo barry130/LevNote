@@ -10,6 +10,7 @@
 import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
 import type { BlockFormat, InlineFormat } from '../editor/types.js';
+import { ENCODINGS, encodingSlug } from '../encodings.js';
 import { describeRoundTrip, formatRoundTripReport } from '../fidelity.js';
 import { t } from '../i18n/index.js';
 import { extractToReference, flattenReference } from '../document/block-ops.js';
@@ -253,6 +254,30 @@ const THEME_COMMANDS: readonly Command[] = (['system', 'paper', 'ink'] as const)
     ctx.ui.setTheme(preference);
   },
 }));
+
+/**
+ * 「编码」菜单的命令：一份编码一个「转为 …」。
+ *
+ * 标题直接用 `core/encodings.ts` 里的 `label` —— 那份数据本身就是界面文案
+ * （状态栏的下拉显示的也是它），这里不再造第二个名字。可勾选状态由外壳
+ * 按文档当前的编码判断（`menuChecked`），命令本身无状态。
+ */
+const ENCODING_COMMANDS: readonly Command[] = ENCODINGS.map((option) => ({
+  id: `encoding.set.${encodingSlug(option.encoding, option.bom)}`,
+  title: option.label,
+  category: t('command.category.encoding'),
+  keywords: [option.encoding, 'bianma', 'encoding', '编码'],
+  enabled: (ctx: CommandContext) => {
+    const doc = activeDocument(ctx);
+    return doc !== null && !doc.readonly;
+  },
+  run: (ctx: CommandContext) => {
+    ctx.ui.setEncoding(option.encoding, option.bom);
+  },
+}));
+
+/** 「编码」菜单要的命令 id 清单 —— 与命令定义同生共死，菜单不自己拼 id。 */
+export const ENCODING_COMMAND_IDS: readonly string[] = ENCODING_COMMANDS.map((command) => command.id);
 
 export const BUILT_IN_COMMANDS: readonly Command[] = [
   // ---- 文件 -------------------------------------------------------------
@@ -701,6 +726,10 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   // setTheme 与 cycleTheme 都是现成的 UiActions；三条直接入口给菜单用
   // （「我要暗黑」是两步循环里的第三步，循环键留着给快切）。
   ...THEME_COMMANDS,
+
+  // ---- 编码 ---------------------------------------------------------------
+  // 与状态栏下拉同一份候选清单（core/encodings.ts）；只改元数据，保存时生效
+  ...ENCODING_COMMANDS,
 
   {
     id: 'app.about',

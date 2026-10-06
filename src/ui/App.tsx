@@ -33,6 +33,7 @@ import type { OutlineItem } from '../core/outline/outline.js';
 import { basename, isMarkdownPath, resolveRelative } from '../core/path.js';
 import type { DocumentStore } from '../core/document/store.js';
 import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, toggleFullscreen, watchFiles } from '../core/platform/index.js';
+import { encodingSlug } from '../core/encodings.js';
 import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
 import { WorkspaceSearchStore, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
@@ -915,6 +916,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       toggleFullscreen: () => {
         void toggleFullscreen();
       },
+      // 与状态栏下拉同一个动作：只改元数据，保存时才按新编码写盘
+      setEncoding: (encoding, bom) => workspace.activeStore?.setFormat(encoding, bom),
       editor: () => handleRef.current,
       // 「能不能切」问的是**首选内核**有没有声明源码视图，而不是路径后缀 ——
       // 后缀判断会漏掉「富文本内核起不来、已退回兜底内核」这种情况
@@ -995,12 +998,17 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   );
 
   /**
-   * 菜单里可勾选项的状态。**只画状态，不产生语义** —— 真相来源是设置快照
-   * 与活动标签页的视图模式，菜单的 ✓ 与状态栏、设置页读的是同一份字段。
-   * 返回 `undefined` 的项没有开关语义，菜单不画勾选列。
+   * 菜单里可勾选项的状态。**只画状态，不产生语义** —— 真相来源是设置快照、
+   * 活动标签页的视图模式与文档的编码元数据，菜单的 ✓ 与状态栏、设置页
+   * 读的是同一份字段。返回 `undefined` 的项没有开关语义，菜单不画勾选列。
    */
   const menuChecked = useCallback(
     (id: string): boolean | undefined => {
+      if (id.startsWith('encoding.set.')) {
+        const doc = workspace.activeStore?.getSnapshot().doc ?? null;
+        if (doc === null) return false;
+        return encodingSlug(doc.encoding, doc.bom) === id.slice('encoding.set.'.length);
+      }
       switch (id) {
         case 'view.toggleSidebar':
           return settings.sidebarVisible;
@@ -1036,6 +1044,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       settings.sidebarVisible,
       settings.theme,
       settings.wordWrap,
+      workspace,
     ],
   );
 

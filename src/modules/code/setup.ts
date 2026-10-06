@@ -45,12 +45,13 @@ import { sql } from '@codemirror/lang-sql';
 import type { Extension } from '@codemirror/state';
 import { tags as t } from '@lezer/highlight';
 
-import type { CursorPosition, EditorPosition, EditorSearch } from '../../core/editor/types.js';
+import type { CursorPosition, EditorFormatting, EditorPosition, EditorSearch } from '../../core/editor/types.js';
 import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js';
 import { stripInlineMarkup } from '../../core/outline/outline.js';
 import { isMarkdownPath } from '../../core/path.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions, type TextMatch } from '../../core/search/find.js';
 import { extensionOf } from '../../core/path.js';
+import { createMarkdownSourceFormatting } from './markdown-format.js';
 
 /** 标记「这次变更是程序写入的」。与 Markdown 内核的 `SILENT_META` 同一个用途。 */
 const SILENT = Annotation.define<boolean>();
@@ -88,6 +89,12 @@ export interface CodeEditorInstance {
   undo(): void;
   redo(): void;
   readonly search: EditorSearch;
+  /**
+   * **仅 Markdown 语言**的源码级格式化（`EditorFormatting` 的第二个实现，
+   * 见 `markdown-format.ts`）。非 Markdown 的代码文件没有这个能力 ——
+   * 把 `main.py` 变成「二级标题」是个不存在的问题，菜单按禁用呈现。
+   */
+  readonly formatting?: EditorFormatting;
   goToHeading(level: number, text: string): boolean;
   /**
    * 按**源码行列**定位（工作区检索的跳转）。
@@ -439,6 +446,11 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
     },
 
     search: createCodeSearch(view),
+
+    // 源码级 Markdown 格式化：只有 Markdown 语言挂（见 markdown-format.ts）。
+    // 富文本视图用不到它（那时 formatting 来自富文本内核）；
+    // 源码 / 分屏视图里它是「段落 / 格式」菜单能落地的唯一路径
+    formatting: options.language === 'markdown' ? createMarkdownSourceFormatting(() => view) : undefined,
 
     /**
      * 大纲跳转。

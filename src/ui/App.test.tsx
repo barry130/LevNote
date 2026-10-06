@@ -960,6 +960,30 @@ describe('源码模式切换', () => {
     expect(menuItem(dropdown, '切换源码模式')?.disabled).toBe(true);
   });
 
+  it('编码菜单：当前编码带 ✓，点另一项只改元数据 —— 不变脏，保存时才写新编码', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 甲\n'));
+    await mounted.open('note.md');
+
+    const dropdown = await openMenu(mounted.container, '编码');
+    expect(menuItem(dropdown, 'UTF-8')?.getAttribute('aria-checked')).toBe('true');
+    expect(menuItem(dropdown, 'GBK')?.getAttribute('aria-checked')).toBe('false');
+
+    // 菜单还开着 —— 直接点那一项（再点顶层按钮会把它收起）
+    const gbk = menuItem(dropdown, 'GBK');
+    expect(gbk).not.toBeNull();
+    await act(async () => {
+      gbk!.click();
+    });
+    await settle();
+
+    expect(mounted.store.getSnapshot().doc?.encoding).toBe('GBK');
+    // 元数据不等于内容改动 —— 不该引着用户去保存
+    expect(statusOf(mounted.container)).toBe('已保存');
+
+    const reopened = await openMenu(mounted.container, '编码');
+    expect(menuItem(reopened, 'GBK')?.getAttribute('aria-checked')).toBe('true');
+  });
+
   it('切标签页时视图模式跟着各自的文档走，不会串台', async () => {
     mounted = await mount((p) => {
       p.put('a.md', '# 甲\n');

@@ -35,6 +35,7 @@ export const zhCN = {
   'command.category.paragraph': '段落',
   'command.category.format': '格式',
   'command.category.theme': '主题',
+  'command.category.encoding': '编码',
 
   // ---- 菜单栏（下拉菜单的名字；与命令分组不是一个东西 ——
   //      菜单是外壳的导航结构，分组是命令面板的归类） ------------------------
@@ -42,7 +43,9 @@ export const zhCN = {
   'menu.edit': '编辑',
   'menu.paragraph': '段落',
   'menu.format': '格式',
+  'menu.search': '搜索',
   'menu.view': '视图',
+  'menu.encoding': '编码',
   'menu.theme': '主题',
   'menu.help': '帮助',
 

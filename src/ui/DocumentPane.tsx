@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
-import type { BomKind, LineEndingName } from '../core/document/types.js';
+import type { LineEndingName } from '../core/document/types.js';
 import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
 import type {
   BlockHandleState,
@@ -40,6 +40,7 @@ import type {
   TableState,
 } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
+import { ENCODINGS, encodingKey as encodingKeyCore } from '../core/encodings.js';
 import { SPLIT_RATIO_MAX, SPLIT_RATIO_MIN } from '../core/settings.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
@@ -52,17 +53,8 @@ import { SlashMenu } from './SlashMenu.js';
 import { TableToolbar } from './TableToolbar.js';
 import { ViewSwitcher } from './ViewSwitcher.js';
 
-const ENCODINGS: Array<{ label: string; encoding: string; bom: BomKind }> = [
-  { label: 'UTF-8', encoding: 'UTF-8', bom: 'none' },
-  { label: 'UTF-8（含 BOM）', encoding: 'UTF-8', bom: 'utf-8' },
-  { label: 'GBK', encoding: 'GBK', bom: 'none' },
-  { label: 'GB18030', encoding: 'GB18030', bom: 'none' },
-  { label: 'Big5', encoding: 'Big5', bom: 'none' },
-  { label: 'UTF-16 LE', encoding: 'UTF-16LE', bom: 'utf-16le' },
-  { label: 'UTF-16 BE', encoding: 'UTF-16BE', bom: 'utf-16be' },
-  { label: 'windows-1252', encoding: 'windows-1252', bom: 'none' },
-];
-
+// 编码候选清单与它的稳定键住在 `core/encodings.ts` —— 菜单栏的「编码」菜单
+// 与这里的下拉从**同一份**生成，抄成两份迟早会各改各的（硬约束 5 的近亲）
 const LINE_ENDINGS: Array<{ value: LineEndingName; label: string }> = [
   { value: 'lf', label: 'LF' },
   { value: 'crlf', label: 'CRLF' },
@@ -96,13 +88,6 @@ const STATUS_TEXT = {
  * 只有人眼能判断好坏。
  */
 const PREVIEW_SYNC_DELAY_MS = 160;
-
-function encodingKey(encoding: string, bom: BomKind): string {
-  const hit = ENCODINGS.find((item) => item.encoding.toUpperCase() === encoding.toUpperCase() && item.bom === bom);
-  if (hit) return `${hit.encoding}|${hit.bom}`;
-  // 磁盘上是探测出来的编码（比如 chardetng 猜的 GB18030），不在下拉里也不该显示空白
-  return `other|${encoding}|${bom}`;
-}
 
 /**
  * 面板向上汇报的「视图信息」。
@@ -841,7 +826,7 @@ export function DocumentPane({
   const docText = doc?.text;
   const stats = useMemo(() => (docText === undefined ? null : analyze(docText)), [docText]);
 
-  const activeEncodingKey = doc ? encodingKey(doc.encoding, doc.bom) : '';
+  const activeEncodingKey = doc ? encodingKeyCore(doc.encoding, doc.bom) : '';
 
   /**
    * 隐藏面板不收「浮层类」上报。

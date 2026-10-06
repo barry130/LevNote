@@ -142,7 +142,8 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **面板常驻（标签切换不销毁内核）** | `ui/App.tsx` 的 `PaneSlot` + `visitedIds`（访问过才常驻，ADR 0034）。**句柄按面板分桶**（`reportHandle` / `reportViewInfo`）；隐藏面板收浮层的契约在 `DocumentPane` 的 `active` prop。`initialPosition` 逐面板取，不再有全局的 |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
 | 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
-| **菜单栏（Typora 式文字菜单）** | `ui/MenuBar.tsx`（ADR 0037）。下拉项就是**命令 id**：标题 / 快捷键 / 可用性全从 `CommandRegistry` 现查，菜单不带语义。键盘挂 **window 捕获阶段**（坑 9），收起状态不挂监听。勾选列走三态 `isChecked`（**只画状态不产生语义**，真相在设置快照与视图模式）。新加菜单项 = 先有命令、再往 `MENUS` 塞 id；**没有真实能力的项不许进菜单** |
+| **菜单栏（Typora 式文字菜单）** | `ui/MenuBar.tsx`（ADR 0037）。九个菜单（文件/编辑/段落/格式/搜索/视图/编码/主题/帮助），下拉项就是**命令 id**：标题 / 快捷键 / 可用性全从 `CommandRegistry` 现查，菜单不带语义。键盘挂 **window 捕获阶段**（坑 9），收起状态不挂监听。勾选列走三态 `isChecked`（**只画状态不产生语义**，真相在设置快照与视图模式），勾选槽位**按菜单整列保留**（同菜单有一项可勾选，其余项也留空槽对齐）。新加菜单项 = 先有命令、再往 `MENUS` 塞 id；**没有真实能力的项不许进菜单** |
+| **编码清单（一份）** | `core/encodings.ts` 的 `ENCODINGS` / `encodingSlug` —— 状态栏下拉与「编码」菜单共用；编码命令由清单生成（`encoding.set.<slug>`，title 就是选项文案），勾选读文档元数据 |
 | **内核怎么被加载与注册** | `modules/index.ts`（**动态 import**，ADR 0028）。三个内核按 markdown → mindmap → code 逐个 await 后注册（顺序即优先级，与解析时序无关）；单个内核加载失败记进 `editorRegistrationFailures()`，外壳出横幅但启动照常。注册由 `main.tsx` 在**首帧之前** await —— 表还空着就渲染，`.md` 会被静默兜到纯文本。兜底内核（plaintext）保持静态：最后防线不能自己也是异步的 |
 | **视图三态（富文本 / 源码 / 分屏）** | `core/document/store.ts` 的 `ViewMode`（**枚举，不是两个布尔**）+ `ui/ViewSwitcher.tsx`（状态栏里的三档）。分屏的两栏在 `ui/DocumentPane.tsx`：左 = `primary.sourceView`（可编辑），右 = `primary` 加 `readOnly` |
 | **块手柄（悬停命中 / 上移下移 / 转为 / 拖动落点）** | `modules/markdown/block.ts`（纯逻辑 + 几何，**悬停走 DOM 元素、落点走坐标**，两条路的分工写在文件头）+ `modules/markdown/plugin.ts` 的 `blockHoverPlugin`（**不共用浮层骨架**：触发源是鼠标移动）+ `ui/BlockHandle.tsx`（显隐合三个条件） |
@@ -530,8 +531,8 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,365 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
-主包 382.61 kB（gzip 120.11 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
+测试：**1,387 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+主包 382.75 kB（gzip 120.18 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
 2.654 MiB（`public/drawio/`，按需注入、不进 bundle，ADR 0027）。
@@ -607,8 +608,8 @@ markdown/mindmap/text 的 reference 引用画成卡片、点击打开（`onDocBl
 卡片的动作按钮**只在对应能力挂着时才画**（setup.ts 里 handler 必须按
 undefined 原样传，包一层永远存在的函数会画出假按钮）。
 
-**菜单栏已完成（2026-10-06，ADR 0037）**：Typora 式文字菜单七个
-（文件 / 编辑 / 段落 / 格式 / 视图 / 主题 / 帮助），自绘 web 菜单 +
+**菜单栏已完成（2026-10-06，ADR 0037）**：Typora 式文字菜单九个
+（文件 / 编辑 / 段落 / 格式 / 搜索 / 视图 / 编码 / 主题 / 帮助），自绘 web 菜单 +
 命令注册表当唯一真相。内容充实阶段新增 15 条命令（新建 / 保存全部 /
 撤销 / 重做 / 复制为 HTML / 四至六级标题 / 换行 / 行号 / 全屏 / 主题三档
 等）与可选契约 `EditorHandle.undo/redo`（两个内核实现，菜单触发的撤销
@@ -618,6 +619,13 @@ undefined 原样传，包一层永远存在的函数会画出假按钮）。
 （打开文件后第一下 Ctrl+Z 清空整篇）。判断依据多一条：
 **菜单里没有真实能力支撑的项不进菜单** —— 参考外部产品的菜单清单时，
 没实现的宁可缺，不画点了没反应的占位。
+
+**菜单栏第三轮（同日，ADR 0037 §7）**：**代码内核补上 Markdown 源码级
+格式化**（`modules/code/markdown-format.ts`，`EditorFormatting` 的第二个
+实现，仅 Markdown 语言）—— 源码 / 分屏视图下「段落 / 格式」不再整体置灰，
+菜单不认视图只认能力；CodeMirror 上报走 `updateListener`，**不需要**
+`USER_EDIT_META` 上膛。**编码菜单**是状态栏编码下拉的提升（选项清单在
+`core/encodings.ts`，命令由清单生成）；**搜索菜单**全是已有命令的第三入口。
 **顶部工具栏已整排撤除**（品牌 / 路径 / 徽章 / 六个按钮并入菜单与
 状态栏三档切换，`--titlebar-bg` 已改名 `--menubar-bg`）；
 **状态栏是中性配色**（VSCode Modern 风格：底色与 chrome 同源 + 上边线，

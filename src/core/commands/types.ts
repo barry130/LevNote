@@ -11,7 +11,7 @@
  */
 
 import type { ViewMode } from '../document/store.js';
-import type { DocumentProvider } from '../document/types.js';
+import type { BomKind, DocumentProvider } from '../document/types.js';
 import type { EditorHandle } from '../editor/types.js';
 import type { ThemePreference } from '../theme/theme.js';
 import type { WorkspaceStore } from '../workspace/store.js';
@@ -56,6 +56,13 @@ export interface UiActions {
   toggleCodeLineNumbers(): void;
   /** 切换窗口全屏（平台桥决定用 Tauri 的窗口 API 还是 Fullscreen API）。 */
   toggleFullscreen(): void;
+  /**
+   * 换当前文档的保存编码（菜单「编码」的入口；与状态栏下拉同一个动作）。
+   *
+   * 只改元数据：屏幕上的文字不变，**保存时**才按新编码写盘 ——
+   * 与「用错误编码打开」的重新探测是两回事。
+   */
+  setEncoding(encoding: string, bom: BomKind): void;
   /** 当前聚焦的编辑器命令面。没有内核就绪时为 null。 */
   editor(): EditorHandle | null;
   /**
