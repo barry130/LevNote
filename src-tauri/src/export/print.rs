@@ -152,10 +152,19 @@ pub fn open_print_window(app: &AppHandle, html: String, title: &str) -> AppResul
 }
 
 /// Tauri 命令入口。
+///
+/// **必须是 async**：Tauri 的同步命令在**主线程**上内联执行，而
+/// `WebviewWindowBuilder::build()` 要等 WebView2「环境已创建」的回调 ——
+/// 那个回调得靠消息循环派发，消息循环此刻正被本命令占着 → 死锁。
+/// 实测表现就是本 bug：窗口框架带标题立起来了、内容一片白、
+/// 整个应用的事件循环死掉（子窗口连 X 都关不掉）。
+/// async 命令跑在异步运行时线程上，窗口创建作为一条事件循环消息派发，
+/// 不存在嵌套等待。
 #[tauri::command]
-pub fn print_html(app: AppHandle, html: String, title: String) -> AppResult<()> {
+pub async fn print_html(app: AppHandle, html: String, title: String) -> AppResult<()> {
     let title = if title.trim().is_empty() { "打印预览" } else { title.as_str() };
-    open_print_window(&app, html, title)
+    let owned = title.to_string();
+    open_print_window(&app, html, &owned)
 }
 
 #[cfg(test)]

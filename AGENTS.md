@@ -129,7 +129,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.drawio` 缺哪些 stencil 库** | `core/drawio.ts` 的 `stencilLibsOf` / `missingStencilLibs`；插入用的 **doc-block 起始内容**也在这份文件（`drawioDocBlockStarter`，inline 模式 + 文档内唯一 id，两个内核共用 —— 别在内核里各写一份）。**渲染前从 XML 风格串里算**（`shape=mxgraph.<库名>.`），与内置清单求差 —— 不要改成「事后看请求 404」（并发归属不了，XHR 打点是全局猴子补丁） |
 | **draw.io 查看器怎么渲染** | `core/drawio-render.ts`。上游产物在 `public/drawio/`（ESLint 全量忽略），**出现图表引用才注入**脚本；注入前十条资源路径必须全部占住（「无网络」的唯一开关，漏一条就静默联网）。渲染器可注入（`DrawIoIo`），与 `MermaidIo` 同一条纪律。**不接主题**（颜色在图的 XML 里，画布恒白） |
 | 图 / 源码双态与全屏入口 | `modules/markdown/code-block-view.ts`（`data-mode`）+ `ui/DiagramViewer.tsx`（外壳画全屏） |
-| 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作）。**打印 PDF 与它共用同一份渲染**：`print-document.ts` 动作 + `src-tauri/src/export/print.rs`（内存自定义协议 + 打印子窗口，ADR 0030） |
+| 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作）。**打印 PDF 与它共用同一份渲染**：`print-document.ts` 动作 + `src-tauri/src/export/print.rs`（内存自定义协议 + 打印子窗口，ADR 0030）。**`print_html` 必须是 async 命令** —— 同步命令在主线程内联执行，里面开窗口要等 WebView2 回调，回调靠消息循环，循环正被命令占着 → 死锁（白屏 + 全应用关不掉，ADR 0030 §6） |
 | **写回磁盘时被改写成什么样**（列表符号 / 分隔线 / 表格） | `modules/markdown/setup.ts` 的 `useDashSymbols`（`bullet` / `rule` 都设成 `'-'`）。**`remark-stringify` 的默认是 `'*'`**，改回去会让「打开一份用 `-` 写的文档 → **改一个字** → 保存」把全篇的 `-` 静默换成 `*`。清单与实测见 `docs/open-decisions.md` 的「原文保真的实测与收窄」 |
 | Markdown 编辑体验 | `modules/markdown/` |
 | 代码编辑体验 | `modules/code/` |
