@@ -36,6 +36,7 @@ export const zhCN = {
   'command.category.format': '格式',
   'command.category.theme': '主题',
   'command.category.encoding': '编码',
+  'command.category.help': '帮助',
 
   // ---- 菜单栏（下拉菜单的名字；与命令分组不是一个东西 ——
   //      菜单是外壳的导航结构，分组是命令面板的归类） ------------------------
@@ -88,6 +89,9 @@ export const zhCN = {
 
   // ---- 应用 ---------------------------------------------------------------
   'command.app.settings.title': '设置',
+
+  // ---- 帮助 ---------------------------------------------------------------
+  'command.help.sampleDocument.title': '打开示例文档',
 
   // ---- 诊断 ---------------------------------------------------------------
   'command.diagnostics.roundTrip.title': '往返保真自检（保存会改写什么）',

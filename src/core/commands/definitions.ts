@@ -14,7 +14,10 @@ import { ENCODINGS, encodingSlug } from '../encodings.js';
 import { describeRoundTrip, formatRoundTripReport } from '../fidelity.js';
 import { t } from '../i18n/index.js';
 import { extractToReference, flattenReference } from '../document/block-ops.js';
+import { asAppError } from '../document/types.js';
 import { isDesktop, printHtml } from '../platform/index.js';
+import { joinPath } from '../path.js';
+import { buildSampleDocument, SAMPLE_DOCUMENT_NAME } from '../sample-document.js';
 
 function activeDocument(ctx: CommandContext) {
   return ctx.workspace.activeStore?.getSnapshot().doc ?? null;
@@ -740,6 +743,42 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // dev server 不替换裸标识符，写错的表现是「点一下关于整个应用就没了」
     run: (ctx) => {
       void ctx.ui.notify(`轻墨 ${String(import.meta.env.QINGMO_VERSION ?? '')}`, '关于轻墨');
+    },
+  },
+
+  /**
+   * 示例文档（B1）：往工作区根写入 `轻墨示例.md` 并打开。
+   *
+   * 与 `file.new` 同一条编排（stat → 写 → open），也守同一条红线：
+   * **已存在就不再写** —— 用户可能已经改过这份示例，覆盖就是毁内容
+   * （硬约束 2）。想重置就删掉文件再点一次，这与示例文档里写的话一致。
+   */
+  {
+    id: 'help.sampleDocument',
+    title: t('command.help.sampleDocument.title'),
+    category: t('command.category.help'),
+    keywords: ['sample', 'example', 'demo', 'shili', '示例', '导览'],
+    enabled: (ctx) => ctx.workspace.getSnapshot().tree.root !== null,
+    run: (ctx) => {
+      void (async () => {
+        const root = ctx.workspace.getSnapshot().tree.root;
+        if (root === null) return;
+        const path = joinPath(root, SAMPLE_DOCUMENT_NAME);
+        if (path === null) return;
+        try {
+          await ctx.provider.statFile(path);
+        } catch {
+          // stat 失败 = 还没有这份文件，写入它
+          try {
+            await ctx.provider.writeTextFile({ path, text: buildSampleDocument(), create: true });
+          } catch (thrown) {
+            const error = asAppError(thrown);
+            await ctx.ui.notify(`示例文档没能创建：${error.message}`, '示例文档');
+            return;
+          }
+        }
+        await ctx.workspace.open(path);
+      })();
     },
   },
 
