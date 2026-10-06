@@ -348,6 +348,26 @@ export class DocumentStore {
   }
 
   /**
+   * 文件在磁盘上被重命名 / 移动了（文件树管理，A2）：只改路径，**内容原样保留**。
+   *
+   * 与 `saveAs` 同一个道理 —— 换路径不换内容：`session` 不变，编辑器实例不重建，
+   * 撤销栈、光标、视图模式全都保住。脏改动也**原样保留**：改名不碰字节，
+   * `text` 对 `savedText` 的差异在改名之后依然成立，下一次 Ctrl+S 会把这份
+   * 差异写到**新路径**上（rename 不改 mtime，乐观锁仍然有效）。
+   *
+   * 这正是「改名」与「删除」的分工差异：删除碰到了内容归属（脏缓冲会变成
+   * 「凭空写回一个新文件」），所以必须拦下脏标签页；改名没有这个问题。
+   */
+  retargetPath(newPath: string): void {
+    const doc = this.state.doc;
+    if (!doc || doc.path === newPath) return;
+    this.commit({
+      doc: { ...doc, path: newPath, displayName: basename(newPath) },
+      notice: `已重命名为 ${basename(newPath)}`,
+    });
+  }
+
+  /**
    * 保存。返回是否成功。
    * 冲突时不抛错而是把状态切到 `conflict`，因为这是**需要用户决策**的正常分支，
    * 不是程序异常。

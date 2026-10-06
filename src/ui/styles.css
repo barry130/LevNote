@@ -729,6 +729,55 @@ body {
   margin-left: 6px;
 }
 
+/* 文件管理（A2）的悬停操作按钮：平时不占位，悬停整行才出现 ——
+   22px 的行上常驻四个按钮会把文件名挤没了 */
+.tree-actions {
+  display: none;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+}
+
+.tree-row:hover .tree-actions {
+  display: inline-flex;
+}
+
+.tree-actions button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--slate);
+  font-size: 11px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.tree-actions button:hover {
+  background: var(--list-hover);
+  color: var(--chrome-fg);
+}
+
+/* 新建 / 改名的行内输入：与所在行同高同缩进，名字就长在它要出现的位置上 */
+.tree-input-row {
+  padding-right: 8px;
+}
+
+.tree-input-row input {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  outline: none;
+}
+
 /* ---------------------------------------------------------------- 检索面板 */
 
 /* 它同时挂着 `.sidebar`（见 SearchPanel.tsx），所以列布局、头部样式都是共用的，

@@ -447,6 +447,26 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   );
 
   /**
+   * 文件树上的删除（A2）：**确认对话框在这里**，编排（脏标签页拦截等）在 store。
+   *
+   * 文案按「删的是文件还是文件夹」分开说 —— 递归删除整个目录是这一整条链路上
+   * 唯一不可撤销的破坏性动作，警告必须把后果说全（硬约束 2）。
+   * 用户取消时返回 false：侧栏的输入态不会因此多出一条错误。
+   */
+  const handleDeleteEntry = useCallback(
+    async (path: string, isDir: boolean): Promise<boolean> => {
+      const name = basename(path);
+      const message = isDir
+        ? `删除文件夹「${name}」？其中的全部内容都会被删除，此操作不可撤销。`
+        : `删除文件「${name}」？此操作不可撤销。`;
+      const yes = await askConfirm(message, '删除');
+      if (!yes) return false;
+      return workspace.deleteEntry(path);
+    },
+    [workspace],
+  );
+
+  /**
    * 把引用卡片交来的 `src` 换算成**绝对路径**（P6 第 28 项）。
    *
    * 「打开」与「就地编辑」共用这一步。点击只会发生在**活动面板**上
@@ -1393,11 +1413,15 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
                 <Sidebar
                   tree={tree}
                   activePath={activePath}
+                  canManageFiles={workspace.canManageFiles}
                   onOpenFolder={() => void workspace.openFolder()}
                   onToggleDir={(path) => void workspace.toggleDir(path)}
                   onOpenFile={(path) => void workspace.open(path)}
                   onRefresh={() => void workspace.refreshTree()}
                   onToggleIgnored={() => workspace.setShowIgnored(!tree.showIgnored)}
+                  onCreateEntry={(dir, name, kind) => workspace.createEntry(dir, name, kind).then((path) => path !== null)}
+                  onRenameEntry={(path, name) => workspace.renameEntry(path, name).then((next) => next !== null)}
+                  onDeleteEntry={(path, isDir) => handleDeleteEntry(path, isDir)}
                 />
               )}
             </div>

@@ -28,6 +28,7 @@ import type {
   WorkspaceSearcher,
   WorkspaceSummary,
 } from '../search/workspace.js';
+import type { WorkspaceFileManager } from '../workspace/fsmanage.js';
 
 const TEXT_EXTENSIONS = ['md', 'markdown', 'txt', 'json', 'js', 'ts', 'tsx', 'jsx', 'css', 'html', 'xml', 'drawio', 'mindmap', 'yml', 'yaml', 'toml', 'rs', 'py', 'go', 'java', 'c', 'h', 'cpp', 'sh', 'sql', 'log', 'csv'];
 
@@ -144,6 +145,37 @@ export function createDesktopProvider(): DocumentProvider {
 /** 暴露给 UI 的「确认」对话框，语义比原生 confirm 更明确。 */
 export async function askConfirm(text: string, title = '轻墨'): Promise<boolean> {
   return confirm(text, { title, kind: 'warning' });
+}
+
+// --------------------------------------------------------------------- 文件管理
+
+/**
+ * 工作区文件管理（新建 / 重命名 / 删除）的桌面端实现。
+ *
+ * 语义约束（绝不覆盖 / 删除须先经用户确认）写在 `WorkspaceFileManager`
+ * 与 Rust 命令的注释里；这里只负责把四条命令接过来 —— 错误由 Tauri 的
+ * `AppError` 序列化原样上抛，store 编排层统一收敛成用户能读的话。
+ */
+export function createDesktopFileManager(): WorkspaceFileManager {
+  return {
+    available: true,
+
+    async createFile(path) {
+      await invoke('create_file', { path });
+    },
+
+    async createDirectory(path) {
+      await invoke('create_directory', { path });
+    },
+
+    async renamePath(from, to) {
+      await invoke('rename_path', { from, to });
+    },
+
+    async deletePath(path) {
+      await invoke('delete_path', { path });
+    },
+  };
 }
 
 // --------------------------------------------------------------------- 检索

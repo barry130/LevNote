@@ -12,6 +12,7 @@ import {
   segments,
   separatorOf,
   titleOf,
+  validateEntryName,
 } from './path.js';
 
 describe('basename / titleOf / extensionOf', () => {
@@ -188,5 +189,49 @@ describe('Markdown 扩展名名单', () => {
     // 不是一个扩展名为 `gitignore` 的文件。`.md` 同理。
     expect(isMarkdownPath('.md')).toBe(false);
     expect(extensionOf('.md')).toBe('');
+  });
+});
+
+describe('validateEntryName（文件管理的新建 / 重命名）', () => {
+  it('普通中英文名放行，首尾空白被吃掉', () => {
+    expect(validateEntryName('笔记.md')).toBeNull();
+    expect(validateEntryName('notes 2026.md')).toBeNull();
+    expect(validateEntryName('  a.md  ')).toBeNull();
+    expect(validateEntryName('README')).toBeNull();
+  });
+
+  it('空与纯空白拒绝', () => {
+    expect(validateEntryName('')).not.toBeNull();
+    expect(validateEntryName('   ')).not.toBeNull();
+  });
+
+  it('路径分隔符与 Windows 非法字符拒绝', () => {
+    expect(validateEntryName('a/b.md')).not.toBeNull();
+    expect(validateEntryName('a\\b.md')).not.toBeNull();
+    for (const ch of [':', '*', '?', '"', '<', '>', '|']) {
+      expect(validateEntryName(`a${ch}b.md`)).not.toBeNull();
+    }
+  });
+
+  it('以点结尾拒绝；结尾空白被 trim 吃掉（产出「a」这个合法名）', () => {
+    expect(validateEntryName('a.md.')).not.toBeNull();
+    expect(validateEntryName('a ')).toBeNull();
+    // 内部的点和空格没问题
+    expect(validateEntryName('a. b.md')).toBeNull();
+  });
+
+  it('Windows 保留设备名拒绝 —— 带扩展名也一样', () => {
+    for (const name of ['CON', 'con.txt', 'Nul', 'COM1', 'lpt4.md']) {
+      expect(validateEntryName(name)).not.toBeNull();
+    }
+    // 主名不是保留名就没问题（COM10 起不保留）
+    expect(validateEntryName('console.md')).toBeNull();
+    expect(validateEntryName('COM10')).toBeNull();
+  });
+
+  it('控制字符与超长名拒绝', () => {
+    expect(validateEntryName('a\nb.md')).not.toBeNull();
+    expect(validateEntryName('x'.repeat(201))).not.toBeNull();
+    expect(validateEntryName('x'.repeat(200))).toBeNull();
   });
 });

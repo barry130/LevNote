@@ -21,9 +21,11 @@
  */
 
 import type { AppErrorShape, DirEntry, DocumentProvider } from '../document/types.js';
+import { asAppError } from '../document/types.js';
 import { DocumentStore, isDirty, type DocumentStatus } from '../document/store.js';
-import { basename, dirname } from '../path.js';
+import { basename, dirname, joinPath, validateEntryName } from '../path.js';
 import { ancestorsOf } from './tree.js';
+import { UNSUPPORTED_FILE_MANAGER, type WorkspaceFileManager } from './fsmanage.js';
 
 export interface TabSummary {
   readonly id: number;
@@ -141,6 +143,7 @@ function sameSummaries(a: readonly TabSummary[], b: readonly TabSummary[]): bool
 
 export class WorkspaceStore {
   private readonly provider: DocumentProvider;
+  private readonly fileManager: WorkspaceFileManager;
   private tabs: Tab[] = [];
   private activeId: number | null = null;
   private nextId = 1;
@@ -148,9 +151,15 @@ export class WorkspaceStore {
   private tree: TreeState = EMPTY_TREE;
   private state: WorkspaceState;
 
-  constructor(provider: DocumentProvider) {
+  constructor(provider: DocumentProvider, fileManager: WorkspaceFileManager = UNSUPPORTED_FILE_MANAGER) {
     this.provider = provider;
+    this.fileManager = fileManager;
     this.state = { tabs: [], activeId: null, tree: EMPTY_TREE, openError: null };
+  }
+
+  /** 浏览器预览为 false：外壳据此把侧栏的文件管理按钮画成禁用。 */
+  get canManageFiles(): boolean {
+    return this.fileManager.available;
   }
 
   getSnapshot = (): WorkspaceState => this.state;
@@ -637,6 +646,156 @@ export class WorkspaceStore {
     for (const dir of chain) {
       if (this.tree.dirs[dir] === undefined) await this.loadDir(dir);
     }
+  }
+
+  // ---- 文件管理（A2） -----------------------------------------------------
+  //
+  // 三条编排的共同点：**磁盘与打开着的标签页是同一份文件的两个视图**，
+  // 只改一边就会让它们说不一样的话 —— 所以动磁盘之前先看清标签页这边。
+
+  /** 命中某个路径（或其子树内）的打开标签页。两种分隔符都认。 */
+  private tabsUnder(path: string): Tab[] {
+    return this.tabs.filter((tab) => {
+      const docPath = tab.store.getSnapshot().doc?.path;
+      if (docPath === undefined) return false;
+      return docPath === path || docPath.startsWith(`${path}\\`) || docPath.startsWith(`${path}/`);
+    });
+  }
+
+  /** 文件管理动作失败的通报位。侧栏的错误槽位就在树上方，用户一定看得到。 */
+  private failTreeAction(message: string, detail?: string): void {
+    this.setTree({ error: { code: 'IO', message, detail: detail ?? null } });
+  }
+
+  private requireFileManager(): WorkspaceFileManager | null {
+    if (!this.fileManager.available) {
+      this.failTreeAction('当前环境不支持管理文件（浏览器预览没有真实文件系统，请用桌面版）');
+      return null;
+    }
+    return this.fileManager;
+  }
+
+  /**
+   * 在目录里新建文件 / 文件夹。成功返回新路径（文件还会被顺手打开），
+   * 失败返回 null，原因在 `tree.error`。
+   *
+   * 新建的文件**要打开**：用户输入名字的下一秒就该看到它，而不是自己去树里找。
+   * 打开失败不影响「文件已建成」这个事实 —— `open()` 自己会把错误放进
+   * `openError` 横幅，这里原样返回路径即可。
+   */
+  async createEntry(dir: string, rawName: string, kind: 'file' | 'dir'): Promise<string | null> {
+    const fileManager = this.requireFileManager();
+    if (fileManager === null) return null;
+
+    const name = rawName.trim();
+    const problem = validateEntryName(name);
+    if (problem !== null) {
+      this.failTreeAction(problem);
+      return null;
+    }
+    const target = joinPath(dir, name);
+    if (target === null) {
+      this.failTreeAction('无法确定目标路径');
+      return null;
+    }
+
+    try {
+      if (kind === 'file') await fileManager.createFile(target);
+      else await fileManager.createDirectory(target);
+    } catch (thrown) {
+      const error = asAppError(thrown);
+      this.failTreeAction(`新建失败：${error.message}`, error.detail ?? undefined);
+      return null;
+    }
+
+    await this.loadDir(dir);
+    if (kind === 'file') await this.open(target);
+    return target;
+  }
+
+  /**
+   * 重命名一个文件或目录。成功返回新路径，失败返回 null（原因在 `tree.error`）。
+   *
+   * 打开着的标签页**跟着换路径**（`DocumentStore.retargetPath`）而不是关掉重开：
+   * 改名不碰内容，脏缓冲、撤销栈、光标原样保住 —— 这是对「脏标签页」最诚实的
+   * 处理，改名对它们是安全的。目录改名时，子树内每个标签页的前缀一起替换。
+   *
+   * 树刷新走 `refreshTree()` 而不是只拉父目录：目录改名后它**自己的**子项列表
+   * （键还是旧路径）也过期了，逐个算「哪些目录受影响」不如把已加载的目录
+   * 全量重拉 —— 数量以十计，成本可忽略。
+   */
+  async renameEntry(oldPath: string, rawName: string): Promise<string | null> {
+    const fileManager = this.requireFileManager();
+    if (fileManager === null) return null;
+
+    const name = rawName.trim();
+    const problem = validateEntryName(name);
+    if (problem !== null) {
+      this.failTreeAction(problem);
+      return null;
+    }
+    const parent = dirname(oldPath);
+    if (parent === null) {
+      this.failTreeAction(`「${basename(oldPath)}」没有所在目录信息，无法重命名`);
+      return null;
+    }
+    const target = joinPath(parent, name);
+    if (target === null) {
+      this.failTreeAction('无法确定目标路径');
+      return null;
+    }
+    if (target === oldPath) return target;
+
+    try {
+      await fileManager.renamePath(oldPath, target);
+    } catch (thrown) {
+      const error = asAppError(thrown);
+      this.failTreeAction(`重命名失败：${error.message}`, error.detail ?? undefined);
+      return null;
+    }
+
+    for (const tab of this.tabsUnder(oldPath)) {
+      const docPath = tab.store.getSnapshot().doc?.path;
+      if (docPath === undefined) continue;
+      // 文件改名：docPath === oldPath，slice 得空串；目录改名：slice 得分隔符 + 余下路径
+      tab.store.retargetPath(target + docPath.slice(oldPath.length));
+    }
+    await this.refreshTree();
+    return target;
+  }
+
+  /**
+   * 删除一个文件或目录（目录递归）。**不可撤销** —— 调用方（外壳）必须已经
+   * 向用户确认过；这里守住的是另一条线：**打开着的脏标签页**。
+   *
+   * 磁盘删掉了而标签页还在的话，用户按 Ctrl+S 会把内容写回一个**新文件** ——
+   * 「删除」就变成了「没删干净」。所以删除时要关掉受影响的标签页（干净的
+   * 关了不丢东西）；而有未保存改动的标签页**不能替用户做主**：明确拒绝，
+   * 让他先表态（保存或放弃），这与「绝不静默丢内容」是同一句话。
+   */
+  async deleteEntry(path: string): Promise<boolean> {
+    const fileManager = this.requireFileManager();
+    if (fileManager === null) return false;
+
+    const affected = this.tabsUnder(path);
+    const dirty = affected.find((tab) => tab.store.getSnapshot().status === 'dirty');
+    if (dirty !== undefined) {
+      const name = dirty.store.getSnapshot().doc?.displayName ?? basename(path);
+      this.failTreeAction(`「${name}」有未保存的改动，请先保存或关闭对应标签页，再删除`);
+      return false;
+    }
+
+    try {
+      await fileManager.deletePath(path);
+    } catch (thrown) {
+      const error = asAppError(thrown);
+      this.failTreeAction(`删除失败：${error.message}`, error.detail ?? undefined);
+      return false;
+    }
+
+    for (const tab of affected) this.closeTab(tab.id, true);
+    await this.refreshTree();
+    return true;
   }
 
   dispose(): void {

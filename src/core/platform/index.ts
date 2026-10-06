@@ -7,8 +7,10 @@
 
 import type { DocumentProvider } from '../document/types.js';
 import { UNSUPPORTED_SEARCHER, type WorkspaceSearcher } from '../search/workspace.js';
+import { UNSUPPORTED_FILE_MANAGER, type WorkspaceFileManager } from '../workspace/fsmanage.js';
 import { createBrowserProvider, toggleFullscreenBrowser } from './browser.js';
 import {
+  createDesktopFileManager,
   createDesktopProvider,
   createDesktopSearcher,
   onFilesChangedDesktop,
@@ -36,6 +38,16 @@ export function createDocumentProvider(): DocumentProvider {
  */
 export function createWorkspaceSearcher(): WorkspaceSearcher {
   return isDesktop() ? createDesktopSearcher() : UNSUPPORTED_SEARCHER;
+}
+
+/**
+ * 工作区文件管理的执行者（新建 / 重命名 / 删除）。
+ *
+ * 与检索同一条分工：能力依赖真实目录树，浏览器预览给**明确拒绝**的
+ * `UNSUPPORTED_FILE_MANAGER` —— 侧栏据此禁用文件管理按钮，而不是点了没反应。
+ */
+export function createWorkspaceFileManager(): WorkspaceFileManager {
+  return isDesktop() ? createDesktopFileManager() : UNSUPPORTED_FILE_MANAGER;
 }
 
 export { askConfirm } from './desktop.js';

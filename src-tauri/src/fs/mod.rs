@@ -363,6 +363,103 @@ pub fn list_dir(path: String) -> AppResult<Vec<DirEntry>> {
     Ok(out)
 }
 
+// ---------------------------------------------------------------- 文件管理
+
+/// 把「创建 / 改名」最常见的两类 IO 错误翻译成**用户能读懂**的话。
+///
+/// `os error 80 / 183`（Windows 的 FILE_EXISTS / ALREADY_EXISTS）对用户没有意义；
+/// 而「上级目录不存在」也值得单独说 —— 它几乎总是「输入的名字里带了分隔符」
+/// 之外的另一种情况（目录刚被别的程序删掉）。
+fn map_structural_error(e: std::io::Error, path: &Path) -> AppError {
+    match e.kind() {
+        std::io::ErrorKind::AlreadyExists => AppError::new(
+            ErrorCode::Conflict,
+            format!("目标已存在，为避免覆盖已有内容，本次操作已取消：{}", path.display()),
+        ),
+        std::io::ErrorKind::NotFound => AppError::new(
+            ErrorCode::NotFound,
+            format!("上级目录不存在：{}", path.display()),
+        ),
+        _ => AppError::from(e),
+    }
+}
+
+/// 创建一个**空文件**。目标已存在时拒绝（CONFLICT）—— 绝不静默覆盖。
+///
+/// `create_new(true)` 是原子的：不存在「先检查存在性、再创建」两步之间
+/// 被别的程序抢先的窗口。空文件是合法的 —— 打开它由前端决定
+/// （各内核都有「空文档」的呈现），这里不替调用方预填任何内容。
+#[tauri::command]
+pub fn create_file(path: String) -> AppResult<FileStat> {
+    let p = normalize_path(&path)?;
+    guard_not_dir(&p)?;
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&p)
+        .map_err(|e| map_structural_error(e, &p))?;
+    stat_of(&p)
+}
+
+/// 创建目录（**单层**，父目录必须已存在）。
+///
+/// 刻意不用 `create_dir_all`：文件树上的「新建文件夹」总是发生在用户看得见的
+/// 某个已加载目录里，「父目录不存在」只会意味着竞态或错误输入 ——
+/// 静默补出整条目录链会掩盖第二种情况。
+#[tauri::command]
+pub fn create_directory(path: String) -> AppResult<()> {
+    let p = normalize_path(&path)?;
+    fs::create_dir(&p).map_err(|e| map_structural_error(e, &p))?;
+    Ok(())
+}
+
+/// 重命名 / 移动。目标已存在时拒绝（CONFLICT）—— 绝不覆盖。
+///
+/// `fs::rename` 同盘是原子的。跨盘（Windows 的 EXDEV 场景）会失败 ——
+/// **刻意不做「复制 + 删除」的回退**：那在中间态（复制完、还没删）出问题时
+/// 会留下两份不一致的内容，宁可让用户改用剪切粘贴，两步各自可见。
+#[tauri::command]
+pub fn rename_path(from: String, to: String) -> AppResult<()> {
+    let f = normalize_path(&from)?;
+    let t = normalize_path(&to)?;
+    if !f.exists() {
+        return Err(AppError::new(
+            ErrorCode::NotFound,
+            format!("文件不存在：{}", f.display()),
+        ));
+    }
+    if t.exists() {
+        return Err(AppError::new(
+            ErrorCode::Conflict,
+            format!("目标已存在，为避免覆盖已有内容，本次重命名已取消：{}", t.display()),
+        ));
+    }
+    fs::rename(&f, &t)?;
+    Ok(())
+}
+
+/// 删除文件或目录（目录**递归**删除其中全部内容）。
+///
+/// 这是整个 fs 模块里唯一**不可撤销**的命令。守门有两道，都在调用方：
+/// UI 必须先弹确认框（硬约束 2 —— 破坏性动作不许静默），
+/// 前端 store 还要拦下「打开着的脏标签页」（否则磁盘删了、Ctrl+S 又写回来）。
+/// 这里只保证执行本身如实：删不掉（只读 / 被占用）就报错，不假装成功。
+#[tauri::command]
+pub fn delete_path(path: String) -> AppResult<()> {
+    let p = normalize_path(&path)?;
+    if p.is_dir() {
+        fs::remove_dir_all(&p)?;
+    } else if p.exists() {
+        fs::remove_file(&p)?;
+    } else {
+        return Err(AppError::new(
+            ErrorCode::NotFound,
+            format!("文件不存在：{}", p.display()),
+        ));
+    }
+    Ok(())
+}
+
 /// 程序启动时的自检信息，便于排查「装的是哪个版本、跑在哪个系统」。
 #[tauri::command]
 pub fn runtime_info() -> serde_json::Value {
@@ -519,5 +616,88 @@ mod tests {
     #[test]
     fn percent_decode_survives_empty_input() {
         assert_eq!(percent_decode("").unwrap(), "");
+    }
+
+    // ---- 文件管理命令 -----------------------------------------------------
+    //
+    // 这些命令碰真实文件系统，用带进程 id 的临时目录隔离，测试尾部整体清掉。
+
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn scratch_dir(tag: &str) -> PathBuf {
+        static COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let dir = std::env::temp_dir().join(format!(
+            "qingmo-fsman-{}-{}-{}",
+            tag,
+            std::process::id(),
+            COUNTER.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn create_file_rejects_existing_target() {
+        let dir = scratch_dir("create");
+        let target = dir.join("a.md");
+        assert!(create_file(target.to_string_lossy().to_string()).is_ok());
+        // 第二次创建同一个名字必须明确失败，而不是清空已有内容
+        let again = create_file(target.to_string_lossy().to_string()).unwrap_err();
+        assert_eq!(again.code, ErrorCode::Conflict);
+        assert!(fs::remove_dir_all(&dir).is_ok());
+    }
+
+    #[test]
+    fn create_directory_requires_existing_parent() {
+        let dir = scratch_dir("mkdir");
+        // 父目录存在：成功
+        assert!(create_directory(dir.join("sub").to_string_lossy().to_string()).is_ok());
+        assert!(dir.join("sub").is_dir());
+        // 父目录不存在：报可读的错，而不是静默补出目录链
+        let missing = create_directory(dir.join("no-such").join("deep").to_string_lossy().to_string()).unwrap_err();
+        assert_eq!(missing.code, ErrorCode::NotFound);
+        assert!(fs::remove_dir_all(&dir).is_ok());
+    }
+
+    #[test]
+    fn rename_refuses_to_overwrite() {
+        let dir = scratch_dir("rename");
+        let from = dir.join("a.md");
+        let to = dir.join("b.md");
+        fs::write(&from, "A").unwrap();
+        fs::write(&to, "B").unwrap();
+
+        let err = rename_path(from.to_string_lossy().to_string(), to.to_string_lossy().to_string()).unwrap_err();
+        assert_eq!(err.code, ErrorCode::Conflict);
+        // 拒绝之后两边都原样保留
+        assert_eq!(fs::read_to_string(&from).unwrap(), "A");
+        assert_eq!(fs::read_to_string(&to).unwrap(), "B");
+
+        // 换个不存在的目标名：成功
+        rename_path(from.to_string_lossy().to_string(), dir.join("c.md").to_string_lossy().to_string()).unwrap();
+        assert!(!from.exists());
+        assert_eq!(fs::read_to_string(dir.join("c.md")).unwrap(), "A");
+        assert!(fs::remove_dir_all(&dir).is_ok());
+    }
+
+    #[test]
+    fn delete_removes_files_and_directories() {
+        let dir = scratch_dir("delete");
+        let file = dir.join("a.md");
+        fs::write(&file, "x").unwrap();
+        delete_path(file.to_string_lossy().to_string()).unwrap();
+        assert!(!file.exists());
+
+        // 目录递归：里面的内容一起消失
+        let nested = dir.join("sub");
+        fs::create_dir_all(nested.join("inner")).unwrap();
+        fs::write(nested.join("inner").join("b.md"), "y").unwrap();
+        delete_path(nested.to_string_lossy().to_string()).unwrap();
+        assert!(!nested.exists());
+
+        // 删不存在的路径：明确报错
+        let missing = delete_path(dir.join("ghost").to_string_lossy().to_string()).unwrap_err();
+        assert_eq!(missing.code, ErrorCode::NotFound);
+        assert!(fs::remove_dir_all(&dir).is_ok());
     }
 }

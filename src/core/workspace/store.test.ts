@@ -21,6 +21,7 @@ import type {
   WriteRequest,
 } from '../document/types.js';
 import { WorkspaceStore } from './store.js';
+import type { WorkspaceFileManager } from './fsmanage.js';
 
 interface FakeFile {
   text: string;
@@ -798,5 +799,238 @@ describe('就地编辑的返回栈（P6 第 28 项 L2，ADR 0036）', () => {
     expect(await workspace.openInPlace(mainId, 'C:\\n\\main.md')).toBe(true);
     expect(workspace.getSnapshot().activeId).toBe(mainId);
     expect(workspace.getSnapshot().tabs.find((tab) => tab.id === mainId)?.drilledFrom).toBeNull();
+  });
+});
+
+/**
+ * 文件管理的假执行者：**同步地改 FakeProvider 的状态**，让「磁盘变了」
+ * 与「树刷新后看得见」两条断言都能落地。rename 刻意保留 mtime ——
+ * 那正是真实 `fs::rename` 的行为，也是「脏标签页改名后乐观锁仍然有效」的前提。
+ */
+class FakeFileManager implements WorkspaceFileManager {
+  available = true;
+  readonly created: string[] = [];
+  readonly renamed: Array<{ from: string; to: string }> = [];
+  readonly deleted: string[] = [];
+  /** 设成非 null 后下一次调用抛错（测错误分支），抛一次即清。 */
+  failNext: string | null = null;
+
+  constructor(private readonly provider: FakeProvider) {}
+
+  private fail(): void {
+    if (this.failNext === null) return;
+    const message = this.failNext;
+    this.failNext = null;
+    throw { code: 'CONFLICT', message, detail: null };
+  }
+
+  async createFile(path: string): Promise<void> {
+    this.fail();
+    this.created.push(path);
+    this.provider.put(path, '');
+    // FakeProvider.listDir 读的是 dirs 里的条目表，新文件也要出现在父目录的那份里
+    const at = path.lastIndexOf('\\');
+    const parent = at > 0 ? path.slice(0, at) : null;
+    const entries = parent === null ? undefined : this.provider.dirs.get(parent);
+    if (entries !== undefined) {
+      entries.push({ name: path.slice(at + 1), path, isDir: false, size: 0, mtimeMs: 0 });
+    }
+  }
+
+  async createDirectory(path: string): Promise<void> {
+    this.fail();
+    this.created.push(path);
+    if (!this.provider.dirs.has(path)) this.provider.dirs.set(path, []);
+  }
+
+  async renamePath(from: string, to: string): Promise<void> {
+    this.fail();
+    this.renamed.push({ from, to });
+
+    const file = this.provider.files.get(from);
+    if (file !== undefined) {
+      this.provider.files.delete(from);
+      this.provider.files.set(to, file);
+    }
+    for (const key of [...this.provider.dirs.keys()]) {
+      if (key === from || key.startsWith(`${from}\\`)) {
+        const entries = this.provider.dirs.get(key);
+        this.provider.dirs.delete(key);
+        if (entries !== undefined) this.provider.dirs.set(to + key.slice(from.length), entries);
+      }
+    }
+    for (const [key, entries] of this.provider.dirs) {
+      this.provider.dirs.set(
+        key,
+        entries.map((entry) => {
+          if (entry.path === from) {
+            return { ...entry, name: to.split('\\').pop() ?? to, path: to };
+          }
+          if (entry.path.startsWith(`${from}\\`)) {
+            return { ...entry, path: to + entry.path.slice(from.length) };
+          }
+          return entry;
+        }),
+      );
+    }
+  }
+
+  async deletePath(path: string): Promise<void> {
+    this.fail();
+    this.deleted.push(path);
+    this.provider.files.delete(path);
+    for (const key of [...this.provider.dirs.keys()]) {
+      if (key === path || key.startsWith(`${path}\\`)) this.provider.dirs.delete(key);
+    }
+    for (const [key, entries] of this.provider.dirs) {
+      this.provider.dirs.set(
+        key,
+        entries.filter((entry) => entry.path !== path && !entry.path.startsWith(`${path}\\`)),
+      );
+    }
+  }
+}
+
+describe('文件管理（A2：createEntry / renameEntry / deleteEntry）', () => {
+  function seeded(): { provider: FakeProvider; manager: FakeFileManager } {
+    const provider = new FakeProvider();
+    provider.dirs.set('C:\\w', [dir('src', 'C:\\w\\src'), file('a.md', 'C:\\w\\a.md')]);
+    provider.dirs.set('C:\\w\\src', [file('b.ts', 'C:\\w\\src\\b.ts')]);
+    return { provider, manager: new FakeFileManager(provider) };
+  }
+
+  it('新建文件：落盘、目录刷新、文件被顺手打开', async () => {
+    const { provider, manager } = seeded();
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+
+    const target = await workspace.createEntry('C:\\w', ' 新笔记.md ', 'file');
+    expect(target).toBe('C:\\w\\新笔记.md');
+    expect(manager.created).toEqual(['C:\\w\\新笔记.md']);
+    // 名字是 trim 过的：落盘的字符串不该带空白
+    expect(provider.files.has(' 新笔记.md')).toBe(false);
+
+    const names = workspace.getSnapshot().tree.dirs['C:\\w']?.map((entry) => entry.name);
+    expect(names).toContain('新笔记.md');
+    expect(workspace.activeTab?.path).toBe('C:\\w\\新笔记.md');
+  });
+
+  it('新建文件夹：目录建出来、树刷新、不开标签页', async () => {
+    const { provider, manager } = seeded();
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+
+    const target = await workspace.createEntry('C:\\w', 'docs', 'dir');
+    expect(target).toBe('C:\\w\\docs');
+    expect(provider.dirs.has('C:\\w\\docs')).toBe(true);
+    expect(workspace.activeTab).toBeNull();
+  });
+
+  it('非法名字在碰磁盘之前就被拦下', async () => {
+    const { provider, manager } = seeded();
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+
+    expect(await workspace.createEntry('C:\\w', 'a/b.md', 'file')).toBeNull();
+    expect(manager.created).toHaveLength(0);
+    expect(workspace.getSnapshot().tree.error).not.toBeNull();
+  });
+
+  it('磁盘拒绝时把原因放进树顶横幅', async () => {
+    const { provider, manager } = seeded();
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+
+    manager.failNext = '目标已存在';
+    expect(await workspace.createEntry('C:\\w', 'a.md', 'file')).toBeNull();
+    expect(workspace.getSnapshot().tree.error?.message).toContain('目标已存在');
+  });
+
+  it('重命名打开着的脏文件：标签页换路径、脏缓冲保留、保存写到新路径', async () => {
+    const { provider, manager } = seeded();
+    provider.put('C:\\w\\a.md', '原文');
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+    await workspace.open('C:\\w\\a.md');
+    const tabId = workspace.getSnapshot().activeId ?? -1;
+    workspace.storeOf(tabId)?.updateText('改过的内容');
+
+    const next = await workspace.renameEntry('C:\\w\\a.md', 'renamed.md');
+    expect(next).toBe('C:\\w\\renamed.md');
+    expect(manager.renamed).toEqual([{ from: 'C:\\w\\a.md', to: 'C:\\w\\renamed.md' }]);
+
+    const tab = workspace.getSnapshot().tabs.find((item) => item.id === tabId);
+    expect(tab?.path).toBe('C:\\w\\renamed.md');
+    expect(tab?.dirty).toBe(true);
+
+    // 乐观锁不冲突（rename 不改 mtime），内容写到新路径
+    expect(await workspace.save()).toBe(true);
+    expect(provider.files.get('C:\\w\\renamed.md')?.text).toBe('改过的内容');
+    expect(provider.files.has('C:\\w\\a.md')).toBe(false);
+  });
+
+  it('重命名目录：子树里的标签页前缀一起替换', async () => {
+    const { provider, manager } = seeded();
+    provider.put('C:\\w\\src\\b.ts', 'let a = 1;');
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+    await workspace.open('C:\\w\\src\\b.ts');
+
+    expect(await workspace.renameEntry('C:\\w\\src', 'code')).toBe('C:\\w\\code');
+    expect(workspace.activeTab?.path).toBe('C:\\w\\code\\b.ts');
+  });
+
+  it('删除打开着的干净文件：标签页关掉、文件消失', async () => {
+    const { provider, manager } = seeded();
+    provider.put('C:\\w\\a.md', 'x');
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+    await workspace.open('C:\\w\\a.md');
+
+    expect(await workspace.deleteEntry('C:\\w\\a.md')).toBe(true);
+    expect(manager.deleted).toEqual(['C:\\w\\a.md']);
+    expect(workspace.getSnapshot().tabs).toHaveLength(0);
+    expect(provider.files.has('C:\\w\\a.md')).toBe(false);
+    expect(workspace.getSnapshot().tree.dirs['C:\\w']?.some((entry) => entry.name === 'a.md')).toBe(false);
+  });
+
+  it('删除有未保存改动的文件：明确拒绝，什么都没动', async () => {
+    const { provider, manager } = seeded();
+    provider.put('C:\\w\\a.md', 'x');
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+    await workspace.open('C:\\w\\a.md');
+    const tabId = workspace.getSnapshot().activeId ?? -1;
+    workspace.storeOf(tabId)?.updateText('没保存的改动');
+
+    expect(await workspace.deleteEntry('C:\\w\\a.md')).toBe(false);
+    expect(manager.deleted).toHaveLength(0);
+    expect(provider.files.has('C:\\w\\a.md')).toBe(true);
+    expect(workspace.getSnapshot().tabs.find((item) => item.id === tabId)?.path).toBe('C:\\w\\a.md');
+    expect(workspace.getSnapshot().tree.error?.message).toContain('未保存');
+  });
+
+  it('删除目录连带子树里的打开标签页', async () => {
+    const { provider, manager } = seeded();
+    provider.put('C:\\w\\src\\b.ts', 'let a = 1;');
+    const workspace = new WorkspaceStore(provider, manager);
+    await workspace.openFolder('C:\\w');
+    await workspace.open('C:\\w\\src\\b.ts');
+
+    expect(await workspace.deleteEntry('C:\\w\\src')).toBe(true);
+    expect(workspace.getSnapshot().tabs).toHaveLength(0);
+    expect(provider.dirs.has('C:\\w\\src')).toBe(false);
+  });
+
+  it('文件管理不可用（浏览器预览）：明确拒绝并说明', async () => {
+    const { provider } = seeded();
+    const workspace = new WorkspaceStore(provider);
+    expect(workspace.canManageFiles).toBe(false);
+    await workspace.openFolder('C:\\w');
+
+    expect(await workspace.createEntry('C:\\w', 'x.md', 'file')).toBeNull();
+    expect(await workspace.renameEntry('C:\\w\\a.md', 'y.md')).toBeNull();
+    expect(await workspace.deleteEntry('C:\\w\\a.md')).toBe(false);
+    expect(workspace.getSnapshot().tree.error?.message).toContain('不支持');
   });
 });

@@ -200,3 +200,42 @@ export function resolveRelative(docPath: string, relative: string): string | nul
 export function segments(path: string): string[] {
   return path.split(/[\\/]+/).filter((part) => part !== '');
 }
+
+/**
+ * Windows 保留的设备名。这些名字**带任何扩展名**都不能作文件名
+ * （`CON.txt` 也保留），所以只查第一个点之前的主名。
+ */
+const RESERVED_STEMS: ReadonlySet<string> = new Set([
+  'CON',
+  'PRN',
+  'AUX',
+  'NUL',
+  ...Array.from({ length: 9 }, (_, i) => `COM${i + 1}`),
+  ...Array.from({ length: 9 }, (_, i) => `LPT${i + 1}`),
+]);
+
+/**
+ * 校验「新建 / 重命名」里用户输入的名字。合法返回 null，否则返回**给用户看的一句话**。
+ *
+ * 规则对齐 Windows 资源管理器（本项目是 Windows 优先的桌面应用），且**宁严勿松**：
+ * 这里放过去一个名字，磁盘层（Rust 命令）多半也会接受，但产出的文件在资源管理器里
+ * 打不开、删不掉 —— 错误在很远的地方才暴露。输入会先被调用方 trim，这里再做一次兜底。
+ *
+ * 为什么在 `core` 而不是 UI：store 的编排层（`WorkspaceStore.createEntry` /
+ * `renameEntry`）要在**碰磁盘之前**用同一份规则拦一道，测试也要钉同一份规则 ——
+ * 放在组件里，「新建」与「重命名」迟早各写一份。
+ */
+export function validateEntryName(rawName: string): string | null {
+  const name = rawName.trim();
+  if (name === '') return '名称不能为空';
+  if (name === '.' || name === '..') return '「.」与「..」是系统保留名称，不能使用';
+  if (/[\\/:*?"<>|]/.test(name)) return '名称不能包含 \\ / : * ? " < > | 这些字符';
+  for (const ch of name) {
+    if (ch.charCodeAt(0) < 32) return '名称不能包含换行等控制字符';
+  }
+  if (name.endsWith('.') || name.endsWith(' ')) return '名称不能以点或空格结尾（Windows 会把它吞掉）';
+  if (name.length > 200) return '名称太长（最多 200 个字符）';
+  const stem = (name.split('.')[0] ?? '').toUpperCase();
+  if (RESERVED_STEMS.has(stem)) return `「${stem}」是 Windows 的保留设备名，不能作为名称`;
+  return null;
+}
