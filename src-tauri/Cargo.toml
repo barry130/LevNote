@@ -1,6 +1,6 @@
 [package]
 name = "qingmo"
-version = "0.3.26"
+version = "0.3.27"
 description = "轻墨 — Typora / Notepad++ / 思维导图 / draw.io 四合一的轻量桌面编辑器"
 authors = ["qingmo"]
 license = "MIT"

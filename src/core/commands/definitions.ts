@@ -9,6 +9,7 @@
 
 import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
+import type { BlockFormat, InlineFormat } from '../editor/types.js';
 import { describeRoundTrip, formatRoundTripReport } from '../fidelity.js';
 import { t } from '../i18n/index.js';
 import { extractToReference, flattenReference } from '../document/block-ops.js';
@@ -166,6 +167,93 @@ async function runInlineReference(ctx: CommandContext): Promise<void> {
   });
 }
 
+/**
+ * 「格式」与「段落」两组命令是**机械生成的**（每条只差一个格式名/块名），
+ * 手写二十遍同样的 enabled 与 run 只会藏起共性。数组用显式类型标注 ——
+ * `as const` 的异构数组解构不出可选的 `level`，标了类型反而直白；
+ * id 刻意是**字面量联合**而不是 string：`t()` 的参数是精确的 key 联合，
+ * 模板字面量在字面量联合上分发后恰好对得上（写错 key 是编译错误）。
+ */
+const INLINE_FORMATS = [
+  // 命令 id 用「加粗」，内核的 InlineFormat 用 strong —— 两套词各归各的用户
+  { id: 'bold', inline: 'strong' },
+  { id: 'italic', inline: 'emphasis' },
+  { id: 'strikethrough', inline: 'strikethrough' },
+  { id: 'inlineCode', inline: 'inlineCode' },
+] as const satisfies readonly { id: string; inline: InlineFormat }[];
+
+const INLINE_FORMAT_COMMANDS: readonly Command[] = INLINE_FORMATS.map(({ id, inline }) => ({
+  id: `format.${id}`,
+  title: t(`command.format.${id}.title`),
+  category: t('command.category.format'),
+  keywords: [id, 'geshi'],
+  enabled: (ctx: CommandContext) => hasDocument(ctx) && ctx.ui.editor()?.formatting !== undefined,
+  run: (ctx: CommandContext) => {
+    ctx.ui.editor()?.formatting?.toggleInline(inline);
+  },
+}));
+
+type ParagraphBlockId =
+  | 'paragraph.plainText'
+  | 'paragraph.heading1'
+  | 'paragraph.heading2'
+  | 'paragraph.heading3'
+  | 'paragraph.heading4'
+  | 'paragraph.heading5'
+  | 'paragraph.heading6'
+  | 'paragraph.blockquote'
+  | 'paragraph.bulletList'
+  | 'paragraph.orderedList'
+  | 'paragraph.codeBlock';
+
+const PARAGRAPH_BLOCK_COMMANDS: readonly Command[] = (
+  [
+    { id: 'paragraph.plainText', block: 'paragraph', level: undefined },
+    { id: 'paragraph.heading1', block: 'heading', level: 1 },
+    { id: 'paragraph.heading2', block: 'heading', level: 2 },
+    { id: 'paragraph.heading3', block: 'heading', level: 3 },
+    { id: 'paragraph.heading4', block: 'heading', level: 4 },
+    { id: 'paragraph.heading5', block: 'heading', level: 5 },
+    { id: 'paragraph.heading6', block: 'heading', level: 6 },
+    { id: 'paragraph.blockquote', block: 'blockquote', level: undefined },
+    { id: 'paragraph.bulletList', block: 'bulletList', level: undefined },
+    { id: 'paragraph.orderedList', block: 'orderedList', level: undefined },
+    { id: 'paragraph.codeBlock', block: 'codeBlock', level: undefined },
+  ] as readonly { id: ParagraphBlockId; block: BlockFormat; level: number | undefined }[]
+).map(({ id, block, level }) => ({
+  id,
+  title: t(`command.${id}.title`),
+  category: t('command.category.paragraph'),
+  keywords: [id, 'duanluo'],
+  enabled: (ctx: CommandContext) => hasDocument(ctx) && ctx.ui.editor()?.formatting !== undefined,
+  run: (ctx: CommandContext) => {
+    ctx.ui.editor()?.formatting?.toggleBlock(block, level);
+  },
+}));
+
+const PARAGRAPH_INSERT_COMMANDS: readonly Command[] = (
+  ['table', 'mathBlock', 'diagram', 'hr'] as const
+).map((insertable) => ({
+  id: `paragraph.${insertable}`,
+  title: t(`command.paragraph.${insertable}.title`),
+  category: t('command.category.paragraph'),
+  keywords: [insertable, 'charu', 'duanluo'],
+  enabled: (ctx: CommandContext) => hasDocument(ctx) && ctx.ui.editor()?.formatting !== undefined,
+  run: (ctx: CommandContext) => {
+    ctx.ui.editor()?.formatting?.insertBlock(insertable);
+  },
+}));
+
+const THEME_COMMANDS: readonly Command[] = (['system', 'paper', 'ink'] as const).map((preference) => ({
+  id: `theme.${preference}`,
+  title: t(`command.theme.${preference}.title`),
+  category: t('command.category.theme'),
+  keywords: [preference, 'theme', 'zhuti'],
+  run: (ctx: CommandContext) => {
+    ctx.ui.setTheme(preference);
+  },
+}));
+
 export const BUILT_IN_COMMANDS: readonly Command[] = [
   // ---- 文件 -------------------------------------------------------------
   {
@@ -186,6 +274,43 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     keywords: ['open folder', 'workspace', 'gongzuoqu'],
     run: (ctx) => {
       void ctx.workspace.openFolder();
+    },
+  },
+  {
+    /**
+     * 新建文件：选位置、起名、落一个空文件、打开。
+     *
+     * 本产品**没有「无标题缓冲区」**——文档生命周期从磁盘上的一份文件开始
+     * （打开/保存/监听/冲突检测全都以路径为主键），先造一个内存里的「新文档」
+     * 再补一次另存为，等于在每条生命周期链路上都加一个「还没有路径」的状态。
+     * 所以「新建」被实现成「直接在磁盘上起一个空文件」，语义反而更诚实。
+     *
+     * 绝不静默覆盖（硬约束 2）：另存为对话框允许指到一个已有文件上，
+     * 新建撞上已有文件时明确说明并停手，而不是把它清空。
+     */
+    id: 'file.new',
+    title: t('command.file.new.title'),
+    category: t('command.category.file'),
+    keywords: ['new file', 'create', 'xinjian'],
+    run: (ctx) => {
+      void (async () => {
+        const path = await ctx.provider.pickSavePath('未命名.md');
+        if (path === null) return;
+        try {
+          await ctx.provider.statFile(path);
+          await ctx.ui.notify('该位置已有一个同名文件。为避免覆盖，没有新建；如要编辑它，请直接打开。', '新建文件');
+          return;
+        } catch {
+          // stat 失败 = 文件不存在，正是「新建」想要的情形
+        }
+        try {
+          await ctx.provider.writeTextFile({ path, text: '', create: true });
+        } catch {
+          await ctx.ui.notify('文件没能创建（磁盘错误或没有写入权限）。', '新建文件');
+          return;
+        }
+        await ctx.workspace.open(path);
+      })();
     },
   },
   {
@@ -215,6 +340,18 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     enabled: hasDocument,
     run: (ctx) => {
       void ctx.workspace.saveAs();
+    },
+  },
+  {
+    id: 'file.saveAll',
+    title: t('command.file.saveAll.title'),
+    category: t('command.category.file'),
+    keywords: ['save all', 'baocun', '保存全部'],
+    // 一个脏标签页都没有时禁用 —— 与 file.save 的「不忙时才放行」同一原则：
+    // 显示为禁用告诉用户「现在没有要保存的东西」，而不是点了没反应
+    enabled: (ctx) => ctx.workspace.getSnapshot().tabs.some((tab) => tab.dirty),
+    run: (ctx) => {
+      void ctx.workspace.saveAll();
     },
   },
   {
@@ -346,6 +483,71 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => runInlineReference(ctx),
   },
   /**
+   * 撤销 / 重做（菜单入口）。
+   *
+   * **刻意没有默认快捷键**：编辑器内部的 Ctrl+Z / Ctrl+Shift+Z 由内核自己的
+   * keymap 处理（ProseMirror 的 history 插件、CodeMirror 的 historyKeymap），
+   * 外壳若再注册一个全局 Mod+Z，`isAllowedInEditable` 放行带修饰键的绑定，
+   * 两次撤销会在同一按键上叠加执行。所以这两个命令只走菜单 / 面板入口；
+   * 用户确实想给它们自定义全局键时，可以在设置页录制（后果自负）。
+   */
+  {
+    id: 'edit.undo',
+    title: t('command.edit.undo.title'),
+    category: t('command.category.edit'),
+    keywords: ['undo', 'chexiao'],
+    enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.undo !== undefined,
+    run: (ctx) => ctx.ui.editor()?.undo?.(),
+  },
+  {
+    id: 'edit.redo',
+    title: t('command.edit.redo.title'),
+    category: t('command.category.edit'),
+    keywords: ['redo', 'chongzuo'],
+    enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.redo !== undefined,
+    run: (ctx) => ctx.ui.editor()?.redo?.(),
+  },
+  {
+    /**
+     * 复制为 HTML。
+     *
+     * `toHtml()` 返回 null（纯文本内核）或抛错时退回**复制原文**，并把这次
+     * 降级说出来（硬约束 2）—— 用户得知道剪贴板里拿到的不是格式化结果。
+     */
+    id: 'edit.copyHtml',
+    title: t('command.edit.copyHtml.title'),
+    category: t('command.category.edit'),
+    keywords: ['copy html', 'fuzhi', '剪贴板'],
+    enabled: hasDocument,
+    run: (ctx) => {
+      void (async () => {
+        const doc = activeDocument(ctx);
+        const handle = ctx.ui.editor();
+        if (doc === null || handle === null) return;
+
+        let html: string | null;
+        try {
+          html = await handle.toHtml();
+        } catch {
+          html = null;
+        }
+
+        try {
+          await navigator.clipboard.writeText(html ?? doc.text);
+        } catch {
+          await ctx.ui.notify('剪贴板写入被拒绝，没有复制任何内容。', '复制为 HTML');
+          return;
+        }
+        await ctx.ui.notify(
+          html === null
+            ? '当前文档类型给不出 HTML，已复制纯文本内容。'
+            : '已按 HTML 复制。粘贴到支持富文本的地方会保留格式。',
+          '复制为 HTML',
+        );
+      })();
+    },
+  },
+  /**
    * 三档视图的直接入口。
    *
    * ## 为什么是 `Ctrl+1/2/3` 而不是 `Ctrl+/` 那种循环
@@ -396,6 +598,31 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     keybinding: 'Mod+Shift+T',
     keywords: ['theme', 'zhuti', 'dark', 'light'],
     run: (ctx) => ctx.ui.cycleTheme(),
+  },
+  {
+    id: 'view.toggleWordWrap',
+    title: t('command.view.toggleWordWrap.title'),
+    category: t('command.category.view'),
+    keywords: ['word wrap', 'huanhang', '换行', '软换行'],
+    run: (ctx) => ctx.ui.toggleWordWrap(),
+  },
+  {
+    id: 'view.toggleCodeLineNumbers',
+    title: t('command.view.toggleCodeLineNumbers.title'),
+    category: t('command.category.view'),
+    keywords: ['line numbers', 'hanghao', '行号'],
+    run: (ctx) => ctx.ui.toggleCodeLineNumbers(),
+  },
+  {
+    id: 'view.toggleFullscreen',
+    title: t('command.view.toggleFullscreen.title'),
+    category: t('command.category.view'),
+    // F11 是全屏的通用键位；功能键在输入框里不产生文本，isAllowedInEditable 放行
+    keybinding: 'F11',
+    keywords: ['fullscreen', 'quanping', '全屏'],
+    run: (ctx) => {
+      void ctx.ui.toggleFullscreen();
+    },
   },
 
   // ---- 导航 -------------------------------------------------------------
@@ -456,6 +683,37 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     },
     run: runRoundTripCheck,
   },
+  // ---- 格式 ---------------------------------------------------------------
+  // 四条都只是 `formatting` 契约的薄封装：能不能用问内核（Markdown 实现了它，
+  // 导图/代码内核没有），格式切换本身由内核完成（含 USER_EDIT_META，与
+  // 选中浮层工具条是同一条路径 —— 菜单只是多一个入口，不多一条语义）。
+  ...INLINE_FORMAT_COMMANDS,
+
+  // ---- 段落 ---------------------------------------------------------------
+  // 块级格式走 toggleBlock（把**光标所在块**换过去，与 Typora 的段落菜单同一
+  // 语义）；表格 / 数学块 / 图表 / 分隔线没有「所在块」可换，走 insertBlock
+  // （斜杠菜单的同一入口，删 `/query` 那步对菜单场景无害 —— 不在触发态时它
+  // 就等价于普通插入）。
+  ...PARAGRAPH_BLOCK_COMMANDS,
+  ...PARAGRAPH_INSERT_COMMANDS,
+
+  // ---- 主题 ---------------------------------------------------------------
+  // setTheme 与 cycleTheme 都是现成的 UiActions；三条直接入口给菜单用
+  // （「我要暗黑」是两步循环里的第三步，循环键留着给快切）。
+  ...THEME_COMMANDS,
+
+  {
+    id: 'app.about',
+    title: t('command.app.about.title'),
+    category: t('command.category.app'),
+    keywords: ['about', 'version', 'guanyu', 'banben'],
+    // 构建期注入的常量必须写成 `import.meta.env.X`（硬约束 14）——
+    // dev server 不替换裸标识符，写错的表现是「点一下关于整个应用就没了」
+    run: (ctx) => {
+      void ctx.ui.notify(`轻墨 ${String(import.meta.env.QINGMO_VERSION ?? '')}`, '关于轻墨');
+    },
+  },
+
   {
     id: 'ui.escape',
     title: t('command.ui.escape.title'),

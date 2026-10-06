@@ -93,6 +93,9 @@ function CodeEditor({
       },
       goToOutlineItem: ({ level, text }) => instanceRef.current?.goToHeading(level, text) ?? false,
       revealSourceLocation: (location) => instanceRef.current?.revealSourceLocation(location) ?? false,
+      // 与 markdown 内核同名契约：菜单栏的撤销 / 重做入口。实例已销毁时是空操作
+      undo: () => instanceRef.current?.undo(),
+      redo: () => instanceRef.current?.redo(),
       // 与上面的 `search` 同一层转发：卸载后实例为 null，而外壳可能还握着
       // 这个 handle（React 的清理顺序不保证）。`getPosition` 返回 null 表示
       // 「此刻读不到」，外壳据此保留上一次的值，而不是覆盖成一个假的 0。

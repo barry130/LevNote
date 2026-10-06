@@ -32,7 +32,7 @@ import type { DocBlockPreview, EditorHandle, EditorPosition } from '../core/edit
 import type { OutlineItem } from '../core/outline/outline.js';
 import { basename, isMarkdownPath, resolveRelative } from '../core/path.js';
 import type { DocumentStore } from '../core/document/store.js';
-import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, watchFiles } from '../core/platform/index.js';
+import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, toggleFullscreen, watchFiles } from '../core/platform/index.js';
 import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
 import { WorkspaceSearchStore, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
@@ -65,6 +65,7 @@ import { Mark } from './brand.js';
 import { CommandPalette } from './CommandPalette.js';
 import { DocumentPane, type PaneRevealRequest, type PaneViewInfo } from './DocumentPane.js';
 import { FindBar } from './FindBar.js';
+import { MenuBar } from './MenuBar.js';
 import { OutlinePanel } from './OutlinePanel.js';
 import { SearchPanel } from './SearchPanel.js';
 import { Sidebar } from './Sidebar.js';
@@ -929,6 +930,15 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       closeSettings: () => setSettingsOpen(false),
       setTheme: (preference: ThemePreference) => update({ theme: preference }),
       cycleTheme: () => update({ theme: cycleTheme(settings.theme) }),
+      // 这两个「开关」改的是设置层字段（与设置页同一个真相），不是临时视图状态；
+      // 代码内核与代码块的显隐由各面板的 effect 消费这些字段
+      toggleWordWrap: () => update({ wordWrap: !settings.wordWrap }),
+      toggleCodeLineNumbers: () => update({ codeLineNumbers: !settings.codeLineNumbers }),
+      // 全屏是平台桥的动作（桌面 = Tauri 窗口级，浏览器 = Fullscreen API），
+      // 失败就让它 reject 落进未处理 Promise —— 两端实现都不该在正常路径上失败
+      toggleFullscreen: () => {
+        void toggleFullscreen();
+      },
       editor: () => handleRef.current,
       // 「能不能切」问的是**首选内核**有没有声明源码视图，而不是路径后缀 ——
       // 后缀判断会漏掉「富文本内核起不来、已退回兜底内核」这种情况
@@ -956,10 +966,12 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       closeActiveTab,
       paneInfo,
       provider,
+      settings.codeLineNumbers,
       settings.outlineVisible,
       settings.sidebarView,
       settings.sidebarVisible,
       settings.theme,
+      settings.wordWrap,
       update,
       workspace,
     ],
@@ -1004,6 +1016,51 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       return command !== undefined && (command.enabled ? command.enabled(context) : true);
     },
     [registry, context],
+  );
+
+  /**
+   * 菜单里可勾选项的状态。**只画状态，不产生语义** —— 真相来源是设置快照
+   * 与活动标签页的视图模式，菜单的 ✓ 与状态栏、设置页读的是同一份字段。
+   * 返回 `undefined` 的项没有开关语义，菜单不画勾选列。
+   */
+  const menuChecked = useCallback(
+    (id: string): boolean | undefined => {
+      switch (id) {
+        case 'view.toggleSidebar':
+          return settings.sidebarVisible;
+        case 'view.filesView':
+          return settings.sidebarVisible && settings.sidebarView === 'files';
+        case 'view.toggleOutline':
+          return settings.outlineVisible;
+        case 'view.toggleWordWrap':
+          return settings.wordWrap;
+        case 'view.toggleCodeLineNumbers':
+          return settings.codeLineNumbers;
+        case 'view.rich':
+        case 'view.source':
+        case 'view.split': {
+          const mode = paneInfo?.viewMode ?? 'rich';
+          return id === `view.${mode}`;
+        }
+        case 'theme.system':
+          return settings.theme === 'system';
+        case 'theme.paper':
+          return settings.theme === 'paper';
+        case 'theme.ink':
+          return settings.theme === 'ink';
+        default:
+          return undefined;
+      }
+    },
+    [
+      paneInfo,
+      settings.codeLineNumbers,
+      settings.outlineVisible,
+      settings.sidebarView,
+      settings.sidebarVisible,
+      settings.theme,
+      settings.wordWrap,
+    ],
   );
 
   // ---- 全局快捷键 -------------------------------------------------------
@@ -1261,6 +1318,12 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           })}
         </span>
       </header>
+
+      {/*
+        菜单栏（ADR 0037）：命令的另一个入口 —— 能点什么、什么时候灰着，
+        与工具栏/命令面板同问 CommandRegistry.enabled，这里没有第二个真相来源。
+      */}
+      <MenuBar registry={registry} platform={platform} isEnabled={isEnabled} onRun={runCommand} isChecked={menuChecked} />
 
       <TabBar
         tabs={tabs}

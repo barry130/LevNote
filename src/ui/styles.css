@@ -224,6 +224,116 @@ body {
   flex: none;
 }
 
+/*
+ * 菜单栏（ADR 0037）：Typora 式的文字菜单。它是 chrome 的一部分 ——
+ * 与标题栏同一套颜色 token；下拉面板用 surface + shadow 浮在内容上面。
+ * 整条是外壳自己的 UI，不涉及任何内核样式所有权（硬约束 13 不管这里）。
+ */
+.menubar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-height: 28px;
+  padding: 0 8px;
+  background: var(--titlebar-bg);
+  color: var(--chrome-fg);
+  border-bottom: 1px solid var(--chrome-line);
+  user-select: none;
+  flex: none;
+  position: relative;
+  z-index: 40;
+}
+
+.menubar-menu {
+  position: relative;
+  display: flex;
+}
+
+.menubar-button {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  padding: 0 10px;
+  border-radius: 0 0 4px 4px;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menubar-button:hover,
+.menubar-button.open {
+  background: var(--chrome-btn-hover, rgba(0, 0, 0, 0.07));
+}
+
+.menubar-accel {
+  color: var(--chrome-muted);
+  margin-left: 1px;
+}
+
+.menubar-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 250px;
+  padding: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--chrome-line);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+}
+
+.menubar-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  color: var(--chrome-fg);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menubar-item:hover:not(:disabled) {
+  background: var(--chrome-btn-hover, rgba(0, 0, 0, 0.07));
+}
+
+.menubar-item:disabled {
+  color: var(--chrome-muted);
+  cursor: default;
+}
+
+/* 勾选列：只有可勾选项渲染这个 span，宽度固定让所有项的标签仍然对齐。
+   不可勾选项没有它 —— 那些菜单（格式 / 帮助）整体窄一列，是刻意的外观 */
+.menubar-item-check {
+  width: 16px;
+  flex: none;
+  color: var(--chrome-fg);
+  font-size: 12px;
+}
+
+.menubar-item-key {
+  color: var(--chrome-muted);
+  font-size: 12px;
+}
+
+.menubar-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--chrome-line);
+}
+
+
 .titlebar .brand {
   display: flex;
   align-items: center;

@@ -30,6 +30,8 @@ import type { CmdKey } from '@milkdown/kit/core';
 import { clipboard } from '@milkdown/kit/plugin/clipboard';
 import { cursor } from '@milkdown/kit/plugin/cursor';
 import { history } from '@milkdown/kit/plugin/history';
+// 撤销 / 重做的命令本体（上面那个插件只负责 keymap 与状态，这里要的是动作）
+import { redo, undo } from '@milkdown/kit/prose/history';
 import { trailing } from '@milkdown/kit/plugin/trailing';
 import { lift } from '@milkdown/kit/prose/commands';
 import type { Node as ProseNode } from '@milkdown/kit/prose/model';
@@ -228,6 +230,13 @@ export interface MarkdownEditorInstance {
   readonly blockHandle: EditorBlockHandle;
   /** 块级结构变换（P6 第 28 项 L3）：提取为引用 / 拉平引用的文档模型那一半。 */
   readonly blockTransform: EditorBlockTransform;
+  /**
+   * 撤销 / 重做（菜单入口）。内部 Ctrl+Z 走 history 插件自己的 keymap，
+   * 这两个方法服务的是绕过键盘事件的入口 —— 必须打用户编辑标记，
+   * 否则文档不变脏（见 `EditorHandle.undo` 的契约注释）。
+   */
+  undo(): void;
+  redo(): void;
   /** 大纲跳转：定位到指定层级的指定标题。 */
   goToHeading(level: number, text: string): boolean;
   destroy(): Promise<void>;
@@ -1799,6 +1808,33 @@ export async function createMarkdownEditor(
     blockHandle: createMarkdownBlockHandle(editor, blockTarget, formatting),
 
     blockTransform: createBlockTransform(editor),
+
+    /**
+     * 撤销 / 重做（菜单入口）。
+     *
+     * **必须**包在 `withUserEditOnView` 里：菜单点击不产生 `beforeinput` /
+     * `input`，不上膛的那个窗口里派发的事务会被当成程序写入安静丢掉 ——
+     * 表现是「撤销了，标题栏不变脏，Ctrl+S 写回的是撤销前的内容」。
+     * 编辑器内部按 Ctrl+Z 时由 history 插件自己的 keymap 处理，
+     * 那条路有自己的上膛机制（见 `markdownEmitPlugin`），不走这里。
+     */
+    undo: () => {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        withUserEditOnView(view, () => {
+          undo(view.state, view.dispatch, view);
+        });
+      });
+    },
+
+    redo: () => {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        withUserEditOnView(view, () => {
+          redo(view.state, view.dispatch, view);
+        });
+      });
+    },
 
     /**
      * 大纲跳转：按「层级 + 标题文字」在文档树里找标题节点。

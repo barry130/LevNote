@@ -301,3 +301,18 @@ export function createBrowserProvider(): DocumentProvider {
     },
   };
 }
+
+/**
+ * 浏览器预览的全屏切换：Fullscreen API。
+ *
+ * 与桌面端（Tauri 的窗口 API）不同源是**有意的** —— 浏览器里根本没有
+ * 「窗口」可全屏，铺满视口就是这里能做到的全部。用户手势要求由浏览器
+ * 自己执行（菜单点击就是手势），拒绝时如实上抛，由调用方说明。
+ */
+export async function toggleFullscreenBrowser(): Promise<void> {
+  if (document.fullscreenElement) {
+    await document.exitFullscreen();
+    return;
+  }
+  await document.documentElement.requestFullscreen();
+}

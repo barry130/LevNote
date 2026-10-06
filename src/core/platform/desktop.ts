@@ -236,3 +236,19 @@ export async function onFilesChangedDesktop(
 export async function printHtmlDesktop(html: string, title: string): Promise<void> {
   await invoke('print_html', { html, title });
 }
+
+// --------------------------------------------------------------------- 全屏
+
+/**
+ * 切换窗口全屏（菜单的「全屏」入口）。
+ *
+ * 走 Tauri 的窗口 API 而不是 WebView 的 Fullscreen API：后者只铺满
+ * WebView 元素，标题栏与窗口边框仍在；`setFullscreen` 是整个窗口的全屏。
+ * 动态 import 与 mermaid / 导出同一条纪律 —— `@tauri-apps/api/window`
+ * 不进主包，也避免浏览器预览里加载桌面模块。
+ */
+export async function toggleFullscreenDesktop(): Promise<void> {
+  const { getCurrentWindow } = await import('@tauri-apps/api/window');
+  const win = getCurrentWindow();
+  await win.setFullscreen(!(await win.isFullscreen()));
+}

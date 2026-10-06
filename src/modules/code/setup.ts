@@ -26,9 +26,9 @@
  * 也让编辑器与导出的 HTML 共用同一套色板（见 `document-styles.css`）。
  */
 
-import { Annotation, Compartment, EditorSelection, EditorState } from '@codemirror/state';
+import { Annotation, Compartment, EditorSelection, EditorState, Transaction } from '@codemirror/state';
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, indentWithTab, redo, undo } from '@codemirror/commands';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 import { bracketMatching, foldGutter, foldKeymap, HighlightStyle, indentOnInput, syntaxHighlighting } from '@codemirror/language';
 import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
@@ -79,6 +79,14 @@ export interface CodeEditorInstance {
   /** `<pre data-language>` 片段，交给导出层上色（与 Markdown 的代码块走同一条路）。 */
   toHtml(): string;
   setWordWrap(on: boolean): void;
+  /**
+   * 撤销 / 重做（菜单入口）。内部 Ctrl+Z 由 `historyKeymap` 处理，
+   * 这两个方法服务的是绕过键盘事件的入口 —— 与 Markdown 内核不同，
+   * 这里**不需要**打用户编辑标记：CodeMirror 的上报走 `updateListener`，
+   * 任何来源的事务（键盘、命令、撤销）都会如实触发 onChange，没有「上膛」机制。
+   */
+  undo(): void;
+  redo(): void;
   readonly search: EditorSearch;
   goToHeading(level: number, text: string): boolean;
   /**
@@ -360,9 +368,10 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: value },
         // 程序写入，别当成用户改动报给外壳 —— 否则「重新加载」会让文档立刻变脏
-        annotations: SILENT.of(true),
+        annotations: [SILENT.of(true), Transaction.addToHistory.of(false)],
         // 整篇替换不是一个自然的撤销步骤，不进撤销栈
-        // （与 Markdown 内核的 setMarkdown 保持一致）
+        // （与 Markdown 内核的 setMarkdown 保持一致）。缺了这半边的话，
+        // 打开文件后第一下 Ctrl+Z 会把整篇文档清空
       });
     },
 
@@ -417,6 +426,16 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
 
     setWordWrap: (on) => {
       view.dispatch({ effects: wrapCompartment.reconfigure(wrapExtension(on)) });
+    },
+
+    // `@codemirror/commands` 的 undo / redo 收一个 view、自己 dispatch。
+    // dispatch 会经过 updateListener → onChange，文档变脏由上报链自然完成
+    undo: () => {
+      undo(view);
+    },
+
+    redo: () => {
+      redo(view);
     },
 
     search: createCodeSearch(view),

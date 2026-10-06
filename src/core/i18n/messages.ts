@@ -32,12 +32,27 @@ export const zhCN = {
   'command.category.app': '应用',
   'command.category.diagnostics': '诊断',
   'command.category.edit': '编辑',
+  'command.category.paragraph': '段落',
+  'command.category.format': '格式',
+  'command.category.theme': '主题',
+
+  // ---- 菜单栏（下拉菜单的名字；与命令分组不是一个东西 ——
+  //      菜单是外壳的导航结构，分组是命令面板的归类） ------------------------
+  'menu.file': '文件',
+  'menu.edit': '编辑',
+  'menu.paragraph': '段落',
+  'menu.format': '格式',
+  'menu.view': '视图',
+  'menu.theme': '主题',
+  'menu.help': '帮助',
 
   // ---- 文件 ---------------------------------------------------------------
+  'command.file.new.title': '新建文件',
   'command.file.open.title': '打开文件',
   'command.file.openFolder.title': '打开文件夹',
   'command.file.save.title': '保存',
   'command.file.saveAs.title': '另存为',
+  'command.file.saveAll.title': '保存全部',
   'command.file.reload.title': '从磁盘重新加载',
   'command.file.closeTab.title': '关闭当前标签页',
 
@@ -58,6 +73,9 @@ export const zhCN = {
   'command.view.source.title': '源码视图',
   'command.view.split.title': '源码 + 预览（并排）',
   'command.view.cycleTheme.title': '切换主题',
+  'command.view.toggleWordWrap.title': '切换自动换行',
+  'command.view.toggleCodeLineNumbers.title': '切换代码行号',
+  'command.view.toggleFullscreen.title': '切换全屏',
 
   // ---- 导航 ---------------------------------------------------------------
   'command.find.open.title': '在当前文档中查找',
@@ -72,6 +90,40 @@ export const zhCN = {
   'command.diagnostics.roundTrip.title': '往返保真自检（保存会改写什么）',
   'command.edit.extractReference.title': '提取为引用',
   'command.edit.inlineReference.title': '拉平引用',
+  'command.edit.undo.title': '撤销',
+  'command.edit.redo.title': '重做',
+  'command.edit.copyHtml.title': '复制为 HTML',
+
+  // ---- 格式（选中文字的行内格式；只有实现了 formatting 契约的内核可用） ----
+  'command.format.bold.title': '加粗',
+  'command.format.italic.title': '斜体',
+  'command.format.strikethrough.title': '删除线',
+  'command.format.inlineCode.title': '行内代码',
+
+  // ---- 段落（光标所在块的格式与插入；同上，Markdown 内核可用） -------------
+  'command.paragraph.plainText.title': '正文',
+  'command.paragraph.heading1.title': '一级标题',
+  'command.paragraph.heading2.title': '二级标题',
+  'command.paragraph.heading3.title': '三级标题',
+  'command.paragraph.heading4.title': '四级标题',
+  'command.paragraph.heading5.title': '五级标题',
+  'command.paragraph.heading6.title': '六级标题',
+  'command.paragraph.blockquote.title': '引用',
+  'command.paragraph.bulletList.title': '无序列表',
+  'command.paragraph.orderedList.title': '有序列表',
+  'command.paragraph.codeBlock.title': '代码块',
+  'command.paragraph.table.title': '表格',
+  'command.paragraph.mathBlock.title': '数学块',
+  'command.paragraph.diagram.title': 'Mermaid 图表',
+  'command.paragraph.hr.title': '分隔线',
+
+  // ---- 主题 ---------------------------------------------------------------
+  'command.theme.system.title': '跟随系统',
+  'command.theme.paper.title': '明亮（纸白）',
+  'command.theme.ink.title': '暗黑（墨黑）',
+
+  // ---- 应用 ---------------------------------------------------------------
+  'command.app.about.title': '关于轻墨',
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

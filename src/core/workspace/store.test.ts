@@ -280,6 +280,38 @@ describe('标签页', () => {
     expect(provider.files.get('C:\\n\\a.md')?.text).toBe('A');
   });
 
+  it('saveAll 保存所有变脏的标签页（含后台的），干净的跳过', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\a.md', 'A');
+    provider.put('C:\\n\\b.md', 'B');
+    provider.put('C:\\n\\c.md', 'C');
+    const workspace = new WorkspaceStore(provider);
+    await workspace.open('C:\\n\\a.md');
+    await workspace.open('C:\\n\\b.md');
+    await workspace.open('C:\\n\\c.md');
+
+    // A 在后台、C 是活动页，两个都改；B 保持干净
+    const tabA = workspace.storeOf(workspace.getSnapshot().tabs[0]?.id ?? -1);
+    tabA?.updateText('A2');
+    workspace.activeStore?.updateText('C2');
+
+    expect(await workspace.saveAll()).toBe(true);
+
+    expect(provider.writes.map((write) => write.path)).toEqual(['C:\\n\\a.md', 'C:\\n\\c.md']);
+    expect(provider.files.get('C:\\n\\b.md')?.text).toBe('B');
+    expect(workspace.getSnapshot().tabs.every((tab) => !tab.dirty)).toBe(true);
+  });
+
+  it('saveAll 没有任何脏标签页时什么都不写', async () => {
+    const provider = new FakeProvider();
+    provider.put('C:\\n\\a.md', 'A');
+    const workspace = new WorkspaceStore(provider);
+    await workspace.open('C:\\n\\a.md');
+
+    expect(await workspace.saveAll()).toBe(true);
+    expect(provider.writes).toHaveLength(0);
+  });
+
   it('checkExternalChanges 会检查所有标签页，不只当前那个', async () => {
     // 只查当前标签页的话，其他标签页会在用户切过去的那一刻才突然报冲突 ——
     // 而那时他已经认为「这个文件是干净的」了

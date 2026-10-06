@@ -21,7 +21,7 @@
  */
 
 import type { AppErrorShape, DirEntry, DocumentProvider } from '../document/types.js';
-import { DocumentStore, type DocumentStatus } from '../document/store.js';
+import { DocumentStore, isDirty, type DocumentStatus } from '../document/store.js';
 import { basename, dirname } from '../path.js';
 import { ancestorsOf } from './tree.js';
 
@@ -476,6 +476,25 @@ export class WorkspaceStore {
     const ok = (await this.activeStore?.saveAs()) ?? false;
     if (ok) this.syncTabs();
     return ok;
+  }
+
+  /**
+   * 保存**所有**变脏的标签页（菜单的「保存全部」）。
+   *
+   * 逐个 await 而不是并发：每次保存都可能弹冲突对话框（磁盘文件被外部改过），
+   * 并发的话两个对话框会叠在一起，用户根本答不完。干净的标签页直接跳过，
+   * 只读文档由 DocumentStore.save 自己拒绝。
+   *
+   * 标签页的脏标记不用手动同步 —— 每份 store 的订阅回调就是 `syncTabs`。
+   */
+  async saveAll(): Promise<boolean> {
+    let allSaved = true;
+    for (const tab of this.tabs) {
+      const snapshot = tab.store.getSnapshot();
+      if (snapshot.doc === null || !isDirty(snapshot.doc)) continue;
+      if (!(await tab.store.save())) allSaved = false;
+    }
+    return allSaved;
   }
 
   async reload(): Promise<boolean> {

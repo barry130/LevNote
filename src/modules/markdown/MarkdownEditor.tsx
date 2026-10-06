@@ -147,6 +147,9 @@ function MarkdownEditor({
           codeBlock: created.codeBlock,
           blockHandle: created.blockHandle,
           blockTransform: created.blockTransform,
+          // 内核动作是同步的，转一层保持 handle 与实例同生共死
+          undo: () => created.undo(),
+          redo: () => created.redo(),
           goToOutlineItem: ({ level, text }) => created.goToHeading(level, text),
           getPosition: () => created.getPosition(),
           setPosition: (position) => created.setPosition(position),

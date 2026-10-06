@@ -7,12 +7,13 @@
 
 import type { DocumentProvider } from '../document/types.js';
 import { UNSUPPORTED_SEARCHER, type WorkspaceSearcher } from '../search/workspace.js';
-import { createBrowserProvider } from './browser.js';
+import { createBrowserProvider, toggleFullscreenBrowser } from './browser.js';
 import {
   createDesktopProvider,
   createDesktopSearcher,
   onFilesChangedDesktop,
   printHtmlDesktop,
+  toggleFullscreenDesktop,
   watchFilesDesktop,
   type FsChangeBatch,
 } from './desktop.js';
@@ -72,4 +73,13 @@ export function printHtml(html: string, title: string): Promise<void> {
     return Promise.reject(new Error('打印 / 导出 PDF 只在桌面版可用'));
   }
   return printHtmlDesktop(html, title);
+}
+
+// ---- 全屏 ------------------------------------------------------------------
+//
+// 两个平台都**能**做这件事，所以这里不需要拒绝分支 —— 差异只在实现源
+// （桌面是 Tauri 的窗口级全屏，浏览器是 Fullscreen API 的视口级全屏）。
+
+export function toggleFullscreen(): Promise<void> {
+  return isDesktop() ? toggleFullscreenDesktop() : toggleFullscreenBrowser();
 }
