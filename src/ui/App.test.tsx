@@ -216,6 +216,8 @@ interface Mounted {
   unmount(): Promise<void>;
   /** 按按钮上的文字点一下 */
   click(text: string): Promise<void>;
+  /** 点菜单栏里的一条命令项（先开顶层菜单，再点命令 —— 与真实链路一致）。 */
+  clickMenuItem(menu: string, text: string): Promise<void>;
 }
 
 async function mount(
@@ -274,6 +276,16 @@ async function mount(
       });
       await settle();
     },
+    // 菜单栏里的命令：先点开顶层菜单，再点命令项（与真实用户的链路一致）
+    clickMenuItem: async (menu: string, text: string) => {
+      const dropdown = await openMenu(container, menu);
+      const item = menuItem(dropdown, text);
+      if (!item) throw new Error(`找不到菜单项：${menu} → ${text}`);
+      await act(async () => {
+        item.click();
+      });
+      await settle();
+    },
     unmount: async () => {
       await act(async () => {
         root.unmount();
@@ -328,16 +340,52 @@ function statisticsOf(container: HTMLElement): string {
 }
 
 /**
- * 工具栏按钮。
+ * 打开菜单栏的一个顶层菜单，返回下拉面板。
  *
- * 与 `mounted.click` 不同，这里要的是**元素**而不是「点一下」——
- * 「开关被禁用而不是被隐藏」这条断言必须能看到那个禁用按钮。
+ * 顶部工具栏撤掉之后（ADR 0037），那些动作的唯一常驻入口就是菜单 ——
+ * 测试也走同一条路。
  */
-function toolbarButton(container: HTMLElement, text: string): HTMLButtonElement | null {
-  const found = [...container.querySelectorAll<HTMLButtonElement>('.toolbar button')].find(
-    (item) => item.textContent?.trim() === text,
+async function openMenu(container: HTMLElement, menu: string): Promise<HTMLElement> {
+  const target = [...container.querySelectorAll<HTMLElement>('.menubar-menu')].find(
+    (el) => el.querySelector('.menubar-button')?.textContent?.replace(/\([A-Z]\)$/, '').trim() === menu,
   );
-  return found ?? null;
+  if (target === undefined) throw new Error(`找不到菜单：${menu}`);
+  const top = target.querySelector<HTMLButtonElement>('.menubar-button');
+  if (top === null) throw new Error(`菜单没有顶层按钮：${menu}`);
+  await act(async () => {
+    top.click();
+  });
+  await settle();
+  const dropdown = target.querySelector<HTMLElement>("[role='menu']");
+  if (dropdown === null) throw new Error(`菜单没打开：${menu}`);
+  return dropdown;
+}
+
+/**
+ * 菜单里的一条命令项。
+ *
+ * 返回的是**元素**而不是「点一下」——「禁用而不是隐藏」这条断言
+ * 必须能看到那个禁用项。
+ */
+function menuItem(dropdown: HTMLElement, text: string): HTMLButtonElement | null {
+  return (
+    [...dropdown.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]')].find(
+      (item) => item.querySelector('.menubar-item-label')?.textContent?.trim() === text,
+    ) ?? null
+  );
+}
+
+/**
+ * 三档切换里当前选中的那一档（没有切换器时为空数组）。
+ *
+ * 只看**活动面板**：面板常驻之后，切走的标签整槽藏在 DOM 里，
+ * 它的状态栏与切换器还在 —— 不先落到可见槽位会读到两份。
+ */
+function pressedModes(container: HTMLElement): string[] {
+  const pane = activePane(container);
+  return [...(pane ?? container).querySelectorAll('.view-switcher button')]
+    .filter((item) => item.getAttribute('aria-pressed') === 'true')
+    .map((item) => item.textContent?.trim() ?? '');
 }
 
 /** 内核实际渲染出的内容：富文本看 ProseMirror，源码看 CodeMirror。 */
@@ -669,7 +717,7 @@ describe('自包含 HTML 导出', () => {
     });
     await mounted.open('C:\\notes\\note.md');
 
-    await mounted.click('导出 HTML');
+    await mounted.clickMenuItem('文件', '导出为自包含 HTML');
     await waitForExportWrite();
 
     expect(mounted.provider.writes).toHaveLength(1);
@@ -707,7 +755,7 @@ describe('自包含 HTML 导出', () => {
     });
     await mounted.open('note.md');
 
-    await mounted.click('导出 HTML');
+    await mounted.clickMenuItem('文件', '导出为自包含 HTML');
     await waitForExportWrite();
 
     const html = mounted.provider.writes[0]!.text;
@@ -721,7 +769,7 @@ describe('自包含 HTML 导出', () => {
     mounted = await mount((p) => p.put('note.weird', 'if (a < b) {\n  返回值\n}\n'));
     await mounted.open('note.weird');
 
-    await mounted.click('导出 HTML');
+    await mounted.clickMenuItem('文件', '导出为自包含 HTML');
     await waitForExportWrite();
 
     const html = mounted.provider.writes[0]!.text;
@@ -738,7 +786,7 @@ describe('自包含 HTML 导出', () => {
     });
     await mounted.open('note.md');
 
-    await mounted.click('导出 HTML');
+    await mounted.clickMenuItem('文件', '导出为自包含 HTML');
 
     expect(mounted.provider.writes).toHaveLength(0);
     expect(mounted.provider.notices).toHaveLength(0);
@@ -767,9 +815,12 @@ describe('自包含 HTML 导出', () => {
     });
     await settle();
 
-    const button = [...container.querySelectorAll('button')].find((item) => item.textContent?.trim() === '导出 HTML')!;
+    // 顶部工具栏已撤，导出入口在「文件」菜单里
+    const dropdown = await openMenu(container, '文件');
+    const item = menuItem(dropdown, '导出为自包含 HTML');
+    if (item === null) throw new Error('文件菜单里没有「导出为自包含 HTML」');
     await act(async () => {
-      button.click();
+      item.click();
     });
     await settle();
 
@@ -801,14 +852,17 @@ describe('源码模式切换', () => {
 
   const SOURCE = '# 标题\n\n正文 **加粗**。\n';
 
-  it('Markdown 文档默认在富文本视图，工具栏给出「源码」开关', async () => {
+  it('Markdown 文档默认在富文本视图，状态栏给出三档切换', async () => {
     mounted = await mount((p) => p.put('note.md', SOURCE));
     await mounted.open('note.md');
 
     expect(mounted.container.querySelector('.qm-editor .ProseMirror')).not.toBeNull();
-    const button = toolbarButton(mounted.container, '源码');
-    expect(button).not.toBeNull();
-    expect(button?.disabled).toBe(false);
+    // 三档切换器只在「有源码视图可切」的文档上出现（见 DocumentPane）
+    const source = [...mounted.container.querySelectorAll<HTMLButtonElement>('.view-switcher button')].find(
+      (item) => item.textContent?.trim() === '源码',
+    );
+    expect(source).toBeDefined();
+    expect(source?.disabled).toBe(false);
   });
 
   it('切到源码视图：换成代码内核、内容一字不差、且不算脏', async () => {
@@ -828,9 +882,8 @@ describe('源码模式切换', () => {
     // 切视图是纯视图动作：内容没变，也不该变成待保存
     expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
     expect(statusOf(mounted.container)).toBe('已保存');
-    // 开关要翻面，否则用户不知道再点一次会切回去
-    expect(toolbarButton(mounted.container, '富文本')).not.toBeNull();
-    expect(toolbarButton(mounted.container, '源码')).toBeNull();
+    // 三档里选中的是「源码」，否则用户不知道现在在哪一档
+    expect(pressedModes(mounted.container)).toEqual(['源码']);
   });
 
   it('切回富文本视图，内容仍然一字不差', async () => {
@@ -884,14 +937,18 @@ describe('源码模式切换', () => {
     expect(statusOf(mounted.container)).toBe('有未保存的改动');
   });
 
-  it('代码文档没有源码视图 —— 开关禁用而不是隐藏', async () => {
+  it('代码文档没有源码视图 —— 三档切换不出现，菜单里的开关禁用而不是隐藏', async () => {
     mounted = await mount((p) => p.put('main.py', 'print(1)\n'));
     await mounted.open('main.py');
 
-    const button = toolbarButton(mounted.container, '源码');
-    // 隐藏会让用户以为功能不存在；禁用则明确告诉他「有，但这份文档用不上」
-    expect(button).not.toBeNull();
-    expect(button?.disabled).toBe(true);
+    // 代码 / 纯文本文档本身就是源码，「切到源码」对它是个不存在的动作，
+    // 三档切换整个不渲染
+    expect(mounted.container.querySelector('.view-switcher')).toBeNull();
+    // 命令仍在菜单里，按禁用呈现 —— 隐藏会让用户以为功能不存在
+    const dropdown = await openMenu(mounted.container, '视图');
+    const item = menuItem(dropdown, '切换源码模式');
+    expect(item).not.toBeNull();
+    expect(item?.disabled).toBe(true);
     expect(kernelOf(mounted.container)).toBe('代码 / 文本');
   });
 
@@ -899,7 +956,8 @@ describe('源码模式切换', () => {
     mounted = await mount((p) => p.put('note.md', '---\ntitle: 笔记\n---\n\n# 正文\n'));
     await mounted.open('note.md');
 
-    expect(toolbarButton(mounted.container, '源码')?.disabled).toBe(true);
+    const dropdown = await openMenu(mounted.container, '视图');
+    expect(menuItem(dropdown, '切换源码模式')?.disabled).toBe(true);
   });
 
   it('切标签页时视图模式跟着各自的文档走，不会串台', async () => {
@@ -914,7 +972,7 @@ describe('源码模式切换', () => {
     await mounted.open('b.md');
     // b 是新打开的文档，默认富文本 —— 不该继承 a 的源码模式
     expect(mounted.container.querySelector('.ProseMirror')).not.toBeNull();
-    expect(toolbarButton(mounted.container, '源码')?.disabled).toBe(false);
+    expect(pressedModes(mounted.container)).toEqual(['富文本']);
 
     const first = mounted.workspace.getSnapshot().tabs[0];
     expect(first).toBeDefined();
@@ -925,7 +983,7 @@ describe('源码模式切换', () => {
 
     // 切回 a：它仍然停在源码视图
     expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
-    expect(toolbarButton(mounted.container, '富文本')).not.toBeNull();
+    expect(pressedModes(mounted.container)).toEqual(['源码']);
   });
 });
 
@@ -1066,16 +1124,17 @@ describe('分屏：源码与预览并排', () => {
     expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
   });
 
-  it('工具栏那个开关把分屏算作「源码那一侧」—— 再点一次回富文本', async () => {
+  it('菜单里的「切换源码模式」把分屏算作「源码那一侧」—— 再点一次回富文本', async () => {
     mounted = await mount((p) => p.put('note.md', SOURCE));
     await mounted.open('note.md');
     await clickViewMode(mounted.container, '分屏');
 
     // 分屏的出口与源码模式是同一个（富文本），否则用户点一下会落到
     // 一个他刚才没选过的状态上
-    const button = toolbarButton(mounted.container, '富文本');
-    expect(button).not.toBeNull();
-    expect(button?.disabled).toBe(false);
+    await mounted.clickMenuItem('视图', '切换源码模式');
+    expect(splitPanes(mounted.container).length).toBe(0);
+    expect(mounted.container.querySelector('.qm-code')).toBeNull();
+    expect(mounted.container.querySelector('.qm-editor .ProseMirror')).not.toBeNull();
   });
 
   it('三档里只有一档是选中的，且读屏读得出来', async () => {

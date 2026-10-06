@@ -73,30 +73,6 @@ import { SettingsDialog } from './SettingsDialog.js';
 import { TabBar } from './TabBar.js';
 
 /**
- * 工具栏按钮。
- *
- * **是精选子集，不是命令面板的镜像**：工具栏只放高频且需要「一眼看到」的动作，
- * 其余交给 Ctrl+P。但每个按钮的**行为**都走命令 ——
- * 于是不可能出现「按钮和命令面板里的同一个功能行为不一致」。
- *
- * ## 「设置」与「命令面板」不在这里
- *
- * 它们搬去了活动栏（见 `ActivityBar.tsx`）。理由不是省地方，而是**分工**：
- * 工具栏放「对文档做什么」（打开 / 保存 / 导出），活动栏放「看哪个面板」。
- * 一个动作有两个常驻入口时，用户会开始猜「它们是不是不一样」。
- */
-const TOOLBAR: ReadonlyArray<{ id: string; label: string }> = [
-  { id: 'file.open', label: '打开' },
-  { id: 'file.save', label: '保存' },
-  { id: 'file.saveAs', label: '另存为' },
-  { id: 'file.exportHtml', label: '导出 HTML' },
-  { id: 'file.reload', label: '重新加载' },
-  // 视图动作，不是文件动作 —— 但它是最常被点的开关之一，值得占一个位置。
-  // 文字由下面的渲染按当前视图模式决定（它是开关，不是按钮）。
-  { id: 'view.toggleSource', label: '源码' },
-];
-
-/**
  * 位置记忆写盘的防抖时长。
  *
  * 600ms 的取法：光标停下来半秒多才落盘，人感觉不到延迟；而连续打字时
@@ -1275,53 +1251,11 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
   return (
     <div className="shell">
-      <header className="titlebar">
-        <span className="brand">
-          <Mark size={18} />
-          轻墨
-        </span>
-
-        <span className="workspace-name" title={tree.root ?? ''}>
-          {tree.root === null ? '未打开文件夹' : tree.root}
-        </span>
-
-        <span className="spacer" />
-
-        <span
-          className="badge"
-          title={provider.kind === 'desktop' ? '桌面版：直接读写磁盘' : '浏览器预览：内存虚拟盘，保存会触发下载'}
-        >
-          {provider.kind === 'desktop' ? '桌面版' : '浏览器预览'}
-        </span>
-
-        <span className="toolbar">
-          {TOOLBAR.map(({ id, label }) => {
-            const command = registry.find(id);
-            const enabled = isEnabled(id);
-            // 「源码」是一个**开关**，文字必须反映点了之后去哪 ——
-            // 固定写「源码」的话，切过去之后用户会以为再点一次还是切到源码。
-            // 分屏算「源码那一侧」，所以它显示的也是「富文本」（同一个出口）
-            const text =
-              id === 'view.toggleSource' && paneInfo !== null && paneInfo.viewMode !== 'rich' ? '富文本' : label;
-            return (
-              <button
-                key={id}
-                type="button"
-                className={id === 'file.save' ? 'primary' : ''}
-                disabled={!enabled}
-                title={command?.title ?? label}
-                onClick={() => runCommand(id)}
-              >
-                {text}
-              </button>
-            );
-          })}
-        </span>
-      </header>
-
       {/*
         菜单栏（ADR 0037）：命令的另一个入口 —— 能点什么、什么时候灰着，
         与工具栏/命令面板同问 CommandRegistry.enabled，这里没有第二个真相来源。
+        标题栏一排动作（打开/保存/另存为/导出/重新加载/源码开关）已并入菜单
+        与状态栏的三档切换 —— 那排按钮在菜单栏出现后只剩重复。
       */}
       <MenuBar registry={registry} platform={platform} isEnabled={isEnabled} onRun={runCommand} isChecked={menuChecked} />
 

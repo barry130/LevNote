@@ -121,6 +121,10 @@ export const MENUS: readonly MenuDef[] = [
       'view.rich',
       'view.source',
       'view.split',
+      // 两态开关（Ctrl+/）：与上面三档并存而不是被取代 —— 它是「在两边之间
+      // 来回」的肌肉记忆动作，三档是「直接跳过去」。原顶部工具栏的「源码」
+      // 按钮并入这里（工具栏整排已撤）
+      'view.toggleSource',
       'separator',
       'view.toggleWordWrap',
       'view.toggleCodeLineNumbers',

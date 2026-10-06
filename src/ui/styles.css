@@ -56,7 +56,7 @@
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
   --shadow-soft: 0 2px 6px rgba(0, 0, 0, 0.08);
 
-  /* 外壳：侧栏 / 活动栏 / 标签栏 / 标题栏 */
+  /* 外壳：侧栏 / 活动栏 / 标签栏 / 菜单栏 */
   --chrome-bg: #f8f8f8;
   --chrome-fg: #3b3b3b;
   --chrome-muted: #6a6a6a;
@@ -68,7 +68,7 @@
   --chrome-btn-hover: #e8e8e8;
   --chrome-active-bg: #e4e6f1;
 
-  --titlebar-bg: #dddddd;
+  --menubar-bg: #dddddd;
   --tabbar-bg: #f8f8f8;
   --tab-bg: #f8f8f8;
   --tab-hover-bg: #f2f2f2;
@@ -87,10 +87,13 @@
   --activitybar-active: #000000;
   --activitybar-active-border: #005fb8;
 
-  /* 状态栏是 VSCode 唯一一块「主题色铺满」的地方，蓝底白字是它的招牌 */
-  --statusbar-bg: #007acc;
-  --statusbar-fg: #ffffff;
-  --statusbar-hover: rgba(255, 255, 255, 0.18);
+  /* 状态栏走中性色（与 VSCode Light Modern 同一条思路）：蓝底白字是
+     Dark+ 时代的招牌，在这套浅色 chrome 里只显得突兀。
+     状态栏里唯一带彩色的地方是可交互元素（视图三档选中态、状态徽章），
+     用的都是主题强调色 / 语义色，不另起一套。 */
+  --statusbar-bg: #f8f8f8;
+  --statusbar-fg: #6a6a6a;
+  --statusbar-hover: rgba(0, 0, 0, 0.08);
 
   --focus-border: #0090f1;
   --list-hover: #e8e8e8;
@@ -152,7 +155,7 @@
   --chrome-btn-hover: #2a2d2e;
   --chrome-active-bg: #04395e;
 
-  --titlebar-bg: #181818;
+  --menubar-bg: #181818;
   --tabbar-bg: #181818;
   --tab-bg: #181818;
   --tab-hover-bg: #2a2d2e;
@@ -168,9 +171,11 @@
   --activitybar-active: #cccccc;
   --activitybar-active-border: #0078d4;
 
-  --statusbar-bg: #0078d4;
-  --statusbar-fg: #ffffff;
-  --statusbar-hover: rgba(255, 255, 255, 0.18);
+  /* 与浅色那侧同一分工：中性底 + 弱化文字（Dark Modern 的状态栏就是窗口底色
+     加一条上边线），彩色只出现在语义徽章与选中态上 */
+  --statusbar-bg: #181818;
+  --statusbar-fg: #9d9d9d;
+  --statusbar-hover: rgba(255, 255, 255, 0.1);
 
   --focus-border: #0078d4;
   --list-hover: #2a2d2e;
@@ -208,25 +213,9 @@ body {
 /* ---------------------------------------------------------------- 顶栏 */
 
 /*
- * 标题栏。35px 是 VSCode 的实测高度 —— 它同时是「窗口拖动区」与
- * 「一排动作」的容器，比 35px 矮会让按钮的命中区太小。
- */
-.titlebar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 35px;
-  padding: 0 12px;
-  background: var(--titlebar-bg);
-  color: var(--chrome-fg);
-  border-bottom: 1px solid var(--chrome-line);
-  user-select: none;
-  flex: none;
-}
-
-/*
  * 菜单栏（ADR 0037）：Typora 式的文字菜单。它是 chrome 的一部分 ——
- * 与标题栏同一套颜色 token；下拉面板用 surface + shadow 浮在内容上面。
+ * 颜色走 `--menubar-bg`（曾经的标题栏 token，标题栏撤掉后只剩菜单栏在用）；
+ * 下拉面板用 surface + shadow 浮在内容上面。
  * 整条是外壳自己的 UI，不涉及任何内核样式所有权（硬约束 13 不管这里）。
  */
 .menubar {
@@ -235,7 +224,7 @@ body {
   gap: 2px;
   min-height: 28px;
   padding: 0 8px;
-  background: var(--titlebar-bg);
+  background: var(--menubar-bg);
   color: var(--chrome-fg);
   border-bottom: 1px solid var(--chrome-line);
   user-select: none;
@@ -333,88 +322,6 @@ body {
   background: var(--chrome-line);
 }
 
-
-.titlebar .brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  flex: none;
-}
-
-.titlebar .workspace-name {
-  min-width: 0;
-  max-width: 40vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  direction: rtl;
-  text-align: left;
-  color: var(--chrome-muted);
-  font-size: 12px;
-  margin-left: 6px;
-}
-
-.titlebar .spacer {
-  flex: 1;
-}
-
-.toolbar {
-  display: flex;
-  gap: 2px;
-  flex: none;
-}
-
-/*
- * VSCode 的工具栏按钮是**无底无边、悬停才浮起**的一小块。
- *
- * 与「常驻按钮」的差别不只是好看：一排有边框的按钮会形成一条
- * 视觉上的「分割带」，把标题栏切成一格一格；无边按钮让整条标题栏
- * 读起来是一整块，动作只是「浮在上面」。
- */
-.toolbar button {
-  appearance: none;
-  border: 1px solid var(--chrome-btn-border);
-  background: var(--chrome-btn-bg);
-  color: var(--chrome-btn-fg);
-  font: inherit;
-  font-size: 12.5px;
-  padding: 4px 9px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.1s ease;
-}
-
-.toolbar button:hover:not(:disabled) {
-  background: var(--chrome-btn-hover);
-}
-
-.toolbar button:disabled {
-  opacity: 0.42;
-  cursor: default;
-}
-
-/* 「保存」用主题色。VSCode 本身没有这样一个按钮，这里是刻意的产品选择：
-   这个编辑器里「保存」是用户最需要被提醒的一件事，给它一个恒定的视觉锚点 */
-.toolbar button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.toolbar button.primary:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-
-.badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--chrome-line);
-  color: var(--chrome-muted);
-  flex: none;
-}
 
 /* ---------------------------------------------------------------- 标签栏 */
 
@@ -1305,7 +1212,10 @@ body {
 /* ---------------------------------------------------------------- 状态栏 */
 
 /*
- * VSCode 唯一一块「主题色铺满」的地方 —— 蓝底白字是它的招牌。
+ * VSCode Modern 两套主题（Light / Dark）的状态栏都是**中性色**：
+ * 与 chrome 同底、一条上边线隔开内容，彩色只留给语义徽章与选中态。
+ * 这里曾经用蓝底白字（Dark+ 时代的招牌），在那套浅色 / 墨黑 chrome 里
+ * 是全窗口唯一一块饱和色，用户看得见的只有「不搭」。
  *
  * 这里有一处**刻意的偏离**：VSCode 的状态栏横跨整个窗口宽度，
  * 而这一条是 `DocumentPane` 的 footer，只横跨编辑器那一栏（侧栏与大纲在它两侧）。
@@ -1324,38 +1234,39 @@ body {
   font-size: 12px;
   color: var(--statusbar-fg);
   background: var(--statusbar-bg);
+  border-top: 1px solid var(--chrome-line);
   flex: none;
 }
 
-/* 分隔符在蓝底上要弱化成半透明白，用 `--line-strong`（灰）会显得脏 */
+/* 分隔符与文字同色但再弱一档 —— 中性底上再用「半透明白」会直接消失 */
 .statusbar .sep {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--statusbar-fg);
+  opacity: 0.45;
 }
 
 .statusbar .grow {
   flex: 1;
 }
 
-/* 当前内核的名字。比编码/行尾弱一档，它是「解释性」信息不是「可操作」信息 */
+/* 当前内核的名字。比编码/行尾强半档：它是这条信息里第一个该读到的 */
 .statusbar .kernel {
-  color: var(--statusbar-fg);
+  color: var(--chrome-fg);
   font-weight: 600;
 }
 
 /*
  * 状态栏里的下拉框。
  *
- * 这里**不能用 `--surface`**：浅色主题下那是纯白，会在蓝色状态栏上
- * 变成两块突兀的白斑；深色主题下是 `#1f1f1f`，在蓝底上是两块黑斑。
- * 半透明白底 + 白字才是这一层该有的样子。
+ * 与整条状态栏同一套中性 token —— 这里曾经用「半透明白底白字」
+ * （那是为蓝底设计的），在中性底上会变成两块看不清的浅斑。
  */
 .statusbar select {
   font: inherit;
   font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--chrome-line);
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--statusbar-fg);
+  background: var(--surface);
+  color: var(--chrome-fg);
   padding: 0 2px;
 }
 
@@ -1368,24 +1279,23 @@ body {
 }
 
 .statusbar .hint {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--statusbar-fg);
 }
 
 /*
  * 状态徽章。
  *
- * 基态是「半透明白底」而不是描边：在饱和的蓝底上，描边几乎看不见，
- * 而一块淡淡的底能立刻圈出「这是一个状态」。
- * 三种需要被注意到的状态用实色底，靠**明度差**而不是色相差来区分 ——
- * 在蓝底上，橙 / 红 / 白三者的明度差比色相差可靠得多。
+ * 基态是「比底色深一档的灰」，把「这是一个状态」圈出来而不抢眼；
+ * 三种需要被注意到的状态用实色底 —— 脏 / 出错走语义色，
+ * 「处理中」用主题强调色（它是唯一一个**短暂**的状态，反差让它一眼可辨）。
  */
 .status-pill {
   font-size: 11px;
   padding: 1px 7px;
   border-radius: 999px;
   border: 0;
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--statusbar-fg);
+  background: var(--chrome-btn-hover, rgba(0, 0, 0, 0.07));
+  color: var(--chrome-fg);
   flex: none;
 }
 
@@ -1400,11 +1310,9 @@ body {
   color: #fff;
 }
 
-/* 「处理中」用反白（白底 + 状态栏蓝字）：它是唯一一个**短暂**的状态，
-   反白让它在扫过状态栏时一眼可辨，而且不会和「出错」的实色底混淆 */
 .status-pill.saving {
-  background: var(--statusbar-fg);
-  color: var(--statusbar-bg);
+  background: var(--accent);
+  color: #fff;
 }
 
 .hint {
@@ -1420,7 +1328,8 @@ body {
  * 分段控件的视觉语言（连成一排、只有一个凹下去）本身就说明了这一点，
  * 而三个独立按钮会让用户以为可以同时开两个。
  *
- * 与工具栏那个「源码 / 富文本」开关并存是刻意的，理由见 `ViewSwitcher.tsx`。
+ * 原顶部工具栏那个「源码 / 富文本」两态开关已并入菜单（view.toggleSource），
+ * 与这里并存是刻意的，理由见 `ViewSwitcher.tsx`。
  */
 .view-switcher {
   display: inline-flex;
@@ -1434,7 +1343,7 @@ body {
   appearance: none;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--statusbar-fg);
   font: inherit;
   font-size: 12px;
   line-height: 1;
@@ -1446,11 +1355,11 @@ body {
   background: var(--statusbar-hover);
 }
 
-/* 选中态给一块**实白底 + 状态栏蓝字**：与 `.status-pill.saving` 同一套语言，
-   在蓝底上这是对比度最高的组合，隔着半米也看得出现在是哪一档 */
+/* 选中态用**主题强调色**：中性状态栏里唯一的彩色块，正是「你现在在哪一档」
+   该有的视觉分量 —— 与标签页的顶线、聚焦描边同一个颜色来源 */
 .view-switcher button[aria-pressed='true'] {
-  background: var(--statusbar-fg);
-  color: var(--statusbar-bg);
+  background: var(--accent);
+  color: #fff;
   font-weight: 600;
 }
 
