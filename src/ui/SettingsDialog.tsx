@@ -192,9 +192,14 @@ export function SettingsDialog({
      * 与旧版不同：**所有命令都进这张表**。过去「没有快捷键的命令不进」
      * 是因为表只是「一览」；现在每一条都可以被指派快捷键，
      * 不显示出来的命令就永远指派不了 —— 那才是真正的「知道的人才知道」。
+     *
+     * 唯一的例外是 `dynamic` 命令（最近打开的文件之类）：它们是数据不是能力，
+     * 每个文件一行会把这张表淹掉，而用户也不会想给「打开某个具体文件」
+     * 指派快捷键。
      */
     const byCategory = new Map<string, Array<{ command: Command; binding: string | null; overridden: boolean }>>();
     for (const command of registry.list()) {
+      if (command.dynamic === true) continue;
       const binding = registry.displayBinding(command, platform, formatKeybinding);
       const overridden = Object.prototype.hasOwnProperty.call(settings.keybindings, command.id);
       const bucket = byCategory.get(command.category);

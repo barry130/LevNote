@@ -16,7 +16,7 @@ import { t } from '../i18n/index.js';
 import { extractToReference, flattenReference } from '../document/block-ops.js';
 import { asAppError } from '../document/types.js';
 import { isDesktop, printHtml } from '../platform/index.js';
-import { joinPath } from '../path.js';
+import { basename, dirname, joinPath } from '../path.js';
 import { buildSampleDocument, SAMPLE_DOCUMENT_NAME } from '../sample-document.js';
 
 function activeDocument(ctx: CommandContext) {
@@ -795,6 +795,34 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     },
   },
 ];
+
+/** 「最近打开」进菜单的条数（持久化上界更大，见 core/recent.ts）。 */
+export const RECENT_MENU_SLOTS = 10;
+
+/**
+ * 最近打开的文件（A5）→ 动态命令。
+ *
+ * 标题是**数据**：`文件名 — 所在目录`（不同目录里的同名文件要分得开），
+ * 与编码命令用 `option.label` 当标题同一条先例。`dynamic: true` 让它们
+ * 进菜单、不进命令面板与快捷键表 —— 那两处是能力清单，不是数据清单。
+ *
+ * id 带槽位号（`file.recent.0..9`）：列表顺序变了，命令**原位覆盖**，
+ * 菜单项的位置不漂；尾部空出来的槽位由调用方注销。
+ */
+export function buildRecentFileCommands(paths: readonly string[], open: (path: string) => void): readonly Command[] {
+  return paths.slice(0, RECENT_MENU_SLOTS).map((path, index) => {
+    const name = basename(path);
+    const dir = dirname(path);
+    return {
+      id: `file.recent.${index}`,
+      title: dir === null ? name : `${name} — ${dir}`,
+      category: t('command.category.file'),
+      keywords: [name, 'recent', 'zuijin', '最近打开'],
+      dynamic: true,
+      run: () => open(path),
+    } satisfies Command;
+  });
+}
 
 export function registerBuiltInCommands(registry: CommandRegistry): void {
   for (const command of BUILT_IN_COMMANDS) registry.register(command);

@@ -20,7 +20,7 @@
  * 想知道当前用的是 Milkdown 还是 CodeMirror，外壳得去问 `adapter.label`。
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { DocumentProvider } from '../core/document/types.js';
 import { buildDocBlockPreview } from '../core/document/block-preview.js';
@@ -36,6 +36,8 @@ import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, toggleF
 import { encodingSlug } from '../core/encodings.js';
 import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
+import { loadRecentFiles, recordRecentList, saveRecentFiles } from '../core/recent.js';
+import { buildRecentFileCommands, RECENT_MENU_SLOTS } from '../core/commands/definitions.js';
 import { WorkspaceSearchStore, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
 import {
   clearSession,
@@ -66,7 +68,7 @@ import { Mark } from './brand.js';
 import { CommandPalette } from './CommandPalette.js';
 import { DocumentPane, type PaneRevealRequest, type PaneViewInfo } from './DocumentPane.js';
 import { FindBar } from './FindBar.js';
-import { MenuBar } from './MenuBar.js';
+import { MenuBar, MENUS, type MenuDef } from './MenuBar.js';
 import { OutlinePanel } from './OutlinePanel.js';
 import { SearchPanel } from './SearchPanel.js';
 import { Sidebar } from './Sidebar.js';
@@ -217,6 +219,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   const platform = useMemo<Platform>(() => detectPlatform(), []);
   const storage = useMemo(() => defaultStorage(), []);
   const [settings, setSettings] = useState<ViewSettings>(() => initialSettings ?? loadSettings(storage));
+  /** 最近打开的文件（A5）：菜单的「文件」区与持久化共用这一份。 */
+  const [recentPaths, setRecentPaths] = useState<readonly string[]>(() => loadRecentFiles(storage));
   const [systemDark, setSystemDark] = useState(() => systemPrefersDark());
 
   // ---- 会话恢复 ---------------------------------------------------------
@@ -1007,6 +1011,58 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     registry.setKeybindingOverrides(settings.keybindings);
   }, [registry, settings.keybindings]);
 
+  // ---- 最近打开的文件（A5） ------------------------------------------------
+
+  /**
+   * 记录：活动标签页一变就记一笔。打开文件、恢复会话、切标签、检索跳转
+   * 都会走到活动路径上，这里是最全的收口点。
+   *
+   * `recordRecentList` 没变化时返回**同一个引用**，靠它兜住依赖数组造成的
+   * 重跑 —— 不变就不落盘、不 setState，不会形成循环。
+   */
+  useEffect(() => {
+    if (activePath === null) return;
+    const next = recordRecentList(recentPaths, activePath);
+    if (next === recentPaths) return;
+    saveRecentFiles(storage, next);
+    setRecentPaths(next);
+  }, [activePath, recentPaths, storage]);
+
+  /**
+   * 注册动态命令。`register` 对同 id 是**原位覆盖**，槽位号保证列表顺序变化
+   * 时命令的位置不漂；尾部空出来的槽位由 cleanup 注销。
+   *
+   * 用 layout effect：注册必须发生在**下一次绘制之前** —— 菜单是普通渲染
+   * 产物，普通 effect 晚于绘制，首帧会画出「file.recent.0」这样的裸 id。
+   */
+  useLayoutEffect(() => {
+    for (const command of buildRecentFileCommands(recentPaths, (path) => void workspace.open(path))) {
+      registry.register(command);
+    }
+    return () => {
+      for (let slot = 0; slot < RECENT_MENU_SLOTS; slot += 1) registry.unregister(`file.recent.${slot}`);
+    };
+  }, [registry, recentPaths, workspace]);
+
+  /**
+   * 菜单结构：有记录时把「最近打开」插进文件菜单（`file.openFolder` 之后）。
+   * 其余菜单原样沿用 `MENUS` —— MenuBar 只认命令 id，这里多给几个 id 而已。
+   */
+  const menusForBar = useMemo<readonly MenuDef[]>(() => {
+    if (recentPaths.length === 0) return MENUS;
+    const fileMenu = MENUS.find((menu) => menu.id === 'file');
+    if (fileMenu === undefined) return MENUS;
+    const at = fileMenu.items.indexOf('file.openFolder') + 1;
+    const items = [
+      ...fileMenu.items.slice(0, at),
+      'separator',
+      ...recentPaths.slice(0, RECENT_MENU_SLOTS).map((_, slot) => `file.recent.${slot}`),
+      ...fileMenu.items.slice(at),
+    ];
+    return MENUS.map((menu) => (menu.id === 'file' ? { ...menu, items } : menu));
+  }, [recentPaths]);
+
+
   const runCommand = useCallback(
     (id: string) => {
       const command = registry.find(id);
@@ -1303,7 +1359,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         标题栏一排动作（打开/保存/另存为/导出/重新加载/源码开关）已并入菜单
         与状态栏的三档切换 —— 那排按钮在菜单栏出现后只剩重复。
       */}
-      <MenuBar registry={registry} platform={platform} isEnabled={isEnabled} onRun={runCommand} isChecked={menuChecked} />
+      <MenuBar menus={menusForBar} registry={registry} platform={platform} isEnabled={isEnabled} onRun={runCommand} isChecked={menuChecked} />
 
       <TabBar
         tabs={tabs}

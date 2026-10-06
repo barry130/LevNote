@@ -123,5 +123,17 @@ export interface Command {
    * 隐藏会让用户以为功能不存在，禁用则明确告诉他「有，但此刻不能用」。
    */
   readonly enabled?: (ctx: CommandContext) => boolean;
+  /**
+   * 数据驱动的动态命令（如「最近打开的文件」）。
+   *
+   * 它们有真实的 `run`，但**不是能力清单的一员** —— 是一份随用户与文件系统
+   * 变化的数据。命令面板与快捷键表都按 registry 派生，不过滤的话这十来条
+   * 「打开某某.md」会淹掉真正的能力条目；所以带这个标记的命令：
+   * - 进菜单（MenuBar 按 id 现查，与其他项同一条路）；
+   * - 不进命令面板、不进设置页的快捷键表。
+   *
+   * 标题是数据（文件名之类），与编码命令用 `option.label` 当标题同一条先例。
+   */
+  readonly dynamic?: boolean;
   run(ctx: CommandContext): void | Promise<void>;
 }

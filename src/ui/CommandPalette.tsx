@@ -48,7 +48,8 @@ export function CommandPalette({ registry, context, platform, onClose }: Command
   }, []);
 
   const rows = useMemo<Row[]>(() => {
-    const all = registry.list();
+    // `dynamic` 命令（最近打开的文件之类）是数据不是能力，不进面板
+    const all = registry.list().filter((command) => command.dynamic !== true);
     const ranked = rankCommands(query, all, (command) => ({
       title: command.title,
       keywords: command.keywords ?? [],
