@@ -24,6 +24,7 @@
 import type { EditorView } from '@codemirror/view';
 
 import type { BlockFormat, EditorFormatting, InlineFormat, InsertableBlock } from '../../core/editor/types.js';
+import { drawioDocBlockStarter } from '../../core/drawio.js';
 import { MERMAID_STARTER } from '../../core/mermaid.js';
 
 /** 行内格式的源码标记。`link` 不在这里 —— 它的规则比「包一层」多。 */
@@ -352,6 +353,11 @@ export function createMarkdownSourceFormatting(getView: () => EditorView): Edito
           return;
         case 'diagram':
           insertRawBlock(view, '```mermaid\n' + MERMAID_STARTER + '\n```', '```mermaid\n'.length + MERMAID_STARTER.length);
+          return;
+        case 'drawio':
+          // 起始内容与富文本内核共用同一份（core/drawio.ts）—— inline 模式，
+          // 插进来就渲染；参考模式在这里只会立刻「读不到引用的文件」
+          insertRawBlock(view, drawioDocBlockStarter());
           return;
         case 'table':
           // 表头带占位文字 —— 空表头的表格在序列化时会整行丢失（Milkdown 的

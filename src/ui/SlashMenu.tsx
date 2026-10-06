@@ -73,6 +73,7 @@ const SLASH_ITEMS: readonly SlashItem[] = [
   { block: 'codeBlock', abbr: '</>', label: '代码块', hint: '```', keywords: ['daimakuai', 'daima', 'code', 'fence'] },
   { block: 'mathBlock', abbr: '∑', label: '数学公式', hint: '$$', keywords: ['shuxue', 'gongshi', 'math', 'latex', 'tex', 'katex', 'formula', 'equation'] },
   { block: 'diagram', abbr: '◇', label: '图表', hint: 'mermaid', keywords: ['tubiao', 'tu', 'liuchengtu', 'diagram', 'mermaid', 'graph', 'chart', 'flowchart'] },
+  { block: 'drawio', abbr: '▤', label: 'draw.io 图表', hint: '可视化画图', keywords: ['draw', 'drawio', 'drawdotio', 'tupian', 'huatu', 'diagram', 'visio', 'bpmn', 'flowchart'] },
   { block: 'table', abbr: '▦', label: '表格', hint: '3 × 3', keywords: ['biaoge', 'biao', 'table', 'grid'] },
   { block: 'hr', abbr: '—', label: '分隔线', hint: '---', keywords: ['fengexian', 'fenge', 'hr', 'divider', 'rule'] },
 ];

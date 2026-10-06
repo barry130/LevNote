@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { missingStencilLibs, stencilLibsOf, VENDORED_STENCIL_LIBS } from './drawio.js';
+import { parseDocBlock } from './docblock.js';
+import { drawioDocBlockStarter, missingStencilLibs, stencilLibsOf, VENDORED_STENCIL_LIBS } from './drawio.js';
 
 /** 一段只含关键结构的样本：stencil 引用全在 style 属性里。 */
 function cell(style: string): string {
@@ -61,5 +62,29 @@ describe('missingStencilLibs', () => {
     // 若有人改了目录名而忘了改这里，这条会提醒去对照
     expect(VENDORED_STENCIL_LIBS).toContain('bpmn');
     expect(VENDORED_STENCIL_LIBS).toContain('flowchart');
+  });
+});
+
+describe('drawioDocBlockStarter', () => {
+  const starter = drawioDocBlockStarter();
+
+  it('是一段解析干净的 doc-block：属性齐全、载荷非空', () => {
+    const parsed = parseDocBlock(starter);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.attrs.id).toMatch(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/);
+    expect(parsed.attrs.kind).toBe('diagram');
+    expect(parsed.attrs.mode).toBe('inline');
+    expect(parsed.payload).toContain('<mxfile>');
+  });
+
+  it('inline 载荷本身就能画：不引用任何 stencil 库（不该有缺库警示）', () => {
+    const parsed = parseDocBlock(starter);
+    expect(missingStencilLibs(parsed.payload ?? '')).toEqual([]);
+  });
+
+  it('连插两次，id 不重复（规范 §2.3：文档内唯一）', () => {
+    const first = parseDocBlock(drawioDocBlockStarter()).attrs.id;
+    const second = parseDocBlock(drawioDocBlockStarter()).attrs.id;
+    expect(second).not.toEqual(first);
   });
 });

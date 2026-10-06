@@ -118,6 +118,7 @@ export const zhCN = {
   'command.paragraph.table.title': '表格',
   'command.paragraph.mathBlock.title': '数学块',
   'command.paragraph.diagram.title': 'Mermaid 图表',
+  'command.paragraph.drawio.title': 'draw.io 图表',
   'command.paragraph.hr.title': '分隔线',
 
   // ---- 主题 ---------------------------------------------------------------

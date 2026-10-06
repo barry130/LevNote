@@ -346,6 +346,12 @@ export type InsertableBlock =
   | 'mathBlock'
   /** Mermaid 图表。插进来的是一个**带起始内容的** mermaid 代码块（见 `MERMAID_STARTER`）。 */
   | 'diagram'
+  /**
+   * draw.io 图表。插进来的是一个 **`doc-block` 围栏**（inline 模式，载荷是
+   * 一份最小可渲染的 XML，见 `core/drawio.ts` 的 `drawioDocBlockStarter`）——
+   * 起始内容两内核共用同一份。
+   */
+  | 'drawio'
   | 'table'
   | 'hr';
 

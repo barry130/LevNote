@@ -16,6 +16,7 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
 import { MERMAID_STARTER } from '../../core/mermaid.js';
+import { parseDocBlock } from '../../core/docblock.js';
 import { createMarkdownSourceFormatting } from './markdown-format.js';
 import { createCodeEditor, type CodeEditorInstance } from './setup.js';
 
@@ -281,6 +282,23 @@ describe('源码级插入块', () => {
 
     formatting(view).insertBlock('diagram');
     expect(view.state.doc.toString()).toBe('hi\n\n```mermaid\n' + MERMAID_STARTER + '\n```');
+  });
+
+  it('draw.io 图表：插进来是 inline 的 doc-block，解析干净、可直接渲染', () => {
+    const { view } = makeView('hi');
+
+    formatting(view).insertBlock('drawio');
+    const doc = view.state.doc.toString();
+    expect(doc).toContain('```doc-block');
+    expect(doc).toContain('kind: diagram');
+    expect(doc).toContain('mode: inline');
+
+    // 与富文本内核共用同一份 starter（core/drawio.ts）—— 两边插出来的
+    // 块都必须是解析干净、载荷可画的
+    const parsed = parseDocBlock(doc.slice(doc.indexOf('```doc-block')));
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.attrs.kind).toBe('diagram');
+    expect(parsed.payload).toContain('<mxfile>');
   });
 });
 

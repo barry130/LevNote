@@ -103,6 +103,7 @@ export const MENUS: readonly MenuDef[] = [
       'paragraph.table',
       'paragraph.mathBlock',
       'paragraph.diagram',
+      'paragraph.drawio',
       'paragraph.hr',
     ],
   },

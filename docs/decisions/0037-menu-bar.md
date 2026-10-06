@@ -142,6 +142,14 @@ VSCode 的 Light / Dark Modern 两套官方主题的状态栏都是与 chrome �
     保存时才按新编码写盘）—— 与第 4 节否掉的「按指定编码**重新打开**」
     是两回事：那条是打开时的一次性重解码，这条是既有状态栏能力的
     第二个入口。
+  - **段落菜单的「draw.io 图表」**（`InsertableBlock` 加 `'drawio'`，
+    两个 Markdown 实现内核都接）：这是 P5-25 只读查看器一直缺的**可见入口**
+    —— 查看器只在 `doc-block` 上渲染，而没有任何东西帮用户**写出第一个
+    doc-block**。起始内容取 **inline 模式**（`core/drawio.ts` 的
+    `drawioDocBlockStarter`，两内核共用一份）：插入那一刻用户手里没有
+    `.drawio` 文件，reference 模式只会立刻「读不到引用的文件」；inline
+    插进来就渲染出真的图。`id` 由时间戳 + 单调计数器生成 —— 规范 §2.3
+    要求文档内唯一，内核不知道文档里已有哪些 id。
 
 ## 后果
 

@@ -233,7 +233,7 @@ const PARAGRAPH_BLOCK_COMMANDS: readonly Command[] = (
 }));
 
 const PARAGRAPH_INSERT_COMMANDS: readonly Command[] = (
-  ['table', 'mathBlock', 'diagram', 'hr'] as const
+  ['table', 'mathBlock', 'diagram', 'drawio', 'hr'] as const
 ).map((insertable) => ({
   id: `paragraph.${insertable}`,
   title: t(`command.paragraph.${insertable}.title`),

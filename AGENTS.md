@@ -126,7 +126,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **什么算 Mermaid 图表** | `core/mermaid.ts` 的 `isMermaidLanguage` / `MERMAID_STARTER`。**判定只有这一份**，三处共用（NodeView、导出、斜杠菜单插入）—— 抄成三份的下场是「编辑器画得出、导出不画」 |
 | **Mermaid 怎么渲染** | `core/mermaid-render.ts`。动态 `import('mermaid')`、**必须传容器**（不传它会往真实 `document.body` 挂临时节点）、容器必须**参与布局**（`display: none` 会让 `getBBox()` 全 0）。jsdom 里画不出图，所以测试用假渲染器 |
 | **`doc-block` 怎么解析** | `core/docblock.ts`。属性区 + `---` + 载荷，载荷**逐字节原样**；不认识的键进 `extra` 原样保留（规范 §5 向前兼容，丢了就是单向数据损失）。永远不抛 —— 内容来自用户文件，失败走 `errors` |
-| **`.drawio` 缺哪些 stencil 库** | `core/drawio.ts` 的 `stencilLibsOf` / `missingStencilLibs`。**渲染前从 XML 风格串里算**（`shape=mxgraph.<库名>.`），与内置清单求差 —— 不要改成「事后看请求 404」（并发归属不了，XHR 打点是全局猴子补丁） |
+| **`.drawio` 缺哪些 stencil 库** | `core/drawio.ts` 的 `stencilLibsOf` / `missingStencilLibs`；插入用的 **doc-block 起始内容**也在这份文件（`drawioDocBlockStarter`，inline 模式 + 文档内唯一 id，两个内核共用 —— 别在内核里各写一份）。**渲染前从 XML 风格串里算**（`shape=mxgraph.<库名>.`），与内置清单求差 —— 不要改成「事后看请求 404」（并发归属不了，XHR 打点是全局猴子补丁） |
 | **draw.io 查看器怎么渲染** | `core/drawio-render.ts`。上游产物在 `public/drawio/`（ESLint 全量忽略），**出现图表引用才注入**脚本；注入前十条资源路径必须全部占住（「无网络」的唯一开关，漏一条就静默联网）。渲染器可注入（`DrawIoIo`），与 `MermaidIo` 同一条纪律。**不接主题**（颜色在图的 XML 里，画布恒白） |
 | 图 / 源码双态与全屏入口 | `modules/markdown/code-block-view.ts`（`data-mode`）+ `ui/DiagramViewer.tsx`（外壳画全屏） |
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作）。**打印 PDF 与它共用同一份渲染**：`print-document.ts` 动作 + `src-tauri/src/export/print.rs`（内存自定义协议 + 打印子窗口，ADR 0030） |
@@ -531,8 +531,8 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,387 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
-主包 382.75 kB（gzip 120.18 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
+测试：**1,393 条前端 + 62 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+主包 382.99 kB（gzip 120.26 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
 2.654 MiB（`public/drawio/`，按需注入、不进 bundle，ADR 0027）。

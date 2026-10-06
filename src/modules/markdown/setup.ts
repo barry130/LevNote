@@ -93,6 +93,7 @@ import type {
 } from '../../core/editor/types.js';
 import { createFindPattern, findWithPattern, type FindOptions } from '../../core/search/find.js';
 import { MERMAID_LANGUAGE, MERMAID_STARTER } from '../../core/mermaid.js';
+import { drawioDocBlockStarter } from '../../core/drawio.js';
 import { childStart, describeBlock, dropLineAt, isNoopMove, resolveDropIndex } from './block.js';
 import { CODE_BLOCK, codeBlockChromePlugin, type CodeBlockChromeHandlers } from './code-block-view.js';
 import { IMAGE, imageViewPlugin } from './image-view.js';
@@ -495,6 +496,41 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
     });
   };
 
+  /**
+   * 插入一个 **draw.io 图表**（`doc-block` 围栏，P5 第 25 项的可见入口）。
+   *
+   * draw.io 与 mermaid 的根本差别：mermaid 的源**就是**块文本，
+   * 而 draw.io 的渲染载体是 `doc-block` —— 属性区 + `---` + XML 载荷。
+   * 起始内容用 **inline 模式**（载荷即文档）：插入的那一刻用户手里没有
+   * `.drawio` 文件，reference 模式只会立刻送一句「读不到引用的文件」；
+   * inline 插进来就渲染出真的图。内容本身在 `core/drawio.ts` 的
+   * `drawioDocBlockStarter` —— 与代码内核的源码级插入共用同一份。
+   */
+  const insertDrawioDocBlock = (): void => {
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const { $from } = view.state.selection;
+      if (!$from.parent.isTextblock) return;
+
+      const type = view.state.schema.nodes[CODE_BLOCK];
+      if (type === undefined) return;
+
+      const node = type.create({ language: 'doc-block' }, view.state.schema.text(drawioDocBlockStarter()));
+      const start = $from.before();
+      const end = $from.after();
+      const empty = $from.parent.content.size === 0;
+
+      const tr = empty
+        ? view.state.tr.replaceWith(start, end, node)
+        : view.state.tr.replaceWith(end, end, node);
+      // 光标落进块内源码的末尾 —— 想改 XML 的人直接就能改
+      const base = empty ? start : end;
+      const at = Math.min(base + 1 + node.content.size, tr.doc.content.size);
+      tr.setSelection(TextSelection.create(tr.doc, at));
+      view.dispatch(tr);
+    });
+  };
+
   const applyBlock = (format: BlockFormat, level?: number): void => {
     const now = currentBlock();
     if (now === null) return;
@@ -649,6 +685,9 @@ function createMarkdownFormatting(editor: Editor): EditorFormatting {
             return;
           case 'diagram':
             insertDiagramBlock();
+            return;
+          case 'drawio':
+            insertDrawioDocBlock();
             return;
           case 'table':
             // 3 × 3（含表头行）。菜单项是「表格」而不是「3×3 表格」——

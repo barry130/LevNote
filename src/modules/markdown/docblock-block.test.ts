@@ -255,6 +255,39 @@ describe('doc-block · inline 模式', () => {
   });
 });
 
+describe('斜杠菜单 / 段落菜单插入 draw.io 图表', () => {
+  it('插进来就是一段 inline 的 doc-block，起始内容直接可渲染', async () => {
+    const { editor, dom } = await open('');
+    editor.formatting.insertBlock('drawio');
+    await flush();
+
+    const markdown = editor.getMarkdown();
+    expect(markdown).toContain('```doc-block');
+    expect(markdown).toContain('kind: diagram');
+    expect(markdown).toContain('mode: inline');
+    expect(markdown).toContain('<mxfile>');
+    // 光标落进块内源码 —— 他要改的就是这段 XML
+    expect(mode(dom)).toBe('code');
+  });
+
+  it('光标离开块之后图就画出来了：交给渲染器的是载荷 XML', async () => {
+    const { editor, dom } = await open('');
+    editor.formatting.insertBlock('drawio');
+    await flush();
+    // 还在块里 = 正在编辑源码，不渲染
+    expect(spy.calls).toHaveLength(0);
+
+    await typeInto(dom, '。', leadCaret);
+    await flush();
+
+    expect(spy.calls).toHaveLength(1);
+    expect(mode(dom)).toBe('diagram');
+    expect(lastCall()?.xml).toContain('<mxfile>');
+    // 起始内容不引用 stencil 库 —— 缺库警示不该出现
+    expect(diagramText(dom)).not.toContain('未内置的形状库');
+  });
+});
+
 describe('doc-block · 与编辑的互动', () => {
   it('引用换了个文件：光标离开块之后才按**新内容**重画', async () => {
     const { editor, dom } = await open(BROKEN_SRC.replace('missing.drawio', 'fig.drawio'), {
