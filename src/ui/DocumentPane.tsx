@@ -573,11 +573,15 @@ export function DocumentPane({
        * 放在这里（内核就绪之后）而不是更早：`setPosition` 要往文档里派发一个
        * 选择事务，而文档树是内核建出来的 —— 内核没就绪时没有地方可派发。
        *
+       * 优先用**切视图时**从上一个内核接过来的位置（A4）—— 它比位置记忆里的
+       * 「打开文档时」新；用完即清，别让它漏到下一次不相关的内核重建里。
+       *
        * **只在有位置、且这个内核支持位置读写时才调。** 不支持的内核
        * （将来可能的思维导图 / draw.io）没有这个方法，文档照常打开，
        * 只是从头开始 —— 而不是抛一个空引用错误把打开流程整个打断。
        */
-      const remembered = initialPositionRef.current;
+      const remembered = viewSwitchPositionRef.current ?? initialPositionRef.current;
+      viewSwitchPositionRef.current = null;
       if (remembered && handle.setPosition) handle.setPosition(remembered);
 
       // 检索定位放在位置恢复**之后**：用户刚点的那条结果比「上次离开时的位置」新，
@@ -768,7 +772,27 @@ export function DocumentPane({
    * 就在面板自己身上、状态也是面板自己读的。绕一圈反而要在这里再判一次
    * 「有没有活动文档」——而 `setViewMode` 自己已经静默忽略空文档了。
    */
-  const switchView = useCallback((mode: ViewMode) => store.setViewMode(mode), [store]);
+  /**
+   * 切视图前从**要退场的内核**那里取一次位置（A4）。
+   *
+   * 新内核就绪后（`handleEditorReady`）会把它应用上去 —— 恢复的语义完全走
+   * 既有契约：两个视图的 `offset` 是不同坐标系（文档树尺寸 vs 源码字符数），
+   * `textLength` 通常对不上，内核的 `setPosition` 于时**只恢复滚动比例、
+   * 不动光标**（ADR 0021 的设计原本就为这一刻留了口子）。
+   *
+   * 刻意取「比例」而不是像素：比例与视口高度、字体无关，富文本与源码的
+   * 内容高度本来就不同，像素毫无对应可言。
+   */
+  const viewSwitchPositionRef = useRef<EditorPosition | null>(null);
+
+  const switchView = useCallback(
+    (mode: ViewMode) => {
+      if (mode === store.getSnapshot().viewMode) return;
+      viewSwitchPositionRef.current = handleRef.current?.getPosition?.() ?? null;
+      store.setViewMode(mode);
+    },
+    [store],
+  );
 
   /**
    * 拖动分屏分隔条。
