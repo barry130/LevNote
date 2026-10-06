@@ -139,6 +139,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
 | **依赖许可证清单** | `pnpm run licenses`（`scripts/gen-license-report.mjs`）→ `docs/dependency-licenses.md`。**生成物不要手改**：升级依赖后重跑，严格条款自动复核（双许可可选宽松支不列）。npm 侧只统计生产依赖 |
+| **发版前人工冒烟** | `docs/release-smoke.md`。单测测不了的都点名在这：滚动 / 渲染 / 打印（C1）/ 原生对话框与文件监听 / 键盘输入法。每条都写了「为什么只能人工测」—— 没有理由的条目不许加进去 |
 | **面板常驻（标签切换不销毁内核）** | `ui/App.tsx` 的 `PaneSlot` + `visitedIds`（访问过才常驻，ADR 0034）。**句柄按面板分桶**（`reportHandle` / `reportViewInfo`）；隐藏面板收浮层的契约在 `DocumentPane` 的 `active` prop。`initialPosition` 逐面板取，不再有全局的 |
 | 界面布局 | `ui/App.tsx` + `ui/styles.css`。**样式表按「属性」划所有权**（硬约束 13）：外壳只声明 `flex` / `min-height` 这类布局约束，`overflow` 一律归内核 |
 | 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
