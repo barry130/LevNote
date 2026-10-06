@@ -11,7 +11,7 @@
 //   - Rust 侧：读 src-tauri/Cargo.lock 的 registry 包，许可证从
 //     ~/.cargo/registry/src/*/ 的 crate 清单里取 —— 不联网。
 
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, realpathSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
@@ -28,12 +28,21 @@ function readPackageJson(dir) {
   }
 }
 
-/** 从 fromDir 向上解析 node_modules —— 与 Node 自己的解析规则同构。 */
+/**
+ * 从 fromDir 向上解析 node_modules —— 与 Node 自己的解析规则同构。
+ *
+ * pnpm 的 node_modules 里全是**符号链接**（真身在 `node_modules/.pnpm/…`）。
+ * 解析命中后必须折算成 realpath 再继续走：Node 解析模块时默认就解析符号链接
+ * （preserve-symlinks 关闭），pnpm 的目录布局正是围绕这个行为搭的 ——
+ * 某个包的依赖就摆在它真身旁边（`.pnpm/foo@1/node_modules/<dep>`）。
+ * 拿着链接路径往上走会一路走到根 node_modules，那里只有直接依赖，
+ * 于是传递依赖全部「解析不到」—— npm 的扁平布局下没有链接，所以从来没暴露过。
+ */
 function resolvePackage(name, fromDir) {
   let dir = fromDir;
   while (true) {
     const candidate = join(dir, 'node_modules', name);
-    if (existsSync(join(candidate, 'package.json'))) return candidate;
+    if (existsSync(join(candidate, 'package.json'))) return realpathSync(candidate);
     const parent = dirname(dir);
     if (parent === dir) return null;
     dir = parent;

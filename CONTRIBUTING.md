@@ -11,23 +11,27 @@
 
 ## 开发环境
 
+包管理器是 **pnpm**（版本钉在 `package.json` 的 `packageManager` 字段，corepack 会自动取用）。
+锁文件只有 `pnpm-lock.yaml` —— 不要用 npm/yarn 装，会生成第二份锁文件。
+
 ```bash
-npm install
-npm run desktop      # 真桌面版（需要 Rust ≥ 1.77）
-npm run dev          # 只跑前端（浏览器预览，内存虚拟盘）
+corepack enable       # 首次：让 pnpm 命令可用（Node 16.10+ 自带 corepack）
+pnpm install
+pnpm run desktop      # 真桌面版（需要 Rust ≥ 1.77）
+pnpm run dev          # 只跑前端（浏览器预览，内存虚拟盘）
 ```
 
 提交之前**必须**跑：
 
 ```bash
-npm run check        # = npm run typecheck && npm run lint && npm run test
+pnpm run check        # = pnpm run typecheck && pnpm run lint && pnpm run test
 ```
 
 CI 会跑同样三条命令加一次 `vite build`。**任何一条不过都不合**。
 
 ### 关于 lint
 
-`npm run lint` 是**阻塞**的：`npm run check` 与 CI 都会因它失败。
+`pnpm run lint` 是**阻塞**的：`pnpm run check` 与 CI 都会因它失败。
 它曾经以「非阻塞」引入（首轮有 33 条历史问题），欠账清零后转正 ——
 「有规则但不执行」比「没有规则」更糟，因为它让人以为已经守住了。
 

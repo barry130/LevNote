@@ -1,6 +1,6 @@
 # 持续集成。
 #
-# ## 三个刻意的决定
+# ## 四个刻意的决定
 #
 # 1. **前端与 Rust 分成两个 job，不串行。** 它们互相独立（前端跑在 Node 里，
 #    Rust 那 11 条测试不需要 WebView），串起来只会让反馈变慢。
@@ -40,15 +40,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm 的版本由 `packageManager` 字段钉住（pnpm/action-setup 默认读它），
+      # 本地与 CI 永远是同一个版本 —— 不在这里再写一遍，两处会漂。
+      # 必须排在 setup-node 之前：下一步的 `cache: pnpm` 要找到 pnpm 才能算出缓存键。
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      # --frozen-lockfile：锁文件与 package.json 对不上时直接失败，
+      # 而不是悄悄按最新范围重装 —— CI 装的必须就是锁文件里那份。
+      - run: pnpm install --frozen-lockfile
 
       - name: 类型检查
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       # lint **阻塞**（不再是 continue-on-error）。
       #
@@ -59,13 +66,13 @@ jobs:
       #
       # 与 TS 双大版本共存的关系见 ADR 0013。
       - name: ESLint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: 单元测试
-        run: npm run test
+        run: pnpm run test
 
       - name: 构建
-        run: npx vite build
+        run: pnpm exec vite build
 
   rust:
     name: Rust（格式 / 检查 / 测试）

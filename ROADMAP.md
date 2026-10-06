@@ -97,7 +97,7 @@ dist/assets/index-Bd1vkdXJ.css      25.98 kB │ gzip:   5.78 kB
 
 ### lint 清尾（第 20 项）—— 已完成
 
-`ESLint` 已从「非阻塞」转为**阻塞**：`npm run check` 与 CI 都会因 lint 失败而失败。
+`ESLint` 已从「非阻塞」转为**阻塞**：`pnpm run check` 与 CI 都会因 lint 失败而失败。
 
 首轮全量扫描 **33 条**，现在 **0 条**。逐条的去向：
 

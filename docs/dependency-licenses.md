@@ -43,7 +43,7 @@
 | @lezer/css | 1.3.8 | MIT |
 | @lezer/highlight | 1.2.5 | MIT |
 | @lezer/html | 1.3.13 | MIT |
-| @lezer/javascript | 1.5.5 | MIT |
+| @lezer/javascript | 1.5.6 | MIT |
 | @lezer/json | 1.0.3 | MIT |
 | @lezer/lr | 1.4.10 | MIT |
 | @lezer/markdown | 1.7.2 | MIT |
@@ -76,8 +76,8 @@
 | @milkdown/transformer | 7.22.2 | MIT |
 | @milkdown/utils | 7.22.2 | MIT |
 | @ocavue/utils | 1.8.0 | MIT |
-| @tauri-apps/api | 2.12.0 | Apache-2.0 OR MIT |
-| @tauri-apps/plugin-dialog | 2.8.0 | MIT OR Apache-2.0 |
+| @tauri-apps/api | 2.12.1 | Apache-2.0 OR MIT |
+| @tauri-apps/plugin-dialog | 2.8.1 | MIT OR Apache-2.0 |
 | @types/d3 | 7.4.3 | MIT |
 | @types/d3-array | 3.2.2 | MIT |
 | @types/d3-axis | 3.0.6 | MIT |
@@ -134,7 +134,7 @@
 | clsx | 2.1.1 | MIT |
 | commander | 15.0.0 | MIT |
 | commander | 8.3.0 | MIT |
-| commander | 7.2.0 | MIT |
+| commander | 7.0.0 | MIT |
 | cose-base | 1.0.3 | MIT |
 | cose-base | 2.2.0 | MIT |
 | crelt | 1.0.7 | MIT |
@@ -193,12 +193,12 @@
 | fastdom | 1.0.12 | MIT |
 | hachure-fill | 0.5.2 | MIT |
 | highlight.js | 11.12.0 | BSD-3-Clause |
-| iconv-lite | 0.6.3 | MIT |
+| iconv-lite | 0.6.0 | MIT |
 | import-meta-resolve | 4.2.0 | MIT |
 | internmap | 2.0.3 | ISC |
 | internmap | 1.0.1 | ISC |
 | is-plain-obj | 4.1.0 | MIT |
-| katex | 0.18.9 | MIT |
+| katex | 0.18.11 | MIT |
 | katex | 0.16.47 | MIT |
 | khroma | 2.1.0 | 未知 |
 | layout-base | 1.0.2 | MIT |
@@ -207,10 +207,10 @@
 | longest-streak | 3.1.0 | MIT |
 | magic-string | 0.30.21 | MIT |
 | markdown-table | 3.0.4 | MIT |
-| marked | 16.4.2 | MIT |
+| marked | 16.3.0 | MIT |
 | mdast-util-definitions | 6.0.0 | MIT |
-| mdast-util-find-and-replace | 3.0.2 | MIT |
-| mdast-util-from-markdown | 2.0.3 | MIT |
+| mdast-util-find-and-replace | 3.0.3 | MIT |
+| mdast-util-from-markdown | 2.1.0 | MIT |
 | mdast-util-gfm | 3.1.0 | MIT |
 | mdast-util-gfm-autolink-literal | 2.0.1 | MIT |
 | mdast-util-gfm-footnote | 2.1.0 | MIT |
@@ -219,7 +219,7 @@
 | mdast-util-gfm-task-list-item | 2.0.0 | MIT |
 | mdast-util-math | 3.0.0 | MIT |
 | mdast-util-phrasing | 4.1.0 | MIT |
-| mdast-util-to-markdown | 2.1.3 | MIT |
+| mdast-util-to-markdown | 2.2.0 | MIT |
 | mdast-util-to-string | 4.0.0 | MIT |
 | mermaid | 11.17.2 | MIT |
 | micromark | 4.0.3 | MIT |
@@ -232,25 +232,25 @@
 | micromark-extension-gfm-tagfilter | 2.0.0 | MIT |
 | micromark-extension-gfm-task-list-item | 2.1.0 | MIT |
 | micromark-extension-math | 3.1.0 | MIT |
-| micromark-factory-destination | 2.0.1 | MIT |
-| micromark-factory-label | 2.0.1 | MIT |
+| micromark-factory-destination | 2.0.0 | MIT |
+| micromark-factory-label | 2.0.0 | MIT |
 | micromark-factory-space | 2.1.0 | MIT |
-| micromark-factory-title | 2.0.1 | MIT |
-| micromark-factory-whitespace | 2.0.1 | MIT |
-| micromark-util-character | 2.1.1 | MIT |
-| micromark-util-chunked | 2.0.1 | MIT |
-| micromark-util-classify-character | 2.0.1 | MIT |
-| micromark-util-combine-extensions | 2.0.1 | MIT |
-| micromark-util-decode-numeric-character-reference | 2.0.2 | MIT |
+| micromark-factory-title | 2.0.0 | MIT |
+| micromark-factory-whitespace | 2.0.0 | MIT |
+| micromark-util-character | 2.0.0 | MIT |
+| micromark-util-chunked | 2.0.0 | MIT |
+| micromark-util-classify-character | 2.0.0 | MIT |
+| micromark-util-combine-extensions | 2.0.0 | MIT |
+| micromark-util-decode-numeric-character-reference | 2.0.0 | MIT |
 | micromark-util-decode-string | 2.0.1 | MIT |
 | micromark-util-edit-map | 1.0.0 | MIT |
-| micromark-util-encode | 2.0.1 | MIT |
-| micromark-util-html-tag-name | 2.0.1 | MIT |
-| micromark-util-normalize-identifier | 2.0.1 | MIT |
-| micromark-util-resolve-all | 2.0.1 | MIT |
-| micromark-util-sanitize-uri | 2.0.1 | MIT |
-| micromark-util-subtokenize | 2.1.0 | MIT |
-| micromark-util-symbol | 2.0.1 | MIT |
+| micromark-util-encode | 2.0.0 | MIT |
+| micromark-util-html-tag-name | 2.0.0 | MIT |
+| micromark-util-normalize-identifier | 2.0.0 | MIT |
+| micromark-util-resolve-all | 2.0.0 | MIT |
+| micromark-util-sanitize-uri | 2.0.0 | MIT |
+| micromark-util-subtokenize | 2.0.0 | MIT |
+| micromark-util-symbol | 2.0.0 | MIT |
 | micromark-util-types | 2.0.3 | MIT |
 | mind-elixir | 5.15.1 | MIT |
 | ms | 2.1.3 | MIT |
@@ -268,7 +268,7 @@
 | prosemirror-drop-indicator | 0.1.4 | MIT |
 | prosemirror-dropcursor | 1.8.4 | MIT |
 | prosemirror-gapcursor | 1.4.1 | MIT |
-| prosemirror-history | 1.5.0 | MIT |
+| prosemirror-history | 1.5.1 | MIT |
 | prosemirror-inputrules | 1.5.1 | MIT |
 | prosemirror-keymap | 1.2.3 | MIT |
 | prosemirror-model | 1.25.12 | MIT |
@@ -292,7 +292,7 @@
 | rw | 1.3.3 | BSD-3-Clause |
 | safer-buffer | 2.1.2 | MIT |
 | scheduler | 0.28.0 | MIT |
-| source-map-js | 1.2.1 | BSD-3-Clause |
+| source-map-js | 1.2.2 | BSD-3-Clause |
 | strictdom | 1.0.1 | MIT |
 | style-mod | 4.1.4 | MIT |
 | stylis | 4.4.0 | MIT |

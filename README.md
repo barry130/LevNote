@@ -38,19 +38,20 @@
 ## 快速开始
 
 ```bash
-npm install
-npm run desktop      # 真桌面版（Tauri 2，需要 Rust 工具链）
-npm run dev          # 只跑前端（浏览器预览，内存虚拟盘，用于调界面）
-npm run test         # 单元测试（1,141 条）
-npm run typecheck    # 类型检查
-npm run check        # 上面两条加 lint 一起跑 —— 提交前必须全绿
-npm run lint         # ESLint（类型感知）。**阻塞**，配置里没有关掉的规则
+corepack enable       # 首次：让 pnpm 命令可用（版本钉在 package.json 的 packageManager）
+pnpm install
+pnpm run desktop      # 真桌面版（Tauri 2，需要 Rust 工具链）
+pnpm run dev          # 只跑前端（浏览器预览，内存虚拟盘，用于调界面）
+pnpm run test         # 单元测试（1,441 条）
+pnpm run typecheck    # 类型检查
+pnpm run check        # 上面两条加 lint 一起跑 —— 提交前必须全绿
+pnpm run lint         # ESLint（类型感知）。**阻塞**，配置里没有关掉的规则
 ```
 
 从源码构建安装包：
 
 ```bash
-npm run desktop:build
+pnpm run desktop:build
 ```
 
 ### 环境要求
@@ -142,4 +143,4 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 - `draw.io` 源码为 Apache-2.0，但**商标另有约定**：不得使用其名称与图标作为产品标识，
   不得以暗示关联或背书的方式使用。UI 中只写「支持 `.drawio` 格式」。
 - 本项目以 **[MIT](LICENSE)** 许可证发布；第三方依赖的许可证分组清单在
-  [`docs/dependency-licenses.md`](docs/dependency-licenses.md)（`npm run licenses` 重新生成）。
+  [`docs/dependency-licenses.md`](docs/dependency-licenses.md)（`pnpm run licenses` 重新生成）。

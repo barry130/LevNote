@@ -4,6 +4,12 @@ dist/
 .DS_Store
 .vite/
 
+# 包管理器是 pnpm（package.json 的 packageManager 字段），锁文件只有 pnpm-lock.yaml。
+# 这条挡的是「顺手 npm install」再生出一份 package-lock.json 被误提交 ——
+# 两份锁文件并存时「到底哪份是真的」没人答得上来。
+package-lock.json
+yarn.lock
+
 # Rust 构建产物
 src-tauri/target/
 
