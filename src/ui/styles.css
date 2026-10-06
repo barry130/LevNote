@@ -1115,7 +1115,10 @@ body {
   outline: none;
   resize: none;
   padding: 22px 26px;
-  font: 14px/1.75 var(--mono);
+  /* 纯文本兜底内核同样跟编辑器字号偏好走：0.93 折算 ≈ 默认 15px 时的历史值 14px */
+  font-family: var(--qm-content-font-family, var(--mono));
+  font-size: calc(var(--qm-content-font-size, 15px) * 0.93);
+  line-height: var(--qm-content-line-height, 1.75);
   color: var(--ink);
   background: var(--surface);
   tab-size: 4;
@@ -2549,7 +2552,8 @@ body {
   color: var(--bamboo);
 }
 
-.settings select {
+.settings select,
+.settings input {
   font: inherit;
   font-size: 13px;
   padding: 4px 8px;

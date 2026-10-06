@@ -91,6 +91,29 @@ export interface ViewSettings {
    * 显示交给 `formatKeybinding`，不在这里存排版好的字符串。
    */
   readonly keybindings: Readonly<Record<string, string>>;
+  /**
+   * 编辑器字号（px，12–28，默认 15）。
+   *
+   * **一个旋钮管三个内核**：Markdown 正文直接用它；代码内核与纯文本
+   * 各自按比例折算（13.5px / 14px ≈ 15 × 0.9 / 0.93），默认档下三个内核
+   * 的观感与引入这设置之前**逐像素一致** —— 老用户不会察觉任何变化，
+   * 而调大调小时三个内核一起动。导出的「纸」不受它影响（见
+   * `document-styles.css` 里的 var 回退）。
+   */
+  readonly editorFontSize: number;
+  /**
+   * 编辑器正文字体（font-family 的值）。**空串 = 内置默认**。
+   *
+   * 只作用于比例字体文本（Markdown 正文、纯文本）；代码与代码块**始终
+   * 等宽** —— 把比例字体塞进代码编辑器是破坏可用性的，不做。
+   *
+   * 值会进 CSS 变量，所以**只接受白名单字符**（字母数字空格逗号引号
+   * 连字符与 CJK）：`url(` / 分号 / 花括号这类声明语法一律剥掉 ——
+   * 这是个纯本地应用，字体值不该有能力发起任何外部引用。
+   */
+  readonly editorFontFamily: string;
+  /** 编辑器行高（1.3–2.4，默认 1.75）。与字号同一条「三个内核一起动」的口径。 */
+  readonly editorLineHeight: number;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -105,6 +128,9 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   splitRatio: 0.5,
   restoreSession: true,
   keybindings: {},
+  editorFontSize: 15,
+  editorFontFamily: '',
+  editorLineHeight: 1.75,
 };
 
 /** 侧栏的两栏。活动栏上的两个按钮各对应一个。 */
@@ -128,6 +154,37 @@ export const SIDEBAR_MAX_WIDTH = 480;
  */
 export const SPLIT_RATIO_MIN = 0.2;
 export const SPLIT_RATIO_MAX = 0.8;
+
+export const EDITOR_FONT_SIZE_MIN = 12;
+export const EDITOR_FONT_SIZE_MAX = 28;
+export const EDITOR_LINE_HEIGHT_MIN = 1.3;
+export const EDITOR_LINE_HEIGHT_MAX = 2.4;
+
+/** 设置页实时套用的也是这份夹取 —— 输入中途的值同样不该以越界形态生效。 */
+export function clampEditorFontSize(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_SETTINGS.editorFontSize;
+  return Math.min(EDITOR_FONT_SIZE_MAX, Math.max(EDITOR_FONT_SIZE_MIN, Math.round(value)));
+}
+
+export function clampEditorLineHeight(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_SETTINGS.editorLineHeight;
+  const clamped = Math.min(EDITOR_LINE_HEIGHT_MAX, Math.max(EDITOR_LINE_HEIGHT_MIN, value));
+  // 两位小数足够了：行高的第三位小数没人看得出来，留着只会存进 1.7500000001 这类脏值
+  return Math.round(clamped * 100) / 100;
+}
+
+/**
+ * 字体族白名单：字母、数字、空格、逗号、引号、连字符、下划线与 CJK。
+ * 自定义值会被塞进 CSS 变量，凡是能让它构成一条声明语法的东西
+ * （分号、花括号、括号）一律剥掉。
+ */
+export function sanitizeEditorFontFamily(value: unknown): string {
+  if (typeof value !== 'string') return DEFAULT_SETTINGS.editorFontFamily;
+  return value
+    .replace(/[^a-zA-Z0-9 ,'"_\-\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/g, '')
+    .trim()
+    .slice(0, 120);
+}
 
 const STORAGE_KEY = 'qingmo.settings.v1';
 
@@ -187,6 +244,9 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     splitRatio: clampSplitRatio(record['splitRatio']),
     restoreSession: asBoolean(record['restoreSession'], DEFAULT_SETTINGS.restoreSession),
     keybindings: asKeybindingOverrides(record['keybindings']),
+    editorFontSize: clampEditorFontSize(record['editorFontSize']),
+    editorFontFamily: sanitizeEditorFontFamily(record['editorFontFamily']),
+    editorLineHeight: clampEditorLineHeight(record['editorLineHeight']),
   };
 }
 

@@ -51,9 +51,15 @@
   --qm-code-line-height: 1.65;
 
   color: var(--qm-ink);
-  font-family: var(--qm-sans);
-  font-size: 15px;
-  line-height: 1.75;
+  /*
+   * 字号 / 字体 / 行高走**带回退的变量**（编辑器字号偏好，settings.ts）：
+   * 编辑器外壳在根元素上定义 `--qm-content-*`，这里跟着变；
+   * 导出 HTML 里没人定义这些变量 → 永远落在回退值上，
+   * 「纸」的排版不受编辑器偏好影响。改回退值前先想清楚这一点。
+   */
+  font-family: var(--qm-content-font-family, var(--qm-sans));
+  font-size: var(--qm-content-font-size, 15px);
+  line-height: var(--qm-content-line-height, 1.75);
   word-wrap: break-word;
   overflow-wrap: break-word;
 }

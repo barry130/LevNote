@@ -27,7 +27,16 @@ import { formatKeybinding, isSafeGlobalSpec, specFromEvent, type Platform } from
 import type { CommandRegistry } from '../core/commands/registry.js';
 import type { Command } from '../core/commands/types.js';
 import { askConfirm } from '../core/platform/index.js';
-import type { ViewSettings } from '../core/settings.js';
+import {
+  clampEditorFontSize,
+  clampEditorLineHeight,
+  sanitizeEditorFontFamily,
+  EDITOR_FONT_SIZE_MAX,
+  EDITOR_FONT_SIZE_MIN,
+  EDITOR_LINE_HEIGHT_MAX,
+  EDITOR_LINE_HEIGHT_MIN,
+  type ViewSettings,
+} from '../core/settings.js';
 import { THEME_LABELS, THEME_ORDER } from '../core/theme/theme.js';
 
 export interface SettingsDialogProps {
@@ -239,6 +248,39 @@ export function SettingsDialog({
 
           <section className="settings-section">
             <h3>编辑器</h3>
+            <div className="settings-row">
+              <span className="settings-row-label">字号</span>
+              <input
+                type="number"
+                min={EDITOR_FONT_SIZE_MIN}
+                max={EDITOR_FONT_SIZE_MAX}
+                value={settings.editorFontSize}
+                onChange={(event) => onChange({ editorFontSize: clampEditorFontSize(Number(event.target.value)) })}
+              />
+              <span className="settings-hint">px（{EDITOR_FONT_SIZE_MIN}–{EDITOR_FONT_SIZE_MAX}），三类编辑器一起变</span>
+            </div>
+            <label className="settings-row">
+              <span className="settings-row-label">正文字体</span>
+              <input
+                type="text"
+                value={settings.editorFontFamily}
+                placeholder="内置默认"
+                onChange={(event) => onChange({ editorFontFamily: sanitizeEditorFontFamily(event.target.value) })}
+              />
+              <span className="settings-hint">留空 = 内置；代码与代码块始终等宽</span>
+            </label>
+            <div className="settings-row">
+              <span className="settings-row-label">行高</span>
+              <input
+                type="number"
+                min={EDITOR_LINE_HEIGHT_MIN}
+                max={EDITOR_LINE_HEIGHT_MAX}
+                step={0.05}
+                value={settings.editorLineHeight}
+                onChange={(event) => onChange({ editorLineHeight: clampEditorLineHeight(Number(event.target.value)) })}
+              />
+              <span className="settings-hint">{EDITOR_LINE_HEIGHT_MIN}–{EDITOR_LINE_HEIGHT_MAX}</span>
+            </div>
             <Toggle
               label="代码块显示行号"
               hint="只影响 Markdown 文档里的代码块。代码 / 文本文档始终有行号。"

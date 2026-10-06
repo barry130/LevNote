@@ -860,6 +860,23 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     applyTheme(resolveTheme(settings.theme, systemDark), document.documentElement);
   }, [settings.theme, systemDark]);
 
+  /**
+   * 编辑器字号偏好 → CSS 变量（`--qm-content-*`）。
+   *
+   * 只定义变量、不碰任何排版属性 —— 属性归内核的样式表所有（硬约束 13），
+   * 内核样式表用 `var(--qm-content-*, 回退值)` 消费它；导出的「纸」里没人
+   * 定义这些变量，永远落在回退值上，所以导出排版不受编辑器偏好影响。
+   * 字体族为空 = 内置默认：**摘掉**变量而不是写空串（空串也是合法值，
+   * 会把内核的 `var()` 回退整个吃掉）。
+   */
+  useEffect(() => {
+    const style = document.documentElement.style;
+    style.setProperty('--qm-content-font-size', `${settings.editorFontSize}px`);
+    style.setProperty('--qm-content-line-height', `${settings.editorLineHeight}`);
+    if (settings.editorFontFamily === '') style.removeProperty('--qm-content-font-family');
+    else style.setProperty('--qm-content-font-family', settings.editorFontFamily);
+  }, [settings.editorFontSize, settings.editorFontFamily, settings.editorLineHeight]);
+
   // ---- 编辑器命令面 -----------------------------------------------------
   // 面板的汇报入口已改成按面板分桶的 `reportHandle` / `reportViewInfo`
   // （见「面板常驻」一节），这里不再有单一面板的回调。

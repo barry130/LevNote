@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  clampEditorFontSize,
+  clampEditorLineHeight,
   DEFAULT_SETTINGS,
   loadSettings,
+  sanitizeEditorFontFamily,
   saveSettings,
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
@@ -23,6 +26,45 @@ function memoryStorage(seed?: string): StorageLike & { value: string | null } {
   };
   return box;
 }
+
+describe('编辑器字号 / 字体 / 行高', () => {
+  it('默认值：15px / 内置字体 / 1.75 行高 —— 与引入偏好前的观感一致', () => {
+    expect(DEFAULT_SETTINGS.editorFontSize).toBe(15);
+    expect(DEFAULT_SETTINGS.editorFontFamily).toBe('');
+    expect(DEFAULT_SETTINGS.editorLineHeight).toBe(1.75);
+  });
+
+  it('字号与行高被夹在允许区间内，非数值回落默认', () => {
+    expect(clampEditorFontSize(8)).toBe(12);
+    expect(clampEditorFontSize(15.4)).toBe(15);
+    expect(clampEditorFontSize(99)).toBe(28);
+    expect(clampEditorFontSize('big')).toBe(15);
+    expect(clampEditorLineHeight(0.5)).toBe(1.3);
+    expect(clampEditorLineHeight(1.756)).toBe(1.76);
+    expect(clampEditorLineHeight(9)).toBe(2.4);
+    expect(clampEditorLineHeight(Number.NaN)).toBe(1.75);
+  });
+
+  it('字体族只留白名单字符 —— 声明语法（分号 / 花括号 / url）进不了 CSS 变量', () => {
+    expect(sanitizeEditorFontFamily(' 思源宋体, Source Han Serif ')).toBe('思源宋体, Source Han Serif');
+    expect(sanitizeEditorFontFamily('"JetBrains Mono"')).toBe('"JetBrains Mono"');
+    expect(sanitizeEditorFontFamily("a; b { c } url(http://x)")).toBe('a b  c  urlhttpx');
+    // 超长截断 —— 自定义值没有无限长的道理
+    expect(sanitizeEditorFontFamily('x'.repeat(500)).length).toBe(120);
+    expect(sanitizeEditorFontFamily(42)).toBe('');
+  });
+
+  it('存储里的编辑器偏好被逐字段校验，缺字段不影响其它设置', () => {
+    const storage = memoryStorage(
+      JSON.stringify({ theme: 'ink', editorFontSize: 99, editorFontFamily: 'x} y', editorLineHeight: '宽' }),
+    );
+    const loaded = loadSettings(storage);
+    expect(loaded.theme).toBe('ink');
+    expect(loaded.editorFontSize).toBe(28);
+    expect(loaded.editorFontFamily).toBe('x y');
+    expect(loaded.editorLineHeight).toBe(1.75);
+  });
+});
 
 describe('loadSettings', () => {
   it('没有存储时给默认值', () => {

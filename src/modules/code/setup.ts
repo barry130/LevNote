@@ -242,13 +242,15 @@ const highlight = HighlightStyle.define([
 const editorTheme = EditorView.theme({
   '&': {
     height: '100%',
-    fontSize: '13.5px',
+    // 字号跟编辑器偏好走（settings.ts 的 `--qm-content-font-size`）：
+    // 0.9 保持代码与正文的密度差 —— 默认 15px 时这里是 13.5px，与历史值一致
+    fontSize: 'calc(var(--qm-content-font-size, 15px) * 0.9)',
     color: 'var(--ink)',
     backgroundColor: 'transparent',
   },
   '.cm-scroller': {
     fontFamily: 'var(--mono)',
-    lineHeight: '1.7',
+    lineHeight: 'var(--qm-content-line-height, 1.7)',
     overflow: 'auto',
   },
   '.cm-content': { caretColor: 'var(--vermilion)', padding: '10px 0' },
