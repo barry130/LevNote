@@ -136,5 +136,130 @@ export const zhCN = {
 
 export type MessageKey = keyof typeof zhCN;
 
-/** 已有目录的语言。加第二种语言时：加目录、扩这个联合类型、接设置页。 */
-export type SupportedLocale = 'zh-CN';
+/** 已有目录的语言。加第三种语言时：加目录、扩这个联合类型、接设置页。 */
+export type SupportedLocale = 'zh-CN' | 'en';
+
+/** 语言清单（设置页的下拉选项与 settings.ts 的校验共用这一份）。 */
+export const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['zh-CN', 'en'];
+
+/**
+ * 英文目录（2026-10-07 接入设置页 —— 第二份目录落地）。
+ *
+ * 类型是 `Record<MessageKey, string>`：**漏 key 是编译错误** —— 英文目录
+ * 刻意要求全量对应，回退链（缺 key 落回 zh-CN）是给「将来只翻了一部分的
+ * 语言」准备的，不是给偷懒准备的。
+ *
+ * 目前覆盖**命令系统**（菜单 / 命令面板 / 快捷键表）。设置页与各面板的
+ * 文案还在 zh-CN 目录里没抽出来 —— 迁移是分批的机械活，每迁一批，
+ * 那块界面就在两种语言下都成立。
+ */
+export const en: Record<MessageKey, string> = {
+  // ---- 命令分组 -----------------------------------------------------------
+  'command.category.file': 'File',
+  'command.category.export': 'Export',
+  'command.category.tab': 'Tabs',
+  'command.category.view': 'View',
+  'command.category.navigate': 'Navigate',
+  'command.category.app': 'App',
+  'command.category.diagnostics': 'Diagnostics',
+  'command.category.edit': 'Edit',
+  'command.category.paragraph': 'Paragraph',
+  'command.category.format': 'Format',
+  'command.category.theme': 'Theme',
+  'command.category.encoding': 'Encoding',
+  'command.category.help': 'Help',
+
+  // ---- 菜单栏 -------------------------------------------------------------
+  'menu.file': 'File',
+  'menu.edit': 'Edit',
+  'menu.paragraph': 'Paragraph',
+  'menu.format': 'Format',
+  'menu.search': 'Search',
+  'menu.view': 'View',
+  'menu.encoding': 'Encoding',
+  'menu.theme': 'Theme',
+  'menu.help': 'Help',
+
+  // ---- 文件 ---------------------------------------------------------------
+  'command.file.new.title': 'New File',
+  'command.file.open.title': 'Open File…',
+  'command.file.openFolder.title': 'Open Folder…',
+  'command.file.save.title': 'Save',
+  'command.file.saveAs.title': 'Save As…',
+  'command.file.saveAll.title': 'Save All',
+  'command.file.reload.title': 'Reload from Disk',
+  'command.file.closeTab.title': 'Close Tab',
+
+  // ---- 导出 ---------------------------------------------------------------
+  'command.file.exportHtml.title': 'Export as Self-Contained HTML',
+  'command.file.exportPdf.title': 'Print / Export as PDF',
+
+  // ---- 标签页 ---------------------------------------------------------------
+  'command.tab.next.title': 'Next Tab',
+  'command.tab.prev.title': 'Previous Tab',
+
+  // ---- 视图 ---------------------------------------------------------------
+  'command.view.toggleSidebar.title': 'Toggle Sidebar',
+  'command.view.filesView.title': 'File Explorer',
+  'command.view.toggleOutline.title': 'Toggle Outline',
+  'command.view.toggleSource.title': 'Toggle Source Mode',
+  'command.view.rich.title': 'Rich Text View',
+  'command.view.source.title': 'Source View',
+  'command.view.split.title': 'Source + Preview (Side by Side)',
+  'command.view.cycleTheme.title': 'Cycle Theme',
+  'command.view.toggleWordWrap.title': 'Toggle Word Wrap',
+  'command.view.toggleCodeLineNumbers.title': 'Toggle Code Line Numbers',
+  'command.view.toggleFullscreen.title': 'Toggle Full Screen',
+
+  // ---- 导航 ---------------------------------------------------------------
+  'command.find.open.title': 'Find in Document',
+  'command.search.inFolder.title': 'Search in Folder',
+  'command.palette.open.title': 'Command Palette',
+  'command.ui.escape.title': 'Close Overlays',
+
+  // ---- 应用 ---------------------------------------------------------------
+  'command.app.settings.title': 'Settings',
+
+  // ---- 帮助 ---------------------------------------------------------------
+  'command.help.sampleDocument.title': 'Open Sample Document',
+
+  // ---- 诊断 ---------------------------------------------------------------
+  'command.diagnostics.roundTrip.title': 'Round-trip Fidelity Check (What Saving Would Rewrite)',
+  'command.edit.extractReference.title': 'Extract as Reference',
+  'command.edit.inlineReference.title': 'Flatten Reference',
+  'command.edit.undo.title': 'Undo',
+  'command.edit.redo.title': 'Redo',
+  'command.edit.copyHtml.title': 'Copy as HTML',
+
+  // ---- 格式 ---------------------------------------------------------------
+  'command.format.bold.title': 'Bold',
+  'command.format.italic.title': 'Italic',
+  'command.format.strikethrough.title': 'Strikethrough',
+  'command.format.inlineCode.title': 'Inline Code',
+
+  // ---- 段落 ---------------------------------------------------------------
+  'command.paragraph.plainText.title': 'Body Text',
+  'command.paragraph.heading1.title': 'Heading 1',
+  'command.paragraph.heading2.title': 'Heading 2',
+  'command.paragraph.heading3.title': 'Heading 3',
+  'command.paragraph.heading4.title': 'Heading 4',
+  'command.paragraph.heading5.title': 'Heading 5',
+  'command.paragraph.heading6.title': 'Heading 6',
+  'command.paragraph.blockquote.title': 'Blockquote',
+  'command.paragraph.bulletList.title': 'Bullet List',
+  'command.paragraph.orderedList.title': 'Ordered List',
+  'command.paragraph.codeBlock.title': 'Code Block',
+  'command.paragraph.table.title': 'Table',
+  'command.paragraph.mathBlock.title': 'Math Block',
+  'command.paragraph.diagram.title': 'Mermaid Diagram',
+  'command.paragraph.drawio.title': 'draw.io Diagram',
+  'command.paragraph.hr.title': 'Horizontal Rule',
+
+  // ---- 主题 ---------------------------------------------------------------
+  'command.theme.system.title': 'Follow System',
+  'command.theme.paper.title': 'Light (Paper)',
+  'command.theme.ink.title': 'Dark (Ink)',
+
+  // ---- 应用 ---------------------------------------------------------------
+  'command.app.about.title': 'About Qingmo',
+};

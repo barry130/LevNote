@@ -24,7 +24,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, use
 
 import type { DocumentProvider } from '../core/document/types.js';
 import { buildDocBlockPreview } from '../core/document/block-preview.js';
-import { registerBuiltInCommands } from '../core/commands/definitions.js';
+import { BUILT_IN_COMMANDS, registerBuiltInCommands } from '../core/commands/definitions.js';
 import { detectPlatform, isEditableTarget, type Platform } from '../core/commands/keybinding.js';
 import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
@@ -37,6 +37,7 @@ import { encodingSlug } from '../core/encodings.js';
 import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
 import { loadRecentFiles, recordRecentList, saveRecentFiles } from '../core/recent.js';
+import { setLocale } from '../core/i18n/index.js';
 import { buildRecentFileCommands, RECENT_MENU_SLOTS } from '../core/commands/definitions.js';
 import { WorkspaceSearchStore, totalMatchesOf, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
 import { replaceAcrossFiles, describeReplaceOutcome } from '../core/search/replace.js';
@@ -1095,6 +1096,24 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   }, [registry, recentPaths, workspace]);
 
   /**
+   * 语言（P3 第 17 项第二阶段）：设置是真相来源，这里推给 i18n 并**重新注册**
+   * 内置命令 —— 命令标题在注册时经 `t()` 求值，已经烤进命令对象里，
+   * 不重注册的话菜单与命令面板会停留在旧语言。`register` 对同 id 原位覆盖，
+   * 命令面板的顺序不受影响。
+   *
+   * 之后 bump 一次 `localeTick`：这次布局 effect 跑在渲染之后、绘制之前，
+   * 再渲染一遍（仍然是绘制前）让所有按 `t()` 现取的文案换上新语言 ——
+   * 没有这一拍，切换语言的第一帧会画出旧文案。
+   */
+  const [localeTick, setLocaleTick] = useState(0);
+  useLayoutEffect(() => {
+    setLocale(settings.locale);
+    for (const command of BUILT_IN_COMMANDS) registry.register(command);
+    setLocaleTick((tick) => tick + 1);
+  }, [settings.locale, registry]);
+  void localeTick;
+
+  /**
    * 菜单结构：有记录时把「最近打开」插进文件菜单（`file.openFolder` 之后）。
    * 其余菜单原样沿用 `MENUS` —— MenuBar 只认命令 id，这里多给几个 id 而已。
    */
@@ -1617,6 +1636,9 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           两者不会同时开：打开设置要走命令或工具栏，而命令面板打开时会先关掉自己 */}
       {settingsOpen && (
         <SettingsDialog
+          // 语言切换时整页重挂：快捷键表的 memo 依赖里没有 locale
+          //（registry 的身份不变），换 key 是让派生表跟着重算的最直接办法
+          key={localeTick}
           settings={settings}
           onChange={update}
           registry={registry}

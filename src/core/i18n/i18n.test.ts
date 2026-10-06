@@ -8,8 +8,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { getLocale, interpolate, setLocale, t } from './index.js';
-import { zhCN, type MessageKey } from './messages.js';
+import { getLocale, interpolate, setLocale, subscribeLocale, t } from './index.js';
+import { en, zhCN, type MessageKey } from './messages.js';
 
 describe('t', () => {
   it('目录里的 key 返回原值 —— 抽文案不改文案', () => {
@@ -34,7 +34,6 @@ describe('t', () => {
 describe('locale 状态', () => {
   it('默认 zh-CN；setLocale / getLocale 往返', () => {
     expect(getLocale()).toBe('zh-CN');
-    // SupportedLocale 目前只有 zh-CN —— 第二份目录落地时这里跟着扩
     setLocale('zh-CN');
     expect(getLocale()).toBe('zh-CN');
   });
@@ -46,6 +45,35 @@ describe('locale 状态', () => {
     // current=zh-CN 时两者同一份，回退链退化成恒等 —— 上面第一条已钉住。
     // 这条存在的意义是提醒：扩语言时，回退链测试要跟着补。
     expect(getLocale()).toBe('zh-CN');
+  });
+});
+
+describe('en 目录（第二份语言，2026-10-07）', () => {
+  it('与 zh-CN 一一对应：key 集合相等（类型已钉，这里防运行时漂移）', () => {
+    expect(Object.keys(en).sort()).toEqual(Object.keys(zhCN).sort());
+  });
+
+  it('切到英文后命令标题换成英文；切回 zh-CN 恢复', () => {
+    setLocale('en');
+    expect(t('command.file.save.title')).toBe('Save');
+    expect(t('menu.file')).toBe('File');
+    expect(t('command.category.help')).toBe('Help');
+    setLocale('zh-CN');
+    expect(t('command.file.save.title')).toBe('保存');
+  });
+
+  it('setLocale 通知订阅者；设同一个值不通知', () => {
+    let count = 0;
+    const unsubscribe = subscribeLocale(() => {
+      count += 1;
+    });
+    setLocale('en');
+    setLocale('en');
+    setLocale('zh-CN');
+    unsubscribe();
+    setLocale('en');
+    expect(count).toBe(2);
+    setLocale('zh-CN');
   });
 });
 

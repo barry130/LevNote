@@ -38,6 +38,7 @@ import {
   type ViewSettings,
 } from '../core/settings.js';
 import { THEME_LABELS, THEME_ORDER } from '../core/theme/theme.js';
+import { SUPPORTED_LOCALES } from '../core/i18n/messages.js';
 
 export interface SettingsDialogProps {
   settings: ViewSettings;
@@ -208,6 +209,8 @@ export function SettingsDialog({
       else byCategory.set(command.category, [row]);
     }
     return [...byCategory].map(([category, rows]) => ({ category, rows }));
+    // 语言切换后这张表的标题来自重新注册过的命令 —— 重挂由外壳的 key 保证，
+    // 不用在这里塞一个 linter 会当成「多余」的 locale 依赖
   }, [registry, platform, settings.keybindings]);
 
   return (
@@ -230,6 +233,28 @@ export function SettingsDialog({
         <div className="settings-body">
           <section className="settings-section">
             <h3>外观</h3>
+            <label className="settings-row">
+              {/* 标签刻意双语：文案迁移分批进行，这一行在两种语言下都要能被认出来 */}
+              <span className="settings-row-label">语言 / Language</span>
+              <select
+                value={settings.locale}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  const hit = SUPPORTED_LOCALES.find((item) => item === value);
+                  if (hit) onChange({ locale: hit });
+                }}
+              >
+                {SUPPORTED_LOCALES.map((item) => (
+                  <option key={item} value={item}>
+                    {item === 'zh-CN' ? '简体中文' : 'English'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="settings-hint">
+              目前覆盖菜单 / 命令面板 / 快捷键表，其余界面将分批迁移。
+              Covers menus, command palette &amp; shortcuts; the rest follows in batches.
+            </p>
             <label className="settings-row">
               <span className="settings-row-label">主题</span>
               <select

@@ -27,7 +27,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatKeybinding, type Platform } from '../core/commands/keybinding.js';
 import { ENCODING_COMMAND_IDS } from '../core/commands/definitions.js';
 import type { CommandRegistry } from '../core/commands/registry.js';
-import { t } from '../core/i18n/index.js';
+import { t, type MessageKey } from '../core/i18n/index.js';
 
 export interface MenuDef {
   /** 菜单的稳定标识（测试与 key 用），如 'file'。 */
@@ -163,17 +163,26 @@ export const MENUS: readonly MenuDef[] = [
   },
 ];
 
-const MENU_LABELS: Readonly<Record<string, string>> = {
-  file: t('menu.file'),
-  edit: t('menu.edit'),
-  paragraph: t('menu.paragraph'),
-  format: t('menu.format'),
-  search: t('menu.search'),
-  view: t('menu.view'),
-  encoding: t('menu.encoding'),
-  theme: t('menu.theme'),
-  help: t('menu.help'),
+/**
+ * 菜单名在**渲染时**经 `t()` 取（不再是模块常量）：语言切换后菜单栏要跟着变，
+ * 而语言状态是模块级的，烤进模块常量里的文案永远不会更新。
+ */
+const MENU_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  file: 'menu.file',
+  edit: 'menu.edit',
+  paragraph: 'menu.paragraph',
+  format: 'menu.format',
+  search: 'menu.search',
+  view: 'menu.view',
+  encoding: 'menu.encoding',
+  theme: 'menu.theme',
+  help: 'menu.help',
 };
+
+function menuLabel(id: string): string {
+  const key = MENU_LABEL_KEYS[id];
+  return key === undefined ? id : t(key);
+}
 
 export interface MenuBarProps {
   /** 菜单结构；默认 `MENUS`（测试可以喂一份小的）。 */
@@ -286,7 +295,7 @@ export function MenuBar({ menus = MENUS, registry, platform, isEnabled, onRun, i
               // 有菜单开着时扫过去就切换（桌面应用的习惯）；全收起时悬停不展开
               onMouseEnter={openId !== null ? () => setOpenId(menu.id) : undefined}
             >
-              {MENU_LABELS[menu.id] ?? menu.id}
+              {menuLabel(menu.id)}
               <span className="menubar-accel">({menu.accel})</span>
             </button>
 

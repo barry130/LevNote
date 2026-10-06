@@ -2800,7 +2800,10 @@ describe('设置页', () => {
     mounted = await mount(() => undefined);
     await mounted.click('设置');
 
-    const select = mounted.container.querySelector<HTMLSelectElement>('.settings select');
+    // 「外观」区现在有两个 select（语言 / 主题），主题是第二个；
+    // 按标签找而不是取第一个，免得加一行设置就把这条测试带歪
+    const selects = [...mounted.container.querySelectorAll<HTMLSelectElement>('.settings select')];
+    const select = selects.find((el) => [...el.options].some((option) => option.value === 'ink'));
     expect(select).not.toBeNull();
 
     await act(async () => {

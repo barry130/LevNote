@@ -13,6 +13,7 @@
  */
 
 import { DEFAULT_THEME, isThemePreference, type ThemePreference } from './theme/theme.js';
+import { SUPPORTED_LOCALES, type SupportedLocale } from './i18n/messages.js';
 
 export interface ViewSettings {
   readonly theme: ThemePreference;
@@ -114,6 +115,11 @@ export interface ViewSettings {
   readonly editorFontFamily: string;
   /** 编辑器行高（1.3–2.4，默认 1.75）。与字号同一条「三个内核一起动」的口径。 */
   readonly editorLineHeight: number;
+  /**
+   * 界面语言（默认 zh-CN）。真相来源在设置，App 的 effect 把它推给 i18n。
+   * 目前英文覆盖命令系统（菜单 / 命令面板 / 快捷键表），其余界面分批迁移。
+   */
+  readonly locale: SupportedLocale;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -131,6 +137,7 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   editorFontSize: 15,
   editorFontFamily: '',
   editorLineHeight: 1.75,
+  locale: 'zh-CN',
 };
 
 /** 侧栏的两栏。活动栏上的两个按钮各对应一个。 */
@@ -247,7 +254,13 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     editorFontSize: clampEditorFontSize(record['editorFontSize']),
     editorFontFamily: sanitizeEditorFontFamily(record['editorFontFamily']),
     editorLineHeight: clampEditorLineHeight(record['editorLineHeight']),
+    locale: isSupportedLocale(record['locale']) ? record['locale'] : DEFAULT_SETTINGS.locale,
   };
+}
+
+/** 语言字段的逐项校验：不在清单里的一律回落 zh-CN（与主题同一个写法）。 */
+function isSupportedLocale(value: unknown): value is SupportedLocale {
+  return typeof value === 'string' && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
 /** 快捷键覆盖的逐项校验：只要「对象且值全是字符串」，其余整个回落为空。 */
