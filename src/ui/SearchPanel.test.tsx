@@ -162,6 +162,7 @@ async function mountPanel(initial: Props = { root: '/root', canSearch: true }): 
           root={props.root}
           canSearch={props.canSearch}
           onOpenMatch={(path, m) => opened.push({ path, match: m })}
+          onReplaceAll={() => Promise.resolve(null)}
           onClose={() => {
             closes += 1;
           }}
@@ -583,6 +584,7 @@ describe('SearchPanel · 其它', () => {
           root="/root"
           canSearch
           onOpenMatch={() => undefined}
+          onReplaceAll={() => Promise.resolve(null)}
           onClose={() => undefined}
         />,
       );

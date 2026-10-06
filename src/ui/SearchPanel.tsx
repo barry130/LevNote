@@ -18,9 +18,15 @@
  * 3. **空结果不是一句话，是一段可行动的说明**。检索最常见的困惑不是「没搜到」，
  *    而是「我明明知道它在里面」。所以空结果时明确提示那两个逃生口：
  *    关掉 `.gitignore` 尊重、检查文件夹是不是没打开。
+ *
+ * ## 替换（A3）
+ *
+ * 替换输入框只在**有结果**时可用 —— 「对着列表替换」而不是「对着工作区替换」：
+ * 用户看到的确认框说的就是眼前这份结果。替换编排（确认框、脏文件清单、
+ * provider 读写）在 `App`；面板只管输入与把结果那句话显示出来。
  */
 
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   describeSkips,
@@ -40,11 +46,19 @@ export interface SearchPanelProps {
   readonly canSearch: boolean;
   readonly onOpenMatch: (path: string, match: WorkspaceMatch) => void;
   readonly onClose: () => void;
+  /**
+   * 对给定文件做「全部替换」。返回给用户看的一句话（null = 用户取消了确认框）。
+   * 编排在 App：那里有确认对话框与打开标签页的脏清单。
+   */
+  readonly onReplaceAll: (paths: readonly string[], replacement: string) => Promise<string | null>;
 }
 
-export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose }: SearchPanelProps) {
+export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onReplaceAll }: SearchPanelProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [replacement, setReplacement] = useState('');
+  const [replacing, setReplacing] = useState(false);
+  const [replaceMessage, setReplaceMessage] = useState<string | null>(null);
 
   // 打开面板就把焦点给输入框：这是用户打开它的唯一理由
   useEffect(() => {
@@ -54,6 +68,18 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose }: Se
 
   const rows = flattenResults(state.files);
   const skipped = describeSkips(state.progress);
+  const resultPaths = useMemo(() => state.files.map((file) => file.path), [state.files]);
+  const canReplace = canSearch && root !== null && resultPaths.length > 0 && !replacing && state.query !== '';
+
+  const handleReplace = (): void => {
+    if (!canReplace) return;
+    setReplacing(true);
+    setReplaceMessage(null);
+    void onReplaceAll(resultPaths, replacement).then((message) => {
+      setReplacing(false);
+      setReplaceMessage(message ?? null);
+    });
+  };
 
   return (
     <aside className="sidebar search-panel">
@@ -127,6 +153,34 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose }: Se
             ? '已关掉 .gitignore 规则；以 . 开头的隐藏项仍然跳过（否则 .git 会被整棵搜一遍）。'
             : '按 .gitignore 与 .ignore 跳过被忽略的文件。'}
         </p>
+
+        {resultPaths.length > 0 && (
+          <div className="search-row">
+            <input
+              type="search"
+              className="search-input"
+              placeholder="替换为…（留空 = 删除命中）"
+              value={replacement}
+              spellCheck={false}
+              autoComplete="off"
+              onChange={(event) => setReplacement(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                handleReplace();
+              }}
+            />
+            <button
+              type="button"
+              title={`对结果里的 ${String(resultPaths.length)} 个文件做全部替换（打开且未保存的文件会跳过）`}
+              disabled={!canReplace}
+              onClick={handleReplace}
+            >
+              {replacing ? '替换中…' : '替换'}
+            </button>
+          </div>
+        )}
+        {replaceMessage !== null && <p className="search-hint">{replaceMessage}</p>}
       </div>
 
       {!canSearch && (

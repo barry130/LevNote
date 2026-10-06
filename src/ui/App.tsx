@@ -38,7 +38,9 @@ import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
 import { loadRecentFiles, recordRecentList, saveRecentFiles } from '../core/recent.js';
 import { buildRecentFileCommands, RECENT_MENU_SLOTS } from '../core/commands/definitions.js';
-import { WorkspaceSearchStore, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
+import { WorkspaceSearchStore, totalMatchesOf, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
+import { replaceAcrossFiles, describeReplaceOutcome } from '../core/search/replace.js';
+import type { FindOptions } from '../core/search/find.js';
 import {
   clearSession,
   EMPTY_SESSION,
@@ -468,6 +470,54 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       return workspace.deleteEntry(path);
     },
     [workspace],
+  );
+
+  /**
+   * 跨文件替换（A3）的编排：确认框在这里，替换在 `core/search/replace.ts`。
+   *
+   * 范围是**眼前这份结果**（用户看到的确认框说的就是面板上列出的文件），
+   * 脏标签页清单从这里传下去 —— 磁盘改了而缓冲区不知道的文件，
+   * 一次 Ctrl+S 就会把替换结果盖回去，所以它们一个字节都不碰。
+   * 替换完成后重查一遍：结果列表反映的是替换之后的工作区。
+   */
+  const handleReplaceAll = useCallback(
+    async (paths: readonly string[], replacement: string): Promise<string | null> => {
+      const snapshot = searchStore.getSnapshot();
+      const options: FindOptions = {
+        query: snapshot.query,
+        caseSensitive: snapshot.options.caseSensitive,
+        wholeWord: snapshot.options.wholeWord,
+        regex: snapshot.options.regex,
+      };
+      const total = totalMatchesOf(snapshot.files);
+      const shown = replacement === '' ? '（空，即删除命中）' : replacement;
+      const yes = await askConfirm(
+        `在 ${String(paths.length)} 个文件里把 ${String(total)} 处「${snapshot.query}」替换为「${shown}」？\n\n打开且有未保存改动的文件会被跳过。此操作会直接写入磁盘。`,
+        '全部替换',
+      );
+      if (!yes) return null;
+
+      const dirty = new Set(tabs.filter((tab) => tab.dirty).map((tab) => tab.path));
+      const outcome = await replaceAcrossFiles(
+        paths,
+        options,
+        replacement,
+        dirty,
+        {
+          readTextFile: (path) => provider.readTextFile(path),
+          writeTextFile: (request) => provider.writeTextFile(request),
+        },
+      );
+
+      searchStore.searchNow();
+
+      const problems = [...outcome.failed, ...outcome.skipped]
+        .map((item) => `- ${basename(item.path)}：${item.reason}`)
+        .join('\n');
+      const headline = describeReplaceOutcome(outcome);
+      return problems === '' ? headline : `${headline}\n${problems}`;
+    },
+    [searchStore, provider, tabs],
   );
 
   /**
@@ -1463,6 +1513,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
                   root={tree.root}
                   canSearch={canSearchFolder}
                   onOpenMatch={openSearchMatch}
+                  onReplaceAll={handleReplaceAll}
                   onClose={() => update({ sidebarVisible: false })}
                 />
               ) : (
