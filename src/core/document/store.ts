@@ -10,6 +10,7 @@
  */
 
 import { randomSalt, readImageAsUrl, writePastedImage } from './images.js';
+import { t } from '../i18n/index.js';
 import { resolveRelative } from '../path.js';
 import {
   asAppError,
@@ -266,7 +267,7 @@ export class DocumentStore {
     }
 
     // 说清楚「图片已经在磁盘上了，但文档还没保存」—— 这是用户真正会担心的事
-    this.commit({ notice: `图片已存到 ${basename(result.path)}（文档还需保存）` });
+    this.commit({ notice: t('core.store.imageSaved', { name: basename(result.path) }) });
     return result.src;
   };
 
@@ -274,7 +275,7 @@ export class DocumentStore {
   async open(path: string): Promise<boolean> {
     if (this.state.doc && isDirty(this.state.doc)) {
       // 调用方（UI）负责先问用户是否丢弃改动；这里只做兜底
-      this.commit({ error: { code: 'INTERNAL', message: '当前文档有未保存的改动，请先处理', detail: null } });
+      this.commit({ error: { code: 'INTERNAL', message: t('core.store.dirtyBeforeFormat'), detail: null } });
       return false;
     }
 
@@ -285,7 +286,9 @@ export class DocumentStore {
       this.commit({
         doc,
         busy: false,
-        notice: doc.lossy ? `已打开 ${doc.displayName}（编码可能是猜错的，建议手动确认）` : `已打开 ${doc.displayName}`,
+        notice: doc.lossy
+          ? t('core.store.openedLossy', { name: doc.displayName })
+          : t('core.store.opened', { name: doc.displayName }),
       });
       return true;
     } catch (thrown) {
@@ -363,7 +366,7 @@ export class DocumentStore {
     if (!doc || doc.path === newPath) return;
     this.commit({
       doc: { ...doc, path: newPath, displayName: basename(newPath) },
-      notice: `已重命名为 ${basename(newPath)}`,
+      notice: t('core.store.renamed', { name: basename(newPath) }),
     });
   }
 
@@ -378,7 +381,7 @@ export class DocumentStore {
 
     if (doc.readonly) {
       this.commit({
-        error: { code: 'PERMISSION_DENIED', message: `${doc.displayName} 是只读文件，请用「另存为」`, detail: null },
+        error: { code: 'PERMISSION_DENIED', message: t('core.store.readonlySave', { name: doc.displayName }), detail: null },
       });
       return false;
     }
@@ -399,7 +402,7 @@ export class DocumentStore {
       this.commit({
         busy: false,
         conflict: null,
-        notice: `已保存 ${doc.displayName}`,
+        notice: t('core.store.saved', { name: doc.displayName }),
         doc: {
           ...doc,
           savedText: doc.text,
@@ -451,7 +454,7 @@ export class DocumentStore {
         bom: outcome.bom,
         readonly: false,
       };
-      this.commit({ doc: next, busy: false, conflict: null, notice: `已另存为 ${next.displayName}` });
+      this.commit({ doc: next, busy: false, conflict: null, notice: t('core.store.savedAs', { name: next.displayName }) });
       return true;
     } catch (thrown) {
       this.commit({ busy: false, error: asAppError(thrown) });
@@ -468,7 +471,7 @@ export class DocumentStore {
     try {
       const file = await this.provider.readTextFile(doc.path, doc.encoding);
       // 沿用同一个 session：这是同一份文档被重新读取，编辑器实例不该重建
-      this.commit({ doc: toDocument(file, doc.session), busy: false, conflict: null, notice: `已从磁盘重新加载 ${doc.displayName}` });
+      this.commit({ doc: toDocument(file, doc.session), busy: false, conflict: null, notice: t('core.store.reloaded', { name: doc.displayName }) });
       return true;
     } catch (thrown) {
       this.commit({ busy: false, error: asAppError(thrown) });
@@ -496,7 +499,7 @@ export class DocumentStore {
           });
           this.commit({
             busy: false,
-            notice: `已覆盖磁盘上的 ${doc.displayName}`,
+            notice: t('core.store.overwritten', { name: doc.displayName }),
             doc: { ...doc, savedText: doc.text, savedLineEnding: doc.lineEnding, mtimeMs: outcome.mtimeMs },
           });
           return true;
@@ -533,7 +536,7 @@ export class DocumentStore {
     if (stat.mtimeMs === doc.mtimeMs) return;
 
     if (isDirty(doc)) {
-      this.commit({ conflict: { message: '磁盘上的文件已被其他程序修改，而你本地也有改动', detectedAt: Date.now() } });
+      this.commit({ conflict: { message: t('core.store.conflictDetected'), detectedAt: Date.now() } });
     } else {
       // 本地没有改动，直接跟上磁盘，不打扰用户
       await this.reload();

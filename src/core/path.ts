@@ -10,6 +10,8 @@
  * 路径规范化属于写入层（Rust 侧的原子写入会处理），这里只负责显示与拼接。
  */
 
+import { t } from './i18n/index.js';
+
 /** 路径分隔符：出现反斜杠就按 Windows 风格处理，否则按 POSIX。 */
 export function separatorOf(path: string): '\\' | '/' {
   return path.includes('\\') ? '\\' : '/';
@@ -227,15 +229,16 @@ const RESERVED_STEMS: ReadonlySet<string> = new Set([
  */
 export function validateEntryName(rawName: string): string | null {
   const name = rawName.trim();
-  if (name === '') return '名称不能为空';
-  if (name === '.' || name === '..') return '「.」与「..」是系统保留名称，不能使用';
-  if (/[\\/:*?"<>|]/.test(name)) return '名称不能包含 \\ / : * ? " < > | 这些字符';
+  if (name === '') return t('core.path.empty');
+  if (name === '.' || name === '..') return t('core.path.dotNames');
+  if (/[\\/:*?"<>|]/.test(name)) return t('core.path.invalidChars');
   for (const ch of name) {
-    if (ch.charCodeAt(0) < 32) return '名称不能包含换行等控制字符';
+    if (ch.charCodeAt(0) < 32) return t('core.path.controlChars');
   }
-  if (name.endsWith('.') || name.endsWith(' ')) return '名称不能以点或空格结尾（Windows 会把它吞掉）';
-  if (name.length > 200) return '名称太长（最多 200 个字符）';
+  if (name.endsWith('.') || name.endsWith(' ')) return t('core.path.trailingDotSpace');
+  if (name.length > 200) return t('core.path.tooLong');
   const stem = (name.split('.')[0] ?? '').toUpperCase();
-  if (RESERVED_STEMS.has(stem)) return `「${stem}」是 Windows 的保留设备名，不能作为名称`;
+  if (RESERVED_STEMS.has(stem)) return t('core.path.reservedStem', { stem });
   return null;
 }
+

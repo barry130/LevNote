@@ -35,6 +35,7 @@
  */
 
 import type { AppErrorShape } from '../document/types.js';
+import { t } from '../i18n/index.js';
 import { asAppError } from '../document/types.js';
 
 /** 对应 Rust `search::SearchReason`。 */
@@ -177,7 +178,7 @@ export const UNSUPPORTED_SEARCHER: WorkspaceSearcher = {
   available: false,
   run() {
     return Promise.reject(
-      new Error('工作区检索只在桌面版可用（浏览器预览没有真实目录）'),
+      new Error(t('core.search.unsupported')),
     );
   },
   cancel() {
@@ -251,11 +252,11 @@ export function totalMatchesOf(files: readonly WorkspaceFileMatches[]): number {
  */
 export function describeSummary(summary: WorkspaceSummary): string {
   const parts: string[] = [];
-  if (summary.reason === 'cancelled') parts.push('已停止');
-  else if (summary.reason === 'truncated') parts.push(`已达 ${String(summary.totalMatches)} 处上限，结果可能不全`);
-  else parts.push(`共 ${String(summary.totalMatches)} 处，${String(summary.matchedFiles)} 个文件`);
+  if (summary.reason === 'cancelled') parts.push(t('core.search.stopped'));
+  else if (summary.reason === 'truncated') parts.push(t('core.search.truncated', { n: summary.totalMatches }));
+  else parts.push(t('core.search.summary', { matches: summary.totalMatches, files: summary.matchedFiles }));
 
-  parts.push(`扫了 ${String(summary.scannedFiles)} 个文件`);
+  parts.push(t('core.search.scanned', { n: summary.scannedFiles }));
   parts.push(`${formatBytes(summary.scannedBytes)}`);
   parts.push(`${(summary.elapsedMs / 1000).toFixed(1)}s`);
 
@@ -268,10 +269,10 @@ export function describeSummary(summary: WorkspaceSummary): string {
 /** 跳过统计。一个都没跳过时返回 null（不要显示「跳过了 0 个」这种噪音）。 */
 export function describeSkips(summary: WorkspaceProgress): string | null {
   const items: string[] = [];
-  if (summary.skippedBinary > 0) items.push(`${String(summary.skippedBinary)} 个二进制`);
-  if (summary.skippedLarge > 0) items.push(`${String(summary.skippedLarge)} 个超大文件`);
-  if (summary.skippedUnreadable > 0) items.push(`${String(summary.skippedUnreadable)} 个读不到`);
-  return items.length === 0 ? null : `跳过 ${items.join('、')}`;
+  if (summary.skippedBinary > 0) items.push(t('core.search.skipBinary', { n: summary.skippedBinary }));
+  if (summary.skippedLarge > 0) items.push(t('core.search.skipLarge', { n: summary.skippedLarge }));
+  if (summary.skippedUnreadable > 0) items.push(t('core.search.skipUnreadable', { n: summary.skippedUnreadable }));
+  return items.length === 0 ? null : t('core.search.skippedAll', { items: items.join('、') });
 }
 
 export function formatBytes(bytes: number): string {

@@ -13,16 +13,26 @@
  *   这样「深色下某个控件没换色」永远是一个 CSS 问题，不用去翻 JS。
  */
 
+import { t, type MessageKey } from '../i18n/index.js';
+
 export type ThemePreference = 'paper' | 'ink' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
 
 export const THEME_ORDER: readonly ThemePreference[] = ['paper', 'ink', 'system'];
 
-export const THEME_LABELS: Record<ThemePreference, string> = {
-  paper: '宣纸（浅色）',
-  ink: '松烟（深色）',
-  system: '跟随系统',
+/**
+ * 主题名存 key 不存文案：这是会被设置页直接渲染的静态清单，
+ * 在模块加载时求值会把语言钉死。取用方渲染时调 `themeLabel()`。
+ */
+export const THEME_LABELS: Record<ThemePreference, MessageKey> = {
+  paper: 'core.theme.paper',
+  ink: 'core.theme.ink',
+  system: 'core.theme.system',
 };
+
+export function themeLabel(theme: ThemePreference): string {
+  return t(THEME_LABELS[theme]);
+}
 
 export const DEFAULT_THEME: ThemePreference = 'paper';
 

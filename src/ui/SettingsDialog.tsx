@@ -37,7 +37,7 @@ import {
   EDITOR_LINE_HEIGHT_MIN,
   type ViewSettings,
 } from '../core/settings.js';
-import { THEME_LABELS, THEME_ORDER } from '../core/theme/theme.js';
+import { THEME_ORDER, themeLabel } from '../core/theme/theme.js';
 import { SUPPORTED_LOCALES } from '../core/i18n/messages.js';
 import { t } from '../core/i18n/index.js';
 
@@ -266,7 +266,7 @@ export function SettingsDialog({
               >
                 {THEME_ORDER.map((item) => (
                   <option key={item} value={item}>
-                    {THEME_LABELS[item]}
+                    {themeLabel(item)}
                   </option>
                 ))}
               </select>

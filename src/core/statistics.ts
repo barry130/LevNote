@@ -34,6 +34,8 @@
  * 已知简化：`👨‍👩‍👧` 计为 3（三个 emoji 各 1，两个零宽连接符不计），而不是 1。
  */
 
+import { t } from './i18n/index.js';
+
 export interface TextStatistics {
   /** 行数。空文本算 1 行 —— 与状态栏「第 1 行，第 1 列」的光标显示保持一致。 */
   readonly lines: number;
@@ -147,8 +149,12 @@ export function analyze(text: string): TextStatistics {
  * 空文档该显示成什么样，是个容易写错又没人会去点的边界。
  */
 export function formatStatistics(stats: TextStatistics): string {
-  const parts = [`${stats.lines} 行`, `${stats.words} 字`, `${stats.characters} 字符`];
+  const parts = [
+    t('core.stats.lines', { n: stats.lines }),
+    t('core.stats.words', { n: stats.words }),
+    t('core.stats.characters', { n: stats.characters }),
+  ];
   // 空文档不显示「约 0 分钟」—— 那不是信息，是噪声
-  if (stats.readingMinutes > 0) parts.push(`约 ${stats.readingMinutes} 分钟`);
+  if (stats.readingMinutes > 0) parts.push(t('core.stats.minutes', { n: stats.readingMinutes }));
   return parts.join(' · ');
 }

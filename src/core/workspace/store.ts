@@ -21,6 +21,7 @@
  */
 
 import type { AppErrorShape, DirEntry, DocumentProvider } from '../document/types.js';
+import { t } from '../i18n/index.js';
 import { asAppError } from '../document/types.js';
 import { DocumentStore, isDirty, type DocumentStatus } from '../document/store.js';
 import { basename, dirname, joinPath, validateEntryName } from '../path.js';
@@ -589,7 +590,7 @@ export class WorkspaceStore {
         loading: this.tree.loading.filter((item) => item !== path),
         error: {
           code: 'IO',
-          message: `读不出目录 ${basename(path)}`,
+          message: t('core.ws.cannotReadDir', { name: basename(path) }),
           detail: thrown instanceof Error ? thrown.message : String(thrown),
         },
       });
@@ -669,7 +670,7 @@ export class WorkspaceStore {
 
   private requireFileManager(): WorkspaceFileManager | null {
     if (!this.fileManager.available) {
-      this.failTreeAction('当前环境不支持管理文件（浏览器预览没有真实文件系统，请用桌面版）');
+      this.failTreeAction(t('core.ws.fsManageUnsupported'));
       return null;
     }
     return this.fileManager;
@@ -695,7 +696,7 @@ export class WorkspaceStore {
     }
     const target = joinPath(dir, name);
     if (target === null) {
-      this.failTreeAction('无法确定目标路径');
+      this.failTreeAction(t('core.ws.cannotDetermineTarget'));
       return null;
     }
 
@@ -704,7 +705,7 @@ export class WorkspaceStore {
       else await fileManager.createDirectory(target);
     } catch (thrown) {
       const error = asAppError(thrown);
-      this.failTreeAction(`新建失败：${error.message}`, error.detail ?? undefined);
+      this.failTreeAction(t('core.ws.createFailed', { reason: error.message }), error.detail ?? undefined);
       return null;
     }
 
@@ -736,12 +737,12 @@ export class WorkspaceStore {
     }
     const parent = dirname(oldPath);
     if (parent === null) {
-      this.failTreeAction(`「${basename(oldPath)}」没有所在目录信息，无法重命名`);
+      this.failTreeAction(t('core.ws.renameNoDir', { name: basename(oldPath) }));
       return null;
     }
     const target = joinPath(parent, name);
     if (target === null) {
-      this.failTreeAction('无法确定目标路径');
+      this.failTreeAction(t('core.ws.cannotDetermineTarget'));
       return null;
     }
     if (target === oldPath) return target;
@@ -750,7 +751,7 @@ export class WorkspaceStore {
       await fileManager.renamePath(oldPath, target);
     } catch (thrown) {
       const error = asAppError(thrown);
-      this.failTreeAction(`重命名失败：${error.message}`, error.detail ?? undefined);
+      this.failTreeAction(t('core.ws.renameFailed', { reason: error.message }), error.detail ?? undefined);
       return null;
     }
 
@@ -781,7 +782,7 @@ export class WorkspaceStore {
     const dirty = affected.find((tab) => tab.store.getSnapshot().status === 'dirty');
     if (dirty !== undefined) {
       const name = dirty.store.getSnapshot().doc?.displayName ?? basename(path);
-      this.failTreeAction(`「${name}」有未保存的改动，请先保存或关闭对应标签页，再删除`);
+      this.failTreeAction(t('core.ws.deleteDirty', { name }));
       return false;
     }
 
@@ -789,7 +790,7 @@ export class WorkspaceStore {
       await fileManager.deletePath(path);
     } catch (thrown) {
       const error = asAppError(thrown);
-      this.failTreeAction(`删除失败：${error.message}`, error.detail ?? undefined);
+      this.failTreeAction(t('core.ws.deleteFailed', { reason: error.message }), error.detail ?? undefined);
       return false;
     }
 

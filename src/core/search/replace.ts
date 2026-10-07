@@ -25,6 +25,7 @@
  */
 
 import { replaceInText, type FindOptions } from './find.js';
+import { t } from '../i18n/index.js';
 import type { TextFile, WriteRequest } from '../document/types.js';
 
 /** 替换需要的最小 IO 面。传入 provider 的两个方法即可（结构化类型，直接兼容）。 */
@@ -81,7 +82,7 @@ export async function replaceAcrossFiles(
 
   for (const path of paths) {
     if (dirtyPaths.has(path)) {
-      skipped.push({ path, reason: '在打开的标签页里有未保存的改动' });
+      skipped.push({ path, reason: t('core.replace.skipDirty') });
       continue;
     }
 
@@ -89,7 +90,7 @@ export async function replaceAcrossFiles(
     try {
       file = await io.readTextFile(path);
     } catch (thrown) {
-      failed.push({ path, reason: thrown instanceof Error ? thrown.message : '读不出来' });
+      failed.push({ path, reason: thrown instanceof Error ? thrown.message : t('core.replace.unreadable') });
       continue;
     }
 
@@ -97,7 +98,7 @@ export async function replaceAcrossFiles(
     if (count === 0) {
       // 检索结果已过期（文件被改过 / 换了工作区）：没有命中就没有写入，
       // 如实记一笔跳过，不冒充成功
-      skipped.push({ path, reason: '重新读取后没有命中（结果可能已过期）' });
+      skipped.push({ path, reason: t('core.replace.skipStale') });
       continue;
     }
 
@@ -111,7 +112,7 @@ export async function replaceAcrossFiles(
         create: true,
       });
     } catch (thrown) {
-      const reason = thrown instanceof Error ? thrown.message : '写不进去';
+      const reason = thrown instanceof Error ? thrown.message : t('core.replace.unwritable');
       failed.push({ path, reason });
       continue;
     }
@@ -127,10 +128,10 @@ export async function replaceAcrossFiles(
 export function describeReplaceOutcome(outcome: ReplaceOutcome): string {
   const parts: string[] = [];
   if (outcome.filesReplaced === 0 && outcome.skipped.length === 0 && outcome.failed.length === 0) {
-    return '没有需要替换的内容。';
+    return t('core.replace.nothingToDo');
   }
-  parts.push(`替换了 ${String(outcome.matchesReplaced)} 处（${String(outcome.filesReplaced)} 个文件）`);
-  if (outcome.skipped.length > 0) parts.push(`跳过 ${String(outcome.skipped.length)} 个`);
-  if (outcome.failed.length > 0) parts.push(`失败 ${String(outcome.failed.length)} 个`);
+  parts.push(t('core.replace.doneSummary', { matches: outcome.matchesReplaced, files: outcome.filesReplaced }));
+  if (outcome.skipped.length > 0) parts.push(t('core.replace.skippedN', { n: outcome.skipped.length }));
+  if (outcome.failed.length > 0) parts.push(t('core.replace.failedN', { n: outcome.failed.length }));
   return parts.join('，');
 }
