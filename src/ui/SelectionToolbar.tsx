@@ -29,26 +29,28 @@ import type {
   InlineFormat,
   SelectionSnapshot,
 } from '../core/editor/types.js';
+import { t, type MessageKey } from '../core/i18n/index.js';
 import { computeFloatingPlacement } from './floating.js';
 
 interface InlineButton {
   readonly format: Exclude<InlineFormat, 'link'>;
+  /** label 多为字形（B / I / <>），不分语言；title 存 key。 */
   readonly label: string;
-  readonly title: string;
+  readonly titleKey: MessageKey;
 }
 
 const INLINE_BUTTONS: readonly InlineButton[] = [
-  { format: 'strong', label: 'B', title: '加粗（Ctrl+B）' },
-  { format: 'emphasis', label: 'I', title: '斜体（Ctrl+I）' },
-  { format: 'strikethrough', label: 'S', title: '删除线' },
-  { format: 'inlineCode', label: '<>', title: '行内代码' },
+  { format: 'strong', label: 'B', titleKey: 'ui.selection.bold' },
+  { format: 'emphasis', label: 'I', titleKey: 'ui.selection.italic' },
+  { format: 'strikethrough', label: 'S', titleKey: 'ui.selection.strikethrough' },
+  { format: 'inlineCode', label: '<>', titleKey: 'ui.selection.inlineCode' },
 ];
 
 interface BlockButton {
   readonly format: BlockFormat;
   readonly level?: number;
-  readonly label: string;
-  readonly title: string;
+  readonly labelKey: MessageKey;
+  readonly titleKey: MessageKey;
 }
 
 /**
@@ -58,14 +60,14 @@ interface BlockButton {
  * 不是因为做不到，而是六个标题按钮会把浮层撑得比选区还宽。
  */
 const BLOCK_BUTTONS: readonly BlockButton[] = [
-  { format: 'paragraph', label: '正文', title: '正文（取消标题 / 引用 / 列表）' },
-  { format: 'heading', level: 1, label: 'H1', title: '一级标题' },
-  { format: 'heading', level: 2, label: 'H2', title: '二级标题' },
-  { format: 'heading', level: 3, label: 'H3', title: '三级标题' },
-  { format: 'blockquote', label: '引用', title: '引用' },
-  { format: 'bulletList', label: '•', title: '无序列表' },
-  { format: 'orderedList', label: '1.', title: '有序列表' },
-  { format: 'codeBlock', label: '代码块', title: '代码块' },
+  { format: 'paragraph', labelKey: 'ui.selection.paragraph', titleKey: 'ui.selection.paragraphTitle' },
+  { format: 'heading', level: 1, labelKey: 'ui.selection.h1', titleKey: 'ui.selection.heading1' },
+  { format: 'heading', level: 2, labelKey: 'ui.selection.h2', titleKey: 'ui.selection.heading2' },
+  { format: 'heading', level: 3, labelKey: 'ui.selection.h3', titleKey: 'ui.selection.heading3' },
+  { format: 'blockquote', labelKey: 'ui.selection.blockquote', titleKey: 'ui.selection.quote' },
+  { format: 'bulletList', labelKey: 'ui.selection.bulletList', titleKey: 'ui.selection.bulletListTitle' },
+  { format: 'orderedList', labelKey: 'ui.selection.orderedList', titleKey: 'ui.selection.orderedListTitle' },
+  { format: 'codeBlock', labelKey: 'ui.selection.codeBlock', titleKey: 'ui.selection.codeBlockTitle' },
 ];
 
 export interface SelectionToolbarProps {
@@ -130,7 +132,7 @@ export function SelectionToolbar({ snapshot, formatting }: SelectionToolbarProps
       ref={rootRef}
       className="selection-toolbar"
       role="toolbar"
-      aria-label="选中内容的格式"
+      aria-label={t('ui.selection.groupLabel')}
       style={{
         left: placement?.left ?? 0,
         top: placement?.top ?? 0,
@@ -143,8 +145,8 @@ export function SelectionToolbar({ snapshot, formatting }: SelectionToolbarProps
             key={button.format}
             type="button"
             className={`st-btn st-${button.format} ${format.inline.has(button.format) ? 'active' : ''}`}
-            title={button.title}
-            aria-label={button.title}
+            title={t(button.titleKey)}
+            aria-label={t(button.titleKey)}
             aria-pressed={format.inline.has(button.format)}
             // 不拦这一下，焦点会离开编辑器，选区丢失，click 永远不会到
             onMouseDown={(event) => event.preventDefault()}
@@ -158,8 +160,8 @@ export function SelectionToolbar({ snapshot, formatting }: SelectionToolbarProps
           <button
             type="button"
             className={`st-btn st-link ${format.linkHref !== null ? 'active' : ''}`}
-            title={format.linkHref === null ? '插入链接' : `编辑链接（${format.linkHref}）`}
-            aria-label="链接"
+            title={format.linkHref === null ? t('ui.selection.insertLink') : t('ui.selection.editLink', { url: format.linkHref })}
+            aria-label={t('ui.selection.link')}
             aria-pressed={format.linkHref !== null}
             onMouseDown={(event) => event.preventDefault()}
             // 已经在链接里就直接摘掉；不在才需要用户给地址。
@@ -169,7 +171,7 @@ export function SelectionToolbar({ snapshot, formatting }: SelectionToolbarProps
               else setLinkDraft('https://');
             }}
           >
-            链接
+            {t('ui.selection.link')}
           </button>
         ) : (
           <input
@@ -177,7 +179,7 @@ export function SelectionToolbar({ snapshot, formatting }: SelectionToolbarProps
             autoFocus
             value={linkDraft}
             placeholder="https://"
-            aria-label="链接地址"
+            aria-label={t('ui.selection.linkUrl')}
             onChange={(event) => setLinkDraft(event.target.value)}
             onKeyDown={(event) => {
               // 不拦的话这些按键会冒到 window 上被全局快捷键接走（Esc 会顺手关掉查找栏）
@@ -200,13 +202,13 @@ export function SelectionToolbar({ snapshot, formatting }: SelectionToolbarProps
               key={`${button.format}-${button.level ?? ''}`}
               type="button"
               className={`st-btn st-block ${active ? 'active' : ''}`}
-              title={button.title}
-              aria-label={button.title}
+              title={t(button.titleKey)}
+              aria-label={t(button.titleKey)}
               aria-pressed={active}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => formatting.toggleBlock(button.format, button.level)}
             >
-              {button.label}
+              {t(button.labelKey)}
             </button>
           );
         })}

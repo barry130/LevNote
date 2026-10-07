@@ -37,6 +37,7 @@ import {
   type WorkspaceSearchStore,
 } from '../core/search/workspace.js';
 import { basename } from '../core/path.js';
+import { t } from '../core/i18n/index.js';
 
 export interface SearchPanelProps {
   readonly store: WorkspaceSearchStore;
@@ -84,9 +85,9 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
   return (
     <aside className="sidebar search-panel">
       <header className="sidebar-head">
-        <span className="sidebar-title">在文件夹中检索</span>
+        <span className="sidebar-title">{t('ui.searchpanel.title')}</span>
         <span className="grow" />
-        <button type="button" title="关闭检索面板" onClick={onClose}>
+        <button type="button" title={t('ui.searchpanel.close')} onClick={onClose}>
           ✕
         </button>
       </header>
@@ -97,7 +98,7 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
             ref={inputRef}
             type="search"
             className="search-input"
-            placeholder={root === null ? '先打开一个文件夹' : '检索内容…'}
+            placeholder={root === null ? t('ui.searchpanel.needFolder') : t('ui.searchpanel.placeholder')}
             value={state.query}
             disabled={!canSearch || root === null}
             spellCheck={false}
@@ -112,36 +113,36 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
           />
           <button
             type="button"
-            title={state.running ? '停止检索' : '重新检索'}
+            title={state.running ? t('ui.searchpanel.stopTitle') : t('ui.searchpanel.rerunTitle')}
             className={state.running ? 'search-stop' : ''}
             disabled={!canSearch || root === null || state.query === ''}
             onClick={() => (state.running ? store.cancel() : store.searchNow())}
           >
-            {state.running ? '停止' : '检索'}
+            {state.running ? t('ui.searchpanel.stop') : t('ui.searchpanel.run')}
           </button>
         </div>
 
         <div className="search-toggles">
           <Toggle
-            label="区分大小写"
+            label={t('ui.find.caseSensitive')}
             text="Aa"
             on={state.options.caseSensitive}
             onClick={() => store.setOption('caseSensitive', !state.options.caseSensitive)}
           />
           <Toggle
-            label="全词匹配"
+            label={t('ui.find.wholeWord')}
             text="ab|"
             on={state.options.wholeWord}
             onClick={() => store.setOption('wholeWord', !state.options.wholeWord)}
           />
           <Toggle
-            label="正则表达式"
+            label={t('ui.find.regex')}
             text=".*"
             on={state.options.regex}
             onClick={() => store.setOption('regex', !state.options.regex)}
           />
           <Toggle
-            label="包含被忽略的文件（.gitignore）"
+            label={t('ui.searchpanel.includeIgnored')}
             text="⊙"
             on={state.options.includeIgnored}
             onClick={() => store.setOption('includeIgnored', !state.options.includeIgnored)}
@@ -150,8 +151,8 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
 
         <p className="search-hint">
           {state.options.includeIgnored
-            ? '已关掉 .gitignore 规则；以 . 开头的隐藏项仍然跳过（否则 .git 会被整棵搜一遍）。'
-            : '按 .gitignore 与 .ignore 跳过被忽略的文件。'}
+            ? t('ui.searchpanel.ignoredHintOn')
+            : t('ui.searchpanel.ignoredHintOff')}
         </p>
 
         {resultPaths.length > 0 && (
@@ -159,7 +160,7 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
             <input
               type="search"
               className="search-input"
-              placeholder="替换为…（留空 = 删除命中）"
+              placeholder={t('ui.searchpanel.replacePlaceholder')}
               value={replacement}
               spellCheck={false}
               autoComplete="off"
@@ -172,11 +173,11 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
             />
             <button
               type="button"
-              title={`对结果里的 ${String(resultPaths.length)} 个文件做全部替换（打开且未保存的文件会跳过）`}
+              title={t('ui.searchpanel.replaceTitle', { n: resultPaths.length })}
               disabled={!canReplace}
               onClick={handleReplace}
             >
-              {replacing ? '替换中…' : '替换'}
+              {replacing ? t('ui.searchpanel.replacing') : t('ui.searchpanel.replace')}
             </button>
           </div>
         )}
@@ -184,11 +185,11 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
       </div>
 
       {!canSearch && (
-        <div className="search-note">工作区检索只在桌面版可用 —— 浏览器预览里没有真实目录。</div>
+        <div className="search-note">{t('ui.searchpanel.desktopOnly')}</div>
       )}
 
       {canSearch && root === null && (
-        <div className="search-note">还没有打开文件夹，检索无从开始。按 Ctrl+Shift+O 打开一个。</div>
+        <div className="search-note">{t('ui.searchpanel.noFolder')}</div>
       )}
 
       {state.error && (
@@ -202,12 +203,12 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
         <div className="search-status">
           {state.running && (
             <span className="search-progress">
-              已扫 {state.progress.scannedFiles} 个文件 · 命中 {state.progress.totalMatches} 处…
+              {t('ui.searchpanel.progress', { files: state.progress.scannedFiles, matches: state.progress.totalMatches })}
             </span>
           )}
           {!state.running && state.summary !== null && <span>{describeSummary(state.summary)}</span>}
           {!state.running && state.summary === null && state.error === null && (
-            <span>{state.query === '' ? '输入要检索的内容。' : '尚未检索。'}</span>
+            <span>{state.query === '' ? t('ui.searchpanel.typeQuery') : t('ui.searchpanel.notRun')}</span>
           )}
           {skipped !== null && <span className="search-skipped">{skipped}</span>}
         </div>
@@ -243,13 +244,8 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
 
       {canSearch && root !== null && !state.running && state.summary !== null && rows.length === 0 && (
         <div className="search-note">
-          <p>没有命中。</p>
-          {!state.options.includeIgnored && (
-            <p className="hint">
-              如果确认这个文件夹里应该有，试试打开上面那个「⊙」——
-              它会把被 .gitignore 跳过的文件也搜进来。
-            </p>
-          )}
+          <p>{t('ui.searchpanel.noMatches')}</p>
+          {!state.options.includeIgnored && <p className="hint">{t('ui.searchpanel.noMatchesHint')}</p>}
         </div>
       )}
     </aside>

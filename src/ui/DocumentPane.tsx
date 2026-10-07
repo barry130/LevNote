@@ -40,10 +40,12 @@ import type {
   TableState,
 } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
+import type { DocumentStatus } from '../core/document/store.js';
 import { ENCODINGS, encodingKey as encodingKeyCore } from '../core/encodings.js';
 import { SPLIT_RATIO_MAX, SPLIT_RATIO_MIN } from '../core/settings.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
+import { t, type MessageKey } from '../core/i18n/index.js';
 import { BlockHandle } from './BlockHandle.js';
 import { CodeBlockPicker } from './CodeBlockPicker.js';
 import { DiagramViewer } from './DiagramViewer.js';
@@ -61,13 +63,14 @@ const LINE_ENDINGS: Array<{ value: LineEndingName; label: string }> = [
   { value: 'cr', label: 'CR' },
 ];
 
-const STATUS_TEXT = {
-  clean: '已保存',
-  dirty: '有未保存的改动',
-  saving: '处理中…',
-  conflict: '磁盘上有更新的版本',
-  error: '出错',
+const STATUS_TEXT: Record<DocumentStatus, MessageKey> = {
+  clean: 'ui.pane.stateClean',
+  dirty: 'ui.pane.stateDirty',
+  saving: 'ui.pane.stateSaving',
+  conflict: 'ui.pane.stateConflict',
+  error: 'ui.pane.stateError',
 } as const;
+
 
 /**
  * 分屏时「左栏改完 → 右栏重画」的等待窗口（毫秒）。
@@ -922,7 +925,7 @@ export function DocumentPane({
         readOnly={doc.readonly}
         wordWrap={wordWrap}
         codeLineNumbers={codeLineNumbers}
-        placeholder="在这里写。支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档。"
+        placeholder={t('ui.pane.emptyPlaceholder')}
         onChange={handleEditorChange}
         onReady={handleEditorReady}
         onCursorChange={setCursor}
@@ -999,7 +1002,7 @@ export function DocumentPane({
       {doc?.lossy && (
         <div className="banner info">
           <span className="grow">
-            这个文件的编码是自动猜出来的，可能猜错。若下方出现乱码，请在状态栏手动指定编码。
+            {t('ui.pane.encodingGuessed')}
           </span>
         </div>
       )}
@@ -1007,9 +1010,13 @@ export function DocumentPane({
       {downgraded && (
         <div className="banner info">
           <span className="grow">
-            这个文件的开头是 YAML front matter。用富文本内核打开会把 <code>---</code> 当成分隔线、
-            把 <code>键: 值</code> 当成正文，保存时元数据就没了。
-            所以这个文件<strong>以「{primary?.label ?? '纯文本'}」打开</strong>，内容不会有任何改动。
+            {t('ui.pane.frontMatterWhy1')}
+            <code>---</code>
+            {t('ui.pane.frontMatterWhy2')}
+            <code>{t('ui.pane.frontMatterKv')}</code>
+            {t('ui.pane.frontMatterWhy3')}
+            <strong>{t('ui.pane.openedAs', { label: primary?.label ?? t('ui.pane.plainText') })}</strong>
+            {t('ui.pane.openedAsTail')}
           </span>
         </div>
       )}
@@ -1017,11 +1024,11 @@ export function DocumentPane({
       {editorError && (
         <div className="banner error">
           <span className="grow">
-            <strong>编辑器内核没能启动。</strong> {editorError}
-            {kernelFailed ? '（已退回纯文本内核，内容不会丢）' : ''}
+            <strong>{t('ui.pane.kernelFailTitle')}</strong> {editorError}
+            {kernelFailed ? t('ui.pane.kernelFallback') : ''}
           </span>
           <button type="button" onClick={() => setEditorError(null)}>
-            知道了
+            {t('ui.app.dismiss')}
           </button>
         </div>
       )}
@@ -1033,7 +1040,7 @@ export function DocumentPane({
             {error.detail ? `（${error.detail}）` : ''}
           </span>
           <button type="button" onClick={store.clearError}>
-            知道了
+            {t('ui.app.dismiss')}
           </button>
         </div>
       )}
@@ -1041,11 +1048,11 @@ export function DocumentPane({
       {previewFailed && (
         <div className="banner warn">
           <span className="grow">
-            <strong>预览没能渲染出来。</strong>
-            源码那一栏照常可以编辑，保存也不受影响 —— 只是右边看不到渲染结果。
+            <strong>{t('ui.pane.previewFailTitle')}</strong>
+            {t('ui.pane.previewFailBody')}
           </span>
           <button type="button" onClick={() => store.setViewMode('source')}>
-            只显示源码
+            {t('ui.pane.sourceOnly')}
           </button>
         </div>
       )}
@@ -1066,10 +1073,10 @@ export function DocumentPane({
                 className="editor-divider"
                 role="separator"
                 aria-orientation="vertical"
-                aria-label="拖动调整源码与预览的宽度"
+                aria-label={t('ui.pane.dragSplit')}
                 onPointerDown={beginSplitResize}
               />
-              <div className="editor-pane" aria-label="只读预览" style={{ flexGrow: 1 - effectiveSplitRatio }}>
+              <div className="editor-pane" aria-label={t('ui.pane.readOnlyPreview')} style={{ flexGrow: 1 - effectiveSplitRatio }}>
                 <PreviewComponent
                   // 右栏的内核标识不含视图模式（见 `previewKey`）：它只在分屏下存在，
                   // 一旦存在就是「这一次会话的只读渲染」，与左栏是源码还是富文本无关
@@ -1154,21 +1161,21 @@ export function DocumentPane({
       </main>
 
       <footer className="statusbar">
-        <span className={`status-pill ${status}`}>{STATUS_TEXT[status]}</span>
+        <span className={`status-pill ${status}`}>{t(STATUS_TEXT[status])}</span>
 
         {doc && (
           <>
             <span className="sep">│</span>
-            <span className="kernel" title="当前使用的编辑器内核">
-              {adapter?.label ?? '无内核'}
+            <span className="kernel" title={t('ui.pane.kernelTitle')}>
+              {adapter?.label ?? t('ui.pane.noKernel')}
               {/* 源码模式下说明「这是谁的源码」：否则一份 .md 的状态栏写着
                   「代码 / 文本」，用户会以为打开的文件不对 */}
-              {viewMode === 'source' && primary?.sourceView ? ` · ${primary.label} 源码` : ''}
+              {viewMode === 'source' && primary?.sourceView ? t('ui.pane.sourceOf', { label: primary.label }) : ''}
             </span>
 
             <span className="sep">│</span>
             <label>
-              编码{' '}
+              {t('ui.pane.encoding')}{' '}
               <select
                 value={activeEncodingKey}
                 onChange={(event) => {
@@ -1195,9 +1202,9 @@ export function DocumentPane({
             </label>
 
             <label>
-              行尾{' '}
+              {t('ui.pane.lineEnding')}{' '}
               <select value={doc.lineEnding} onChange={(event) => store.setLineEnding(event.target.value as LineEndingName)}>
-                {doc.lineEnding === 'mixed' && <option value="mixed">混合</option>}
+                {doc.lineEnding === 'mixed' && <option value="mixed">{t('ui.pane.lineEndingMixed')}</option>}
                 {LINE_ENDINGS.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
@@ -1210,22 +1217,20 @@ export function DocumentPane({
             {cursor && (
               <>
                 <span className="sep">│</span>
-                <span>
-                  第 {cursor.line} 行，第 {cursor.column} 列
-                </span>
+                <span>{t('ui.pane.cursorAt', { line: cursor.line, column: cursor.column })}</span>
               </>
             )}
             <span className="sep">│</span>
             <span
               className="statistics"
-              title="字数按 Microsoft Word 的口径：中日韩文字与标点各算一字，拉丁文按词计"
+              title={t('ui.pane.statsTitle')}
             >
               {stats ? formatStatistics(stats) : ''}
             </span>
             {doc.readonly && (
               <>
                 <span className="sep">│</span>
-                <span>只读文件</span>
+                <span>{t('ui.pane.readonly')}</span>
               </>
             )}
           </>
@@ -1234,7 +1239,7 @@ export function DocumentPane({
         <span className="grow" />
         {notice && <span className="hint">{notice}</span>}
         <span className="sep">│</span>
-        <span className="hint">Ctrl+S 保存 · Ctrl+P 命令面板</span>
+        <span className="hint">{t('ui.pane.shortcutHint')}</span>
         {/* 视图三档放在最右：VSCode 的状态栏最右侧就是「这份文档是什么、
             现在怎么看」这一类信息（语言模式、编码）。它**只在有得选的时候出现** ——
             代码 / 纯文本文档本身就是源码，「切到源码」对它们是个不存在的动作，

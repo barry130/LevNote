@@ -29,35 +29,37 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import type { EditorTable, TableAlign, TableOperation, TableState } from '../core/editor/types.js';
+import { t, type MessageKey } from '../core/i18n/index.js';
 import { computeFloatingPlacement } from './floating.js';
 
 interface OpButton {
   readonly op: TableOperation;
+  /** 短标签多为字形（行↑ / 列✕），不分语言；完整说法（title / aria）存 key。 */
   readonly label: string;
-  readonly title: string;
+  readonly titleKey: MessageKey;
 }
 
 const ROW_OPS: readonly OpButton[] = [
-  { op: 'rowBefore', label: '行↑', title: '在上方插入行' },
-  { op: 'rowAfter', label: '行↓', title: '在下方插入行' },
-  { op: 'deleteRow', label: '行✕', title: '删除当前行' },
+  { op: 'rowBefore', label: '行↑', titleKey: 'ui.table.rowBefore' },
+  { op: 'rowAfter', label: '行↓', titleKey: 'ui.table.rowAfter' },
+  { op: 'deleteRow', label: '行✕', titleKey: 'ui.table.deleteRow' },
 ];
 
 const COL_OPS: readonly OpButton[] = [
-  { op: 'colBefore', label: '列←', title: '在左侧插入列' },
-  { op: 'colAfter', label: '列→', title: '在右侧插入列' },
-  { op: 'deleteColumn', label: '列✕', title: '删除当前列' },
+  { op: 'colBefore', label: '列←', titleKey: 'ui.table.colBefore' },
+  { op: 'colAfter', label: '列→', titleKey: 'ui.table.colAfter' },
+  { op: 'deleteColumn', label: '列✕', titleKey: 'ui.table.deleteColumn' },
 ];
 
 const TABLE_OPS: readonly OpButton[] = [
-  { op: 'exit', label: '退出', title: '把光标移到表格之后，继续写正文' },
-  { op: 'deleteTable', label: '删表', title: '删除整张表格' },
+  { op: 'exit', label: '退出', titleKey: 'ui.table.exit' },
+  { op: 'deleteTable', label: '删表', titleKey: 'ui.table.deleteTable' },
 ];
 
-const ALIGN_OPS: ReadonlyArray<{ align: TableAlign; label: string; title: string }> = [
-  { align: 'left', label: '左', title: '单元格左对齐' },
-  { align: 'center', label: '中', title: '单元格居中对齐' },
-  { align: 'right', label: '右', title: '单元格右对齐' },
+const ALIGN_OPS: ReadonlyArray<{ align: TableAlign; label: string; titleKey: MessageKey }> = [
+  { align: 'left', label: '左', titleKey: 'ui.table.alignLeft' },
+  { align: 'center', label: '中', titleKey: 'ui.table.alignCenter' },
+  { align: 'right', label: '右', titleKey: 'ui.table.alignRight' },
 ];
 
 export interface TableToolbarProps {
@@ -95,8 +97,8 @@ export function TableToolbar({ state, table }: TableToolbarProps) {
       className="tt-btn"
       // 禁用时说明**为什么**不能点 —— 一个灰着的按钮不说理由，
       // 用户只会觉得它坏了
-      title={disabled && disabledTitle !== undefined ? disabledTitle : button.title}
-      aria-label={button.title}
+      title={disabled && disabledTitle !== undefined ? disabledTitle : t(button.titleKey)}
+      aria-label={t(button.titleKey)}
       disabled={disabled}
       // 不拦这一下，焦点会离开编辑器，光标从表格里消失，工具条跟着一起没了
       onMouseDown={(event) => event.preventDefault()}
@@ -111,7 +113,7 @@ export function TableToolbar({ state, table }: TableToolbarProps) {
       ref={rootRef}
       className="table-toolbar"
       role="toolbar"
-      aria-label="表格操作"
+      aria-label={t('ui.table.groupLabel')}
       style={{
         left: placement?.left ?? 0,
         top: placement?.top ?? 0,
@@ -123,15 +125,15 @@ export function TableToolbar({ state, table }: TableToolbarProps) {
           renderOp(
             button,
             button.op === 'deleteRow' && !state.canDeleteRow,
-            '表格至少要有表头行和一行正文，不能再删了',
+            t('ui.table.minRows'),
           ),
         )}
         <span className="tt-sep" />
         {COL_OPS.map((button) =>
-          renderOp(button, button.op === 'deleteColumn' && !state.canDeleteColumn, '表格至少要有一列，不能再删了'),
+          renderOp(button, button.op === 'deleteColumn' && !state.canDeleteColumn, t('ui.table.minCols')),
         )}
         <span className="tt-sep" />
-        <span className="tt-size" title="表格尺寸">
+        <span className="tt-size" title={t('ui.table.size')}>
           {state.columns} × {state.rows}
         </span>
       </div>
@@ -142,8 +144,8 @@ export function TableToolbar({ state, table }: TableToolbarProps) {
             key={button.align}
             type="button"
             className={`tt-btn tt-align ${state.align === button.align ? 'active' : ''}`}
-            title={button.title}
-            aria-label={button.title}
+            title={t(button.titleKey)}
+            aria-label={t(button.titleKey)}
             aria-pressed={state.align === button.align}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => table.setAlign(button.align)}

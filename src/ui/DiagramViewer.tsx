@@ -26,6 +26,7 @@
 import { useEffect } from 'react';
 
 import type { DiagramView } from '../core/editor/types.js';
+import { t } from '../core/i18n/index.js';
 
 export interface DiagramViewerProps {
   diagram: DiagramView;
@@ -50,13 +51,13 @@ export function DiagramViewer({ diagram, onClose }: DiagramViewerProps) {
       className="diagram-viewer"
       role="dialog"
       aria-modal="true"
-      aria-label="图表预览"
+      aria-label={t('ui.diagram.title')}
       onClick={onClose}
     >
       <button
         type="button"
         className="diagram-viewer-close"
-        aria-label="关闭预览"
+        aria-label={t('ui.preview.close')}
         onClick={(event) => {
           event.stopPropagation();
           onClose();

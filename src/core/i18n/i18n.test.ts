@@ -18,11 +18,19 @@ describe('t', () => {
     }
   });
 
-  it('每个目录 key 都是纯字符串，不夹占位符（目录里还没有需要插值的文案）', () => {
-    for (const value of Object.values(zhCN)) {
-      expect(value).not.toMatch(/\{(\w+)\}/);
+  it('带占位符的 key，两份目录的占位符集合必须一致', () => {
+    // E2 批次起目录里有了插值文案。占位符名字就是「翻译契约」：
+    // 英文译者改写语序是自由的，但 {name} 少了渲染时会留下裸占位符、
+    // 多了会得到 undefined —— 所以只钉「两边占位符集合相同」，
+    // 不再钉「不许有占位符」（那是没有插值文案时代的旧前提）。
+    const re = /\{(\w+)\}/g;
+    for (const [key, value] of Object.entries(zhCN)) {
+      const zh = new Set((value.match(re) ?? []).map((p) => p.slice(1, -1)));
+      const enSet = new Set((en[key as MessageKey].match(re) ?? []).map((p: string) => p.slice(1, -1)));
+      expect([...enSet].sort(), key).toEqual([...zh].sort());
     }
   });
+
 
   it('查不到的 key 返回 key 本身 —— 可见、可搜，而不是无声空白', () => {
     // 类型上不可能写错 key；这一条钉的是运行时的最后防线（目录被裁剪、

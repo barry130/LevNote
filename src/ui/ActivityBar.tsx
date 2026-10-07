@@ -43,6 +43,7 @@ import {
   IconSearchFolder,
   IconSettings,
 } from './icons.js';
+import { t } from '../core/i18n/index.js';
 
 export interface ActivityBarProps {
   readonly sidebarVisible: boolean;
@@ -81,16 +82,16 @@ export function ActivityBar({
   onSettings,
 }: ActivityBarProps) {
   return (
-    <nav className="activitybar" aria-label="活动栏">
+    <nav className="activitybar" aria-label={t('ui.activitybar.groupLabel')}>
       <button
         type="button"
         className="activity-item"
         aria-pressed={sidebarVisible && filesView}
-        title="文件浏览器（Ctrl+B）"
+        title={t('ui.activitybar.filesTitle')}
         onClick={onToggleSidebar}
       >
         <IconFiles size={22} />
-        <span className="sr-only">文件浏览器</span>
+        <span className="sr-only">{t('ui.activitybar.files')}</span>
       </button>
 
       <button
@@ -98,22 +99,22 @@ export function ActivityBar({
         className="activity-item"
         aria-pressed={sidebarVisible && searchView}
         disabled={!canSearchFolder}
-        title={canSearchFolder ? '在文件夹中检索（Ctrl+Shift+F）' : '在文件夹中检索：还没有打开文件夹'}
+        title={canSearchFolder ? t('ui.activitybar.searchFolderTitle') : t('ui.activitybar.searchNoFolder')}
         onClick={onSearchFolder}
       >
         <IconSearchFolder size={22} />
-        <span className="sr-only">在文件夹中检索</span>
+        <span className="sr-only">{t('ui.activitybar.search')}</span>
       </button>
 
       <button
         type="button"
         className="activity-item"
         disabled={!canFind}
-        title={canFind ? '在文档里查找（Ctrl+F）' : '查找：还没有打开文档'}
+        title={canFind ? t('ui.activitybar.findTitle') : t('ui.activitybar.findNoDoc')}
         onClick={onFind}
       >
         <IconSearch size={22} />
-        <span className="sr-only">查找</span>
+        <span className="sr-only">{t('ui.activitybar.find')}</span>
       </button>
 
       <button
@@ -121,25 +122,25 @@ export function ActivityBar({
         className="activity-item"
         aria-pressed={outlineVisible && canOutline}
         disabled={!canOutline}
-        title={canOutline ? '大纲（Ctrl+Shift+L）' : '大纲：当前文档没有标题结构'}
+        title={canOutline ? t('ui.activitybar.outlineTitle') : t('ui.activitybar.outlineNoHeadings')}
         onClick={onToggleOutline}
       >
         <IconOutline size={22} />
-        <span className="sr-only">大纲</span>
+        <span className="sr-only">{t('ui.activitybar.outline')}</span>
       </button>
 
       {/* 把设置与命令面板推到底部 —— VSCode 也是这个位置，
           因为它们是「偶尔用一次」的动作，不该占着视线中心 */}
       <span className="grow" />
 
-      <button type="button" className="activity-item" title="命令面板（Ctrl+P）" onClick={onPalette}>
+      <button type="button" className="activity-item" title={t('ui.activitybar.paletteTitle')} onClick={onPalette}>
         <IconCommand size={22} />
-        <span className="sr-only">命令面板</span>
+        <span className="sr-only">{t('ui.activitybar.palette')}</span>
       </button>
 
-      <button type="button" className="activity-item" title="设置（Ctrl+,）" onClick={onSettings}>
+      <button type="button" className="activity-item" title={t('ui.activitybar.settingsTitle')} onClick={onSettings}>
         <IconSettings size={22} />
-        <span className="sr-only">设置</span>
+        <span className="sr-only">{t('ui.activitybar.settings')}</span>
       </button>
     </nav>
   );

@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { EditorHandle } from '../core/editor/types.js';
 import type { FindOptions } from '../core/search/find.js';
+import { t } from '../core/i18n/index.js';
 
 export interface FindBarProps {
   handle: EditorHandle | null;
@@ -71,7 +72,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
     setIndex(total > 0 ? 0 : -1);
     // 正则非法时 find 会返回 0（见 find.ts 的 createFindPattern）——
     // 这时要给一个明确的提示，否则用户会以为「这个正则没有匹配」
-    setNotice(regex && total === 0 ? '正则无效，或没有匹配' : '');
+    setNotice(regex && total === 0 ? t('ui.find.regexInvalid') : '');
     if (total > 0) search.reveal(0);
     // options 是每帧新建的对象，逐字段列出依赖，避免每次渲染都重跑
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +100,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
     const done = search.replaceAll(replacement);
     setCount(0);
     setIndex(-1);
-    setNotice(`已替换 ${done} 处`);
+    setNotice(t('ui.find.replaced', { n: done }));
   }, [search, count, replacement]);
 
   const close = useCallback(() => {
@@ -111,10 +112,10 @@ export function FindBar({ handle, onClose }: FindBarProps) {
     return (
       <div className="findbar">
         <span className="grow">
-          当前编辑器内核不支持在文档内查找。切换到 Markdown 或代码内核后可用。
+          {t('ui.find.unsupported')}
         </span>
         <button type="button" onClick={onClose}>
-          关闭
+          {t('ui.find.close')}
         </button>
       </div>
     );
@@ -127,7 +128,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
         className="find-input"
         type="text"
         value={query}
-        placeholder="查找…"
+        placeholder={t('ui.find.placeholder')}
         spellCheck={false}
         onChange={(event) => setQuery(event.target.value)}
         onKeyDown={(event) => {
@@ -141,34 +142,34 @@ export function FindBar({ handle, onClose }: FindBarProps) {
         }}
       />
 
-      <span className="find-count">{count === 0 ? (query === '' ? '' : '无结果') : `${index + 1} / ${count}`}</span>
+      <span className="find-count">{count === 0 ? (query === '' ? '' : t('ui.find.noResult')) : `${index + 1} / ${count}`}</span>
 
       <button
         type="button"
         className={caseSensitive ? 'on' : ''}
-        title="区分大小写"
+        title={t('ui.find.caseSensitive')}
         onClick={() => setCaseSensitive((value) => !value)}
       >
         Aa
       </button>
-      <button type="button" className={wholeWord ? 'on' : ''} title="全词匹配" onClick={() => setWholeWord((value) => !value)}>
+      <button type="button" className={wholeWord ? 'on' : ''} title={t('ui.find.wholeWord')} onClick={() => setWholeWord((value) => !value)}>
         ab
       </button>
-      <button type="button" className={regex ? 'on' : ''} title="正则表达式" onClick={() => setRegex((value) => !value)}>
+      <button type="button" className={regex ? 'on' : ''} title={t('ui.find.regex')} onClick={() => setRegex((value) => !value)}>
         .*
       </button>
 
       <span className="sep">│</span>
-      <button type="button" title="上一个（Shift+Enter）" disabled={count === 0} onClick={() => step(-1)}>
+      <button type="button" title={t('ui.find.prev')} disabled={count === 0} onClick={() => step(-1)}>
         ↑
       </button>
-      <button type="button" title="下一个（Enter）" disabled={count === 0} onClick={() => step(1)}>
+      <button type="button" title={t('ui.find.next')} disabled={count === 0} onClick={() => step(1)}>
         ↓
       </button>
 
       <span className="sep">│</span>
-      <button type="button" className={showReplace ? 'on' : ''} title="显示替换" onClick={() => setShowReplace((value) => !value)}>
-        替换
+      <button type="button" className={showReplace ? 'on' : ''} title={t('ui.find.showReplace')} onClick={() => setShowReplace((value) => !value)}>
+        {t('ui.find.replace')}
       </button>
 
       {showReplace && (
@@ -177,7 +178,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
             className="find-input"
             type="text"
             value={replacement}
-            placeholder="替换为…"
+            placeholder={t('ui.find.replacePlaceholder')}
             spellCheck={false}
             onChange={(event) => setReplacement(event.target.value)}
             onKeyDown={(event) => {
@@ -188,10 +189,10 @@ export function FindBar({ handle, onClose }: FindBarProps) {
             }}
           />
           <button type="button" disabled={count === 0} onClick={replaceCurrent}>
-            替换
+            {t('ui.find.replace')}
           </button>
           <button type="button" disabled={count === 0} onClick={replaceEvery}>
-            全部替换
+            {t('ui.find.replaceAll')}
           </button>
         </>
       )}
@@ -199,7 +200,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
       {notice !== '' && <span className="find-notice">{notice}</span>}
 
       <span className="grow" />
-      <button type="button" title="关闭（Esc）" onClick={close}>
+      <button type="button" title={t('ui.find.closeShortcut')} onClick={close}>
         ×
       </button>
     </div>

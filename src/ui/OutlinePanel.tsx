@@ -15,6 +15,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import type { DocumentStore } from '../core/document/store.js';
 import { emptyStoreState } from '../core/document/store.js';
 import { extractOutline, outlineDepths, type OutlineItem } from '../core/outline/outline.js';
+import { t } from '../core/i18n/index.js';
 
 export interface OutlinePanelProps {
   store: DocumentStore | null;
@@ -34,19 +35,19 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
   return (
     <aside className="outline">
       <header className="outline-head">
-        <span className="outline-title">大纲</span>
+        <span className="outline-title">{t('ui.outline.title')}</span>
         <span className="grow" />
-        <span className="hint">{items.length} 个标题</span>
-        <button type="button" title="关闭大纲（Ctrl+Shift+L）" onClick={onClose}>
+        <span className="hint">{t('ui.outline.count', { n: items.length })}</span>
+        <button type="button" title={t('ui.outline.close')} onClick={onClose}>
           ×
         </button>
       </header>
 
       {items.length === 0 ? (
         <div className="outline-empty">
-          {text === '' ? '文档是空的。' : '这篇文档里没有标题。'}
+          {text === '' ? t('ui.outline.emptyDoc') : t('ui.outline.noHeadings')}
           <br />
-          用 <code>#</code> 开头的行就是标题。
+          {t('ui.outline.howHint')}
         </div>
       ) : (
         <div className="outline-list" role="tree">
@@ -58,10 +59,10 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
               className={`outline-item level-${item.level}`}
               style={{ paddingLeft: 10 + (depths[index] ?? 0) * 12 }}
               disabled={!canJump}
-              title={canJump ? `第 ${item.line} 行` : '当前编辑器内核不支持按标题跳转'}
+              title={canJump ? t('ui.outline.lineN', { line: item.line }) : t('ui.outline.noJump')}
               onClick={() => onJump(item)}
             >
-              {item.text === '' ? <span className="hint">（空标题）</span> : item.text}
+              {item.text === '' ? <span className="hint">{t('ui.outline.emptyHeading')}</span> : item.text}
             </button>
           ))}
         </div>

@@ -20,11 +20,17 @@
  */
 
 import type { ViewMode } from '../core/document/store.js';
+import { t, type MessageKey } from '../core/i18n/index.js';
 
-const MODES: ReadonlyArray<{ value: ViewMode; label: string; hint: string }> = [
-  { value: 'rich', label: '富文本', hint: '富文本视图（Ctrl+1）' },
-  { value: 'source', label: '源码', hint: '源码视图（Ctrl+2）' },
-  { value: 'split', label: '分屏', hint: '源码与预览并排（Ctrl+3）' },
+/**
+ * 静态数据只存 key，渲染时才 `t()`：模块加载时求值会把语言**钉死在启动那一刻**，
+ * 换语言后这三个按钮不会跟着变。同一条纪律适用于所有「常量清单 + 文案」的组件
+ * （块手柄、斜杠菜单、表格工具条……）。
+ */
+const MODES: ReadonlyArray<{ value: ViewMode; labelKey: MessageKey; hintKey: MessageKey }> = [
+  { value: 'rich', labelKey: 'ui.view.rich.label', hintKey: 'ui.view.rich.hint' },
+  { value: 'source', labelKey: 'ui.view.source.label', hintKey: 'ui.view.source.hint' },
+  { value: 'split', labelKey: 'ui.view.split.label', hintKey: 'ui.view.split.hint' },
 ];
 
 export interface ViewSwitcherProps {
@@ -34,18 +40,18 @@ export interface ViewSwitcherProps {
 
 export function ViewSwitcher({ value, onChange }: ViewSwitcherProps) {
   return (
-    <span className="view-switcher" role="group" aria-label="视图模式">
-      {MODES.map(({ value: mode, label, hint }) => (
+    <span className="view-switcher" role="group" aria-label={t('ui.view.groupLabel')}>
+      {MODES.map(({ value: mode, labelKey, hintKey }) => (
         <button
           key={mode}
           type="button"
           // 用 `aria-pressed` 而不是 `aria-current`：这三个是**开关组**，
           // 语义上「这一个开着」，不是「你在这里」。
           aria-pressed={value === mode}
-          title={hint}
+          title={t(hintKey)}
           onClick={() => onChange(mode)}
         >
-          {label}
+          {t(labelKey)}
         </button>
       ))}
     </span>

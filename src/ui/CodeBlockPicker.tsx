@@ -35,12 +35,15 @@ import type { KeyboardEvent } from 'react';
 
 import { rankCommands } from '../core/commands/fuzzy.js';
 import type { CodeBlockState, EditorCodeBlock } from '../core/editor/types.js';
+import { t, type MessageKey } from '../core/i18n/index.js';
 import { computeFloatingPlacement } from './floating.js';
 
 interface LanguageRow {
   /** 写进围栏 info string 的语言标识。**空串 = 清除语言**。 */
   readonly id: string;
+  /** 显示名。个别条目有本地化名（纯文本 / PHP 模板…），存 key 渲染时取。 */
   readonly label: string;
+  readonly labelKey?: MessageKey;
   /** 拼音 / 别名，供模糊搜索。中文名没有「词首」概念，靠这个才搜得到。 */
   readonly keywords: readonly string[];
 }
@@ -48,7 +51,8 @@ interface LanguageRow {
 /** 「纯文本」那一项：它对应 `setLanguage('')`，即把围栏的 info string 清掉。 */
 const PLAIN_ROW: LanguageRow = {
   id: '',
-  label: '纯文本',
+  label: '',
+  labelKey: 'ui.codeblock.plainText',
   keywords: ['text', 'txt', 'plain', 'chunwenben', 'wenben'],
 };
 
@@ -63,7 +67,7 @@ const PLAIN_ROW: LanguageRow = {
  * 另立的那一份迟早会和真正能高亮的语言对不上，而那种错是静默的 ——
  * 用户从列表里选了一个语言，高亮却退回自动识别，他看不出为什么。
  */
-const LABELS: Readonly<Record<string, { label: string; keywords: readonly string[] }>> = {
+const LABELS: Readonly<Record<string, { label: string; labelKey?: MessageKey; keywords: readonly string[] }>> = {
   bash: { label: 'Bash', keywords: ['shell', 'sh', '命令行'] },
   c: { label: 'C', keywords: [] },
   cpp: { label: 'C++', keywords: ['cplusplus'] },
@@ -84,9 +88,9 @@ const LABELS: Readonly<Record<string, { label: string; keywords: readonly string
   objectivec: { label: 'Objective-C', keywords: ['objc'] },
   perl: { label: 'Perl', keywords: [] },
   php: { label: 'PHP', keywords: [] },
-  'php-template': { label: 'PHP 模板', keywords: ['phptemplate', '模板'] },
+  'php-template': { label: '', labelKey: 'ui.codeblock.phpTemplate', keywords: ['phptemplate', '模板'] },
   python: { label: 'Python', keywords: ['py'] },
-  'python-repl': { label: 'Python 交互式', keywords: ['repl', 'jupyter'] },
+  'python-repl': { label: '', labelKey: 'ui.codeblock.pythonRepl', keywords: ['repl', 'jupyter'] },
   r: { label: 'R', keywords: [] },
   ruby: { label: 'Ruby', keywords: ['rb'] },
   rust: { label: 'Rust', keywords: ['rs'] },
@@ -181,7 +185,7 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
         : [];
 
     const hits = rankCommands(query, universe, (item) => ({
-      title: item.label,
+      title: item.labelKey !== undefined ? t(item.labelKey) : item.label,
       keywords: item.keywords,
       id: item.id,
     })).map((hit) => hit.item);
@@ -189,7 +193,7 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
     if (typed === '' || universe.some((row) => row.id === typed)) return [...current, ...hits];
     // 原样用用户输入的值。少了这一项，「hljs 不认识的围栏」（`mermaid` 之类）
     // 就没法从界面上选出来 —— 用户会被卡在列表里找不到自己的语言
-    return [...hits, { id: typed, label: `使用 “${typed}”`, keywords: [] }];
+    return [...hits, { id: typed, label: t('ui.codeblock.useTyped', { lang: typed }), keywords: [] }];
   }, [query, language, allRows]);
 
   /**
@@ -295,7 +299,7 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
       ref={rootRef}
       className="cb-picker"
       role="dialog"
-      aria-label="代码语言"
+      aria-label={t('ui.codeblock.languageAria')}
       style={{
         left: placement?.left ?? 0,
         top: placement?.top ?? 0,
@@ -307,8 +311,8 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
         type="text"
         className="cb-search"
         value={query}
-        placeholder="搜索语言…"
-        aria-label="搜索语言"
+        placeholder={t('ui.codeblock.searchPlaceholder')}
+        aria-label={t('ui.codeblock.searchAria')}
         role="combobox"
         aria-expanded="true"
         aria-controls="cb-picker-list"
@@ -322,9 +326,9 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
         onKeyDown={onKeyDown}
       />
 
-      <div className="cb-list" id="cb-picker-list" role="listbox" aria-label="候选语言">
+      <div className="cb-list" id="cb-picker-list" role="listbox" aria-label={t('ui.codeblock.listAria')}>
         {rows.length === 0 ? (
-          <div className="cb-empty">没有匹配的语言</div>
+          <div className="cb-empty">{t('ui.codeblock.empty')}</div>
         ) : (
           rows.map((row, index) => (
             <button
@@ -339,9 +343,9 @@ export function CodeBlockPicker({ state, codeBlock, lineNumbers, onToggleLineNum
               onMouseEnter={() => setHighlighted(index)}
               onClick={() => apply(row.id)}
             >
-              <span className="cb-label">{row.label}</span>
+              <span className="cb-label">{row.labelKey !== undefined ? t(row.labelKey) : row.label}</span>
               {/* 标识与名字相同时不重复画一遍（```` ```js ```` 补出来的那一行就是这样） */}
-              {row.id === '' || row.id === row.label ? null : <span className="cb-id">{row.id}</span>}
+              {row.id === '' || row.id === row.label || row.label === '' ? null : <span className="cb-id">{row.id}</span>}
             </button>
           ))
         )}

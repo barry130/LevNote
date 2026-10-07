@@ -21,6 +21,7 @@
 import { useEffect } from 'react';
 
 import type { ImageInfo } from '../core/editor/types.js';
+import { t } from '../core/i18n/index.js';
 
 export interface LightboxProps {
   image: ImageInfo;
@@ -52,11 +53,11 @@ export function Lightbox({ image, onClose }: LightboxProps) {
   const caption = image.title !== '' ? image.title : image.alt;
 
   return (
-    <div className="lightbox" role="dialog" aria-modal="true" aria-label="图片预览" onClick={onClose}>
+    <div className="lightbox" role="dialog" aria-modal="true" aria-label={t('ui.preview.title')} onClick={onClose}>
       <button
         type="button"
         className="lightbox-close"
-        aria-label="关闭预览"
+        aria-label={t('ui.preview.close')}
         onClick={(event) => {
           event.stopPropagation();
           onClose();

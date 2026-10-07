@@ -34,6 +34,7 @@
  * **一次 Esc 会改文档内容** —— 用户只是想「算了不插了」，不该付出这个代价。
  */
 
+import { t, type MessageKey } from '../core/i18n/index.js';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { rankCommands } from '../core/commands/fuzzy.js';
@@ -47,9 +48,11 @@ interface SlashItem {
   readonly block: InsertableBlock;
   /** 左侧图标位。刻意用字形而不是图标组件 —— 不引入图标库。 */
   readonly abbr: string;
-  readonly label: string;
-  /** 右侧的补充说明，同时也是搜索命中面的一部分（不进 title）。 */
+  /** 存 key：静态清单在模块加载时求值，直接存译文会把语言钉死在启动那一刻。 */
+  readonly labelKey: MessageKey;
+  /** 右侧的补充说明（不进 title）。符号类的写法提示不分语言，文案类存 key。 */
   readonly hint: string;
+  readonly hintKey: MessageKey | null;
   /** 拼音 / 英文别名。中文标题没有「词首」概念，靠这个才能用 `biaoti` 搜到「标题」。 */
   readonly keywords: readonly string[];
 }
@@ -63,19 +66,19 @@ interface SlashItem {
  * 只到三级标题，与选中工具条一致：H4–H6 走命令面板。
  */
 const SLASH_ITEMS: readonly SlashItem[] = [
-  { block: 'paragraph', abbr: '¶', label: '正文', hint: '普通段落', keywords: ['zhengwen', 'duanluo', 'paragraph', 'text', 'p'] },
-  { block: 'heading1', abbr: 'H1', label: '一级标题', hint: '#', keywords: ['yijibiaoti', 'biaoti', 'heading', 'h1'] },
-  { block: 'heading2', abbr: 'H2', label: '二级标题', hint: '##', keywords: ['erjibiaoti', 'biaoti', 'heading', 'h2'] },
-  { block: 'heading3', abbr: 'H3', label: '三级标题', hint: '###', keywords: ['sanjibiaoti', 'biaoti', 'heading', 'h3'] },
-  { block: 'bulletList', abbr: '•', label: '无序列表', hint: '- ', keywords: ['wuxuliebiao', 'liebiao', 'bullet', 'ul', 'list'] },
-  { block: 'orderedList', abbr: '1.', label: '有序列表', hint: '1. ', keywords: ['youxuliebiao', 'liebiao', 'ordered', 'ol', 'list'] },
-  { block: 'blockquote', abbr: '❝', label: '引用', hint: '> ', keywords: ['yinyong', 'quote', 'blockquote'] },
-  { block: 'codeBlock', abbr: '</>', label: '代码块', hint: '```', keywords: ['daimakuai', 'daima', 'code', 'fence'] },
-  { block: 'mathBlock', abbr: '∑', label: '数学公式', hint: '$$', keywords: ['shuxue', 'gongshi', 'math', 'latex', 'tex', 'katex', 'formula', 'equation'] },
-  { block: 'diagram', abbr: '◇', label: '图表', hint: 'mermaid', keywords: ['tubiao', 'tu', 'liuchengtu', 'diagram', 'mermaid', 'graph', 'chart', 'flowchart'] },
-  { block: 'drawio', abbr: '▤', label: 'draw.io 图表', hint: '可视化画图', keywords: ['draw', 'drawio', 'drawdotio', 'tupian', 'huatu', 'diagram', 'visio', 'bpmn', 'flowchart'] },
-  { block: 'table', abbr: '▦', label: '表格', hint: '3 × 3', keywords: ['biaoge', 'biao', 'table', 'grid'] },
-  { block: 'hr', abbr: '—', label: '分隔线', hint: '---', keywords: ['fengexian', 'fenge', 'hr', 'divider', 'rule'] },
+  { block: 'paragraph', abbr: '¶', labelKey: 'ui.slash.paragraph', hint: '', hintKey: 'ui.slash.paragraphHint', keywords: ['zhengwen', 'duanluo', 'paragraph', 'text', 'p'] },
+  { block: 'heading1', abbr: 'H1', labelKey: 'ui.slash.heading1', hint: '#', hintKey: null, keywords: ['yijibiaoti', 'biaoti', 'heading', 'h1'] },
+  { block: 'heading2', abbr: 'H2', labelKey: 'ui.slash.heading2', hint: '##', hintKey: null, keywords: ['erjibiaoti', 'biaoti', 'heading', 'h2'] },
+  { block: 'heading3', abbr: 'H3', labelKey: 'ui.slash.heading3', hint: '###', hintKey: null, keywords: ['sanjibiaoti', 'biaoti', 'heading', 'h3'] },
+  { block: 'bulletList', abbr: '•', labelKey: 'ui.slash.bulletList', hint: '- ', hintKey: null, keywords: ['wuxuliebiao', 'liebiao', 'bullet', 'ul', 'list'] },
+  { block: 'orderedList', abbr: '1.', labelKey: 'ui.slash.orderedList', hint: '1. ', hintKey: null, keywords: ['youxuliebiao', 'liebiao', 'ordered', 'ol', 'list'] },
+  { block: 'blockquote', abbr: '❝', labelKey: 'ui.slash.blockquote', hint: '> ', hintKey: null, keywords: ['yinyong', 'quote', 'blockquote'] },
+  { block: 'codeBlock', abbr: '</>', labelKey: 'ui.slash.codeBlock', hint: '```', hintKey: null, keywords: ['daimakuai', 'daima', 'code', 'fence'] },
+  { block: 'mathBlock', abbr: '∑', labelKey: 'ui.slash.mathBlock', hint: '$$', hintKey: null, keywords: ['shuxue', 'gongshi', 'math', 'latex', 'tex', 'katex', 'formula', 'equation'] },
+  { block: 'diagram', abbr: '◇', labelKey: 'ui.slash.diagram', hint: 'mermaid', hintKey: null, keywords: ['tubiao', 'tu', 'liuchengtu', 'diagram', 'mermaid', 'graph', 'chart', 'flowchart'] },
+  { block: 'drawio', abbr: '▤', labelKey: 'ui.slash.drawio', hint: '', hintKey: 'ui.slash.drawioHint', keywords: ['draw', 'drawio', 'drawdotio', 'tupian', 'huatu', 'diagram', 'visio', 'bpmn', 'flowchart'] },
+  { block: 'table', abbr: '▦', labelKey: 'ui.slash.table', hint: '3 × 3', hintKey: null, keywords: ['biaoge', 'biao', 'table', 'grid'] },
+  { block: 'hr', abbr: '—', labelKey: 'ui.slash.hr', hint: '---', hintKey: null, keywords: ['fengexian', 'fenge', 'hr', 'divider', 'rule'] },
 ];
 
 export interface SlashMenuProps {
@@ -96,7 +99,7 @@ export function SlashMenu({ state, formatting }: SlashMenuProps) {
   const rows = useMemo(
     () =>
       rankCommands(query, SLASH_ITEMS, (item) => ({
-        title: item.label,
+        title: t(item.labelKey),
         keywords: item.keywords,
         id: item.block,
       })).map((hit) => hit.item),
@@ -199,7 +202,7 @@ export function SlashMenu({ state, formatting }: SlashMenuProps) {
       ref={rootRef}
       className="slash-menu"
       role="listbox"
-      aria-label="插入块"
+      aria-label={t('ui.slash.insertBlock')}
       style={{
         left: placement?.left ?? 0,
         top: placement?.top ?? 0,
@@ -207,7 +210,7 @@ export function SlashMenu({ state, formatting }: SlashMenuProps) {
       }}
     >
       {rows.length === 0 ? (
-        <div className="slash-empty">没有匹配的块</div>
+        <div className="slash-empty">{t('ui.slash.empty')}</div>
       ) : (
         rows.map((item, index) => (
           <button
@@ -223,8 +226,8 @@ export function SlashMenu({ state, formatting }: SlashMenuProps) {
             onClick={() => apply(item.block)}
           >
             <span className="slash-abbr">{item.abbr}</span>
-            <span className="slash-label">{item.label}</span>
-            <span className="slash-hint">{item.hint}</span>
+            <span className="slash-label">{t(item.labelKey)}</span>
+            <span className="slash-hint">{item.hintKey !== null ? t(item.hintKey) : item.hint}</span>
           </button>
         ))
       )}

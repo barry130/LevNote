@@ -37,7 +37,7 @@ import { encodingSlug } from '../core/encodings.js';
 import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
 import { loadRecentFiles, recordRecentList, saveRecentFiles } from '../core/recent.js';
-import { setLocale } from '../core/i18n/index.js';
+import { setLocale, t } from '../core/i18n/index.js';
 import { buildRecentFileCommands, RECENT_MENU_SLOTS } from '../core/commands/definitions.js';
 import { WorkspaceSearchStore, totalMatchesOf, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
 import { replaceAcrossFiles, describeReplaceOutcome } from '../core/search/replace.js';
@@ -464,9 +464,9 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     async (path: string, isDir: boolean): Promise<boolean> => {
       const name = basename(path);
       const message = isDir
-        ? `删除文件夹「${name}」？其中的全部内容都会被删除，此操作不可撤销。`
-        : `删除文件「${name}」？此操作不可撤销。`;
-      const yes = await askConfirm(message, '删除');
+        ? t('ui.app.deleteDirConfirm', { name })
+        : t('ui.app.deleteFileConfirm', { name });
+      const yes = await askConfirm(message, t('ui.app.delete'));
       if (!yes) return false;
       return workspace.deleteEntry(path);
     },
@@ -491,10 +491,10 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         regex: snapshot.options.regex,
       };
       const total = totalMatchesOf(snapshot.files);
-      const shown = replacement === '' ? '（空，即删除命中）' : replacement;
+      const shown = replacement === '' ? t('ui.app.replaceEmptyShown') : replacement;
       const yes = await askConfirm(
-        `在 ${String(paths.length)} 个文件里把 ${String(total)} 处「${snapshot.query}」替换为「${shown}」？\n\n打开且有未保存改动的文件会被跳过。此操作会直接写入磁盘。`,
-        '全部替换',
+        t('ui.app.replaceAllConfirm', { count: paths.length, total, query: snapshot.query, shown }),
+        t('ui.app.replaceAll'),
       );
       if (!yes) return null;
 
@@ -538,7 +538,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       const docPath = workspace.activeStore?.getSnapshot().doc?.path ?? null;
       const absolute = docPath === null ? null : resolveRelative(docPath, ref.src);
       if (absolute === null) {
-        void provider.notify(`无法确定 ${ref.src} 的位置 —— 这份文档没有可用的目录信息。`, '打开引用');
+        void provider.notify(t('ui.app.refNoBase', { src: ref.src }), t('ui.app.refOpenTitle'));
       }
       return absolute;
     },
@@ -582,7 +582,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     (ref: { src: string; kind: string }) => {
       const docPath = workspace.activeStore?.getSnapshot().doc?.path ?? null;
       if (docPath === null) {
-        return Promise.resolve({ kind: 'error' as const, reason: '无法确定这份文档的位置' });
+        return Promise.resolve({ kind: 'error' as const, reason: t('ui.app.refNoBaseReason') });
       }
       const readTextFile = async (path: string) => {
         try {
@@ -961,7 +961,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       const current = workspace.activeTab;
       if (current === null) return;
       if (current.dirty) {
-        const leave = await askConfirm(`${current.displayName} 有未保存的改动，仍要关闭吗？`);
+        const leave = await askConfirm(t('ui.app.closeDirtyConfirm', { name: current.displayName }));
         if (!leave) return;
       }
       workspace.closeActive(true);
@@ -1332,7 +1332,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           const dirty = workspace.getSnapshot().tabs.filter((tab) => tab.dirty);
           if (dirty.length === 0) return;
           const names = dirty.map((tab) => tab.displayName).join('、');
-          const leave = await askConfirm(`${names} 有未保存的改动，仍要退出吗？`);
+          const leave = await askConfirm(t('ui.app.exitDirtyConfirm', { names }));
           if (!leave) event.preventDefault();
         }),
       );
@@ -1347,7 +1347,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   // ---- 窗口标题 ---------------------------------------------------------
 
   useEffect(() => {
-    const title = activeTab ? `${activeTab.dirty ? '• ' : ''}${activeTab.displayName} — 轻墨` : '轻墨';
+    const title = activeTab ? `${activeTab.dirty ? '• ' : ''}${t('ui.app.winTitle', { name: activeTab.displayName })}` : t('ui.app.appName');
     document.title = title;
     if (!isDesktop()) return;
     void import('@tauri-apps/api/window')
@@ -1444,7 +1444,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
             return;
           }
           void (async () => {
-            const leave = await askConfirm(`${tab.displayName} 有未保存的改动，仍要关闭吗？`);
+            const leave = await askConfirm(t('ui.app.closeDirtyConfirm', { name: tab.displayName }));
             if (leave) workspace.closeTab(id, true);
           })();
         }}
@@ -1454,9 +1454,9 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       {kernelFailures.length > 0 && (
         <div className="banner error">
           <span className="grow">
-            <strong>有 {kernelFailures.length} 个编辑内核没能加载</strong>
+            <strong>{t('ui.app.kernelFailTitle', { n: kernelFailures.length })}</strong>
             （{kernelFailures.map((f) => `${f.id}：${f.reason}`).join('；')}）。
-            相关文档会以纯文本打开 —— 其余功能不受影响。重启应用通常会解决。
+            {t('ui.app.kernelFailBody')}
           </span>
         </div>
       )}
@@ -1468,7 +1468,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
             {openError.detail ? `（${openError.detail}）` : ''}
           </span>
           <button type="button" onClick={workspace.clearOpenError}>
-            知道了
+            {t('ui.app.dismiss')}
           </button>
         </div>
       )}
@@ -1483,25 +1483,25 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           <span className="grow">
             {sessionWarning.failed.length > 0 && (
               <>
-                <strong>有 {sessionWarning.failed.length} 个上次开着的文件打不开了</strong>
-                （可能已被删除或移走）：{sessionWarning.failed.map((path) => basename(path)).join('、')}。
+                <strong>{t('ui.app.sessionFailedTitle', { n: sessionWarning.failed.length })}</strong>
+                {t('ui.app.sessionFailedBody', { names: sessionWarning.failed.map((path) => basename(path)).join('、') })}
               </>
             )}
             {sessionWarning.droppedDrafts > 0 && (
               <>
-                <strong>有 {sessionWarning.droppedDrafts} 份未保存的草稿没能存下来</strong>
-                （会话记录超出了容量上限）。如果那正是你在写的东西，请在退出前手动保存。
+                <strong>{t('ui.app.draftsLostTitle', { n: sessionWarning.droppedDrafts })}</strong>
+                {t('ui.app.draftsLostBody')}
               </>
             )}
             {sessionWarning.writeFailed && (
               <>
-                <strong>会话记录写不进去</strong>
-                （存储被禁用或已写满）。自动备份未保存改动的能力已经失效，请手动保存。
+                <strong>{t('ui.app.storageBrokenTitle')}</strong>
+                {t('ui.app.storageBrokenBody')}
               </>
             )}
           </span>
           <button type="button" onClick={() => setSessionWarning(NO_SESSION_WARNING)}>
-            知道了
+            {t('ui.app.dismiss')}
           </button>
         </div>
       )}
@@ -1593,21 +1593,21 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
             <main className="editor-area">
               <div className="empty">
                 <Mark size={56} />
-                <h2>正在恢复上次的标签页…</h2>
-                <p>正在把上次没保存的改动一起读回来。</p>
+                <h2>{t('ui.app.restoringTitle')}</h2>
+                <p>{t('ui.app.restoringBody')}</p>
               </div>
             </main>
           ) : (
             <main className="editor-area">
               <div className="empty">
                 <Mark size={56} />
-                <h2>还没有打开文档</h2>
+                <h2>{t('ui.app.noDocsTitle')}</h2>
                 <p>
-                  按 <kbd>Ctrl</kbd> + <kbd>O</kbd> 打开文件，按 <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd>{' '}
-                  打开文件夹，或把文件直接拖进这个窗口。
+                  {t('ui.app.noDocsOpen1')} <kbd>Ctrl</kbd> + <kbd>O</kbd> {t('ui.app.noDocsOpen2')}{' '}
+                  <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd> {t('ui.app.noDocsOpen3')}
                 </p>
                 <p className="hint">
-                  轻墨支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档，它们可以互相引用。
+                  {t('ui.app.noDocsHint')}
                 </p>
               </div>
             </main>
@@ -1648,7 +1648,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         />
       )}
 
-      {dragging && <div className="drop-overlay">松手即可打开</div>}
+      {dragging && <div className="drop-overlay">{t('ui.app.dropOverlay')}</div>}
     </div>
   );
 }

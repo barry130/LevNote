@@ -31,6 +31,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { basename } from '../core/path.js';
+import { t } from '../core/i18n/index.js';
 import { flattenTree, type TreeRow } from '../core/workspace/tree.js';
 import type { TreeState } from '../core/workspace/store.js';
 
@@ -95,7 +96,7 @@ export function Sidebar({
     <aside className="sidebar">
       <header className="sidebar-head">
         <span className="sidebar-title" title={tree.root ?? ''}>
-          {tree.root === null ? '没有打开文件夹' : basename(tree.root)}
+          {tree.root === null ? t('ui.sidebar.noFolder') : basename(tree.root)}
         </span>
         <span className="grow" />
         {tree.root !== null && (
@@ -104,26 +105,26 @@ export function Sidebar({
               <>
                 <button
                   type="button"
-                  title="在根目录新建文件"
+                  title={t('ui.sidebar.newFileRoot')}
                   onClick={() => setCreating({ dir: tree.root!, kind: 'file' })}
                 >
                   ＋
                 </button>
                 <button
                   type="button"
-                  title="在根目录新建文件夹"
+                  title={t('ui.sidebar.newDirRoot')}
                   onClick={() => setCreating({ dir: tree.root!, kind: 'dir' })}
                 >
                   ⊞
                 </button>
               </>
             )}
-            <button type="button" title="刷新目录" onClick={onRefresh} disabled={tree.loading.length > 0}>
+            <button type="button" title={t('ui.sidebar.refresh')} onClick={onRefresh} disabled={tree.loading.length > 0}>
               ⟳
             </button>
             <button
               type="button"
-              title={tree.showIgnored ? '隐藏 node_modules 等目录' : '显示 node_modules 等目录'}
+              title={tree.showIgnored ? t('ui.sidebar.hideIgnored') : t('ui.sidebar.showIgnored')}
               className={tree.showIgnored ? 'on' : ''}
               onClick={onToggleIgnored}
             >
@@ -131,7 +132,7 @@ export function Sidebar({
             </button>
           </>
         )}
-        <button type="button" title="打开文件夹（Ctrl+Shift+O）" onClick={onOpenFolder}>
+        <button type="button" title={t('ui.sidebar.openFolderTitle')} onClick={onOpenFolder}>
           ⌸
         </button>
       </header>
@@ -140,9 +141,9 @@ export function Sidebar({
 
       {tree.root === null ? (
         <div className="sidebar-empty">
-          <p>打开一个文件夹，它的内容会显示在这里。</p>
+          <p>{t('ui.sidebar.emptyHint')}</p>
           <button type="button" className="primary" onClick={onOpenFolder}>
-            打开文件夹
+            {t('ui.sidebar.openFolder')}
           </button>
         </div>
       ) : (
@@ -150,7 +151,7 @@ export function Sidebar({
           {creating !== null && creating.dir === tree.root && (
             <NameInputRow
               depth={0}
-              placeholder={creating.kind === 'file' ? '新文件名（回车确认，Esc 取消）' : '新文件夹名（回车确认，Esc 取消）'}
+              placeholder={creating.kind === 'file' ? t('ui.sidebar.newFilePlaceholder') : t('ui.sidebar.newDirPlaceholder')}
               onCommit={commitCreate}
               onCancel={() => setCreating(null)}
             />
@@ -180,7 +181,7 @@ export function Sidebar({
               {creating !== null && row.isDir && creating.dir === row.path && (
                 <NameInputRow
                   depth={row.depth + 1}
-                  placeholder={creating.kind === 'file' ? '新文件名（回车确认，Esc 取消）' : '新文件夹名（回车确认，Esc 取消）'}
+                  placeholder={creating.kind === 'file' ? t('ui.sidebar.newFilePlaceholder') : t('ui.sidebar.newDirPlaceholder')}
                   onCommit={commitCreate}
                   onCancel={() => setCreating(null)}
                 />
@@ -189,7 +190,7 @@ export function Sidebar({
           ))}
           {rows.length === 0 && creating === null && tree.loading.length === 0 && (
             <div className="sidebar-empty">
-              <p>这个文件夹是空的（或只包含被折叠的目录）。</p>
+              <p>{t('ui.sidebar.emptyDir')}</p>
             </div>
           )}
         </div>
@@ -234,7 +235,7 @@ function TreeItem({
       <span className="tree-icon">{row.isDir ? (row.expanded ? '▾' : '▸') : ''}</span>
       <span className="tree-name">{row.name}</span>
       {/* 已展开但一个子项都没有的目录：给一个明确的说明，别让用户以为加载失败 */}
-      {row.isDir && row.expanded && !row.loaded && <span className="tree-note">加载中…</span>}
+      {row.isDir && row.expanded && !row.loaded && <span className="tree-note">{t('ui.sidebar.loading')}</span>}
       {canManage && (
         // 悬停才出现（见 styles.css）；stopPropagation 别让行点击抢走这一下
         <span className="tree-actions">
@@ -242,7 +243,7 @@ function TreeItem({
             <>
               <button
                 type="button"
-                title="在这新建文件"
+                title={t('ui.sidebar.newFileHere')}
                 onClick={(event) => {
                   event.stopPropagation();
                   onCreateHere('file');
@@ -252,7 +253,7 @@ function TreeItem({
               </button>
               <button
                 type="button"
-                title="在这新建文件夹"
+                title={t('ui.sidebar.newDirHere')}
                 onClick={(event) => {
                   event.stopPropagation();
                   onCreateHere('dir');
@@ -264,7 +265,7 @@ function TreeItem({
           )}
           <button
             type="button"
-            title="重命名"
+            title={t('ui.sidebar.rename')}
             onClick={(event) => {
               event.stopPropagation();
               onStartRename();
@@ -274,7 +275,7 @@ function TreeItem({
           </button>
           <button
             type="button"
-            title="删除"
+            title={t('ui.sidebar.delete')}
             onClick={(event) => {
               event.stopPropagation();
               onDelete();

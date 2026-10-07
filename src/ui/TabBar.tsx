@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 
+import { t } from '../core/i18n/index.js';
 import type { TabSummary } from '../core/workspace/store.js';
 
 export interface TabBarProps {
@@ -46,7 +47,7 @@ export function TabBar({ tabs, activeId, backTo, onBack, onActivate, onClose, on
          * 放在标签页列表的**最左边**：它是当前标签页的导航上下文，
          * 不是一枚可点开的标签页。
          */
-        <button type="button" className="tab-back" title={`返回 ${backTo.name}`} onClick={onBack}>
+        <button type="button" className="tab-back" title={t('ui.tabs.backTo', { name: backTo.name })} onClick={onBack}>
           ↩ {backTo.name}
         </button>
       )}
@@ -95,13 +96,13 @@ export function TabBar({ tabs, activeId, backTo, onBack, onActivate, onClose, on
             setOverAt(null);
           }}
         >
-          {tab.dirty && <span className="dot" title="有未保存的改动" />}
+          {tab.dirty && <span className="dot" title={t('ui.tabs.dirty')} />}
           <span className="tab-name">{tab.displayName}</span>
           <button
             type="button"
             className="tab-close"
-            aria-label={`关闭 ${tab.displayName}`}
-            title="关闭（Ctrl+W）"
+            aria-label={t('ui.tabs.close', { name: tab.displayName })}
+            title={t('ui.tabs.closeShortcut')}
             onClick={(event) => {
               // 不加这一句，点关闭会先冒泡到标签页的 onClick 把它激活一次
               event.stopPropagation();

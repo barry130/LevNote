@@ -47,6 +47,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 
 import type { BlockFormat, BlockHandleState, EditorBlockHandle, SelectionRect } from '../core/editor/types.js';
+import { t, type MessageKey } from '../core/i18n/index.js';
 import { computeFloatingPlacement, FLOATING_MARGIN } from './floating.js';
 import { IconGrip } from './icons.js';
 
@@ -60,7 +61,8 @@ const DRAG_THRESHOLD = 4;
 /** 「转为」那一组。顺序即菜单顺序。 */
 interface TurnIntoItem {
   readonly id: string;
-  readonly label: string;
+  /** 存 key 不存文案：静态清单在模块加载时求值，那时把语言钉死就再也换不回来了。 */
+  readonly labelKey: MessageKey;
   /** 右侧的写法提示。用 Markdown 里的写法，不用图标。 */
   readonly hint: string;
   readonly block: BlockFormat;
@@ -68,14 +70,14 @@ interface TurnIntoItem {
 }
 
 const TURN_INTO: readonly TurnIntoItem[] = [
-  { id: 'paragraph', label: '正文', hint: '¶', block: 'paragraph' },
-  { id: 'heading1', label: '一级标题', hint: '#', block: 'heading', level: 1 },
-  { id: 'heading2', label: '二级标题', hint: '##', block: 'heading', level: 2 },
-  { id: 'heading3', label: '三级标题', hint: '###', block: 'heading', level: 3 },
-  { id: 'blockquote', label: '引用', hint: '>', block: 'blockquote' },
-  { id: 'bulletList', label: '无序列表', hint: '- ', block: 'bulletList' },
-  { id: 'orderedList', label: '有序列表', hint: '1. ', block: 'orderedList' },
-  { id: 'codeBlock', label: '代码块', hint: '```', block: 'codeBlock' },
+  { id: 'paragraph', labelKey: 'ui.blockhandle.turnParagraph', hint: '¶', block: 'paragraph' },
+  { id: 'heading1', labelKey: 'ui.blockhandle.turnHeading1', hint: '#', block: 'heading', level: 1 },
+  { id: 'heading2', labelKey: 'ui.blockhandle.turnHeading2', hint: '##', block: 'heading', level: 2 },
+  { id: 'heading3', labelKey: 'ui.blockhandle.turnHeading3', hint: '###', block: 'heading', level: 3 },
+  { id: 'blockquote', labelKey: 'ui.blockhandle.turnQuote', hint: '>', block: 'blockquote' },
+  { id: 'bulletList', labelKey: 'ui.blockhandle.turnBulletList', hint: '- ', block: 'bulletList' },
+  { id: 'orderedList', labelKey: 'ui.blockhandle.turnOrderedList', hint: '1. ', block: 'orderedList' },
+  { id: 'codeBlock', labelKey: 'ui.blockhandle.turnCodeBlock', hint: '```', block: 'codeBlock' },
 ];
 
 export interface BlockHandleProps {
@@ -254,7 +256,7 @@ export function BlockHandle({ hover, blockHandle, menuOpen, onOpenMenu, onCloseM
       >
         <IconGrip />
         {/* 可访问名 + 测试按文字找得到（与活动栏同一条约定） */}
-        <span className="sr-only">块操作</span>
+        <span className="sr-only">{t('ui.blockhandle.grip')}</span>
       </button>
 
       {dropLine !== null && (
@@ -275,7 +277,8 @@ interface MenuEntry {
   readonly id: string;
   /** 分组序号。相邻且相同的不画分隔线。 */
   readonly group: number;
-  readonly label: string;
+  /** 渲染时才 `t()` —— `entries` 是 memo，把译文存进去会在换语言后过期。 */
+  readonly labelKey: MessageKey;
   readonly hint: string;
   readonly disabled: boolean;
   readonly run: () => void;
@@ -305,7 +308,7 @@ function BlockMenu({ state, blockHandle, anchor, onClose }: BlockMenuProps) {
         list.push({
           id: `turn-${item.id}`,
           group: 0,
-          label: item.label,
+          labelKey: item.labelKey,
           hint: item.hint,
           disabled: current,
           run: () => blockHandle.turnInto(item.block, item.level),
@@ -316,7 +319,7 @@ function BlockMenu({ state, blockHandle, anchor, onClose }: BlockMenuProps) {
     list.push({
       id: 'moveUp',
       group: 1,
-      label: '上移',
+      labelKey: 'ui.blockhandle.moveUp',
       hint: '',
       disabled: !state.canMoveUp,
       run: () => blockHandle.run('moveUp'),
@@ -324,7 +327,7 @@ function BlockMenu({ state, blockHandle, anchor, onClose }: BlockMenuProps) {
     list.push({
       id: 'moveDown',
       group: 1,
-      label: '下移',
+      labelKey: 'ui.blockhandle.moveDown',
       hint: '',
       disabled: !state.canMoveDown,
       run: () => blockHandle.run('moveDown'),
@@ -332,7 +335,7 @@ function BlockMenu({ state, blockHandle, anchor, onClose }: BlockMenuProps) {
     list.push({
       id: 'duplicate',
       group: 1,
-      label: '复制一份',
+      labelKey: 'ui.blockhandle.duplicate',
       hint: '',
       disabled: false,
       run: () => blockHandle.run('duplicate'),
@@ -340,7 +343,7 @@ function BlockMenu({ state, blockHandle, anchor, onClose }: BlockMenuProps) {
     list.push({
       id: 'delete',
       group: 1,
-      label: '删除',
+      labelKey: 'ui.blockhandle.delete',
       hint: '',
       disabled: !state.canDelete,
       run: () => blockHandle.run('delete'),
@@ -450,7 +453,7 @@ function BlockMenu({ state, blockHandle, anchor, onClose }: BlockMenuProps) {
       ref={rootRef}
       className="bh-menu"
       role="menu"
-      aria-label="块操作"
+      aria-label={t('ui.blockhandle.grip')}
       style={{
         left: placement?.left ?? 0,
         top: placement?.top ?? 0,
@@ -473,7 +476,7 @@ function BlockMenu({ state, blockHandle, anchor, onClose }: BlockMenuProps) {
             onMouseEnter={() => setHighlighted(index)}
             onClick={() => apply(entry)}
           >
-            <span className="bh-label">{entry.label}</span>
+            <span className="bh-label">{t(entry.labelKey)}</span>
             {entry.hint === '' ? null : <span className="bh-hint">{entry.hint}</span>}
           </button>
         );

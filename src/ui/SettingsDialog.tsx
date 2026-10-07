@@ -39,6 +39,7 @@ import {
 } from '../core/settings.js';
 import { THEME_LABELS, THEME_ORDER } from '../core/theme/theme.js';
 import { SUPPORTED_LOCALES } from '../core/i18n/messages.js';
+import { t } from '../core/i18n/index.js';
 
 export interface SettingsDialogProps {
   settings: ViewSettings;
@@ -152,7 +153,7 @@ export function SettingsDialog({
       setRecorded(spec);
       // 单字母 / 数字键在输入框里会被打字占用（见 isAllowedInEditable 的
       // 白名单理由），录进来就是「设置完打不了字」—— 当场说明，不让保存
-      setError(isSafeGlobalSpec(spec, platform) ? null : '单个字母或数字键会被输入占用，请带上 Ctrl、Alt 之类的修饰键。');
+      setError(isSafeGlobalSpec(spec, platform) ? null : t('ui.settings.keyUnsafe'));
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
@@ -221,21 +222,20 @@ export function SettingsDialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="settings" role="dialog" aria-label="设置" tabIndex={-1} ref={dialogRef}>
+      <div className="settings" role="dialog" aria-label={t('ui.settings.title')} tabIndex={-1} ref={dialogRef}>
         <header className="settings-head">
-          <h2>设置</h2>
+          <h2>{t('ui.settings.title')}</h2>
           <span className="grow" />
           <button type="button" onClick={onClose}>
-            关闭
+            {t('ui.settings.close')}
           </button>
         </header>
 
         <div className="settings-body">
           <section className="settings-section">
-            <h3>外观</h3>
+            <h3>{t('ui.settings.appearance')}</h3>
             <label className="settings-row">
-              {/* 标签刻意双语：文案迁移分批进行，这一行在两种语言下都要能被认出来 */}
-              <span className="settings-row-label">语言 / Language</span>
+              <span className="settings-row-label">{t('ui.settings.language')}</span>
               <select
                 value={settings.locale}
                 onChange={(event) => {
@@ -251,12 +251,9 @@ export function SettingsDialog({
                 ))}
               </select>
             </label>
-            <p className="settings-hint">
-              目前覆盖菜单 / 命令面板 / 快捷键表，其余界面将分批迁移。
-              Covers menus, command palette &amp; shortcuts; the rest follows in batches.
-            </p>
+            <p className="settings-hint">{t('ui.settings.localeHint')}</p>
             <label className="settings-row">
-              <span className="settings-row-label">主题</span>
+              <span className="settings-row-label">{t('ui.settings.theme')}</span>
               <select
                 value={settings.theme}
                 onChange={(event) => {
@@ -277,9 +274,9 @@ export function SettingsDialog({
           </section>
 
           <section className="settings-section">
-            <h3>编辑器</h3>
+            <h3>{t('ui.settings.editor')}</h3>
             <div className="settings-row">
-              <span className="settings-row-label">字号</span>
+              <span className="settings-row-label">{t('ui.settings.fontSize')}</span>
               <input
                 type="number"
                 min={EDITOR_FONT_SIZE_MIN}
@@ -287,20 +284,20 @@ export function SettingsDialog({
                 value={settings.editorFontSize}
                 onChange={(event) => onChange({ editorFontSize: clampEditorFontSize(Number(event.target.value)) })}
               />
-              <span className="settings-hint">px（{EDITOR_FONT_SIZE_MIN}–{EDITOR_FONT_SIZE_MAX}），三类编辑器一起变</span>
+              <span className="settings-hint">{t('ui.settings.fontSizeHint', { min: EDITOR_FONT_SIZE_MIN, max: EDITOR_FONT_SIZE_MAX })}</span>
             </div>
             <label className="settings-row">
-              <span className="settings-row-label">正文字体</span>
+              <span className="settings-row-label">{t('ui.settings.bodyFont')}</span>
               <input
                 type="text"
                 value={settings.editorFontFamily}
-                placeholder="内置默认"
+                placeholder={t('ui.settings.fontPlaceholder')}
                 onChange={(event) => onChange({ editorFontFamily: sanitizeEditorFontFamily(event.target.value) })}
               />
-              <span className="settings-hint">留空 = 内置；代码与代码块始终等宽</span>
+              <span className="settings-hint">{t('ui.settings.fontHint')}</span>
             </label>
             <div className="settings-row">
-              <span className="settings-row-label">行高</span>
+              <span className="settings-row-label">{t('ui.settings.lineHeight')}</span>
               <input
                 type="number"
                 min={EDITOR_LINE_HEIGHT_MIN}
@@ -312,52 +309,51 @@ export function SettingsDialog({
               <span className="settings-hint">{EDITOR_LINE_HEIGHT_MIN}–{EDITOR_LINE_HEIGHT_MAX}</span>
             </div>
             <Toggle
-              label="代码块显示行号"
-              hint="只影响 Markdown 文档里的代码块。代码 / 文本文档始终有行号。"
+              label={t('ui.settings.codeLineNumbers')}
+              hint={t('ui.settings.codeLineNumbersHint')}
               checked={settings.codeLineNumbers}
               onChange={(next) => onChange({ codeLineNumbers: next })}
             />
             <Toggle
-              label="软换行"
-              hint="长行折到下一行，而不是横向滚动。只对代码 / 文本文档有效。"
+              label={t('ui.settings.softWrap')}
+              hint={t('ui.settings.softWrapHint')}
               checked={settings.wordWrap}
               onChange={(next) => onChange({ wordWrap: next })}
             />
             <Toggle
-              label="恢复上次的标签页"
-              hint="重新打开时自动打开上次的标签页，没保存的改动也还在。关掉之后不再写会话记录 —— 异常退出时未保存的内容会丢。"
+              label={t('ui.settings.restoreSession')}
+              hint={t('ui.settings.restoreSessionHint')}
               checked={settings.restoreSession}
               onChange={(next) => onChange({ restoreSession: next })}
             />
             <Toggle
-              label="记住文档位置"
-              hint="重新打开时回到上次的光标与滚动位置。位置只存在本机，不会上传。"
+              label={t('ui.settings.rememberPositions')}
+              hint={t('ui.settings.rememberPositionsHint')}
               checked={settings.rememberPositions}
               onChange={(next) => onChange({ rememberPositions: next })}
             />
             <div className="settings-row">
-              <span className="settings-hint">关掉上面的开关只是不再读写，已有的记忆还在。</span>
+              <span className="settings-hint">{t('ui.settings.positionClearHint')}</span>
               <button
                 type="button"
                 onClick={() => {
                   // 破坏性动作必须问一次。`askConfirm` 走平台对话框，
                   // 桌面端是原生确认框 —— 浏览器预览下退化成 window.confirm
                   void (async () => {
-                    const yes = await askConfirm('清除所有文档的位置记忆？此操作不可撤销。');
+                    const yes = await askConfirm(t('ui.settings.clearPositionsConfirm'));
                     if (yes) onClearPositions();
                   })();
                 }}
               >
-                清除位置记忆
+                {t('ui.settings.clearPositions')}
               </button>
             </div>
           </section>
 
           <section className="settings-section">
-            <h3>快捷键</h3>
+            <h3>{t('ui.settings.keybindings')}</h3>
             <p className="settings-hint">
-              这张表由命令注册表生成，与命令面板、工具栏同源 —— 不会出现「加了功能这里没更新」。
-              点「改」后按下新的组合键；被顶掉的原命令会显示为「未设置」。
+              {t('ui.settings.keybindingsNote')}
             </p>
             {groups.map((group) => (
               <div className="settings-keys" key={group.category}>
@@ -368,9 +364,9 @@ export function SettingsDialog({
                     <span className="grow" />
                     {editingId === command.id ? (
                       <>
-                        <kbd className="palette-key">{recorded ?? '按下新的组合键…'}</kbd>
+                        <kbd className="palette-key">{recorded ?? t('ui.settings.recordPlaceholder')}</kbd>
                         <button type="button" disabled={recorded === null || error !== null} onClick={saveRecording}>
-                          保存
+                          {t('ui.settings.save')}
                         </button>
                         <button
                           type="button"
@@ -380,12 +376,12 @@ export function SettingsDialog({
                             setError(null);
                           }}
                         >
-                          取消
+                          {t('ui.settings.cancel')}
                         </button>
                       </>
                     ) : (
                       <>
-                        <kbd className="palette-key">{binding ?? '未设置'}</kbd>
+                        <kbd className="palette-key">{binding ?? t('ui.settings.unset')}</kbd>
                         <button
                           type="button"
                           onClick={() => {
@@ -394,11 +390,11 @@ export function SettingsDialog({
                             setError(null);
                           }}
                         >
-                          改
+                          {t('ui.settings.edit')}
                         </button>
                         {overridden && (
                           <button type="button" onClick={() => restoreDefault(command)}>
-                            恢复默认
+                            {t('ui.settings.resetDefault')}
                           </button>
                         )}
                       </>
@@ -412,19 +408,19 @@ export function SettingsDialog({
             )}
             {editingId !== null && error === null && conflictOwner !== null && (
               <p className="settings-hint settings-keys-conflict">
-                「{conflictOwner.title}」当前也用这个组合键 —— 保存后它将显示为「未设置」。
+                {t('ui.settings.conflictNote', { title: conflictOwner.title })}
               </p>
             )}
           </section>
 
           <section className="settings-section">
-            <h3>关于</h3>
+            <h3>{t('ui.settings.about')}</h3>
             <div className="settings-row">
-              <span className="settings-row-label">轻墨</span>
-              <span className="settings-hint">版本 {import.meta.env.QINGMO_VERSION}</span>
+              <span className="settings-row-label">{t('ui.app.appName')}</span>
+              <span className="settings-hint">{t('ui.settings.version', { version: String(import.meta.env.QINGMO_VERSION) })}</span>
             </div>
             <p className="settings-hint">
-              纯本地编辑器：没有账号、没有网络请求、没有遥测。文档只存在你自己的磁盘上。
+              {t('ui.settings.aboutBody')}
             </p>
           </section>
         </div>

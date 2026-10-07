@@ -23,6 +23,7 @@ import { formatKeybinding, type Platform } from '../core/commands/keybinding.js'
 import { rankCommands } from '../core/commands/fuzzy.js';
 import type { CommandRegistry } from '../core/commands/registry.js';
 import type { Command, CommandContext } from '../core/commands/types.js';
+import { t } from '../core/i18n/index.js';
 
 export interface CommandPaletteProps {
   registry: CommandRegistry;
@@ -99,13 +100,13 @@ export function CommandPalette({ registry, context, platform, onClose }: Command
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="palette" role="dialog" aria-label="命令面板">
+      <div className="palette" role="dialog" aria-label={t('ui.palette.title')}>
         <input
           ref={inputRef}
           className="palette-input"
           type="text"
           value={query}
-          placeholder="输入命令名或拼音…"
+          placeholder={t('ui.palette.placeholder')}
           spellCheck={false}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -129,7 +130,7 @@ export function CommandPalette({ registry, context, platform, onClose }: Command
         />
 
         <div className="palette-list" ref={listRef}>
-          {rows.length === 0 && <div className="palette-empty">没有匹配的命令</div>}
+          {rows.length === 0 && <div className="palette-empty">{t('ui.palette.empty')}</div>}
           {rows.map((row, index) => (
             <button
               key={row.command.id}
@@ -141,7 +142,7 @@ export function CommandPalette({ registry, context, platform, onClose }: Command
             >
               <span className="palette-category">{row.command.category}</span>
               <span className="palette-title">{row.command.title}</span>
-              {!row.enabled && <span className="palette-note">此刻不可用</span>}
+              {!row.enabled && <span className="palette-note">{t('ui.palette.disabledNote')}</span>}
               <span className="grow" />
               {row.binding && <kbd className="palette-key">{row.binding}</kbd>}
             </button>
