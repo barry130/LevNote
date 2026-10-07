@@ -568,11 +568,15 @@ notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mt
 设置页语言下拉；命令标题是**注册时求值**的，App 在 locale 变化时原位
 重注册内置命令（ADR 0031 复评记录）。**E2 批次（同日，复评记录二）**：
 外壳 ui/ 全部组件的界面文案已抽进目录（约 180 条，en 同量）。
+**E3 批次（同日，复评记录二补记）**：core 层全部用户可见消息已迁完 ——
+保存 notice、检索与替换汇总、AppError 文案、`.mindmap` 解析降级提示、
+图表渲染失败原因、平台对话框标题、浏览器预览虚拟盘消息。
 **组件里的静态清单存 key、渲染时才 `t()`**（ViewSwitcher / BlockHandle /
-SlashMenu / SelectionToolbar / TableToolbar / CodeBlockPicker）——
+SlashMenu / SelectionToolbar / TableToolbar / CodeBlockPicker，以及
+mermaid / drawio 渲染的失败消息）——
 模块加载时求值会把语言钉死在启动那一刻；memo 里的条目同理，只存 key。
-还没迁的是 **core 层抛出的消息**（保存 notice、检索汇总、AppError 文案），
-迁移要连 core 测试一起动，留作下一批。
+刻意**不迁**的：示例文档正文（文档数据）、命令 `keywords`（搜索数据）、
+`console.warn`（开发者看的）。
 
 **P6-31 自定义快捷键已完成（2026-10-04，ADR 0032）**：设置页每行可录制，
 冲突显式顶掉（覆盖表三态：缺省 = 默认 / 写法 = 覆盖 / `''` = 清除）。

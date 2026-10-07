@@ -14,6 +14,7 @@
  */
 
 import { highlightCode } from '../highlight/hljs.js';
+import { t } from '../i18n/index.js';
 import { bytesToDataUrl, sniffImageMime } from '../image.js';
 import { renderTex } from '../katex.js';
 import { MATH_BLOCK, TEX_DATA_ATTR } from '../math.js';
@@ -288,7 +289,7 @@ export async function renderDiagrams(
     // 不动 `<pre>` 还有一个好处 —— 它已经被 hljs 着过色了（如果 hljs 认得这个语言）
     const note = document.createElement('p');
     note.className = 'qm-diagram-error';
-    note.textContent = `图表没能画出来，上面是它的源码。${result.message}`;
+    note.textContent = t('core.export.diagramNote', { message: result.message });
     pre.after(note);
     report.failedDiagrams += 1;
     report.firstDiagramError ??= result.message;

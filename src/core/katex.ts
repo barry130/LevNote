@@ -25,6 +25,7 @@
  */
 
 import type katex from 'katex';
+import { t } from './i18n/index.js';
 import type { KatexOptions } from 'katex';
 
 /**
@@ -116,7 +117,7 @@ export async function renderTex(tex: string, displayMode: boolean): Promise<Math
   } catch (thrown) {
     // 取不到 chunk（打包产物不完整、文件被删）。这不是用户的错，
     // 但用户必须知道「公式显示不出来」而不是看到一片空白
-    return { ok: false, message: `公式渲染器加载失败：${describe(thrown)}` };
+    return { ok: false, message: t('core.render.katexLoadFailed', { reason: describe(thrown) }) };
   }
 
   try {
@@ -145,7 +146,7 @@ function describeMathError(thrown: unknown): string {
     const raw = (thrown as { rawMessage?: unknown }).rawMessage;
     const position = (thrown as { position?: unknown }).position;
     if (typeof raw === 'string' && raw !== '') {
-      const at = typeof position === 'number' ? `（第 ${position + 1} 个字符起）` : '';
+      const at = typeof position === 'number' ? t('core.render.katexAt', { position: position + 1 }) : '';
       return `${raw}${at}`;
     }
     return thrown.message;

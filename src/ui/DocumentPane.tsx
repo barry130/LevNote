@@ -41,7 +41,7 @@ import type {
 } from '../core/editor/types.js';
 import { resolveAdapter } from '../core/editor/registry.js';
 import type { DocumentStatus } from '../core/document/store.js';
-import { ENCODINGS, encodingKey as encodingKeyCore } from '../core/encodings.js';
+import { ENCODINGS, encodingKey as encodingKeyCore, encodingLabel } from '../core/encodings.js';
 import { SPLIT_RATIO_MAX, SPLIT_RATIO_MIN } from '../core/settings.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
@@ -985,16 +985,16 @@ export function DocumentPane({
     <>
       {conflict && (
         <div className="banner warn">
-          <strong>磁盘上的文件已被其他程序修改。</strong>
+          <strong>{t('ui.pane.conflictHead')}</strong>
           <span className="grow">{conflict.message}</span>
           <button type="button" onClick={() => void store.resolveConflict('reload')} disabled={busy}>
-            用磁盘版本覆盖我的
+            {t('ui.pane.conflictReload')}
           </button>
           <button type="button" onClick={() => void store.resolveConflict('save-copy')} disabled={busy}>
-            另存为副本
+            {t('ui.pane.conflictSaveCopy')}
           </button>
           <button type="button" onClick={() => void store.resolveConflict('overwrite')} disabled={busy}>
-            用我的覆盖磁盘
+            {t('ui.pane.conflictOverwrite')}
           </button>
         </div>
       )}
@@ -1105,8 +1105,8 @@ export function DocumentPane({
           )
         ) : doc ? (
           <div className="empty">
-            <h2>找不到能打开这个文档的内核</h2>
-            <p>这不应该发生 —— 纯文本兜底内核会处理任何文件。请把这份文件路径反馈给开发者。</p>
+            <h2>{t('ui.pane.kernelMissingHead')}</h2>
+            <p>{t('ui.pane.kernelMissingBody')}</p>
           </div>
         ) : null}
 
@@ -1195,7 +1195,7 @@ export function DocumentPane({
                 )}
                 {ENCODINGS.map((item) => (
                   <option key={`${item.encoding}|${item.bom}`} value={`${item.encoding}|${item.bom}`}>
-                    {item.label}
+                    {encodingLabel(item)}
                   </option>
                 ))}
               </select>

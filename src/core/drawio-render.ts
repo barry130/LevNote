@@ -30,6 +30,8 @@
  * 是同一条纪律，只不过方向相反 —— 这里连参数都不该有。
  */
 
+import { t } from './i18n/index.js';
+
 /**
  * 查看器全局暴露的那个入口。
  *
@@ -68,8 +70,6 @@ export interface DrawioRenderFail {
 
 export type DrawioRender = DrawioRenderOk | DrawioRenderFail;
 
-/** 空内容不值得惊动查看器 —— 与 `renderMermaid` 的空源码短路同一条理由。 */
-export const EMPTY_DRAWIO_MESSAGE = '图表内容是空的。';
 
 /** 查看器回调一直没有回来时的兜底等待。真画一张大图也不该超过它。 */
 const RENDER_TIMEOUT_MS = 15_000;
@@ -120,13 +120,13 @@ const loadViewerOnce = (): Promise<DrawioViewerLike> => {
     script.onload = () => {
       const viewer = (window as unknown as Record<string, unknown>)['GraphViewer'];
       if (viewer === undefined || viewer === null) {
-        reject(new Error('查看器脚本已加载，但没有找到 GraphViewer 入口。'));
+        reject(new Error(t('core.render.drawioNoEntry')));
         return;
       }
       resolve(viewer as DrawioViewerLike);
     };
     script.onerror = () => {
-      reject(new Error('查看器脚本加载失败（应用资源不完整？）。'));
+      reject(new Error(t('core.render.drawioLoadFailed')));
     };
     document.head.appendChild(script);
   });
@@ -170,13 +170,13 @@ export async function renderDrawio(
   container: HTMLElement,
   io: DrawIoIo = DEFAULT_IO,
 ): Promise<DrawioRender> {
-  if (xml.trim() === '') return { ok: false, message: EMPTY_DRAWIO_MESSAGE };
+  if (xml.trim() === '') return { ok: false, message: t('core.render.drawioEmpty') };
 
   let viewer: DrawioViewerLike;
   try {
     viewer = await io.loadViewer();
   } catch (thrown) {
-    return { ok: false, message: `查看器加载失败：${describe(thrown)}` };
+    return { ok: false, message: t('core.render.drawioFailed', { reason: describe(thrown) }) };
   }
 
   const host = document.createElement('div');
@@ -216,7 +216,7 @@ async function withTimeout(run: Promise<void>): Promise<void> {
     await Promise.race([
       run,
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('渲染没有在预期时间内完成。')), RENDER_TIMEOUT_MS);
+        timer = setTimeout(() => reject(new Error(t('core.render.timeout'))), RENDER_TIMEOUT_MS);
       }),
     ]);
   } finally {

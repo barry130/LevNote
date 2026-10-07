@@ -46,6 +46,7 @@
 
 import type { MermaidConfig, RenderResult } from 'mermaid';
 import type { ResolvedTheme } from './theme/theme.js';
+import { t } from './i18n/index.js';
 
 /**
  * 我们真正用到的那部分 mermaid。
@@ -93,8 +94,6 @@ export interface MermaidIo {
   readonly withContainer: <T>(run: (container: HTMLElement) => Promise<T>) => Promise<T>;
 }
 
-/** 空图表不该被打成「语法错」，也不该为此去下载 mermaid —— 见 `renderMermaid`。 */
-export const EMPTY_DIAGRAM_MESSAGE = '图表还是空的。';
 
 // ---------------------------------------------------------------------------
 // 加载
@@ -197,7 +196,7 @@ export async function renderMermaid(
   // 空源码不值得惊动 mermaid：它只会回一句 "No diagram type detected"，
   // 而那句话对「我还没开始写」这个事实没有任何信息量。更实际的是 ——
   // 不短路的话，一个空的代码块就会把 mermaid 那一堆 chunk 拉下来
-  if (text.trim() === '') return { ok: false, message: EMPTY_DIAGRAM_MESSAGE };
+  if (text.trim() === '') return { ok: false, message: t('core.render.mermaidEmpty') };
 
   let mermaid: MermaidLike;
   try {
@@ -205,7 +204,7 @@ export async function renderMermaid(
   } catch (thrown) {
     // 取不到 chunk（打包产物不完整、文件被删）。这不是用户的错，
     // 但用户必须知道「图画不出来」而不是看到一片空白
-    return { ok: false, message: `图表渲染器加载失败：${describe(thrown)}` };
+    return { ok: false, message: t('core.render.mermaidLoadFailed', { reason: describe(thrown) }) };
   }
 
   ensureInitialized(mermaid, theme);
@@ -245,9 +244,9 @@ export async function renderMermaid(
 export function describeMermaidError(thrown: unknown): string {
   const raw = thrown instanceof Error ? thrown.message : String(thrown);
   const trimmed = raw.trim();
-  if (trimmed === '') return '图表渲染失败（渲染器没有给出原因）。';
+  if (trimmed === '') return t('core.render.mermaidNoReason');
   if (/^parse error\b/i.test(trimmed)) {
-    return `图表语法有误 —— 下面是渲染器的原文：\n${trimmed}`;
+    return t('core.render.mermaidSyntax') + trimmed;
   }
   return trimmed;
 }

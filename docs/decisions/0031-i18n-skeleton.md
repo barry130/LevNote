@@ -90,10 +90,17 @@ ui/ 目录 18 个组件（设置页 / 文件树 / 标签栏 / 大纲 / 检索 / 
 - **静态清单存 key、渲染时才 `t()`**（ViewSwitcher / BlockHandle / SlashMenu /
   SelectionToolbar / TableToolbar / CodeBlockPicker）：模块加载时求值会把语言
   钉死在启动那一刻。含 `useMemo` 的地方（块手柄菜单条目）同样只存 key ——
-  memo 不会因切语言重跑，把译文存进去就会过期。
+  memo 不会因切语言重跑，把译文存进去就会过期。**这条在 E3 批次又抓到两处
+  违例**：`mermaid-render` / `drawio-render` 的空图表常量原来是模块级
+  `const X = t(...)`，已改为在返回点现调 `t()`（常量只有同模块与测试在用，
+  测试同样改为按 key 现查）。
 - **zh 值逐字节不变**，测试按文字找元素的辅助函数与全部中文断言不用动。
   「目录无占位符」的旧测试前提作废（插值文案进目录了），改为钉
   「两份目录同 key 的占位符集合一致」—— 这是插值文案的翻译契约。
-- **还没迁的是 core 层抛出的消息**（保存结果 notice、检索汇总
-  `describeSummary`、AppError 的 message）：它们被 core 测试逐字钉着，
-  迁移要连测试一起动，留作下一批；设置页的语言提示如实说明。
+- **core 层的消息随后续三个批次全部迁完**（E3a 常驻消息 / E3b 动作消息 /
+  E3c 渲染与导图解析 + 平台层）：保存结果 notice、检索与替换汇总、
+  AppError 的 message、`.mindmap` 解析降级提示、Mermaid / draw.io 渲染失败
+  原因、浏览器预览虚拟盘消息、原生对话框标题，连示例文档创建失败与
+  「复制为 HTML」的通知。被 core 测试逐字钉着的文案随批次一起动
+  （改为按 key 现查）；`interpolate` 是单趟替换，参数值里含 `{}` 不会被
+  再扫描 —— 与原先模板字面量的行为一致。

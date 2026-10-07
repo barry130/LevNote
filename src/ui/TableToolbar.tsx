@@ -34,32 +34,33 @@ import { computeFloatingPlacement } from './floating.js';
 
 interface OpButton {
   readonly op: TableOperation;
-  /** 短标签多为字形（行↑ / 列✕），不分语言；完整说法（title / aria）存 key。 */
-  readonly label: string;
+  /** 按钮上的紧凑可见文案也随语言走（行↑ / Row ↑），存 key 渲染时现取。 */
+  readonly labelKey: MessageKey;
+  /** 完整说法（title / aria），比短标签多说一句「这是在干嘛」。 */
   readonly titleKey: MessageKey;
 }
 
 const ROW_OPS: readonly OpButton[] = [
-  { op: 'rowBefore', label: '行↑', titleKey: 'ui.table.rowBefore' },
-  { op: 'rowAfter', label: '行↓', titleKey: 'ui.table.rowAfter' },
-  { op: 'deleteRow', label: '行✕', titleKey: 'ui.table.deleteRow' },
+  { op: 'rowBefore', labelKey: 'ui.table.rowBeforeLabel', titleKey: 'ui.table.rowBefore' },
+  { op: 'rowAfter', labelKey: 'ui.table.rowAfterLabel', titleKey: 'ui.table.rowAfter' },
+  { op: 'deleteRow', labelKey: 'ui.table.deleteRowLabel', titleKey: 'ui.table.deleteRow' },
 ];
 
 const COL_OPS: readonly OpButton[] = [
-  { op: 'colBefore', label: '列←', titleKey: 'ui.table.colBefore' },
-  { op: 'colAfter', label: '列→', titleKey: 'ui.table.colAfter' },
-  { op: 'deleteColumn', label: '列✕', titleKey: 'ui.table.deleteColumn' },
+  { op: 'colBefore', labelKey: 'ui.table.colBeforeLabel', titleKey: 'ui.table.colBefore' },
+  { op: 'colAfter', labelKey: 'ui.table.colAfterLabel', titleKey: 'ui.table.colAfter' },
+  { op: 'deleteColumn', labelKey: 'ui.table.deleteColumnLabel', titleKey: 'ui.table.deleteColumn' },
 ];
 
 const TABLE_OPS: readonly OpButton[] = [
-  { op: 'exit', label: '退出', titleKey: 'ui.table.exit' },
-  { op: 'deleteTable', label: '删表', titleKey: 'ui.table.deleteTable' },
+  { op: 'exit', labelKey: 'ui.table.exitLabel', titleKey: 'ui.table.exit' },
+  { op: 'deleteTable', labelKey: 'ui.table.deleteTableLabel', titleKey: 'ui.table.deleteTable' },
 ];
 
-const ALIGN_OPS: ReadonlyArray<{ align: TableAlign; label: string; titleKey: MessageKey }> = [
-  { align: 'left', label: '左', titleKey: 'ui.table.alignLeft' },
-  { align: 'center', label: '中', titleKey: 'ui.table.alignCenter' },
-  { align: 'right', label: '右', titleKey: 'ui.table.alignRight' },
+const ALIGN_OPS: ReadonlyArray<{ align: TableAlign; labelKey: MessageKey; titleKey: MessageKey }> = [
+  { align: 'left', labelKey: 'ui.table.alignLeftLabel', titleKey: 'ui.table.alignLeft' },
+  { align: 'center', labelKey: 'ui.table.alignCenterLabel', titleKey: 'ui.table.alignCenter' },
+  { align: 'right', labelKey: 'ui.table.alignRightLabel', titleKey: 'ui.table.alignRight' },
 ];
 
 export interface TableToolbarProps {
@@ -104,7 +105,7 @@ export function TableToolbar({ state, table }: TableToolbarProps) {
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => table.run(button.op)}
     >
-      {button.label}
+      {t(button.labelKey)}
     </button>
   );
 
@@ -150,7 +151,7 @@ export function TableToolbar({ state, table }: TableToolbarProps) {
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => table.setAlign(button.align)}
           >
-            {button.label}
+            {t(button.labelKey)}
           </button>
         ))}
         <span className="tt-sep" />

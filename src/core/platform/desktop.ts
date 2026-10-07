@@ -22,6 +22,7 @@ import { listen } from '@tauri-apps/api/event';
 import { confirm, message, open, save } from '@tauri-apps/plugin-dialog';
 
 import { asAppError, type BinaryWriteOutcome, type DirEntry, type DocumentProvider, type FileStat, type RuntimeInfo, type TextFile, type WriteOutcome, type WriteRequest } from '../document/types.js';
+import { t } from '../i18n/index.js';
 import type {
   WorkspaceBatch,
   WorkspaceSearchRequest,
@@ -106,13 +107,13 @@ export function createDesktopProvider(): DocumentProvider {
       const picked = await open({
         multiple: false,
         directory: false,
-        title: '打开文件',
+        title: t('core.platform.openTitle'),
         filters: [
-          { name: '轻墨支持的文档', extensions: [...TEXT_EXTENSIONS, 'drawio'] },
+          { name: t('core.platform.filterQingmo'), extensions: [...TEXT_EXTENSIONS, 'drawio'] },
           { name: 'Markdown', extensions: ['md', 'markdown'] },
-          { name: '思维导图', extensions: ['mindmap'] },
-          { name: 'draw.io 图表', extensions: ['drawio', 'xml'] },
-          { name: '全部文件', extensions: ['*'] },
+          { name: t('core.platform.filterMindmap'), extensions: ['mindmap'] },
+          { name: t('core.platform.filterDrawio'), extensions: ['drawio', 'xml'] },
+          { name: t('core.platform.filterAll'), extensions: ['*'] },
         ],
       });
       // 插件在用户取消时返回 null；多选模式下是数组，这里已限定单选
@@ -121,17 +122,17 @@ export function createDesktopProvider(): DocumentProvider {
     },
 
     async pickSavePath(suggestedName) {
-      const picked = await save({ title: '另存为', defaultPath: suggestedName });
+      const picked = await save({ title: t('core.platform.saveAsTitle'), defaultPath: suggestedName });
       return picked ?? null;
     },
 
     async pickDirectoryPath() {
-      const picked = await open({ multiple: false, directory: true, title: '打开文件夹' });
+      const picked = await open({ multiple: false, directory: true, title: t('core.platform.openDirTitle') });
       if (picked === null) return null;
       return typeof picked === 'string' ? picked : (picked[0] ?? null);
     },
 
-    async notify(text, title = '轻墨') {
+    async notify(text, title = t('core.platform.appName')) {
       try {
         await message(text, { title, kind: 'info' });
       } catch (error) {
@@ -143,7 +144,7 @@ export function createDesktopProvider(): DocumentProvider {
 }
 
 /** 暴露给 UI 的「确认」对话框，语义比原生 confirm 更明确。 */
-export async function askConfirm(text: string, title = '轻墨'): Promise<boolean> {
+export async function askConfirm(text: string, title = t('core.platform.appName')): Promise<boolean> {
   return confirm(text, { title, kind: 'warning' });
 }
 

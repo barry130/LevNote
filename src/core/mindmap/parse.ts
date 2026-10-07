@@ -20,6 +20,8 @@
  * 而不是写序列化结果。JSON 的往返做不到逐字节保真（键顺序、缩进、空行都可能变），
  * 所以「打开即保存不产生 diff」这条保证**不能靠序列化器**，只能靠「没改就不重写」。
  */
+
+import { t } from '../i18n/index.js';
 import {
   KNOWN_NODE_KEYS,
   KNOWN_TOP_KEYS,
@@ -75,11 +77,11 @@ export function detectLineEnding(text: string): LineEnding {
 function describe(value: unknown): string {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
-  if (Array.isArray(value)) return `数组（${value.length} 项）`;
+  if (Array.isArray(value)) return t('core.mm.descArray', { n: value.length });
   if (typeof value === 'string') {
-    return `字符串 ${JSON.stringify(value.length > 40 ? `${value.slice(0, 40)}…` : value)}`;
+    return t('core.mm.descString', { value: JSON.stringify(value.length > 40 ? `${value.slice(0, 40)}…` : value) });
   }
-  if (typeof value === 'object') return '对象';
+  if (typeof value === 'object') return t('core.mm.descObject');
   if (typeof value === 'number' || typeof value === 'boolean') return `${typeof value} ${String(value)}`;
   return typeof value;
 }
@@ -99,11 +101,11 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
   try {
     raw = JSON.parse(text) as unknown;
   } catch (error) {
-    return fatal('NOT_JSON', `不是合法 JSON：${error instanceof Error ? error.message : String(error)}`);
+    return fatal('NOT_JSON', t('core.mm.notJson', { reason: error instanceof Error ? error.message : String(error) }));
   }
-  if (!isPlainObject(raw)) return fatal('NOT_OBJECT', `顶层是${describe(raw)}，不是对象`);
+  if (!isPlainObject(raw)) return fatal('NOT_OBJECT', t('core.mm.notObject', { described: describe(raw) }));
   if (raw.format !== MINDMAP_FORMAT) {
-    return fatal('WRONG_FORMAT', `format 是 ${describe(raw.format)}，不是 ${MINDMAP_FORMAT}`);
+    return fatal('WRONG_FORMAT', t('core.mm.wrongFormat', { described: describe(raw.format), expected: MINDMAP_FORMAT }));
   }
 
   // --- version --------------------------------------------------------------
@@ -116,14 +118,14 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
       issues.push({
         severity: 'warning',
         code: 'FUTURE_VERSION',
-        message: `文件版本是 ${rawVersion}，比本版本（${MINDMAP_VERSION}）新；不认识的字段会原样保留，但可能显示不全`,
+        message: t('core.mm.versionNewer', { version: rawVersion, current: MINDMAP_VERSION }),
       });
     }
   } else if (rawVersion !== undefined) {
     issues.push({
       severity: 'warning',
       code: 'BAD_VERSION',
-      message: `version 是${describe(rawVersion)}，不是数字，已按 ${MINDMAP_VERSION} 处理`,
+      message: t('core.mm.versionNotNumber', { described: describe(rawVersion), current: MINDMAP_VERSION }),
     });
   }
 
@@ -136,14 +138,14 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
       issues.push({
         severity: 'warning',
         code: 'UNKNOWN_LAYOUT',
-        message: `layout 是 ${JSON.stringify(rawLayout)}，本版本不认识；已原样保留，渲染按 ${MINDMAP_DEFAULT_LAYOUT}`,
+        message: t('core.mm.layoutUnknown', { layout: JSON.stringify(rawLayout), fallback: MINDMAP_DEFAULT_LAYOUT }),
       });
     }
   } else if (rawLayout !== undefined) {
     issues.push({
       severity: 'warning',
       code: 'BAD_FIELD',
-      message: `layout 是${describe(rawLayout)}，不是字符串，已改用 ${MINDMAP_DEFAULT_LAYOUT}（原值未保留）`,
+      message: t('core.mm.layoutNotString', { described: describe(rawLayout), fallback: MINDMAP_DEFAULT_LAYOUT }),
     });
   }
 
@@ -167,7 +169,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
       issues.push({
         severity: 'error',
         code: 'BAD_NODE',
-        message: `${path} 是${describe(value)}，不是节点对象，已跳过 —— 它下面的内容会丢`,
+        message: t('core.mm.nodeNotObject', { path, described: describe(value) }),
       });
       return null;
     }
@@ -183,7 +185,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
         severity: 'warning',
         code: 'MISSING_NODE_ID',
         nodeId: id,
-        message: `${path} 的 id 是${describe(rawId)}，已补 ${JSON.stringify(id)}`,
+        message: t('core.mm.idMissing', { path, described: describe(rawId), filled: JSON.stringify(id) }),
       });
     }
     if (seenIds.has(id)) {
@@ -191,7 +193,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
         severity: 'warning',
         code: 'DUPLICATE_NODE_ID',
         nodeId: id,
-        message: `id ${JSON.stringify(id)} 在文件里出现了不止一次；树本身没问题，但按 id 索引的旁表会串`,
+        message: t('core.mm.idDuplicate', { id: JSON.stringify(id) }),
       });
     }
     seenIds.add(id);
@@ -207,7 +209,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
         severity: 'warning',
         code: 'MISSING_TOPIC',
         nodeId: id,
-        message: `${path}.topic 是${describe(rawTopic)}，已转成 ${JSON.stringify(topic)}`,
+        message: t('core.mm.topicCoerced', { path, described: describe(rawTopic), topic: JSON.stringify(topic) }),
       });
     } else {
       topic = '';
@@ -215,7 +217,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
         severity: 'warning',
         code: 'MISSING_TOPIC',
         nodeId: id,
-        message: `${path} 缺 topic（是${describe(rawTopic)}），已补空串`,
+        message: t('core.mm.topicMissing', { path, described: describe(rawTopic) }),
       });
     }
 
@@ -235,7 +237,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
         severity: 'warning',
         code: 'UNKNOWN_KEY',
         nodeId: id,
-        message: `节点 ${JSON.stringify(id)} 上有 ${unknownKeys.length} 个不认识的键（${unknownKeys.join('、')}），已原样保留`,
+        message: t('core.mm.unknownKeys', { id: JSON.stringify(id), n: unknownKeys.length, keys: unknownKeys.join('、') }),
       });
     }
 
@@ -253,7 +255,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
         severity: 'warning',
         code: 'BAD_FIELD',
         nodeId: id,
-        message: `${path}.${key} 是${describe(candidate)}，类型不对，已按未知字段原样保留`,
+        message: t('core.mm.fieldWrongType', { path, key, described: describe(candidate) }),
       });
     };
 
@@ -283,7 +285,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
         severity: 'error',
         code: 'BAD_CHILDREN',
         nodeId: id,
-        message: `${path}.children 是${describe(rawChildren)}，不是数组，已按空处理 —— 它下面的内容会丢`,
+        message: t('core.mm.childrenNotArray', { path, described: describe(rawChildren) }),
       });
     }
 
@@ -292,9 +294,9 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
   };
 
   const rawRoot = raw.root;
-  if (!isPlainObject(rawRoot)) return fatal('MISSING_ROOT', `root 是${describe(rawRoot)}，不是节点对象`);
+  if (!isPlainObject(rawRoot)) return fatal('MISSING_ROOT', t('core.mm.notObject', { described: describe(rawRoot) }));
   const root = parseNode(rawRoot, 'root');
-  if (root === null) return fatal('MISSING_ROOT', 'root 不是节点对象');
+  if (root === null) return fatal('MISSING_ROOT', t('core.mm.rootMissing'));
 
   // --- 顶层 extra -----------------------------------------------------------
   const topEntries: [string, unknown][] = [];
@@ -308,7 +310,7 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
     issues.push({
       severity: 'warning',
       code: 'UNKNOWN_KEY',
-      message: `顶层有 ${unknownTop.length} 个不认识的键（${unknownTop.join('、')}），已原样保留`,
+      message: t('core.mm.unknownKeysTop', { n: unknownTop.length, keys: unknownTop.join('、') }),
     });
   }
 

@@ -20,6 +20,7 @@ import {
   type TextFile,
   type WriteRequest,
 } from '../document/types.js';
+import { t } from '../i18n/index.js';
 
 interface VirtualFile {
   text: string;
@@ -135,7 +136,7 @@ export function createBrowserProvider(): DocumentProvider {
   const ensure = (path: string): VirtualFile => {
     const found = files.get(path);
     if (!found) {
-      throw new AppError('NOT_FOUND', `（浏览器预览）虚拟盘里没有 ${path}`);
+      throw new AppError('NOT_FOUND', t('core.browser.notFound', { path }));
     }
     return found;
   };
@@ -172,7 +173,7 @@ export function createBrowserProvider(): DocumentProvider {
       if (request.expectedMtimeMs !== undefined && previous && previous.mtimeMs !== request.expectedMtimeMs) {
         throw new AppError(
           'CONFLICT',
-          '（浏览器预览）文件已被外部修改，本次保存已取消',
+          t('core.browser.conflictExternal'),
           `expected ${request.expectedMtimeMs}, actual ${previous.mtimeMs}`,
         );
       }
@@ -227,8 +228,8 @@ export function createBrowserProvider(): DocumentProvider {
 
       throw new AppError(
         'NOT_SUPPORTED',
-        `（浏览器预览）无法读取二进制文件 ${path}`,
-        '浏览器预览没有磁盘，只能读到本次会话里粘贴进来的图片；真实文件请在桌面版里试',
+        t('core.browser.binaryNotReadable', { path }),
+        t('core.browser.binaryDetail'),
       );
     },
 
@@ -243,10 +244,10 @@ export function createBrowserProvider(): DocumentProvider {
       if (binaries.has(path)) {
         throw new AppError(
           'CONFLICT',
-          `（浏览器预览）${path} 已存在，为避免覆盖已有内容，本次写入已取消`,
+          t('core.browser.binaryExists', { path }),
         );
       }
-      if (bytes.byteLength === 0) throw new AppError('INVALID_PATH', '拒绝写入空文件');
+      if (bytes.byteLength === 0) throw new AppError('INVALID_PATH', t('core.browser.emptyWrite'));
 
       binaries.set(path, bytes.slice(0));
       return { path, size: bytes.byteLength, mtimeMs: now() };
@@ -285,17 +286,17 @@ export function createBrowserProvider(): DocumentProvider {
     },
 
     async pickSavePath(suggestedName) {
-      return window.prompt('（浏览器预览）保存为：', suggestedName);
+      return window.prompt(t('core.browser.saveAs'), suggestedName);
     },
 
     // 浏览器预览没有真实目录树（虚拟盘是扁平的），如实返回 null 并说明，
     // 而不是造一个假的目录出来 —— 侧栏会显示「没有打开文件夹」，这是对的
     async pickDirectoryPath() {
-      window.alert('（浏览器预览）不支持打开文件夹。请用桌面版，或直接打开单个文件。');
+      window.alert(t('core.browser.noDirectory'));
       return null;
     },
 
-    async notify(text, title = '轻墨') {
+    async notify(text, title = t('core.platform.appName')) {
       console.info(`[${title}] ${text}`);
       window.alert(text);
     },

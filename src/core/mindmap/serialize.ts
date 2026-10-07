@@ -24,6 +24,8 @@
  *
  * 见 `types.ts` 里 `MINDMAP_VERSION` 的注释：擅自升级会让装了老版本的机器读不了。
  */
+
+import { t } from '../i18n/index.js';
 import {
   KNOWN_TOP_KEYS,
   MINDMAP_FORMAT,
@@ -47,8 +49,7 @@ const DEFAULT_INDENT = 2;
 function pushEntry(entries: [string, unknown][], key: string, value: unknown, where: string): void {
   if (value === undefined) {
     throw new Error(
-      `${where} 的 ${JSON.stringify(key)} 是 undefined —— JSON 表示不了它，写出去会整个消失。` +
-        '要表示「空」请用 null。',
+      t('core.mm.serUndefined', { where, key: JSON.stringify(key) }),
     );
   }
   entries.push([key, value]);
@@ -100,12 +101,10 @@ function nodeToJson(node: MindmapNode): Record<string, unknown> {
   for (const [key, value] of Object.entries(node.extra)) {
     if (taken.has(key)) {
       throw new Error(
-        `节点 ${JSON.stringify(node.id)} 的 ${JSON.stringify(key)} 有**两个来源** —— ` +
-          '写出去会得到一个重复的 JSON 键，读回来只剩最后一个。' +
-          '构造文档时，一个键要么放进已知字段，要么放进 extra，不能两边都放。',
+        t('core.mm.serDuplicateKey', { id: JSON.stringify(node.id), key: JSON.stringify(key) }),
       );
     }
-    pushEntry(entries, key, value, `节点 ${JSON.stringify(node.id)}`);
+    pushEntry(entries, key, value, t('core.mm.whereNode', { id: JSON.stringify(node.id) }));
   }
 
   entries.push(['children', node.children.map(nodeToJson)]);
@@ -127,10 +126,10 @@ export function serializeMindmap(
   for (const [key, value] of Object.entries(document.extra)) {
     if (KNOWN_TOP_KEYS.has(key)) {
       throw new Error(
-        `顶层的 extra 里有已知键 ${JSON.stringify(key)} —— 写出去会得到一个重复的 JSON 键。`,
+        t('core.mm.serTopKnownKey', { key: JSON.stringify(key) }),
       );
     }
-    pushEntry(entries, key, value, '顶层');
+    pushEntry(entries, key, value, t('core.mm.whereTop'));
   }
   entries.push(['root', nodeToJson(document.root)]);
 

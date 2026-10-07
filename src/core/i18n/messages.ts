@@ -229,6 +229,12 @@ export const zhCN = {
   'ui.pane.stateError': '出错',
   'ui.pane.emptyPlaceholder': '在这里写。支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档。',
   'ui.pane.encodingGuessed': '这个文件的编码是自动猜出来的，可能猜错。若下方出现乱码，请在状态栏手动指定编码。',
+  'ui.pane.conflictHead': '磁盘上的文件已被其他程序修改。',
+  'ui.pane.conflictReload': '用磁盘版本覆盖我的',
+  'ui.pane.conflictSaveCopy': '另存为副本',
+  'ui.pane.conflictOverwrite': '用我的覆盖磁盘',
+  'ui.pane.kernelMissingHead': '找不到能打开这个文档的内核',
+  'ui.pane.kernelMissingBody': '这不应该发生 —— 纯文本兜底内核会处理任何文件。请把这份文件路径反馈给开发者。',
   'ui.pane.frontMatterWhy1': '这个文件的开头是 YAML front matter。用富文本内核打开会把 ',
   'ui.pane.frontMatterWhy2': ' 当成分隔线、把 ',
   'ui.pane.frontMatterKv': '键: 值',
@@ -259,7 +265,7 @@ export const zhCN = {
   'ui.settings.close': '关闭',
   'ui.settings.appearance': '外观',
   'ui.settings.language': '语言 / Language',
-  'ui.settings.localeHint': '菜单 / 命令面板 / 快捷键表与全部界面文案已支持双语；少数底层提示（保存结果、检索汇总等）将随后续批次迁移。',
+  'ui.settings.localeHint': '菜单 / 命令面板 / 快捷键表 / 全部界面文案与底层提示（保存结果、检索汇总、解析降级说明等）均已支持双语；示例文档正文与搜索关键词刻意不参与翻译。',
   'ui.settings.theme': '主题',
   'ui.settings.editor': '编辑器',
   'ui.settings.fontSize': '字号',
@@ -409,6 +415,18 @@ export const zhCN = {
   'ui.table.alignLeft': '单元格左对齐',
   'ui.table.alignCenter': '单元格居中对齐',
   'ui.table.alignRight': '单元格右对齐',
+  // 按钮上的紧凑可见文案（titleKey 是悬浮说明，这两个是画在按钮里的字）
+  'ui.table.rowBeforeLabel': '行↑',
+  'ui.table.rowAfterLabel': '行↓',
+  'ui.table.deleteRowLabel': '行✕',
+  'ui.table.colBeforeLabel': '列←',
+  'ui.table.colAfterLabel': '列→',
+  'ui.table.deleteColumnLabel': '列✕',
+  'ui.table.exitLabel': '退出',
+  'ui.table.deleteTableLabel': '删表',
+  'ui.table.alignLeftLabel': '左',
+  'ui.table.alignCenterLabel': '中',
+  'ui.table.alignRightLabel': '右',
 
   // ---- 外壳（App） ----------------------------------------------------------
   'ui.app.appName': '轻墨',
@@ -576,6 +594,85 @@ export const zhCN = {
   'core.keys.twoKeys': '出现了两个键名：{first} 与 {second}',
   'core.keys.noKey': '缺少键名',
   'core.keys.emptyKey': '键名为空',
+
+  // 平台层（desktop.ts / browser.ts 共用「轻墨」，对话框标题各自一份）
+  'core.platform.appName': '轻墨',
+  'core.platform.saveAsTitle': '另存为',
+  'core.platform.openDirTitle': '打开文件夹',
+
+  // 浏览器预览的虚拟盘消息（开发期兜底，文案要点名这是预览模式）
+  'core.browser.notFound': '（浏览器预览）虚拟盘里没有 {path}',
+  'core.browser.conflictExternal': '（浏览器预览）文件已被外部修改，本次保存已取消',
+  'core.browser.binaryNotReadable': '（浏览器预览）无法读取二进制文件 {path}',
+  'core.browser.binaryDetail': '浏览器预览没有磁盘，只能读到本次会话里粘贴进来的图片；真实文件请在桌面版里试',
+  'core.browser.binaryExists': '（浏览器预览）{path} 已存在，为避免覆盖已有内容，本次写入已取消',
+  'core.browser.emptyWrite': '拒绝写入空文件',
+  'core.browser.saveAs': '（浏览器预览）保存为：',
+  'core.browser.noDirectory': '（浏览器预览）不支持打开文件夹。请用桌面版，或直接打开单个文件。',
+
+  // Mermaid / draw.io 渲染失败时如实给原因（渲染器可注入，这里的文案是我们这一层的）
+  'core.render.mermaidEmpty': '图表还是空的。',
+  'core.render.mermaidLoadFailed': '图表渲染器加载失败：{reason}',
+  'core.render.mermaidNoReason': '图表渲染失败（渲染器没有给出原因）。',
+  'core.render.mermaidSyntax': '图表语法有误 —— 下面是渲染器的原文：\n',
+  'core.render.drawioEmpty': '图表内容是空的。',
+  'core.render.drawioNoEntry': '查看器脚本已加载，但没有找到 GraphViewer 入口。',
+  'core.render.drawioLoadFailed': '查看器脚本加载失败（应用资源不完整？）。',
+  'core.render.drawioFailed': '查看器加载失败：{reason}',
+  'core.render.timeout': '渲染没有在预期时间内完成。',
+
+  // .mindmap 解析 / 序列化的提示与错误（绝不静默：每一条都说清降级了什么）
+  'core.mm.descArray': '数组（{n} 项）',
+  'core.mm.descString': '字符串 {value}',
+  'core.mm.descObject': '对象',
+  'core.mm.notJson': '不是合法 JSON：{reason}',
+  'core.mm.notObject': '顶层是{described}，不是对象',
+  'core.mm.wrongFormat': 'format 是 {described}，不是 {expected}',
+  'core.mm.versionNewer': '文件版本是 {version}，比本版本（{current}）新；不认识的字段会原样保留，但可能显示不全',
+  'core.mm.versionNotNumber': 'version 是{described}，不是数字，已按 {current} 处理',
+  'core.mm.layoutUnknown': 'layout 是 {layout}，本版本不认识；已原样保留，渲染按 {fallback}',
+  'core.mm.layoutNotString': 'layout 是{described}，不是字符串，已改用 {fallback}（原值未保留）',
+  'core.mm.nodeNotObject': '{path} 是{described}，不是节点对象，已跳过 —— 它下面的内容会丢',
+  'core.mm.idMissing': '{path} 的 id 是{described}，已补 {filled}',
+  'core.mm.idDuplicate': 'id {id} 在文件里出现了不止一次；树本身没问题，但按 id 索引的旁表会串',
+  'core.mm.topicCoerced': '{path}.topic 是{described}，已转成 {topic}',
+  'core.mm.topicMissing': '{path} 缺 topic（是{described}），已补空串',
+  'core.mm.unknownKeys': '节点 {id} 上有 {n} 个不认识的键（{keys}），已原样保留',
+  'core.mm.fieldWrongType': '{path}.{key} 是{described}，类型不对，已按未知字段原样保留',
+  'core.mm.childrenNotArray': '{path}.children 是{described}，不是数组，已按空处理 —— 它下面的内容会丢',
+  'core.mm.rootMissing': 'root 不是节点对象',
+  'core.mm.unknownKeysTop': '顶层有 {n} 个不认识的键（{keys}），已原样保留',
+  'core.mm.serUndefined': '{where} 的 {key} 是 undefined —— JSON 表示不了它，写出去会整个消失。要表示「空」请用 null。',
+  'core.mm.serDuplicateKey': '节点 {id} 的 {key} 有**两个来源** —— 写出去会得到一个重复的 JSON 键，读回来只剩最后一个。构造文档时，一个键要么放进已知字段，要么放进 extra，不能两边都放。',
+  'core.mm.serTopKnownKey': '顶层的 extra 里有已知键 {key} —— 写出去会得到一个重复的 JSON 键。',
+  'core.mm.whereNode': '节点 {id}',
+  'core.mm.whereTop': '顶层',
+
+  // 命令系统漏网的四条通知
+  'core.cmd.clipCopyDenied': '剪贴板写入被拒绝，没有复制任何内容。',
+  'core.cmd.clipNoHtml': '当前文档类型给不出 HTML，已复制纯文本内容。',
+  'core.cmd.clipHtmlOk': '已按 HTML 复制。粘贴到支持富文本的地方会保留格式。',
+  'core.cmd.aboutBody': '轻墨 {version}',
+  'core.cmd.sampleCreateFailed': '示例文档没能创建：{reason}',
+  'core.cmd.sampleTitle': '示例文档',
+
+  // 编码清单里唯一需要翻译的条目（其余是纯技术名）
+  'core.encoding.utf8Bom': 'UTF-8（含 BOM）',
+
+  // 公式：校验与渲染失败
+  'core.math.empty': '公式是空的，没有内容可以保存',
+  'core.math.inlineBlank': '行内公式里不能有空行：Markdown 会在空行处截断它，保存后公式会丢失。要写成多行请改用块级公式',
+  'core.render.katexLoadFailed': '公式渲染器加载失败：{reason}',
+  'core.render.katexAt': '（第 {position} 个字符起）',
+
+  // 导出与平台层的零散补充
+  'core.export.diagramNote': '图表没能画出来，上面是它的源码。{message}',
+  'core.print.desktopOnly': '打印 / 导出 PDF 只在桌面版可用',
+  'core.platform.openTitle': '打开文件',
+  'core.platform.filterQingmo': '轻墨支持的文档',
+  'core.platform.filterMindmap': '思维导图',
+  'core.platform.filterDrawio': 'draw.io 图表',
+  'core.platform.filterAll': '全部文件',
 } as const;
 
 export type MessageKey = keyof typeof zhCN;
@@ -593,10 +690,13 @@ export const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['zh-CN', 'en'];
  * 刻意要求全量对应，回退链（缺 key 落回 zh-CN）是给「将来只翻了一部分的
  * 语言」准备的，不是给偷懒准备的。
  *
- * 目前覆盖**命令系统**（菜单 / 命令面板 / 快捷键表）与**外壳全部界面文案**
- * （2026-10-07，E2 批次：设置页 / 文件树 / 检索 / 浮层工具条 / 状态栏 / 横幅 …）。
- * 还没迁的是 **core 层抛出的消息**（保存结果、检索汇总、AppError 的 message）——
- * 它们的文案被 core 测试逐字钉着，迁移要连测试一起动，是下一批。
+ * 覆盖**命令系统**（菜单 / 命令面板 / 快捷键表）、**外壳全部界面文案**
+ * （2026-10-07，E2 批次：设置页 / 文件树 / 检索 / 浮层工具条 / 状态栏 / 横幅 …）
+ * 与 **core 层全部用户可见消息**（2026-10-07，E3 批次：保存结果、检索与替换
+ * 汇总、AppError、`.mindmap` 解析降级提示、图表渲染失败原因、平台对话框标题）。
+ * 刻意**不迁**的三样：示例文档的正文内容（那是文档数据，不是界面）、
+ * 命令的 `keywords`（搜索数据，混入译文会污染拼音检索）、`console.warn`
+ * （开发者看的，不是用户）。
  */
 export const en: Record<MessageKey, string> = {
   // ---- 命令分组 -----------------------------------------------------------
@@ -804,6 +904,12 @@ export const en: Record<MessageKey, string> = {
   'ui.pane.stateError': 'Error',
   'ui.pane.emptyPlaceholder': 'Start writing. Markdown, code / text, mind maps (.mindmap) and draw.io diagrams (.drawio) all live here as first-class documents.',
   'ui.pane.encodingGuessed': 'The encoding of this file was guessed automatically and may be wrong. If you see mojibake below, pick the encoding manually in the status bar.',
+  'ui.pane.conflictHead': 'The file on disk was modified by another program.',
+  'ui.pane.conflictReload': 'Overwrite mine with the disk version',
+  'ui.pane.conflictSaveCopy': 'Save a copy',
+  'ui.pane.conflictOverwrite': 'Overwrite the disk with mine',
+  'ui.pane.kernelMissingHead': 'No kernel can open this document',
+  'ui.pane.kernelMissingBody': 'This should never happen — the plain-text fallback kernel handles every file. Please report this file path to the developers.',
   'ui.pane.frontMatterWhy1': 'This file starts with YAML front matter. The rich-text kernel would treat ',
   'ui.pane.frontMatterWhy2': ' as a divider and ',
   'ui.pane.frontMatterKv': 'key: value',
@@ -834,7 +940,7 @@ export const en: Record<MessageKey, string> = {
   'ui.settings.close': 'Close',
   'ui.settings.appearance': 'Appearance',
   'ui.settings.language': '语言 / Language',
-  'ui.settings.localeHint': 'Menus, the command palette, the shortcut table and all interface copy are bilingual; a few lower-level messages (save results, search summaries) follow in a later batch.',
+  'ui.settings.localeHint': 'Menus, the command palette, the shortcut table, all interface copy and lower-level messages (save results, search summaries, parse degradation notes) are bilingual; sample-document content and search keywords are deliberately not translated.',
   'ui.settings.theme': 'Theme',
   'ui.settings.editor': 'Editor',
   'ui.settings.fontSize': 'Font size',
@@ -984,6 +1090,17 @@ export const en: Record<MessageKey, string> = {
   'ui.table.alignLeft': 'Align cell left',
   'ui.table.alignCenter': 'Align cell center',
   'ui.table.alignRight': 'Align cell right',
+  'ui.table.rowBeforeLabel': 'Row ↑',
+  'ui.table.rowAfterLabel': 'Row ↓',
+  'ui.table.deleteRowLabel': 'Row ✕',
+  'ui.table.colBeforeLabel': 'Col ←',
+  'ui.table.colAfterLabel': 'Col →',
+  'ui.table.deleteColumnLabel': 'Col ✕',
+  'ui.table.exitLabel': 'Exit',
+  'ui.table.deleteTableLabel': 'Delete',
+  'ui.table.alignLeftLabel': 'L',
+  'ui.table.alignCenterLabel': 'C',
+  'ui.table.alignRightLabel': 'R',
 
   // ---- 外壳（App） ----------------------------------------------------------
   'ui.app.appName': 'Qingmo',
@@ -1150,4 +1267,75 @@ export const en: Record<MessageKey, string> = {
   'core.keys.twoKeys': 'Two key names found: {first} and {second}',
   'core.keys.noKey': 'Missing the key name',
   'core.keys.emptyKey': 'The key name is empty',
+
+  'core.platform.appName': 'Qingmo',
+  'core.platform.saveAsTitle': 'Save As',
+  'core.platform.openDirTitle': 'Open Folder',
+
+  'core.browser.notFound': '(browser preview) {path} does not exist in the virtual disk',
+  'core.browser.conflictExternal': '(browser preview) The file was modified externally; this save has been cancelled',
+  'core.browser.binaryNotReadable': '(browser preview) Cannot read the binary file {path}',
+  'core.browser.binaryDetail': 'Browser preview has no disk: only images pasted during this session can be read. Try real files in the desktop app',
+  'core.browser.binaryExists': '(browser preview) {path} already exists; to avoid overwriting it, this write has been cancelled',
+  'core.browser.emptyWrite': 'Refusing to write an empty file',
+  'core.browser.saveAs': '(browser preview) Save as:',
+  'core.browser.noDirectory': '(browser preview) Opening a folder is not supported. Use the desktop app, or open a single file.',
+
+  'core.render.mermaidEmpty': 'The diagram is still empty.',
+  'core.render.mermaidLoadFailed': 'Failed to load the diagram renderer: {reason}',
+  'core.render.mermaidNoReason': 'Diagram rendering failed (the renderer gave no reason).',
+  'core.render.mermaidSyntax': 'The diagram syntax looks wrong — original message from the renderer:\n',
+  'core.render.drawioEmpty': 'The diagram content is empty.',
+  'core.render.drawioNoEntry': 'The viewer script has loaded, but no GraphViewer entry point was found.',
+  'core.render.drawioLoadFailed': 'Failed to load the viewer script (are the app resources incomplete?).',
+  'core.render.drawioFailed': 'Failed to load the viewer: {reason}',
+  'core.render.timeout': 'Rendering did not finish within the expected time.',
+
+  'core.mm.descArray': 'an array ({n} items)',
+  'core.mm.descString': 'the string {value}',
+  'core.mm.descObject': 'an object',
+  'core.mm.notJson': 'Not valid JSON: {reason}',
+  'core.mm.notObject': 'The top level is {described}, not an object',
+  'core.mm.wrongFormat': 'format is {described}, not {expected}',
+  'core.mm.versionNewer': 'The file version is {version}, newer than this version ({current}); unknown fields will be preserved as-is, but some content may not display',
+  'core.mm.versionNotNumber': 'version is {described}, not a number; treated as {current}',
+  'core.mm.layoutUnknown': 'layout is {layout}, unknown to this version; preserved as-is, rendering falls back to {fallback}',
+  'core.mm.layoutNotString': 'layout is {described}, not a string; switched to {fallback} (the original value was not kept)',
+  'core.mm.nodeNotObject': '{path} is {described}, not a node object; skipped — everything below it will be lost',
+  'core.mm.idMissing': 'The id of {path} is {described}; filled with {filled}',
+  'core.mm.idDuplicate': 'The id {id} appears more than once in the file; the tree itself is fine, but id-indexed side tables will cross-wire',
+  'core.mm.topicCoerced': '{path}.topic is {described}; converted to {topic}',
+  'core.mm.topicMissing': '{path} has no topic (it was {described}); filled with an empty string',
+  'core.mm.unknownKeys': 'Node {id} has {n} unknown keys ({keys}); preserved as-is',
+  'core.mm.fieldWrongType': '{path}.{key} is {described} — wrong type; kept as an unknown field as-is',
+  'core.mm.childrenNotArray': '{path}.children is {described}, not an array; treated as empty — everything below it will be lost',
+  'core.mm.rootMissing': 'The root is not a node object',
+  'core.mm.unknownKeysTop': 'The top level has {n} unknown keys ({keys}); preserved as-is',
+  'core.mm.serUndefined': '{where}: the key {key} is undefined — JSON cannot represent it, and writing it out would make it disappear entirely. Use null to mean “empty”.',
+  'core.mm.serDuplicateKey': 'Node {id}: the key {key} has **two sources** — writing it out would produce a duplicated JSON key, and reading it back keeps only the last one. When building a document, a key belongs either in the known fields or in extra, never both.',
+  'core.mm.serTopKnownKey': 'The top-level extra contains the known key {key} — writing it out would produce a duplicated JSON key.',
+  'core.mm.whereNode': 'node {id}',
+  'core.mm.whereTop': 'the top level',
+
+  'core.cmd.clipCopyDenied': 'Clipboard write was denied; nothing was copied.',
+  'core.cmd.clipNoHtml': 'This document type cannot produce HTML; the plain-text content was copied instead.',
+  'core.cmd.clipHtmlOk': 'Copied as HTML. Pasting into a rich-text target will keep the formatting.',
+  'core.cmd.aboutBody': 'Qingmo {version}',
+  'core.cmd.sampleCreateFailed': 'Failed to create the sample document: {reason}',
+  'core.cmd.sampleTitle': 'Sample document',
+
+  'core.encoding.utf8Bom': 'UTF-8 (with BOM)',
+
+  'core.math.empty': 'The formula is empty; there is nothing to save',
+  'core.math.inlineBlank': 'An inline formula cannot contain a blank line: Markdown truncates it there and the formula would be lost after saving. Use a block formula for multi-line content',
+  'core.render.katexLoadFailed': 'Failed to load the formula renderer: {reason}',
+  'core.render.katexAt': ' (starting at character {position})',
+
+  'core.export.diagramNote': 'The diagram could not be rendered; its source is shown above. {message}',
+  'core.print.desktopOnly': 'Print / export to PDF is only available in the desktop app',
+  'core.platform.openTitle': 'Open File',
+  'core.platform.filterQingmo': 'Qingmo-supported documents',
+  'core.platform.filterMindmap': 'Mind maps',
+  'core.platform.filterDrawio': 'draw.io diagrams',
+  'core.platform.filterAll': 'All files',
 };

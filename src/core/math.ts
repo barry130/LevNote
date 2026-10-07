@@ -38,6 +38,7 @@
  */
 
 import { unified } from 'unified';
+import { t } from './i18n/index.js';
 import remarkParse from 'remark-parse';
 import remarkMath from 'remark-math';
 
@@ -168,10 +169,10 @@ function lastChild(node: MdastNode): MdastNode | null {
  * 「放进去一个坏输入」一样糟。
  */
 export function texProblem(tex: string, kind: MathKind): string | null {
-  if (tex.trim() === '') return '公式是空的，没有内容可以保存';
+  if (tex.trim() === '') return t('core.math.empty');
 
   if (kind === 'inline' && /\n[ \t]*\n/.test(tex)) {
-    return '行内公式里不能有空行：Markdown 会在空行处截断它，保存后公式会丢失。要写成多行请改用块级公式';
+    return t('core.math.inlineBlank');
   }
 
   return null;

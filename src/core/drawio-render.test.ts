@@ -14,8 +14,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { t } from './i18n/index.js';
+
 import {
-  EMPTY_DRAWIO_MESSAGE,
   type DrawIoIo,
   type DrawioViewerLike,
   renderDrawio,
@@ -99,7 +100,7 @@ describe('renderDrawio · 注入的 io', () => {
     const h = makeHarness();
     const result = await renderDrawio('   ', host, h.io);
 
-    expect(result).toEqual({ ok: false, message: EMPTY_DRAWIO_MESSAGE });
+    expect(result).toEqual({ ok: false, message: t('core.render.drawioEmpty') });
     expect(h.loads).toBe(0);
     expect(host.childElementCount).toBe(0);
   });

@@ -6,6 +6,7 @@
  */
 
 import type { DocumentProvider } from '../document/types.js';
+import { t } from '../i18n/index.js';
 import { UNSUPPORTED_SEARCHER, type WorkspaceSearcher } from '../search/workspace.js';
 import { UNSUPPORTED_FILE_MANAGER, type WorkspaceFileManager } from '../workspace/fsmanage.js';
 import { createBrowserProvider, toggleFullscreenBrowser } from './browser.js';
@@ -82,7 +83,7 @@ export function onFilesChanged(handler: (batch: FsChangeBatch) => void): Promise
 
 export function printHtml(html: string, title: string): Promise<void> {
   if (!isDesktop()) {
-    return Promise.reject(new Error('打印 / 导出 PDF 只在桌面版可用'));
+    return Promise.reject(new Error(t('core.print.desktopOnly')));
   }
   return printHtmlDesktop(html, title);
 }

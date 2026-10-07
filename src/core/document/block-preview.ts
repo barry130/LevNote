@@ -41,12 +41,12 @@ export async function buildDocBlockPreview(
 ): Promise<DocBlockPreview> {
   const absolute = resolveRelative(docPath, ref.src);
   if (absolute === null) {
-    return { kind: 'error', reason: `解析不了相对路径「${ref.src}」—— 当前文档没有目录信息` };
+    return { kind: 'error', reason: t('core.bprev.cannotResolve', { src: ref.src }) };
   }
 
   const file = await deps.readTextFile(absolute);
   if (file === null) {
-    return { kind: 'error', reason: `读不到 ${ref.src}` };
+    return { kind: 'error', reason: t('core.bprev.unreadable', { src: ref.src }) };
   }
   const text = file.text;
 
@@ -64,7 +64,7 @@ export async function buildDocBlockPreview(
   if (ref.kind === 'mindmap') {
     const parsed = parseMindmap(text);
     if (parsed.document === null) {
-      return { kind: 'error', reason: `${ref.src} 解析不了 —— 不是一份完整的 .mindmap` };
+      return { kind: 'error', reason: t('core.bprev.badMindmap', { src: ref.src }) };
     }
     return {
       kind: 'mindmap',

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it } from 'vitest';
+import { t } from './i18n/index.js';
 import type { RenderResult } from 'mermaid';
 import {
-  EMPTY_DIAGRAM_MESSAGE,
   MEASURE_CONTAINER_STYLE,
   cachedLoader,
   describeMermaidError,
@@ -141,7 +141,7 @@ describe('renderMermaid', () => {
     const result = await renderMermaid('   \n  ', 'light', failing);
 
     expect(loaded).toBe(0);
-    expect(result).toEqual({ ok: false, message: EMPTY_DIAGRAM_MESSAGE });
+    expect(result).toEqual({ ok: false, message: t('core.render.mermaidEmpty') });
   });
 
   it('渲染抛错时把原因带出来，不吞掉', async () => {

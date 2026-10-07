@@ -10,7 +10,7 @@
 import type { CommandRegistry } from './registry.js';
 import type { Command, CommandContext } from './types.js';
 import type { BlockFormat, InlineFormat } from '../editor/types.js';
-import { ENCODINGS, encodingSlug } from '../encodings.js';
+import { ENCODINGS, encodingSlug, encodingLabel } from '../encodings.js';
 import { describeRoundTrip, formatRoundTripReport } from '../fidelity.js';
 import { t } from '../i18n/index.js';
 import { extractToReference, flattenReference } from '../document/block-ops.js';
@@ -267,7 +267,7 @@ const THEME_COMMANDS: readonly Command[] = (['system', 'paper', 'ink'] as const)
  */
 const ENCODING_COMMANDS: readonly Command[] = ENCODINGS.map((option) => ({
   id: `encoding.set.${encodingSlug(option.encoding, option.bom)}`,
-  title: option.label,
+  title: encodingLabel(option),
   category: t('command.category.encoding'),
   keywords: [option.encoding, 'bianma', 'encoding', '编码'],
   enabled: (ctx: CommandContext) => {
@@ -563,14 +563,14 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
         try {
           await navigator.clipboard.writeText(html ?? doc.text);
         } catch {
-          await ctx.ui.notify('剪贴板写入被拒绝，没有复制任何内容。', '复制为 HTML');
+          await ctx.ui.notify(t('core.cmd.clipCopyDenied'), t('command.edit.copyHtml.title'));
           return;
         }
         await ctx.ui.notify(
           html === null
-            ? '当前文档类型给不出 HTML，已复制纯文本内容。'
-            : '已按 HTML 复制。粘贴到支持富文本的地方会保留格式。',
-          '复制为 HTML',
+            ? t('core.cmd.clipNoHtml')
+            : t('core.cmd.clipHtmlOk'),
+          t('command.edit.copyHtml.title'),
         );
       })();
     },
@@ -742,7 +742,7 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // 构建期注入的常量必须写成 `import.meta.env.X`（硬约束 14）——
     // dev server 不替换裸标识符，写错的表现是「点一下关于整个应用就没了」
     run: (ctx) => {
-      void ctx.ui.notify(`轻墨 ${String(import.meta.env.QINGMO_VERSION ?? '')}`, '关于轻墨');
+      void ctx.ui.notify(t('core.cmd.aboutBody', { version: String(import.meta.env.QINGMO_VERSION ?? '') }), t('command.app.about.title'));
     },
   },
 
@@ -773,7 +773,7 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
             await ctx.provider.writeTextFile({ path, text: buildSampleDocument(), create: true });
           } catch (thrown) {
             const error = asAppError(thrown);
-            await ctx.ui.notify(`示例文档没能创建：${error.message}`, '示例文档');
+            await ctx.ui.notify(t('core.cmd.sampleCreateFailed', { reason: error.message }), t('core.cmd.sampleTitle'));
             return;
           }
         }
