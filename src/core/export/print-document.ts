@@ -13,6 +13,7 @@
  */
 
 import type { DocumentProvider } from '../document/types.js';
+import { t } from '../i18n/index.js';
 import { dirname } from '../path.js';
 import { buildSelfContainedHtml } from './document.js';
 
@@ -56,23 +57,23 @@ export async function printDocument(request: PrintDocumentRequest): Promise<Prin
     remoteImages = built.report.remoteImages;
     failedMath = built.report.failedMath;
   } catch (thrown) {
-    return { status: 'failed', message: `生成打印内容失败：${describe(thrown)}` };
+    return { status: 'failed', message: t('core.print.buildFailed', { reason: describe(thrown) }) };
   }
 
   try {
     await request.printHtml(html, request.title);
   } catch (thrown) {
-    return { status: 'failed', message: `打不开打印窗口：${describe(thrown)}` };
+    return { status: 'failed', message: t('core.print.windowFailed', { reason: describe(thrown) }) };
   }
 
   // 与 HTML 导出同一条「如实通报」：打印里没能内联的东西要说出来（硬约束 2）
   const caveats: string[] = [];
-  if (missingImages > 0) caveats.push(`${missingImages} 张图片读不到，打印里只保留原链接`);
-  if (remoteImages > 0) caveats.push(`${remoteImages} 张图片是网络链接，离线打印时不会显示`);
-  if (failedMath > 0) caveats.push(`${failedMath} 条公式渲染失败，打印里只保留源码`);
+  if (missingImages > 0) caveats.push(t('core.print.imagesMissing', { n: missingImages }));
+  if (remoteImages > 0) caveats.push(t('core.print.imagesRemote', { n: remoteImages }));
+  if (failedMath > 0) caveats.push(t('core.print.mathFailed', { n: failedMath }));
   const caveat = caveats.length > 0 ? `（${caveats.join('；')}）` : '';
   return {
     status: 'opened',
-    message: `打印预览已打开 —— 在打印对话框里选「另存为 PDF」即可导出${caveat}。`,
+    message: t('core.print.opened', { caveat }),
   };
 }

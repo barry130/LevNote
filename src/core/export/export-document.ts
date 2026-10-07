@@ -12,6 +12,7 @@
  */
 
 import type { DocumentProvider } from '../document/types.js';
+import { t } from '../i18n/index.js';
 import { basename, dirname, titleOf } from '../path.js';
 import type { ExportReport } from './document.js';
 import { buildSelfContainedHtml } from './document.js';
@@ -49,7 +50,7 @@ export async function exportHtml(request: ExportHtmlRequest): Promise<ExportHtml
     html = built.html;
     report = built.report;
   } catch (thrown) {
-    return { status: 'failed', message: `生成 HTML 失败：${describe(thrown)}` };
+    return { status: 'failed', message: t('core.export.buildFailed', { reason: describe(thrown) }) };
   }
 
   const suggested = `${request.title}.html`;
@@ -57,7 +58,7 @@ export async function exportHtml(request: ExportHtmlRequest): Promise<ExportHtml
   try {
     target = await provider.pickSavePath(suggested);
   } catch (thrown) {
-    return { status: 'failed', message: `无法弹出保存对话框：${describe(thrown)}` };
+    return { status: 'failed', message: t('core.export.dialogFailed', { reason: describe(thrown) }) };
   }
   // 用户取消：什么都不写，也不弹假成功
   if (target === null) return { status: 'cancelled' };
@@ -74,7 +75,7 @@ export async function exportHtml(request: ExportHtmlRequest): Promise<ExportHtml
       create: true,
     });
   } catch (thrown) {
-    return { status: 'failed', message: `写入失败：${describe(thrown)}` };
+    return { status: 'failed', message: t('core.export.writeFailed', { reason: describe(thrown) }) };
   }
 
   const message = describeExport({
@@ -107,12 +108,12 @@ export interface ExportSummaryInput {
  */
 export function describeExport(input: ExportSummaryInput): string {
   const { report } = input;
-  const parts = [`已导出 ${basename(input.target)}`];
+  const parts = [t('core.export.exported', { name: basename(input.target) })];
 
-  if (report.highlightedBlocks > 0) parts.push(`${report.highlightedBlocks} 个代码块已着色`);
-  if (report.inlinedImages > 0) parts.push(`${report.inlinedImages} 张图片已内联`);
-  if (report.missingImages > 0) parts.push(`${report.missingImages} 张图片读不到，只保留了原链接`);
-  if (report.remoteImages > 0) parts.push(`${report.remoteImages} 张图片来自网络，打开时需要联网`);
+  if (report.highlightedBlocks > 0) parts.push(t('core.export.highlighted', { n: report.highlightedBlocks }));
+  if (report.inlinedImages > 0) parts.push(t('core.export.imagesInlined', { n: report.inlinedImages }));
+  if (report.missingImages > 0) parts.push(t('core.export.imagesMissing', { n: report.missingImages }));
+  if (report.remoteImages > 0) parts.push(t('core.export.imagesRemote', { n: report.remoteImages }));
 
   /**
    * 公式。四条消息各有各的用处：
@@ -125,17 +126,17 @@ export function describeExport(input: ExportSummaryInput): string {
    *   字体没内联意味着发出去的文件在别人机器上会掉字形，
    *   公式没渲染出来意味着那段内容只剩源码。
    */
-  if (report.renderedMath > 0) parts.push(`${report.renderedMath} 个公式已渲染`);
+  if (report.renderedMath > 0) parts.push(t('core.export.mathRendered', { n: report.renderedMath }));
   if (report.failedMath > 0) {
     const why = report.firstMathError === null ? '' : `（${report.firstMathError}）`;
-    parts.push(`${report.failedMath} 个公式渲染失败，只保留了源码${why}`);
+    parts.push(t('core.export.mathFailed', { n: report.failedMath }) + why);
   }
   if (report.mathFonts > 0) {
     const kb = Math.round(report.mathStyleBytes / 1024);
-    parts.push(`公式字体已内联（${report.mathFonts} 个文件，约 ${kb} KB）`);
+    parts.push(t('core.export.mathFontsInlined', { n: report.mathFonts, kb }));
   }
   if (report.missingMathFonts > 0) {
-    parts.push(`${report.missingMathFonts} 个公式字体没能内联，导出的公式可能用系统字体显示`);
+    parts.push(t('core.export.mathFontsMissing', { n: report.missingMathFonts }));
   }
 
   /**
@@ -143,13 +144,13 @@ export function describeExport(input: ExportSummaryInput): string {
    * 失败的那个是**必须**说出来的 —— 图上没画出来意味着发出去的文件里
    * 那一段只剩代码，而用户以为对方看到的是图。
    */
-  if (report.renderedDiagrams > 0) parts.push(`${report.renderedDiagrams} 张图表已画成 SVG`);
+  if (report.renderedDiagrams > 0) parts.push(t('core.export.diagramsRendered', { n: report.renderedDiagrams }));
   if (report.failedDiagrams > 0) {
     const why = report.firstDiagramError === null ? '' : `（${report.firstDiagramError}）`;
-    parts.push(`${report.failedDiagrams} 张图表画不出来，只保留了源码${why}`);
+    parts.push(t('core.export.diagramsFailed', { n: report.failedDiagrams }) + why);
   }
 
-  if (input.plainFallback) parts.push('当前内核没有富文本结构，已按纯文本呈现');
+  if (input.plainFallback) parts.push(t('core.export.plainFallback'));
 
   return parts.join('；');
 }

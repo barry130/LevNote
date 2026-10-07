@@ -9,6 +9,7 @@
  */
 
 import type { EditorFenceInfo } from '../editor/types.js';
+import { t } from '../i18n/index.js';
 import { resolveRelative } from '../path.js';
 import { createDocBlock } from '@qingmo/interop-spec';
 import { parseDocBlock } from '../docblock.js';
@@ -109,7 +110,7 @@ export interface BlockOpsDeps {
 export async function extractToReference(deps: BlockOpsDeps): Promise<void> {
   const selected = deps.selectedMarkdown();
   if (selected === null || selected.trim() === '') {
-    await deps.notify('先选中要提取的内容，再执行提取。', '提取为引用');
+    await deps.notify(t('core.blops.selectFirst'), t('core.blops.extractTitle'));
     return;
   }
 
@@ -127,7 +128,7 @@ export async function extractToReference(deps: BlockOpsDeps): Promise<void> {
     name = candidates.next();
   }
   if (!free) {
-    await deps.notify('同目录下已有一连串同名文件，无法安全命名。请手动清理或改名后重试。', '提取为引用');
+    await deps.notify(t('core.blops.nameExhausted'), t('core.blops.extractTitle'));
     return;
   }
 
@@ -137,14 +138,14 @@ export async function extractToReference(deps: BlockOpsDeps): Promise<void> {
   try {
     await deps.writeTextFile(resolveRelative(deps.docPath, name) ?? '', selected);
   } catch (thrown) {
-    await deps.notify(`写入 ${name} 失败：${thrown instanceof Error ? thrown.message : String(thrown)}`, '提取为引用');
+    await deps.notify(t('core.blops.writeFailed', { name, reason: thrown instanceof Error ? thrown.message : String(thrown) }), t('core.blops.extractTitle'));
     return;
   }
 
   deps.replaceSelectionWith(fence);
   await deps.notify(
-    `已提取到 ${name}，原文替换为引用。新文件已写入磁盘，当前文档要等保存后落盘。`,
-    '提取为引用',
+    t('core.blops.extracted', { name }),
+    t('core.blops.extractTitle'),
   );
 }
 
@@ -161,19 +162,19 @@ export async function extractToReference(deps: BlockOpsDeps): Promise<void> {
 export async function flattenReference(deps: BlockOpsDeps): Promise<void> {
   const fence = deps.enclosingFence();
   if (fence === null || fence.info !== 'doc-block') {
-    await deps.notify('把光标放进一个 doc-block 引用里，再执行拉平。', '拉平引用');
+    await deps.notify(t('core.blops.cursorNotInRef'), t('core.blops.flattenTitle'));
     return;
   }
 
   const parsed = parseDocBlock(fence.content);
   if (parsed.errors.includes('MISSING_TERMINATOR')) {
-    await deps.notify('这个 doc-block 缺少结束行（「---」），先修好属性区再拉平。', '拉平引用');
+    await deps.notify(t('core.blops.missingEnd'), t('core.blops.flattenTitle'));
     return;
   }
 
   const kind = parsed.attrs.kind;
   if (kind !== 'markdown' && kind !== 'text' && kind !== 'code') {
-    await deps.notify('只有 Markdown / 文本 / 代码引用可以拉平；图表与导图的内容不适合进正文。', '拉平引用');
+    await deps.notify(t('core.blops.kindNotFlattenable'), t('core.blops.flattenTitle'));
     return;
   }
 
@@ -183,23 +184,23 @@ export async function flattenReference(deps: BlockOpsDeps): Promise<void> {
   } else {
     const src = parsed.attrs.src;
     if (src === null || src === '') {
-      await deps.notify('这个引用没有写 src —— 不知道要去读哪个文件。', '拉平引用');
+      await deps.notify(t('core.blops.noSrc'), t('core.blops.flattenTitle'));
       return;
     }
     const absolute = resolveRelative(deps.docPath, src);
     const file = absolute === null ? null : await deps.readTextFile(absolute);
     if (file === null) {
-      await deps.notify(`读不到引用的文件：${src}`, '拉平引用');
+      await deps.notify(t('core.blops.srcUnreadable', { src }), t('core.blops.flattenTitle'));
       return;
     }
     content = file.text;
   }
 
   if (content.trim() === '') {
-    await deps.notify('引用的内容是空的，拉平之后什么都不会留下 —— 所以没有执行。', '拉平引用');
+    await deps.notify(t('core.blops.emptyRef'), t('core.blops.flattenTitle'));
     return;
   }
 
   deps.replaceEnclosingFenceWith(content);
-  await deps.notify('已把引用拉平为原文。被引用的文件还在原处，没有被删除。', '拉平引用');
+  await deps.notify(t('core.blops.flattened'), t('core.blops.flattenTitle'));
 }

@@ -20,6 +20,8 @@
  * 会让 `Ctrl+Shift+Z`（重做）同时命中 `Ctrl+Z`（撤销），是这类实现最常见的 bug。
  */
 
+import { t } from '../i18n/index.js';
+
 export type Platform = 'mac' | 'other';
 
 export interface Keybinding {
@@ -115,7 +117,7 @@ export function isSafeGlobalSpec(spec: string, platform: Platform): boolean {
 
 export class KeybindingSyntaxError extends Error {
   constructor(spec: string, reason: string) {
-    super(`快捷键写法无法解析：${JSON.stringify(spec)} —— ${reason}`);
+    super(t('core.keys.unparseable', { spec: JSON.stringify(spec), reason }));
     this.name = 'KeybindingSyntaxError';
   }
 }
@@ -131,7 +133,7 @@ export class KeybindingSyntaxError extends Error {
  */
 export function parseKeybinding(spec: string, platform: Platform): Keybinding {
   const parts = spec.split('+').map((part) => part.trim());
-  if (parts.some((part) => part === '')) throw new KeybindingSyntaxError(spec, '存在空的段落，多半是多了或少了 +');
+  if (parts.some((part) => part === '')) throw new KeybindingSyntaxError(spec, t('core.keys.emptyPart'));
 
   let ctrl = false;
   let meta = false;
@@ -165,13 +167,13 @@ export function parseKeybinding(spec: string, platform: Platform): Keybinding {
         shift = true;
         continue;
       default:
-        if (key !== null) throw new KeybindingSyntaxError(spec, `出现了两个键名：${key} 与 ${part}`);
+        if (key !== null) throw new KeybindingSyntaxError(spec, t('core.keys.twoKeys', { first: key, second: part }));
         key = normalizeKey(part);
     }
   }
 
-  if (key === null) throw new KeybindingSyntaxError(spec, '缺少键名');
-  if (key === '') throw new KeybindingSyntaxError(spec, '键名为空');
+  if (key === null) throw new KeybindingSyntaxError(spec, t('core.keys.noKey'));
+  if (key === '') throw new KeybindingSyntaxError(spec, t('core.keys.emptyKey'));
 
   return { ctrl, meta, alt, shift, key };
 }

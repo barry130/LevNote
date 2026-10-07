@@ -21,6 +21,7 @@
  */
 
 import { bytesToDataUrl, imageExtensionFor, sniffImageMime } from '../image.js';
+import { t } from '../i18n/index.js';
 import { joinPath } from '../path.js';
 import { assetsDirFor, assetsDirNameFor, imageFileName, imageMarkdownSrc, resolveImagePath } from './assets.js';
 import { asAppError, type DocumentProvider } from './types.js';
@@ -140,8 +141,8 @@ export async function writePastedImage(
   // 内容其实是 TIFF」—— 本地看起来正常（我们自己按 MIME 显示），
   // 发给别人就打不开，而那时已经无从追查
   if (imageExtensionFor(options.mimeType) === null) {
-    const shown = options.mimeType.trim() === '' ? '未知格式' : options.mimeType;
-    return { ok: false, reason: `不认识这种图片格式（${shown}），这一张没有插入` };
+    const shown = options.mimeType.trim() === '' ? t('core.images.unknownType') : options.mimeType;
+    return { ok: false, reason: t('core.images.unknownTypeDetail', { shown }) };
   }
 
   const directory = assetsDirFor(documentPath);
@@ -149,7 +150,7 @@ export async function writePastedImage(
     // 没有目录信息 = 这份文档还没保存过（浏览器预览虚拟盘、新建未保存的文档）
     return {
       ok: false,
-      reason: '这份文档还没有保存过，图片没有可写的位置。先按 Ctrl+S 保存一次，再粘贴图片。',
+      reason: t('core.images.noLocation'),
     };
   }
 
@@ -160,10 +161,10 @@ export async function writePastedImage(
     const fileName = imageFileName({ mimeType: options.mimeType, at: options.at, salt: options.salt() });
     // 上面已经确认过 MIME 认得，所以这里拿不到扩展名是不可能的；
     // 真拿到了就如实失败，而不是编一个后缀
-    if (fileName === null) return { ok: false, reason: '没能为这张图生成文件名' };
+    if (fileName === null) return { ok: false, reason: t('core.images.nameFailed') };
 
     const target = joinPath(directory, fileName);
-    if (target === null) return { ok: false, reason: '没能算出图片要写到哪儿' };
+    if (target === null) return { ok: false, reason: t('core.images.targetFailed') };
 
     try {
       const outcome = await provider.writeBinaryFile(target, options.bytes);
@@ -175,7 +176,7 @@ export async function writePastedImage(
       if (outcome.size !== options.bytes.byteLength) {
         return {
           ok: false,
-          reason: `图片只写进去了 ${outcome.size} / ${options.bytes.byteLength} 字节，可能已损坏。请删除 ${outcome.path} 后重试。`,
+          reason: t('core.images.partialWrite', { size: outcome.size, total: options.bytes.byteLength, path: outcome.path }),
         };
       }
 
@@ -190,5 +191,5 @@ export async function writePastedImage(
     }
   }
 
-  return { ok: false, reason: `图片没能落盘：${lastReason}` };
+  return { ok: false, reason: t('core.images.writeFailed', { reason: lastReason }) };
 }

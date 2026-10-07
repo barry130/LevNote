@@ -123,27 +123,27 @@ export function describeRoundTrip(original: string, roundTripped: string): Round
     const sub = dp[(i + 1) * cols + j + 1] ?? 0;
     if (sub >= del && sub >= ins) {
       changed += 1;
-      if (samples.length < 3) samples.push(`第 ${i + 1} 行：「${truncate(a[i] ?? '')}」→「${truncate(b[j] ?? '')}」`);
+      if (samples.length < 3) samples.push(t('core.fid.changedSample', { line: i + 1, before: truncate(a[i] ?? ''), after: truncate(b[j] ?? '') }));
       i += 1;
       j += 1;
     } else if (del >= ins) {
       removed += 1;
-      if (samples.length < 3) samples.push(`第 ${i + 1} 行：「${truncate(a[i] ?? '')}」被删掉`);
+      if (samples.length < 3) samples.push(t('core.fid.deletedSample', { line: i + 1, text: truncate(a[i] ?? '') }));
       i += 1;
     } else {
       added += 1;
-      if (samples.length < 3) samples.push(`第 ${i + 1} 行前新增：「${truncate(b[j] ?? '')}」`);
+      if (samples.length < 3) samples.push(t('core.fid.addedSampleAt', { line: i + 1, text: truncate(b[j] ?? '') }));
       j += 1;
     }
   }
   while (i < a.length) {
     removed += 1;
-    if (samples.length < 3) samples.push(`第 ${i + 1} 行：「${truncate(a[i] ?? '')}」被删掉`);
+    if (samples.length < 3) samples.push(t('core.fid.deletedSample', { line: i + 1, text: truncate(a[i] ?? '') }));
     i += 1;
   }
   while (j < b.length) {
     added += 1;
-    if (samples.length < 3) samples.push(`末尾新增：「${truncate(b[j] ?? '')}」`);
+    if (samples.length < 3) samples.push(t('core.fid.addedSampleTail', { text: truncate(b[j] ?? '') }));
     j += 1;
   }
 
@@ -153,13 +153,14 @@ export function describeRoundTrip(original: string, roundTripped: string): Round
 /** 报告 → 用户可见的一句话（或一段话）。如实是底线：改了什么、没比对什么，都要说。 */
 export function formatRoundTripReport(report: RoundTripReport): string {
   if (report.same) {
-    return `往返保真：原文 ${report.totalLines} 行，「打开 → 不改 → 保存」不会改写任何内容。`;
+    return t('core.fid.clean', { n: report.totalLines });
   }
   const rewritten = report.changed + report.added + report.removed;
   const head =
-    `往返保真：原文 ${report.totalLines} 行，不改一个字保存会改写 ${rewritten} 行` +
-    `（修改 ${report.changed} / 新增 ${report.added} / 删除 ${report.removed}）` +
-    (report.approximate ? '。文档太大，未逐行比对，数量是估计值。' : '。');
+    t('core.fid.dirtyHead', { n: report.totalLines, rewritten }) +
+    t('core.fid.dirtyBreakdown', { changed: report.changed, added: report.added, removed: report.removed }) +
+    (report.approximate ? t('core.fid.approximate') : t('core.fid.period'));
   if (report.samples.length === 0) return head;
   return `${head}\n${report.samples.join('\n')}`;
 }
+import { t } from './i18n/index.js';

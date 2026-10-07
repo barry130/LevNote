@@ -11,6 +11,7 @@
  */
 
 import type { DocBlockPreview } from '../editor/types.js';
+import { t } from '../i18n/index.js';
 import { resolveRelative } from '../path.js';
 import { extractOutline } from '../outline/outline.js';
 import { analyze } from '../statistics.js';
@@ -90,5 +91,5 @@ function firstLines(text: string, limit: number): string {
   const lines = text.split('\n');
   const head = lines.slice(0, limit);
   // 截断要如实：尾巴上补一行说明，用户才知道下面还有内容
-  return lines.length > limit ? [...head, `……（共 ${lines.length} 行）`].join('\n') : head.join('\n');
+  return lines.length > limit ? [...head, t('core.bprev.truncatedN', { n: lines.length })].join('\n') : head.join('\n');
 }

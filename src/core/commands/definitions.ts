@@ -76,8 +76,8 @@ async function runExport(ctx: CommandContext): Promise<void> {
   const { exportHtml } = await import('../export/export-document.js');
   const result = await exportHtml({ ...input, provider: ctx.provider });
 
-  if (result.status === 'saved') await ctx.ui.notify(result.message, '导出完成');
-  else if (result.status === 'failed') await ctx.ui.notify(result.message, '导出失败');
+  if (result.status === 'saved') await ctx.ui.notify(result.message, t('core.cmd.exportDone'));
+  else if (result.status === 'failed') await ctx.ui.notify(result.message, t('core.cmd.exportFailed'));
 }
 
 async function runPrintExport(ctx: CommandContext): Promise<void> {
@@ -88,8 +88,8 @@ async function runPrintExport(ctx: CommandContext): Promise<void> {
   const { printDocument } = await import('../export/print-document.js');
   const result = await printDocument({ ...input, provider: ctx.provider, printHtml });
 
-  if (result.status === 'opened') await ctx.ui.notify(result.message, '打印 / 导出 PDF');
-  else await ctx.ui.notify(result.message, '导出失败');
+  if (result.status === 'opened') await ctx.ui.notify(result.message, t('core.cmd.printTitle'));
+  else await ctx.ui.notify(result.message, t('core.cmd.exportFailed'));
 }
 
 /**
@@ -112,12 +112,12 @@ async function runRoundTripCheck(ctx: CommandContext): Promise<void> {
     roundTripped = await handle.roundTrip(doc.savedText);
   } catch (thrown) {
     const reason = thrown instanceof Error ? thrown.message : String(thrown);
-    await ctx.ui.notify(`往返保真自检失败：${reason}`, '往返保真');
+    await ctx.ui.notify(t('core.cmd.roundTripFailed', { reason }), t('core.cmd.roundTripTitle'));
     return;
   }
 
   const report = describeRoundTrip(doc.savedText, roundTripped);
-  await ctx.ui.notify(formatRoundTripReport(report), '往返保真');
+  await ctx.ui.notify(formatRoundTripReport(report), t('core.cmd.roundTripTitle'));
 }
 
 /**
@@ -322,11 +322,11 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     keywords: ['new file', 'create', 'xinjian'],
     run: (ctx) => {
       void (async () => {
-        const path = await ctx.provider.pickSavePath('未命名.md');
+        const path = await ctx.provider.pickSavePath(t('core.cmd.untitledName'));
         if (path === null) return;
         try {
           await ctx.provider.statFile(path);
-          await ctx.ui.notify('该位置已有一个同名文件。为避免覆盖，没有新建；如要编辑它，请直接打开。', '新建文件');
+          await ctx.ui.notify(t('core.cmd.newFileExists'), t('core.cmd.newFileTitle'));
           return;
         } catch {
           // stat 失败 = 文件不存在，正是「新建」想要的情形
@@ -334,7 +334,7 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
         try {
           await ctx.provider.writeTextFile({ path, text: '', create: true });
         } catch {
-          await ctx.ui.notify('文件没能创建（磁盘错误或没有写入权限）。', '新建文件');
+          await ctx.ui.notify(t('core.cmd.newFileFailed'), t('core.cmd.newFileTitle'));
           return;
         }
         await ctx.workspace.open(path);
