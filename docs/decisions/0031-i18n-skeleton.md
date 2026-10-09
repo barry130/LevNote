@@ -463,8 +463,8 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 第四轮封驳（刑部）判 AC1–AC5 / AC8 通过，落两条**收口级**问题。逐条整改：
 
 **（一）AC6 仍未闭合：同一个契约出口的另一个译文字段漏登，且生产可达。**
-已登记的 `block-preview.ts:44/49/67` 是 `buildDocBlockPreview()` 里的
-`reason: t(...)` 三处（`DocBlockPreview.reason`）；漏的是**同文件、同函数族、
+原先只登了一个字段：`buildDocBlockPreview()` 里的 `reason: t(...)` 三处
+（字段是 `DocBlockPreview.reason`）；漏的是**同文件、同函数族、
 同一契约出口**的 `firstLines()` 里那行截断尾 ——
 `t('core.bprev.truncatedN')` 拼进 `snippet`（`DocBlockPreview.snippet`）。
 内核 `code-block-view.ts` 把 `snippet` 原样 `textContent` 画，切语言不重问。
@@ -472,11 +472,11 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 > **判据收窄一句（本轮的账根）**：**扫一个契约出口，要扫它全部译文字段，
 > 不是一个字段。** 上一轮判据说「按全部落点机械遍历，不按已知家族枚举」，
 > 但执行时**扫了一个出口、只扫了它的一个字段** —— 同族的错换了一层壳。
-> 残留表原先那行只写 `:44/49/67`，会让后人读成「这个出口已经清点完」。
+> 残留表原先那行只写 `reason` 一个字段，会让后人读成「这个出口已经清点完」。
 
 修法**只能登记**（`block-preview.ts` 在白名单外）：残留表把 `snippet` 与
-`reason` **并列登记成一行**（「两个译文字段」），三处口径同步。
-四处口径（`store.ts` 残留注释 / 本文 / `CHANGELOG` / `release-smoke`）已同步。
+`reason` **并列登记成一行**（「两个译文字段」），四处口径
+（`store.ts` 残留注释 / 本文 / `CHANGELOG` / `release-smoke`）同步。
 
 **（二）行号在反复位移的文件里是负资产 —— 同一段刚立的规矩自己破了。**
 复评记录五（四）刚写「一律改成函数名 / 调用点特征，不再引行号」，
