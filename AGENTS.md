@@ -103,7 +103,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 |---|---|
 | 文档的打开/保存/冲突/编码 | `core/document/`（**先读 `store.ts` 顶部的「核心不变量」注释**） |
 | 多标签、文件树 | `core/workspace/` |
-| 快捷键、命令、命令面板 | `core/commands/`（能力清单在 `definitions.ts`；**title/category 走 `core/i18n/` 的 `t()`**，见 ADR 0031） |
+| 快捷键、命令、命令面板 | `core/commands/`（能力清单在 `definitions.ts`；**title/category 只声明 key、经 `builtInCommand` 取 `core/i18n/` 的文案**，见 ADR 0031） |
 | **用户可见文案** | `core/i18n/`（`messages.ts` 目录 + `index.ts` 的 `t()`；key 写错是编译错误，漏 key 回退到 key 本身） |
 | 查找替换的匹配语义 | `core/search/find.ts`（三个内核共用） |
 | **往返保真自检**（保存会改写什么） | `core/fidelity.ts`（行级比对，纯函数）+ `EditorHandle.roundTrip`（内核实现，见 ADR 0033） |
@@ -563,8 +563,22 @@ notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mt
 
 **P3-17 i18n 骨架已完成（2026-10-04，ADR 0031）**：`core/i18n/` 目录 +
 类型安全 `t()` + 回退链；首批文案 = 命令面（title/category）。
-**新命令的标题与分组直接写进 `core/i18n/messages.ts`，definitions.ts 里
-用 `t('command.…')` 取** —— 不要再写中文裸字符串。
+**新命令的文案写进 `core/i18n/messages.ts`**：文案取 key（`command.<命令 id>.title`
+/ `command.category.<分组>`），`definitions.ts` 里**只声明 key、经
+`builtInCommand({ titleKey, categoryKey })` 注册** —— 不要再写中文裸字符串。
+**不许**绕过它直接往 `BUILT_IN_COMMANDS` 数组里塞
+`{ title: t('command.…'), category: t('command.…') }` 这种裸对象。
+**为什么这条要紧，以及编译期为什么拦不住**（本仓实测，2026-10-10）：
+裸对象里的 `t()` 在**模块加载那一刻**求值（locale 还是默认 zh-CN）并烤进
+`BUILT_IN_COMMANDS` 这个模块级常量，运行中切语言时条目纹丝不动；
+而 `BuiltInCommandSpec` 只约束 `builtInCommand(...)` 那一个入口，
+**管不着数组字面量** —— 照那写法塞进去，`tsc`(TS7) / `tsc6` / `eslint` /
+`vite build` **全 rc 0 不报错**，会红的是两处测试：
+`core/commands/definitions.test.ts` 钉命令对象本身；
+`ui/App.test.tsx` 的「命令面文案跟随语言」一组钉界面三处（菜单下拉项 /
+命令面板条目 / 快捷键表），**且两向都验**（切过去要变、切回来也要变）。
+别被 `t()` 的类型安全误导：它拦得住**写错的 key**，
+拦不住**写对 key 却烤死在数组字面量里** —— 类型系统不会替你记这件事。
 **en 目录已落地（2026-10-07，ADR 0031 复评）**：`settings.locale` +
 设置页语言下拉。**命令标题是惰性求值的（2026-10-09，复评记录三）**：
 `definitions.ts` 里内置命令只声明 `titleKey` / `categoryKey`，命令对象上的
