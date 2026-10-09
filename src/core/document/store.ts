@@ -135,6 +135,14 @@ export type ViewMode = 'rich' | 'source' | 'split';
  *   （字段是 `DocBlockPreview.snippet`）—— `>40` 行的 text 引用即走到，
  *   内核 `code-block-view.ts` 把 `snippet` 原样 `textContent` 画，切语言不重问；
  *   两者经契约交给内核画，内核不重问就不会重算；
+ * - `core/katex.ts` / `core/mermaid-render.ts` / `core/drawio-render.ts` 的
+ *   `Render.message` 一族（**三个渲染出口**）—— 与 `block-preview` 同机制：
+ *   `t('core.render.*')` 的结果经返回值交给 NodeView，NodeView 拿到就画
+ *   （`paintDiagramNote(result.message)` / `paint('failed', result.message)`），
+ *   **不重问语言**。实测切 en 后同一份结果对象仍是中文（`drawioEmpty` /
+ *   `mermaidEmpty` 探针）；空图表 / 缺 chunk / 公式语法错时生产可达。
+ *   **按「逐个契约出口 × 它的全部译文字段」机械扫出来的，先前从未登记**
+ *   （第三轮封驳 P1-1 的机械遍历补齐）。
  * - `SettingsDialog.tsx:156` `setError(t('ui.settings.keyUnsafe'))`。
  *
  * 上面这几处**都不在本单白名单内**，逐处判据见回奏的 AC6 扫描清单。
@@ -196,6 +204,13 @@ interface LegacyTextNotice {
  * （品牌字段就在手边），不受拦。所以旧措辞「只有 `legacyText()` 一个出口
  * 能造出来」**只在模块外成立**。别把「编译期有能力拦」读成「本层也拦得住」
  * —— 与「判据落在哪一层」是同一条纪律。
+ *
+ * **本模块内 `legacyText(t(...))` 也照样过 `tsc`**（实测 rc 0，第三轮封驳
+ * P2-2 要求补的半句）：`legacyText` 收私有只封住了「别的文件来造」，
+ * **封不住「本文件的代码顺手把一段新译文包成快照」** —— 想在本文件里破门
+ * 只需一行 `this.commit({ notice: legacyText(t('…')) })`，编译期不拦。
+ * 所以这道门的准确强度是**「拦外人、不拦自己人」**，别写成「已被编译期封住」。
+ * 兜住它的是**测试**（`store.test.ts` 参数化遍历 8 条写入点）与**评审**，不是类型。
  */
 function legacyText(text: string): LegacyTextNotice {
   return { text, [LEGACY_TEXT]: true };

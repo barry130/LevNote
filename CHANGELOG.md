@@ -35,6 +35,10 @@
     同一个契约字段还有**白名单内**的一处（`App.tsx` 的 `resolveDocBlockPreview`
     在宿主文档没有路径信息时的 `reason`）—— 修它要动 `core/editor/types.ts`
     契约，且该分支生产不可达（标签页只在打开成功后入列），故同样登记；
+  - 公式 / 图表渲染失败时内核画的那句话（`core/katex.ts` / `core/mermaid-render.ts`
+    / `core/drawio-render.ts` 的 `Render.message`）—— 与引用卡片摘要同机制：
+    `t('core.render.*')` 的结果经返回值交给 NodeView、拿到就画、不重问语言
+    （三个渲染出口，第三轮封驳 P1-1 的机械遍历补登）；
   - 设置页的按键安全提示（`SettingsDialog.tsx` 的 state）；
   - 代码块语言面板搜索框里「使用 “xxx”」那一行（`ui/CodeBlockPicker.tsx`
     的 `useMemo` 把 `t('ui.codeblock.useTyped')` 塞进**被渲染的**行对象，

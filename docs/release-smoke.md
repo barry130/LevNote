@@ -166,6 +166,8 @@ pnpm run licenses                                     # 升过依赖才需要：
         唯一能把 `doc` 置 null 的 `close()` 在生产代码里无人调用；
         代码块语言面板搜索框里「使用 “xxx”」那一行（`ui/CodeBlockPicker.tsx`
         的 `useMemo` 把 `t('ui.codeblock.useTyped')` 塞进**被渲染的**行对象）；
+        公式 / 图表渲染失败时内核画的那句话（`core/katex.ts` /
+        `core/mermaid-render.ts` / `core/drawio-render.ts` 的 `Render.message`）；
         设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
         另有一处**表面相同、根因不同**：保存冲突横幅（`save()` 的冲突分支）那句
         来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码中文）—— 是这一侧
