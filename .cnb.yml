@@ -50,7 +50,7 @@
   # 不在流水线里再写一遍 —— 两处写死必然漂。
   - name: 安装 pnpm（版本取自 package.json）
     script: |
-      set -euo pipefail
+      set -eu
       PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@').pop()")"
       npm install -g "pnpm@${PNPM_VERSION}"
       pnpm --version
@@ -109,7 +109,7 @@
     # 注意 Debian 12 无 `libappindicator3-dev`，改用 `libayatana-appindicator3-dev`。
     - name: 安装系统依赖
       script: |
-        set -euo pipefail
+        set -eu
         apt-get update
         apt-get install -y --no-install-recommends \
           libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
