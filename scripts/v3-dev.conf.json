@@ -7,7 +7,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "轻墨（V3 测量）",
+        "title": "轻笺（V3 测量）",
         "width": 1280,
         "height": 840,
         "minWidth": 900,
@@ -16,7 +16,7 @@
         "center": true,
         "dragDropEnabled": true,
         "decorations": true,
-        "dataDirectory": "F:\\AIproject\\qingmo\\.v3-webview-profile",
+        "dataDirectory": "F:\\AIproject\\LevNote\\.v3-webview-profile",
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --remote-debugging-port=9222"
       }
     ]

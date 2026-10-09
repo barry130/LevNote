@@ -112,6 +112,8 @@ import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js
 import {
   blockHoverPlugin,
   codeHighlightPlugin,
+  composeKey,
+  composePlugin,
   cursorReporterPlugin,
   markdownEmitPlugin,
   placeholderPlugin,
@@ -122,6 +124,7 @@ import {
   tableReporterPlugin,
   USER_EDIT_META,
 } from './plugin.js';
+import type { ComposeMode } from './plugin.js';
 import { activeLinkHref, describeSlash, resolveBlock } from './selection.js';
 
 /**
@@ -206,6 +209,11 @@ export interface CreateMarkdownEditorOptions {
    * `EditorMountProps.onBlockHandleChange`。
    */
   onBlockHandleChange?: (state: BlockHandleState | null) => void;
+  /**
+   * 专注 / 打字机的初始状态。**只在创建时读一次**；之后的切换走
+   * `setComposeMode`（改偏好不需要重建内核 —— 重建会丢光标、滚动与撤销栈）。
+   */
+  compose?: ComposeMode;
 }
 
 export interface MarkdownEditorInstance {
@@ -240,6 +248,11 @@ export interface MarkdownEditorInstance {
   redo(): void;
   /** 大纲跳转：定位到指定层级的指定标题。 */
   goToHeading(level: number, text: string): boolean;
+  /**
+   * 切换专注 / 打字机（视图偏好实时生效）。一次只发一个只改插件状态的事务：
+   * 不改文档（不会变脏）、不进撤销栈。
+   */
+  setComposeMode(mode: ComposeMode): void;
   destroy(): Promise<void>;
 }
 
@@ -1654,6 +1667,7 @@ export async function createMarkdownEditor(
     .use(slashReporterPlugin(() => options.onSlashChange))
     .use(tableReporterPlugin(() => options.onTableChange))
     .use(blockHoverPlugin(() => options.onBlockHandleChange, blockTarget))
+    .use($prose(() => composePlugin(() => options.root, options.compose ?? { focus: false, typewriter: false })))
     .use($prose(() => placeholderPlugin(options.placeholder ?? '')))
     .use(
       $prose((ctx) => {
@@ -1896,6 +1910,18 @@ export async function createMarkdownEditor(
         view.focus();
         return true;
       }),
+
+    setComposeMode: (mode) => {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        view.dispatch(
+          view.state.tr
+            // 只改插件状态：文档不变（不会变脏、不上报），也不该是一个撤销步骤
+            .setMeta(composeKey, mode)
+            .setMeta('addToHistory', false),
+        );
+      });
+    },
 
     // Editor.destroy() 返回 Promise<Editor>，这里收窄成 Promise<void>，
     // 免得外壳被迫依赖 @milkdown/core 的类型

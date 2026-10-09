@@ -21,7 +21,7 @@
 ### 1. 上游产物放 `public/drawio/`，运行时脚本注入，**不进 bundle**
 
 `viewer.min.js` 2.654 MiB 是 draw.io 官方**未改动**的构建产物（ADR 0005：上游不接受
-PR，我们只动配置层）。静态 import 会让每个打开轻墨的人先解析 2.6 MB —— 哪怕一篇
+PR，我们只动配置层）。静态 import 会让每个打开轻笺的人先解析 2.6 MB —— 哪怕一篇
 文档一张图都没有。
 
 所以：文件按**原样**放 `public/`（Vite 的 `publicDir`，产物里 URL 稳定、不带哈希、

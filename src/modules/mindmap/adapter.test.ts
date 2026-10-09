@@ -163,7 +163,7 @@ describe('顶层字段的映射', () => {
     expect(data.theme).toBeUndefined();
     expect(data.compact).toBeUndefined();
     // 保留的那一份没有被内核的主题覆盖掉
-    expect(fromKernelData(previous, kernel({ id: 'n1', topic: '根', children: [] }, { theme: { name: '轻墨', palette: [] } })).extra.theme).toEqual({
+    expect(fromKernelData(previous, kernel({ id: 'n1', topic: '根', children: [] }, { theme: { name: '轻笺', palette: [] } })).extra.theme).toEqual({
       name: '用户的主题',
     });
   });

@@ -115,14 +115,14 @@ function collectHits(root: MindmapNode, options: FindOptions): TopicHit[] {
  *
  * 内核把 `cssVar` 里的键**内联**写到它自己的容器上（`container.style.setProperty`），
  * 所以外部 CSS 覆盖不了它 —— 必须从这个入口进去。
- * 值一律写成轻墨的 CSS 变量（而不是色值），于是深色主题下它自己就跟着变了，
+ * 值一律写成轻笺的 CSS 变量（而不是色值），于是深色主题下它自己就跟着变了，
  * 这个文件里永远不需要出现 `#rrggbb`。
  *
  * `type` 只是未覆盖变量的兜底底色（内核会在它之上叠 `cssVar`）；
- * `palette` 是主分支的取色环，用轻墨的品牌色。
+ * `palette` 是主分支的取色环，用轻笺的品牌色。
  */
-const QINGMO_THEME = {
-  name: 'Qingmo',
+const LEVNOTE_THEME = {
+  name: 'LevNote',
   type: 'light' as const,
   palette: ['#2e7d6a', '#3f6ea8', '#8a5a86', '#e2603f', '#7a8690', '#b4d4c6', '#16302a', '#209fb5'],
   cssVar: {
@@ -202,7 +202,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
         allowUndo: true,
         // 内核的右下角浮动工具条（缩放、回到中心）保留：它是缩放唯一的可见入口。
         toolBar: true,
-        theme: QINGMO_THEME,
+        theme: LEVNOTE_THEME,
       });
       mind.init(toKernelData(document));
     } catch (thrown) {

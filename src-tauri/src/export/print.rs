@@ -4,7 +4,7 @@
 //!
 //! ```text
 //! 前端 ──invoke(print_html, { html, title })──▶ Rust：开一个子窗口打印这份 HTML
-//! 子窗口 ──qingmo-print://localhost/<id>──▶ 协议处理器：从内存表里取出 HTML 回给 WebView
+//! 子窗口 ──levnote-print://localhost/<id>──▶ 协议处理器：从内存表里取出 HTML 回给 WebView
 //! 子窗口 load ──window.print()──▶ WebView2 / WKWebView 的打印对话框（另存为 PDF 在里面选）
 //! ```
 //!
@@ -17,7 +17,7 @@
 //! ## 为什么用自定义协议、不落临时文件
 //!
 //! 自包含 HTML 内联了 base64 图片，几 MB 很平常：`data:` URL 的导航有
-//! ~2MB 的上限，临时文件则要管清理与权限。注册一个 `qingmo-print` 协议、
+//! ~2MB 的上限，临时文件则要管清理与权限。注册一个 `levnote-print` 协议、
 //! 把 HTML 存在**内存表**里按 id 发出去，没有大小限制，窗口关闭时摘掉
 //! 表项即可（见 `on_window_event` 的 Destroyed 分支）。
 //!
@@ -74,8 +74,8 @@ fn lock_pages() -> Result<std::sync::MutexGuard<'static, BTreeMap<String, String
 
 /// 协议处理器：按 URL 里的 id 取回 HTML。注册在 `run()` 里，全局生效。
 ///
-/// Windows 上实际请求形如 `http://qingmo-print.localhost/<id>.html`、
-/// macOS / Linux 是 `qingmo-print://localhost/<id>.html` —— **path 两边
+/// Windows 上实际请求形如 `http://levnote-print.localhost/<id>.html`、
+/// macOS / Linux 是 `levnote-print://localhost/<id>.html` —— **path 两边
 /// 长一个样**，所以只看 path，不猜 scheme。
 pub fn serve(request: &http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
     let raw_path = request.uri().path();
@@ -95,7 +95,7 @@ pub fn serve(request: &http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
                 404,
                 "<!DOCTYPE html><meta charset=\"utf-8\"><title>打印会话失效</title>\
 <body style=\"font:14px/1.7 system-ui,sans-serif;padding:48px;color:#16302a;\">\
-这个打印会话已经失效（窗口可能已经关过一次）。回到轻墨重新执行「打印 / 导出为 PDF」即可。\
+这个打印会话已经失效（窗口可能已经关过一次）。回到轻笺重新执行「打印 / 导出为 PDF」即可。\
 </body>",
             )
         }
@@ -116,7 +116,7 @@ fn html_response(status: u16, page: &str) -> http::Response<Vec<u8>> {
 /// `title` 只用在窗口标题上，页面内容以 `html` 为准。
 pub fn open_print_window(app: &AppHandle, html: String, title: &str) -> AppResult<()> {
     let id = format!("p{}", NEXT_ID.fetch_add(1, Ordering::Relaxed));
-    let url = Url::parse(&format!("qingmo-print://localhost/{id}.html"))
+    let url = Url::parse(&format!("levnote-print://localhost/{id}.html"))
         .map_err(|thrown| AppError::internal(format!("打印会话地址构造失败：{thrown}")))?;
 
     lock_pages()?.insert(id.clone(), html);
@@ -173,7 +173,7 @@ mod tests {
 
     fn request_for(path: &str) -> http::Request<Vec<u8>> {
         http::Request::builder()
-            .uri(format!("qingmo-print://localhost/{path}"))
+            .uri(format!("levnote-print://localhost/{path}"))
             .body(Vec::new())
             .unwrap()
     }

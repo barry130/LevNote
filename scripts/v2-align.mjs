@@ -32,8 +32,8 @@
  * > 见 ADR 0007 文末的「落地记录」。
  *
  * ```bash
- * npm i --prefix /tmp/qingmo-v2 mind-elixir@5.15.1
- * node scripts/v2-align.mjs --pkg /tmp/qingmo-v2/node_modules/mind-elixir
+ * npm i --prefix /tmp/levnote-v2 mind-elixir@5.15.1
+ * node scripts/v2-align.mjs --pkg /tmp/levnote-v2/node_modules/mind-elixir
  * ```
  *
  * 找不到包时脚本会给出这条命令并退出 —— 不会拿一份猜出来的字段表糊过去。
@@ -59,13 +59,13 @@ for (let i = 0; i < argv.length; i += 1) {
 
 if (pkgDir === null) {
   console.error('用法：node scripts/v2-align.mjs --pkg <mind-elixir 包目录>');
-  console.error('  npm i --prefix /tmp/qingmo-v2 mind-elixir@5.15.1');
+  console.error('  npm i --prefix /tmp/levnote-v2 mind-elixir@5.15.1');
   process.exit(2);
 }
 pkgDir = resolve(pkgDir);
 if (!existsSync(resolve(pkgDir, 'dist/example.js'))) {
   console.error(`这个目录里没有 mind-elixir 的 dist：${pkgDir}`);
-  console.error('  npm i --prefix /tmp/qingmo-v2 mind-elixir@5.15.1');
+  console.error('  npm i --prefix /tmp/levnote-v2 mind-elixir@5.15.1');
   process.exit(2);
 }
 
@@ -155,7 +155,7 @@ function buildFullSample() {
 function toV0(data) {
   const layout = LAYOUT_BY_DIRECTION[data.direction ?? 1];
   return {
-    format: 'qingmo.mindmap',
+    format: 'levnote.mindmap',
     version: 1,
     layout,
     root: toV0Node(data.nodeData),

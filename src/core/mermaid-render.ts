@@ -12,7 +12,7 @@
  * `mermaid.core.mjs` 本身只有 53 KB，但它一被加载就会把几十个图种
  * （flowchart / sequence / class / gitGraph / …）和各自那套布局算法一起拉进来 ——
  * 实测 `node_modules/mermaid/dist` 里非 sourcemap 的部分是 12.7 MB / 271 个文件。
- * 静态引入会让**每一个**打开轻墨的人先付这笔钱，哪怕这篇文档一张图都没有。
+ * 静态引入会让**每一个**打开轻笺的人先付这笔钱，哪怕这篇文档一张图都没有。
  * 所以走 `import()`：只有文档里真的出现 mermaid 代码块时，这部分才会被取下来。
  *
  * 代价是渲染变成异步的。两处调用方本来就是异步的（NodeView 的 DOM 由我们自己管，
@@ -145,7 +145,7 @@ const loadMermaid = cachedLoader(async () => (await import('mermaid')).default);
  *   清洗产出的 SVG，并且不执行图表里的 `click` 指令。**不要用 `loose`** ——
  *   那会连清洗都跳过。
  * - `theme` —— 跟随应用的明暗。代价记在 ADR 0020：这是 mermaid 的**内置配色**，
- *   不是轻墨的配色，两者只是明暗一致、色号不同。
+ *   不是轻笺的配色，两者只是明暗一致、色号不同。
  */
 function configFor(theme: ResolvedTheme): MermaidConfig {
   return {

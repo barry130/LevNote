@@ -1,5 +1,5 @@
 /**
- * @qingmo/interop-spec —— 块级互操作规范 v0。
+ * @levnote/interop-spec —— 块级互操作规范 v0。
  *
  * 这个包**不能**依赖 React / Tauri / DOM：编辑器内核、CLI、未来的服务端校验
  * 都要能直接复用它。因此：

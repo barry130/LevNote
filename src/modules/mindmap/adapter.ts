@@ -131,7 +131,7 @@ function toKernelNode(node: MindmapNode): NodeObj {
  * 信封 → 内核数据。
  *
  * `theme` / `compact` 被**刻意跳过**：它们是视图偏好，不是文档内容。
- * 主题由轻墨的设置页统一管（ADR 0021），文件里再存一份会让
+ * 主题由轻笺的设置页统一管（ADR 0021），文件里再存一份会让
  * 「深色主题下打开一张图突然变亮」。它们仍然留在 `extra` 里不丢（见 `fromKernelData`），
  * 只是不参与渲染 —— 这是有意的取舍，写在 `docs/format-spec.md` §7.1。
  */

@@ -1796,6 +1796,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "levnote"
+version = "0.3.28"
+dependencies = [
+ "chardetng",
+ "encoding_rs",
+ "ignore",
+ "indexmap 1.9.3",
+ "notify",
+ "notify-debouncer-mini",
+ "regex",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+]
+
+[[package]]
 name = "libappindicator"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2546,24 +2564,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "qingmo"
-version = "0.3.27"
-dependencies = [
- "chardetng",
- "encoding_rs",
- "ignore",
- "indexmap 1.9.3",
- "notify",
- "notify-debouncer-mini",
- "regex",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
 ]
 
 [[package]]

@@ -261,7 +261,7 @@ function emptyReport(): InlineReport {
 describe('公式渲染', () => {
   /**
    * 内核写的是「带 `data-tex` 的壳 + 源码」，导出侧把壳里的内容换成 KaTeX 的结果。
-   * **壳本身必须留着** —— 复制一段导出内容粘回轻墨时，`parseDOM` 从 `data-tex`
+   * **壳本身必须留着** —— 复制一段导出内容粘回轻笺时，`parseDOM` 从 `data-tex`
    * 上把 TeX 取回来；壳没了就只能粘回来一堆 KaTeX 的 HTML。
    */
   it('把壳里的源码换成 KaTeX 的结果，`data-tex` 留着', async () => {

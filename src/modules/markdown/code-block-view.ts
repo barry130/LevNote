@@ -96,7 +96,7 @@ const CARD_KINDS = new Set(['markdown', 'mindmap', 'text']);
 /** 没有指定语言时，标签上显示的文字。 */
 export const PLAIN_TEXT_LABEL = '纯文本';
 
-const chromeKey = new PluginKey('qingmo-code-block-chrome');
+const chromeKey = new PluginKey('levnote-code-block-chrome');
 
 /** 用户点了语言标签。 */
 export interface CodeBlockChromeRequest {

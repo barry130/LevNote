@@ -46,7 +46,7 @@ import type { Extension } from '@codemirror/state';
 import { tags as t } from '@lezer/highlight';
 
 import type { CursorPosition, EditorFormatting, EditorPosition, EditorSearch } from '../../core/editor/types.js';
-import { applyScrollRatio, readScrollRatio } from '../../core/editor/position.js';
+import { applyScrollRatio, readScrollRatio, typewriterScrollTop } from '../../core/editor/position.js';
 import { stripInlineMarkup } from '../../core/outline/outline.js';
 import { isMarkdownPath } from '../../core/path.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions, type TextMatch } from '../../core/search/find.js';
@@ -62,6 +62,8 @@ export interface CreateCodeEditorOptions {
   language: string;
   readOnly?: boolean;
   wordWrap?: boolean;
+  /** 打字机模式的初始状态（`EditorMountProps.typewriterMode`）。之后走 `setTypewriter`。 */
+  typewriter?: boolean;
   placeholder?: string;
   onChange(value: string): void;
   onCursorChange?(position: CursorPosition): void;
@@ -80,6 +82,11 @@ export interface CodeEditorInstance {
   /** `<pre data-language>` 片段，交给导出层上色（与 Markdown 的代码块走同一条路）。 */
   toHtml(): string;
   setWordWrap(on: boolean): void;
+  /**
+   * 切换打字机模式（视图偏好实时生效）。开着时每次选区变动把光标行
+   * 居中；算术共用 `core/editor/position.ts` 的 `typewriterScrollTop`。
+   */
+  setTypewriter(on: boolean): void;
   /**
    * 撤销 / 重做（菜单入口）。内部 Ctrl+Z 由 `historyKeymap` 处理，
    * 这两个方法服务的是绕过键盘事件的入口 —— 与 Markdown 内核不同，
@@ -304,6 +311,21 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
 
   const wrapExtension = (on: boolean): Extension => (on ? EditorView.lineWrapping : []);
 
+  /**
+   * 打字机状态。`setTypewriter` 写、下面的 updateListener 读 —— 两者共享
+   * 这个闭包，开关不需要过 Compartment（它不改编辑行为，只改一个布尔）。
+   */
+  const typewriter = { on: options.typewriter ?? false };
+
+  /** 把光标行滚到垂直正中。算术在 `core/editor/position.ts`，这里只取几何。 */
+  const centerCaret = (v: EditorView): void => {
+    const coords = v.coordsAtPos(v.state.selection.main.head);
+    if (!coords) return;
+    const rect = v.scrollDOM.getBoundingClientRect();
+    const target = typewriterScrollTop(coords.top, rect.top, v.scrollDOM.scrollTop, v.scrollDOM.clientHeight);
+    if (target !== null) v.scrollDOM.scrollTop = target;
+  };
+
   const state = EditorState.create({
     doc: options.defaultValue,
     extensions: [
@@ -322,6 +344,13 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
       languageExtension(options.language),
       wrapCompartment.of(wrapExtension(options.wordWrap ?? false)),
       readOnlyCompartment.of(EditorState.readOnly.of(options.readOnly ?? false)),
+      // 打字机：选区一动就居中。不 dispatch 事务，只写 scrollTop ——
+      // 否则「滚动 → 更新 → 再滚动」停不下来
+      EditorView.updateListener.of((update) => {
+        if (!typewriter.on) return;
+        if (!update.selectionSet && !update.docChanged) return;
+        centerCaret(update.view);
+      }),
       options.placeholder ? cmPlaceholder(options.placeholder) : [],
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !isSilent(update)) {
@@ -435,6 +464,12 @@ export function createCodeEditor(options: CreateCodeEditorOptions): CodeEditorIn
 
     setWordWrap: (on) => {
       view.dispatch({ effects: wrapCompartment.reconfigure(wrapExtension(on)) });
+    },
+
+    setTypewriter: (on) => {
+      typewriter.on = on;
+      // 刚打开就居中一次，而不是等到下一次光标移动
+      if (on) centerCaret(view);
     },
 
     // `@codemirror/commands` 的 undo / redo 收一个 view、自己 dispatch。

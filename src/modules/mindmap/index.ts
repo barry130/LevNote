@@ -54,7 +54,7 @@ export const mindmapAdapter: EditorAdapter = {
   /**
    * 源码视图 = 代码内核。
    *
-   * `.mindmap` 的「源码形态」就是它的 JSON 原文，而轻墨已经有一个 JSON 编辑器了。
+   * `.mindmap` 的「源码形态」就是它的 JSON 原文，而轻笺已经有一个 JSON 编辑器了。
    * 与 Markdown 内核那边是**同一条依赖**（markdown → code），理由也一样：
    * 这描述的是一个真实存在的关系（「导图的源码形态由代码内核呈现」），
    * 而不是「代码内核知道导图」。

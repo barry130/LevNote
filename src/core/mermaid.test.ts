@@ -10,7 +10,7 @@ describe('isMermaidLanguage', () => {
     expect(isMermaidLanguage('  Mermaid ')).toBe(true);
   });
 
-  it('不认别的别名 —— 认了会出现「轻墨画成图、别人打开只是代码」', () => {
+  it('不认别的别名 —— 认了会出现「轻笺画成图、别人打开只是代码」', () => {
     expect(isMermaidLanguage('mmd')).toBe(false);
     expect(isMermaidLanguage('mermaidjs')).toBe(false);
     expect(isMermaidLanguage('')).toBe(false);

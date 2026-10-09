@@ -467,7 +467,7 @@ function seedSessionSource(file) {
   };
   // 注意这里**不是** JSON.stringify(session) 直接塞：要嵌进一段源码里，
   // 所以先 stringify 成字符串、再 stringify 一次做字面量。
-  return `try { localStorage.setItem('qingmo.session.v1', ${JSON.stringify(JSON.stringify(session))}); } catch (e) {}`;
+  return `try { localStorage.setItem('levnote.session.v1', ${JSON.stringify(JSON.stringify(session))}); } catch (e) {}`;
 }
 
 const baseName = (path) => path.split(/[\\/]/).pop() ?? path;
@@ -703,7 +703,7 @@ async function main() {
   if (!args.keep) {
     // 把探针留下（下一次注入会重置），但**不要**留下任何脏状态：
     // 应用会把草稿写进会话存储，那会让下一次场景从「改过的文本」开始
-    await evaluate(`try { localStorage.setItem('qingmo.session.v1', JSON.stringify({ tabs: [], activePath: null, root: null, droppedDrafts: 0 })); } catch (e) {}`);
+    await evaluate(`try { localStorage.setItem('levnote.session.v1', JSON.stringify({ tabs: [], activePath: null, root: null, droppedDrafts: 0 })); } catch (e) {}`);
   }
 }
 

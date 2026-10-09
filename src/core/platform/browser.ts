@@ -35,7 +35,7 @@ const SEED: Array<[string, string]> = [
   [
     'demo.md',
     [
-      '# 轻墨 · 试笔',
+      '# 轻笺 · 试笔',
       '',
       '这是一个**内存虚拟文件**（浏览器预览模式）。桌面版会直接读写磁盘。',
       '',
@@ -254,7 +254,7 @@ export function createBrowserProvider(): DocumentProvider {
     },
 
     async runtimeInfo(): Promise<RuntimeInfo> {
-      return { name: 'qingmo', version: '0.1.0-preview', os: navigator.platform || 'browser', arch: 'web', nowMs: now() };
+      return { name: 'levnote', version: '0.1.0-preview', os: navigator.platform || 'browser', arch: 'web', nowMs: now() };
     },
 
     async pickOpenPath() {

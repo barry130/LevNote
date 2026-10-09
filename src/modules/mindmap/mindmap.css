@@ -9,7 +9,7 @@
  *
  * 所以这个文件里**看不到任何 `.map-container` / `me-tpc` 选择器** ——
  * 那不是「还没写」，是刻意不写。要改导图内部长什么样，
- * 正确的入口是 `MindmapEditor.tsx` 里的 `QINGMO_THEME`（内核留的调色板入口），
+ * 正确的入口是 `MindmapEditor.tsx` 里的 `LEVNOTE_THEME`（内核留的调色板入口），
  * 不是在这里盖一层 CSS。
  *
  * ## `min-height: 0` 不是可选项

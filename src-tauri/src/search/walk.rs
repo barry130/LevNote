@@ -308,7 +308,7 @@ mod tests {
 
     /// 建一个临时目录。名字带进程号与序号，避免并发测试互相踩。
     fn scratch(name: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!("qingmo-search-{}-{}", std::process::id(), name));
+        let base = std::env::temp_dir().join(format!("levnote-search-{}-{}", std::process::id(), name));
         let _ = stdfs::remove_dir_all(&base);
         stdfs::create_dir_all(&base).unwrap();
         base

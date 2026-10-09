@@ -109,7 +109,7 @@ export function createDesktopProvider(): DocumentProvider {
         directory: false,
         title: t('core.platform.openTitle'),
         filters: [
-          { name: t('core.platform.filterQingmo'), extensions: [...TEXT_EXTENSIONS, 'drawio'] },
+          { name: t('core.platform.filterLevNote'), extensions: [...TEXT_EXTENSIONS, 'drawio'] },
           { name: 'Markdown', extensions: ['md', 'markdown'] },
           { name: t('core.platform.filterMindmap'), extensions: ['mindmap'] },
           { name: t('core.platform.filterDrawio'), extensions: ['drawio', 'xml'] },
@@ -262,7 +262,7 @@ export async function onFilesChangedDesktop(
  * 打印 / 导出 PDF（P3 第 16 项，ADR 0030）。
  *
  * `html` 是前端 `buildSelfContainedHtml` 的产物（与「导出为自包含 HTML」
- * 同一份渲染结果），Rust 侧开一个子窗口、经 `qingmo-print` 自定义协议喂给
+ * 同一份渲染结果），Rust 侧开一个子窗口、经 `levnote-print` 自定义协议喂给
  * WebView，加载完成后自动弹系统打印对话框 —— 「另存为 PDF」在对话框里选。
  * 解析失败 / 窗口建不起来时 reject，由调用方如实告知（硬约束 2）。
  */

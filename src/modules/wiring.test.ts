@@ -72,7 +72,7 @@ describe('源码视图的接线', () => {
   });
 
   it('导图内核的源码视图也是代码内核 —— 于是它自动获得视图三态', () => {
-    // `.mindmap` 的源码形态就是 JSON，而轻墨已经有一个 JSON 编辑器了。
+    // `.mindmap` 的源码形态就是 JSON，而轻笺已经有一个 JSON 编辑器了。
     // 外壳只看 `sourceView` 在不在，所以这一条就是「导图能不能切到源码视图」的全部依据。
     expect(mindmapAdapter.sourceView).toBe(codeAdapter);
     expect(languageForPath('图.mindmap')).toBe('json');
@@ -88,7 +88,7 @@ describe('导图的备胎链', () => {
   const pick = (text?: string): string => resolveAdapter('图.mindmap', EDITOR_FALLBACK, text).id;
 
   const body = (over: Record<string, unknown> = {}): string =>
-    JSON.stringify({ format: 'qingmo.mindmap', version: 1, root: { id: 'n1', topic: '根', children: [] }, ...over });
+    JSON.stringify({ format: 'levnote.mindmap', version: 1, root: { id: 'n1', topic: '根', children: [] }, ...over });
 
   it('正常的 .mindmap 归导图内核', () => {
     expect(pick(body())).toBe('mindmap');
@@ -104,7 +104,7 @@ describe('导图的备胎链', () => {
     // 是一份**有 JSON 着色**的源码，能直接改；退到纯文本则是白底 textarea。
     expect(pick('{ 这不是 JSON')).toBe('code');
     expect(pick(JSON.stringify({ format: '别的格式', version: 1, root: {} }))).toBe('code');
-    expect(pick(JSON.stringify({ format: 'qingmo.mindmap', version: 1 }))).toBe('code');
+    expect(pick(JSON.stringify({ format: 'levnote.mindmap', version: 1 }))).toBe('code');
   });
 
   it('节点 id 重复的文件也落到代码内核 —— 拖动会作用到别的节点上', () => {

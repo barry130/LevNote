@@ -22,6 +22,7 @@ function CodeEditor({
   readOnly,
   placeholder,
   wordWrap,
+  typewriterMode = false,
   path,
 }: EditorMountProps & { path: string }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -43,6 +44,9 @@ function CodeEditor({
   const placeholderRef = useRef(placeholder);
   const pathRef = useRef(path);
   const wrapRef = useRef(wordWrap);
+  // 打字机的初始状态：创建时读一次，之后走下面的 effect 实时切换
+  const typewriterRef = useRef(typewriterMode);
+  typewriterRef.current = typewriterMode;
 
   const instanceRef = useRef<CodeEditorInstance | null>(null);
 
@@ -59,6 +63,7 @@ function CodeEditor({
         language: languageForPath(pathRef.current),
         readOnly: readOnlyRef.current,
         wordWrap: wrapRef.current,
+        typewriter: typewriterRef.current,
         placeholder: placeholderRef.current,
         onChange: (value) => onChangeRef.current(value),
         onCursorChange: (position) => onCursorChangeRef.current?.(position),
@@ -120,6 +125,11 @@ function CodeEditor({
     if (wordWrap === undefined) return;
     instanceRef.current?.setWordWrap(wordWrap);
   }, [wordWrap]);
+
+  // 打字机同上：实例内部只有一个布尔，切它不碰文档与历史
+  useEffect(() => {
+    instanceRef.current?.setTypewriter(typewriterMode);
+  }, [typewriterMode]);
 
   return <div ref={mountRef} className="qm-code" />;
 }

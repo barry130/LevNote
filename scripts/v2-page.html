@@ -31,7 +31,7 @@ import MindElixir from '/mind-elixir/MindElixir.js';
  * ## 为什么不用本仓库的 `src/`
  *
  * V2 问的是「mind-elixir 这个内核扛不扛得住 500 节点」，
- * 不是「轻墨的 P4 集成做得好不好」。所以这里只依赖**外部装的 mind-elixir 包**
+ * 不是「轻笺的 P4 集成做得好不好」。所以这里只依赖**外部装的 mind-elixir 包**
  * （ADR 0007：验证用的依赖不进 `package.json`），
  * 页面本身是几个静态文件，由 `v2-run.mjs` 里那个几十行的 http 服务喂出去。
  * 好处是它同时证明了「这个包能独立跑起来」——那是 P4 的前置条件之一。

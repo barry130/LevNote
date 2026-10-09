@@ -1,4 +1,4 @@
-# 轻墨 · qingmo
+# 轻笺 · levnote
 
 > **Typora / Notepad++ / 思维导图 / draw.io —— 四合一，纯本地。**
 >

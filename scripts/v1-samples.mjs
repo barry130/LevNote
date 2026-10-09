@@ -120,7 +120,7 @@ const escapeText = (text) => escapeXml(text).replace(/'/g, '&#39;').replace(/\n/
 const compress = (xml) => deflateRawSync(Buffer.from(encodeURIComponent(xml), 'utf8')).toString('base64');
 
 const HEADER =
-  '<mxfile host="app.diagrams.net" modified="2026-10-02T00:00:00.000Z" agent="qingmo-v1-samples" version="24.7.17" type="device">';
+  '<mxfile host="app.diagrams.net" modified="2026-10-02T00:00:00.000Z" agent="levnote-v1-samples" version="24.7.17" type="device">';
 
 /**
  * 拼一份 `.drawio`。

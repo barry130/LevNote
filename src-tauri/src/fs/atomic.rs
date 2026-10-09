@@ -29,7 +29,7 @@ fn temp_path_for(target: &Path) -> AppResult<PathBuf> {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    Ok(dir.join(format!(".{name}.qingmo-{}-{stamp}.tmp", std::process::id())))
+    Ok(dir.join(format!(".{name}.levnote-{}-{stamp}.tmp", std::process::id())))
 }
 
 /// 原子写入。成功返回最终字节数。
@@ -77,7 +77,7 @@ mod tests {
     use super::*;
 
     fn scratch_dir(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("qingmo-atomic-{tag}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("levnote-atomic-{tag}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
@@ -94,7 +94,7 @@ mod tests {
         let leftovers: Vec<_> = fs::read_dir(&dir)
             .unwrap()
             .filter_map(Result::ok)
-            .filter(|e| e.file_name().to_string_lossy().contains(".qingmo-"))
+            .filter(|e| e.file_name().to_string_lossy().contains(".levnote-"))
             .collect();
         assert!(leftovers.is_empty(), "不该留下临时文件");
         let _ = fs::remove_dir_all(&dir);

@@ -21,19 +21,19 @@ import type {
 } from '../../core/editor/types.js';
 import type { EditorView } from '@milkdown/kit/prose/view';
 import { highlightCode } from '../../core/highlight/hljs.js';
-import { readScrollRatio } from '../../core/editor/position.js';
+import { readScrollRatio, typewriterScrollTop } from '../../core/editor/position.js';
 import { blockIndexFromElement, readBlockAt, withinGutter } from './block.js';
 import { anchorOf, caretAnchorOf, describeSelection, describeSlash, describeTable } from './selection.js';
 
-const highlightKey = new PluginKey<DecorationSet>('qingmo-code-highlight');
-const cursorKey = new PluginKey('qingmo-cursor-reporter');
-const positionKey = new PluginKey('qingmo-position-reporter');
-const selectionKey = new PluginKey('qingmo-selection-reporter');
-const slashKey = new PluginKey('qingmo-slash-reporter');
-const tableKey = new PluginKey('qingmo-table-reporter');
-const blockHoverKey = new PluginKey('qingmo-block-hover');
-const emitKey = new PluginKey('qingmo-markdown-emit');
-const placeholderKey = new PluginKey('qingmo-placeholder');
+const highlightKey = new PluginKey<DecorationSet>('levnote-code-highlight');
+const cursorKey = new PluginKey('levnote-cursor-reporter');
+const positionKey = new PluginKey('levnote-position-reporter');
+const selectionKey = new PluginKey('levnote-selection-reporter');
+const slashKey = new PluginKey('levnote-slash-reporter');
+const tableKey = new PluginKey('levnote-table-reporter');
+const blockHoverKey = new PluginKey('levnote-block-hover');
+const emitKey = new PluginKey('levnote-markdown-emit');
+const placeholderKey = new PluginKey('levnote-placeholder');
 
 /** ProseMirror 的 code_block 节点名与语言属性名（对齐 preset-commonmark 的 schema）。 */
 const CODE_BLOCK = 'code_block';
@@ -522,7 +522,7 @@ function sameHover(a: BlockHandleState, b: BlockHandleState): boolean {
  * 标记「这次文档变更是程序写入的，别报给外壳」。
  * 由 `setup.ts` 的 `setMarkdown` 打在事务上。
  */
-export const SILENT_META = 'qingmo-silent';
+export const SILENT_META = 'levnote-silent';
 
 /**
  * 标记「这次变更是程序写入的，但**是用户发起的**，要报给外壳」。
@@ -537,7 +537,7 @@ export const SILENT_META = 'qingmo-silent';
  * 写回磁盘的是替换前的旧文本 —— 用户看到「已保存」，
  * 而他刚做的替换在磁盘上根本不存在。
  */
-export const USER_EDIT_META = 'qingmo-user-edit';
+export const USER_EDIT_META = 'levnote-user-edit';
 
 /**
  * 把文档变更序列化成 markdown，上报给外壳。
@@ -680,5 +680,92 @@ export function placeholderPlugin(text: string) {
         class: isEmpty(state.doc) ? 'is-empty' : '',
       }),
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 专注 / 打字机（视图偏好，P3.5 之后的补课项）
+// ---------------------------------------------------------------------------
+
+export interface ComposeMode {
+  readonly focus: boolean;
+  readonly typewriter: boolean;
+}
+
+export const composeKey = new PluginKey<ComposeMode>('levnote-compose');
+
+/** 光标所在顶层块调淡其余块的类名。浓淡归 `markdown.css`（内核自己的样式表）。 */
+export const DIMMED_CLASS = 'qm-dimmed';
+
+/**
+ * 把光标行滚到编辑区垂直正中。
+ *
+ * 滚动容器是内核的（`.qm-editor`，即 `rootCtx` 那个元素 —— 与位置记忆读的
+ * 是同一个容器，硬约束 13 的滚动条款）。算术在
+ * `core/editor/position.ts` 的 `typewriterScrollTop`，这里只负责取几何。
+ * jsdom 没有布局（高度恒 0），`typewriterScrollTop` 会返回 null，测试里天然是空操作。
+ */
+function centerCaret(view: EditorView, scroller: HTMLElement): void {
+  const coords = view.coordsAtPos(view.state.selection.head);
+  if (!coords) return;
+  const rect = scroller.getBoundingClientRect();
+  const target = typewriterScrollTop(coords.top, rect.top, scroller.scrollTop, scroller.clientHeight);
+  if (target !== null) scroller.scrollTop = target;
+}
+
+/**
+ * 专注 / 打字机共用的插件。两个开关同住一个状态对象，因为它们
+ * **由同一处外壳偏好推来、用同一个 meta 事务切换**，拆成两个插件
+ * 只会得到两次 dispatch 与两份要同步的真相。
+ *
+ * - **专注**：非活跃顶层块挂 `qm-dimmed`（node 装饰，纯视觉，不进文档）。
+ *   「活跃」= 块与选区相交；空选区即光标所在的那一块。
+ * - **打字机**：选区一动（或开关刚打开）就把光标行居中。只读 `scrollTop`、
+ *   不 dispatch 事务 —— 否则会「滚动 → 上报 → 再滚动」转不停。
+ *
+ * 装饰每次现算（顶层 `doc.forEach`，长文档也就几百个孩子），不走
+ * `DecorationSet.map` 增量 —— 顶层块的生死本来就少，增量簿记反而更贵。
+ */
+export function composePlugin(getScroller: () => HTMLElement, initial: ComposeMode): Plugin<ComposeMode> {
+  return new Plugin<ComposeMode>({
+    key: composeKey,
+    state: {
+      init: () => initial,
+      apply(tr, value) {
+        const next = tr.getMeta(composeKey) as ComposeMode | undefined;
+        return next !== undefined ? next : value;
+      },
+    },
+    props: {
+      decorations(state) {
+        const mode = composeKey.getState(state) ?? initial;
+        if (!mode.focus) return DecorationSet.empty;
+        const { doc, selection } = state;
+        const decorations: Decoration[] = [];
+        let pos = 0;
+        doc.forEach((node) => {
+          const from = pos;
+          const to = pos + node.nodeSize;
+          pos = to;
+          // 空选区 = 光标所在块；非空选区 = 与 [from, to) 区间相交的块
+          const active = selection.empty
+            ? selection.head >= from && selection.head < to
+            : selection.from < to && selection.to > from;
+          if (!active) decorations.push(Decoration.node(from, to, { class: DIMMED_CLASS }));
+        });
+        return DecorationSet.create(doc, decorations);
+      },
+    },
+    view: () => ({
+      update(updated, prevState) {
+        const mode = composeKey.getState(updated.state) ?? initial;
+        if (!mode.typewriter) return;
+        const prev = composeKey.getState(prevState) ?? initial;
+        const turnedOn = mode.typewriter !== prev.typewriter;
+        const moved =
+          !updated.state.selection.eq(prevState.selection) || updated.state.doc !== prevState.doc;
+        if (turnedOn || moved) centerCaret(updated, getScroller());
+      },
+    }),
   });
 }

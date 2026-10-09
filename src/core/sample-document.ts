@@ -19,13 +19,13 @@
  *    id 在文档内唯一即可 —— 全文只有这一个 doc-block。
  */
 
-export const SAMPLE_DOCUMENT_NAME = '轻墨示例.md';
+export const SAMPLE_DOCUMENT_NAME = '轻笺示例.md';
 
 export function buildSampleDocument(): string {
   return [
-    '# 轻墨 · 示例文档',
+    '# 轻笺 · 示例文档',
     '',
-    '欢迎。这份文档演示轻墨里 Markdown 的大部分能力 —— 直接动手改它，',
+    '欢迎。这份文档演示轻笺里 Markdown 的大部分能力 —— 直接动手改它，',
     '改坏了想重置：删除本文件，再从「帮助」菜单打开一次。',
     '',
     '## 基本格式',
@@ -65,7 +65,7 @@ export function buildSampleDocument(): string {
     "  return `你好，${name}！`;",
     '}',
     '',
-    'console.log(greet("轻墨"));',
+    'console.log(greet("轻笺"));',
     '```',
     '',
     '## 数学公式',

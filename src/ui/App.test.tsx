@@ -158,7 +158,7 @@ class FakeProvider implements DocumentProvider {
   }
 
   async runtimeInfo(): Promise<RuntimeInfo> {
-    return { name: 'qingmo', version: 'test', os: 'win32', arch: 'x64', nowMs: this.clock };
+    return { name: 'levnote', version: 'test', os: 'win32', arch: 'x64', nowMs: this.clock };
   }
 
   async pickOpenPath(): Promise<string | null> {
@@ -2816,7 +2816,7 @@ describe('设置页', () => {
 
     // 「立即生效」而不是「保存后生效」：设置页没有保存按钮，每项都是即时生效
     expect(document.documentElement.dataset['theme']).toBe('dark');
-    expect(JSON.parse(localStorage.getItem('qingmo.settings.v1') ?? '{}').theme).toBe('ink');
+    expect(JSON.parse(localStorage.getItem('levnote.settings.v1') ?? '{}').theme).toBe('ink');
   });
 
   it('关于页的版本号来自 package.json，不是写死的', async () => {
@@ -2826,7 +2826,7 @@ describe('设置页', () => {
     const text = mounted.container.querySelector('.settings')?.textContent ?? '';
     // 断言「有版本字样」而不是断言具体值：具体值会随发版变，
     // 断言它等于把测试变成 package.json 的第二份副本
-    expect(text).toContain(`版本 ${import.meta.env.QINGMO_VERSION}`);
+    expect(text).toContain(`版本 ${import.meta.env.LEVNOTE_VERSION}`);
   });
 });
 
@@ -2839,7 +2839,7 @@ describe('位置记忆', () => {
   const B = 'C://other.md';
 
   function storedPositions(): Record<string, { offset: number; textLength: number; scrollRatio: number }> {
-    return JSON.parse(localStorage.getItem('qingmo.positions.v1') ?? '{}');
+    return JSON.parse(localStorage.getItem('levnote.positions.v1') ?? '{}');
   }
 
   it('打字之后位置被记下来 —— 切文档时立刻结算，不等防抖', async () => {
@@ -2882,7 +2882,7 @@ describe('位置记忆', () => {
   it('关掉「记住文档位置」之后既不再读也不再写', async () => {
     // 先种一条明显不对的记忆：若被读到了，光标会被搬到一个莫名其妙的地方
     localStorage.setItem(
-      'qingmo.positions.v1',
+      'levnote.positions.v1',
       JSON.stringify({ [A]: { offset: 999, textLength: 1, scrollRatio: 0, at: 1 } }),
     );
     mounted = await mount(
@@ -2907,7 +2907,7 @@ describe('位置记忆', () => {
   it('文档长度变了就只恢复滚动，不搬光标', async () => {
     // 记一条长度对不上的位置：这正是「文件被别的程序改过」的形状
     localStorage.setItem(
-      'qingmo.positions.v1',
+      'levnote.positions.v1',
       JSON.stringify({ [A]: { offset: 9999, textLength: 1, scrollRatio: 0, at: 1 } }),
     );
     mounted = await mount((p) => p.put(A, '甲\n\n乙\n'));
@@ -2926,7 +2926,7 @@ describe('位置记忆', () => {
 describe('会话恢复', () => {
   const A = 'C://note.md';
   const B = 'C://other.md';
-  const SESSION_KEY = 'qingmo.session.v1';
+  const SESSION_KEY = 'levnote.session.v1';
 
   interface StoredSession {
     tabs: Array<{ path: string; draft: string | null; at: number }>;

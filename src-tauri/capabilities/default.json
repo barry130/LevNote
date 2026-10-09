@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "轻墨主窗口默认能力集。只放行必要的原生能力，文件读写走自家 qingmo:* 命令。",
+  "description": "轻笺主窗口默认能力集。只放行必要的原生能力，文件读写走自家 levnote:* 命令。",
   "windows": ["main"],
   "permissions": [
     "core:default",

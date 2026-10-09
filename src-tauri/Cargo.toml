@@ -1,15 +1,15 @@
 [package]
-name = "qingmo"
-version = "0.3.27"
-description = "轻墨 — Typora / Notepad++ / 思维导图 / draw.io 四合一的轻量桌面编辑器"
-authors = ["qingmo"]
+name = "levnote"
+version = "0.3.28"
+description = "轻笺 — Typora / Notepad++ / 思维导图 / draw.io 四合一的轻量桌面编辑器"
+authors = ["levnote"]
 license = "MIT"
 edition = "2021"
 rust-version = "1.77"
 
 [lib]
 # Tauri 2 约定：业务逻辑放在 lib，main.rs 只做入口，便于日后做移动端/集成测试
-name = "qingmo_lib"
+name = "levnote_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]

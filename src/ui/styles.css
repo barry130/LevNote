@@ -1,5 +1,5 @@
 /**
- * 轻墨 · 外壳样式
+ * 轻笺 · 外壳样式
  *
  * ## 颜色只有一处来源
  *
@@ -24,7 +24,7 @@
  */
 
 :root {
-  /* 品牌色板，与 outputs/brand/qingmo-brand.html 保持一致 */
+  /* 品牌色板，与 outputs/brand/levnote-brand.html 保持一致 */
   --ink: #16302a;
   --vermilion: #e2603f;
   --paper: #f7faf8;
@@ -78,7 +78,7 @@
   --tab-active-border: #005fb8;
 
   /* 主题强调色（VSCode 的 `focusBorder` / `button.background` 同源）。
-     与品牌色 `--vermilion` 分工不同：那个是「轻墨的身份」，
+     与品牌色 `--vermilion` 分工不同：那个是「轻笺的身份」，
      这个是「当前这个主题里表示可交互/聚焦的颜色」。 */
   --accent: #005fb8;
 

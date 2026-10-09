@@ -18,7 +18,7 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@qingmo/interop-spec": ["./packages/interop-spec/src/index.ts"]
+      "@levnote/interop-spec": ["./packages/interop-spec/src/index.ts"]
     }
   },
   "include": ["src", "packages", "vite.config.ts"]

@@ -46,8 +46,8 @@ describe('analyze · 字数（Word 口径）', () => {
   });
 
   it('中英混排分别计后相加', () => {
-    // 「轻墨 Qingmo 编辑器」= 5 个汉字 + 1 个拉丁词
-    expect(analyze('轻墨 Qingmo 编辑器').words).toBe(6);
+    // 「轻笺 LevNote 编辑器」= 5 个汉字 + 1 个拉丁词
+    expect(analyze('轻笺 LevNote 编辑器').words).toBe(6);
   });
 
   it('半角标点不计入字数', () => {

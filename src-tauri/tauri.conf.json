@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "轻墨",
-  "version": "0.3.27",
-  "identifier": "app.qingmo.desktop",
+  "productName": "轻笺",
+  "version": "0.3.28",
+  "identifier": "app.levnote.desktop",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://127.0.0.1:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "轻墨",
+        "title": "轻笺",
         "width": 1280,
         "height": 840,
         "minWidth": 900,
@@ -42,7 +42,7 @@
     ],
     "category": "DeveloperTool",
     "shortDescription": "轻量四合一文档编辑器",
-    "longDescription": "轻墨集 Markdown、代码/文本、思维导图与 draw.io 图表于一体，块级互操作，纯本地运行。",
+    "longDescription": "轻笺集 Markdown、代码/文本、思维导图与 draw.io 图表于一体，块级互操作，纯本地运行。",
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"

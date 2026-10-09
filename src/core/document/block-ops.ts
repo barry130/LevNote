@@ -11,7 +11,7 @@
 import type { EditorFenceInfo } from '../editor/types.js';
 import { t } from '../i18n/index.js';
 import { resolveRelative } from '../path.js';
-import { createDocBlock } from '@qingmo/interop-spec';
+import { createDocBlock } from '@levnote/interop-spec';
 import { parseDocBlock } from '../docblock.js';
 
 /**
@@ -62,7 +62,7 @@ function sanitizeFileName(raw: string): string {
 /**
  * 组装一个 `mode: reference` 的 doc-block 围栏（规范 §2 / §4）。
  *
- * 序列化走 `@qingmo/interop-spec` —— 属性顺序固定、载荷为空、
+ * 序列化走 `@levnote/interop-spec` —— 属性顺序固定、载荷为空、
  * 反引号长度自算，都是规范里钉死的行为，不在这里重抄一份。
  * `src` 按规范**一律正斜杠**（相对当前文档目录）。
  */

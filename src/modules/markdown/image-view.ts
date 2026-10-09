@@ -59,7 +59,7 @@ export interface ImageViewHandlers {
   readonly onClick?: ImageClickHandler;
 }
 
-const imageKey = new PluginKey('qingmo-image');
+const imageKey = new PluginKey('levnote-image');
 
 /** `attrs` 是 `any`（ProseMirror 的定义），取值一律收窄，不把未知当字符串用。 */
 function readString(attrs: ProseNode['attrs'], key: string): string {

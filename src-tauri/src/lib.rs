@@ -1,4 +1,4 @@
-//! 轻墨 · 桌面端入口。
+//! 轻笺 · 桌面端入口。
 //!
 //! 分层约定：`main.rs` 只负责调用 `run()`，真正的组装都在这里，
 //! 这样未来要做集成测试或移动端入口时不必复制一遍 builder 链。
@@ -17,7 +17,7 @@ pub fn run() {
         // 打印 / 导出 PDF 的内容通道（P3 第 16 项，ADR 0030）：打印窗口按
         // 会话 id 从内存表里取 HTML。必须在这里注册 —— 自定义协议是
         // 进程级的，晚于窗口创建就接不上了。
-        .register_uri_scheme_protocol("qingmo-print", |_ctx, request| export::print::serve(&request))
+        .register_uri_scheme_protocol("levnote-print", |_ctx, request| export::print::serve(&request))
         // 全文检索的取消位。放在 managed state 里，因为命令是在阻塞线程池上跑的，
         // 而「谁在跑、该不该停」这件事必须有一个进程内的、跨线程的落点。
         .manage(search::SearchState::default())
@@ -46,5 +46,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("轻墨启动失败：Tauri 运行时初始化异常");
+        .expect("轻笺启动失败：Tauri 运行时初始化异常");
 }

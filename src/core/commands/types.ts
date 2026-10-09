@@ -54,6 +54,10 @@ export interface UiActions {
   toggleWordWrap(): void;
   /** 切换代码块 / 代码内核的行号显示偏好（设置层，同上）。 */
   toggleCodeLineNumbers(): void;
+  /** 切换专注模式（设置层字段，内核按能力消费）。 */
+  toggleFocusMode(): void;
+  /** 切换打字机模式（同上）。 */
+  toggleTypewriterMode(): void;
   /** 切换窗口全屏（平台桥决定用 Tauri 的窗口 API 还是 Fullscreen API）。 */
   toggleFullscreen(): void;
   /**

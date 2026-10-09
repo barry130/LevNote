@@ -212,7 +212,7 @@ ${mathCss}
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="generator" content="轻墨 (qingmo)">
+<meta name="generator" content="轻笺 (levnote)">
 <title>${title}</title>${mathStyleTag}
 <style>
 ${PAGE_STYLES}

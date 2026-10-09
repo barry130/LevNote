@@ -60,7 +60,7 @@ describe('buildDocBlockPreview', () => {
 
   it('mindmap：根主题 + 节点数', async () => {
     const mindmap = JSON.stringify({
-      format: 'qingmo.mindmap',
+      format: 'levnote.mindmap',
       version: 1,
       root: { id: 'r', topic: '根', children: [{ id: 'a', topic: '甲', children: [] }] },
     });

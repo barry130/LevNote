@@ -137,6 +137,9 @@ export const MENUS: readonly MenuDef[] = [
       'separator',
       'view.toggleWordWrap',
       'view.toggleCodeLineNumbers',
+      // 写作模式（Typora 的两个）：偏好存设置层，内核按能力消费
+      'view.toggleFocusMode',
+      'view.toggleTypewriterMode',
       'separator',
       'view.toggleFullscreen',
       'separator',

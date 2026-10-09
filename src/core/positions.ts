@@ -61,7 +61,7 @@ export const MAX_REMEMBERED_POSITIONS = 200;
  * `v1` 与设置那个键是**各自独立**的版本：改了位置的格式只让位置失效，
  * 用户的主题与侧栏宽度照旧。两个键共用一个版本号的话，改一个就把另一个也废了。
  */
-const STORAGE_KEY = 'qingmo.positions.v1';
+const STORAGE_KEY = 'levnote.positions.v1';
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);

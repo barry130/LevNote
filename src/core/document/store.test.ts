@@ -146,7 +146,7 @@ class FakeProvider implements DocumentProvider {
   }
 
   async runtimeInfo(): Promise<RuntimeInfo> {
-    return { name: 'qingmo', version: '0.0.0-test', os: 'test', arch: 'test', nowMs: 0 };
+    return { name: 'levnote', version: '0.0.0-test', os: 'test', arch: 'test', nowMs: 0 };
   }
 
   async pickOpenPath(): Promise<string | null> {

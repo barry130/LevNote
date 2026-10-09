@@ -79,6 +79,8 @@ export const zhCN = {
   'command.view.cycleTheme.title': '切换主题',
   'command.view.toggleWordWrap.title': '切换自动换行',
   'command.view.toggleCodeLineNumbers.title': '切换代码行号',
+  'command.view.toggleFocusMode.title': '专注模式',
+  'command.view.toggleTypewriterMode.title': '打字机模式',
   'command.view.toggleFullscreen.title': '切换全屏',
 
   // ---- 导航 ---------------------------------------------------------------
@@ -131,7 +133,7 @@ export const zhCN = {
   'command.theme.ink.title': '暗黑（墨黑）',
 
   // ---- 应用 ---------------------------------------------------------------
-  'command.app.about.title': '关于轻墨',
+  'command.app.about.title': '关于轻笺',
 
   // ---- 预览浮层（灯箱 / 图表全屏共用「关闭预览」） -------------------------
   'ui.preview.title': '图片预览',
@@ -278,6 +280,10 @@ export const zhCN = {
   'ui.settings.codeLineNumbersHint': '只影响 Markdown 文档里的代码块。代码 / 文本文档始终有行号。',
   'ui.settings.softWrap': '软换行',
   'ui.settings.softWrapHint': '长行折到下一行，而不是横向滚动。只对代码 / 文本文档有效。',
+  'ui.settings.focusMode': '专注模式',
+  'ui.settings.focusModeHint': '光标不在的段落调淡，写到哪里亮到哪里。Markdown 富文本文档生效。',
+  'ui.settings.typewriterMode': '打字机模式',
+  'ui.settings.typewriterModeHint': '光标行始终保持在编辑区垂直正中。Markdown 与代码 / 文本文档生效。',
   'ui.settings.restoreSession': '恢复上次的标签页',
   'ui.settings.restoreSessionHint': '重新打开时自动打开上次的标签页，没保存的改动也还在。关掉之后不再写会话记录 —— 异常退出时未保存的内容会丢。',
   'ui.settings.rememberPositions': '记住文档位置',
@@ -429,8 +435,8 @@ export const zhCN = {
   'ui.table.alignRightLabel': '右',
 
   // ---- 外壳（App） ----------------------------------------------------------
-  'ui.app.appName': '轻墨',
-  'ui.app.winTitle': '{name} — 轻墨',
+  'ui.app.appName': '轻笺',
+  'ui.app.winTitle': '{name} — 轻笺',
   'ui.app.dismiss': '知道了',
   'ui.app.delete': '删除',
   'ui.app.deleteDirConfirm': '删除文件夹「{name}」？其中的全部内容都会被删除，此操作不可撤销。',
@@ -457,7 +463,7 @@ export const zhCN = {
   'ui.app.noDocsOpen1': '按',
   'ui.app.noDocsOpen2': '打开文件，按',
   'ui.app.noDocsOpen3': '打开文件夹，或把文件直接拖进这个窗口。',
-  'ui.app.noDocsHint': '轻墨支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档，它们可以互相引用。',
+  'ui.app.noDocsHint': '轻笺支持 Markdown、代码 / 文本、思维导图（.mindmap）与 draw.io 图表（.drawio）四类文档，它们可以互相引用。',
   'ui.app.dropOverlay': '松手即可打开',
 
   // ---- core 层消息（E3 批次：状态栏统计 / 主题名 / store 通知 / 检索与替换 /
@@ -595,8 +601,8 @@ export const zhCN = {
   'core.keys.noKey': '缺少键名',
   'core.keys.emptyKey': '键名为空',
 
-  // 平台层（desktop.ts / browser.ts 共用「轻墨」，对话框标题各自一份）
-  'core.platform.appName': '轻墨',
+  // 平台层（desktop.ts / browser.ts 共用「轻笺」，对话框标题各自一份）
+  'core.platform.appName': '轻笺',
   'core.platform.saveAsTitle': '另存为',
   'core.platform.openDirTitle': '打开文件夹',
 
@@ -652,7 +658,7 @@ export const zhCN = {
   'core.cmd.clipCopyDenied': '剪贴板写入被拒绝，没有复制任何内容。',
   'core.cmd.clipNoHtml': '当前文档类型给不出 HTML，已复制纯文本内容。',
   'core.cmd.clipHtmlOk': '已按 HTML 复制。粘贴到支持富文本的地方会保留格式。',
-  'core.cmd.aboutBody': '轻墨 {version}',
+  'core.cmd.aboutBody': '轻笺 {version}',
   'core.cmd.sampleCreateFailed': '示例文档没能创建：{reason}',
   'core.cmd.sampleTitle': '示例文档',
 
@@ -669,7 +675,7 @@ export const zhCN = {
   'core.export.diagramNote': '图表没能画出来，上面是它的源码。{message}',
   'core.print.desktopOnly': '打印 / 导出 PDF 只在桌面版可用',
   'core.platform.openTitle': '打开文件',
-  'core.platform.filterQingmo': '轻墨支持的文档',
+  'core.platform.filterLevNote': '轻笺支持的文档',
   'core.platform.filterMindmap': '思维导图',
   'core.platform.filterDrawio': 'draw.io 图表',
   'core.platform.filterAll': '全部文件',
@@ -754,6 +760,8 @@ export const en: Record<MessageKey, string> = {
   'command.view.cycleTheme.title': 'Cycle Theme',
   'command.view.toggleWordWrap.title': 'Toggle Word Wrap',
   'command.view.toggleCodeLineNumbers.title': 'Toggle Code Line Numbers',
+  'command.view.toggleFocusMode.title': 'Focus Mode',
+  'command.view.toggleTypewriterMode.title': 'Typewriter Mode',
   'command.view.toggleFullscreen.title': 'Toggle Full Screen',
 
   // ---- 导航 ---------------------------------------------------------------
@@ -806,7 +814,7 @@ export const en: Record<MessageKey, string> = {
   'command.theme.ink.title': 'Dark (Ink)',
 
   // ---- 应用 ---------------------------------------------------------------
-  'command.app.about.title': 'About Qingmo',
+  'command.app.about.title': 'About LevNote',
 
   // ---- 预览浮层 -------------------------------------------------------------
   'ui.preview.title': 'Image Preview',
@@ -953,6 +961,10 @@ export const en: Record<MessageKey, string> = {
   'ui.settings.codeLineNumbersHint': 'Only affects code blocks inside Markdown documents. Code / text documents always have line numbers.',
   'ui.settings.softWrap': 'Soft wrap',
   'ui.settings.softWrapHint': 'Wrap long lines instead of scrolling sideways. Only applies to code / text documents.',
+  'ui.settings.focusMode': 'Focus mode',
+  'ui.settings.focusModeHint': 'Dim paragraphs the caret is not in, so what you are writing stays bright. Applies to Markdown rich text.',
+  'ui.settings.typewriterMode': 'Typewriter mode',
+  'ui.settings.typewriterModeHint': 'Keep the caret line vertically centered in the editor. Applies to Markdown and code / text documents.',
   'ui.settings.restoreSession': 'Restore last tabs',
   'ui.settings.restoreSessionHint': 'Reopen the tabs from the last session, unsaved changes included. Turning this off stops writing session records — unsaved content is lost if the app exits unexpectedly.',
   'ui.settings.rememberPositions': 'Remember document positions',
@@ -1103,8 +1115,8 @@ export const en: Record<MessageKey, string> = {
   'ui.table.alignRightLabel': 'R',
 
   // ---- 外壳（App） ----------------------------------------------------------
-  'ui.app.appName': 'Qingmo',
-  'ui.app.winTitle': '{name} — Qingmo',
+  'ui.app.appName': 'LevNote',
+  'ui.app.winTitle': '{name} — LevNote',
   'ui.app.dismiss': 'Got it',
   'ui.app.delete': 'Delete',
   'ui.app.deleteDirConfirm': 'Delete folder “{name}”? Everything inside will be deleted. This cannot be undone.',
@@ -1131,7 +1143,7 @@ export const en: Record<MessageKey, string> = {
   'ui.app.noDocsOpen1': 'Press',
   'ui.app.noDocsOpen2': 'to open a file, press',
   'ui.app.noDocsOpen3': 'to open a folder, or drop files straight into this window.',
-  'ui.app.noDocsHint': 'Qingmo supports four kinds of first-class documents — Markdown, code / text, mind maps (.mindmap) and draw.io diagrams (.drawio) — and they can reference each other.',
+  'ui.app.noDocsHint': 'LevNote supports four kinds of first-class documents — Markdown, code / text, mind maps (.mindmap) and draw.io diagrams (.drawio) — and they can reference each other.',
   'ui.app.dropOverlay': 'Drop to open',
 
   // ---- core 层消息 ----------------------------------------------------------
@@ -1268,7 +1280,7 @@ export const en: Record<MessageKey, string> = {
   'core.keys.noKey': 'Missing the key name',
   'core.keys.emptyKey': 'The key name is empty',
 
-  'core.platform.appName': 'Qingmo',
+  'core.platform.appName': 'LevNote',
   'core.platform.saveAsTitle': 'Save As',
   'core.platform.openDirTitle': 'Open Folder',
 
@@ -1320,7 +1332,7 @@ export const en: Record<MessageKey, string> = {
   'core.cmd.clipCopyDenied': 'Clipboard write was denied; nothing was copied.',
   'core.cmd.clipNoHtml': 'This document type cannot produce HTML; the plain-text content was copied instead.',
   'core.cmd.clipHtmlOk': 'Copied as HTML. Pasting into a rich-text target will keep the formatting.',
-  'core.cmd.aboutBody': 'Qingmo {version}',
+  'core.cmd.aboutBody': 'LevNote {version}',
   'core.cmd.sampleCreateFailed': 'Failed to create the sample document: {reason}',
   'core.cmd.sampleTitle': 'Sample document',
 
@@ -1334,7 +1346,7 @@ export const en: Record<MessageKey, string> = {
   'core.export.diagramNote': 'The diagram could not be rendered; its source is shown above. {message}',
   'core.print.desktopOnly': 'Print / export to PDF is only available in the desktop app',
   'core.platform.openTitle': 'Open File',
-  'core.platform.filterQingmo': 'Qingmo-supported documents',
+  'core.platform.filterLevNote': 'LevNote-supported documents',
   'core.platform.filterMindmap': 'Mind maps',
   'core.platform.filterDrawio': 'draw.io diagrams',
   'core.platform.filterAll': 'All files',

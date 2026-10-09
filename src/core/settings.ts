@@ -117,9 +117,25 @@ export interface ViewSettings {
   readonly editorLineHeight: number;
   /**
    * 界面语言（默认 zh-CN）。真相来源在设置，App 的 effect 把它推给 i18n。
-   * 目前英文覆盖命令系统（菜单 / 命令面板 / 快捷键表），其余界面分批迁移。
+   * 命令系统、全部界面文案与 core 层消息均已双语（2026-10-07，ADR 0031）。
    */
   readonly locale: SupportedLocale;
+  /**
+   * 专注模式（默认关）：光标不在其中的段落调淡。
+   *
+   * 只对实现了它的内核生效（Markdown 富文本是主要场景）—— 代码 / 纯文本 /
+   * 导图内核忽略它，不打断用户。做成可见的开关而非永远可用的能力，
+   * 理由与 `wordWrap` 相同：它是「我此刻想怎么读」的偏好，不是能力开关。
+   */
+  readonly focusMode: boolean;
+  /**
+   * 打字机模式（默认关）：每次光标移动后把光标行滚到编辑区垂直正中。
+   *
+   * Markdown 与代码内核实现；对导图没有意义（没有线性光标），忽略。
+   * 它**改写滚动位置**，与位置记忆同走一条路 —— 打字机开着时位置记忆
+   * 记下的就是居中后的位置，这是符合直觉的（下次打开还在同样的观感）。
+   */
+  readonly typewriterMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: ViewSettings = {
@@ -138,6 +154,8 @@ export const DEFAULT_SETTINGS: ViewSettings = {
   editorFontFamily: '',
   editorLineHeight: 1.75,
   locale: 'zh-CN',
+  focusMode: false,
+  typewriterMode: false,
 };
 
 /** 侧栏的两栏。活动栏上的两个按钮各对应一个。 */
@@ -193,7 +211,7 @@ export function sanitizeEditorFontFamily(value: unknown): string {
     .slice(0, 120);
 }
 
-const STORAGE_KEY = 'qingmo.settings.v1';
+const STORAGE_KEY = 'levnote.settings.v1';
 
 /** 只接受 `Storage` 形状，方便测试传入一个内存实现。 */
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
@@ -255,6 +273,8 @@ export function loadSettings(storage: StorageLike | null): ViewSettings {
     editorFontFamily: sanitizeEditorFontFamily(record['editorFontFamily']),
     editorLineHeight: clampEditorLineHeight(record['editorLineHeight']),
     locale: isSupportedLocale(record['locale']) ? record['locale'] : DEFAULT_SETTINGS.locale,
+    focusMode: asBoolean(record['focusMode'], DEFAULT_SETTINGS.focusMode),
+    typewriterMode: asBoolean(record['typewriterMode'], DEFAULT_SETTINGS.typewriterMode),
   };
 }
 

@@ -145,6 +145,10 @@ export interface DocumentPaneProps {
    */
   active: boolean;
   wordWrap: boolean;
+  /** 专注模式：光标不在的段落调淡（Markdown 富文本生效，其余内核忽略）。 */
+  focusMode: boolean;
+  /** 打字机模式：光标行保持垂直居中（Markdown / 代码内核生效）。 */
+  typewriterMode: boolean;
   /** 代码块是否显示行号。视图偏好，不写进文档。 */
   codeLineNumbers: boolean;
   onToggleCodeLineNumbers: (next: boolean) => void;
@@ -224,6 +228,8 @@ export function DocumentPane({
   store,
   active,
   wordWrap,
+  focusMode,
+  typewriterMode,
   codeLineNumbers,
   onToggleCodeLineNumbers,
   splitRatio,
@@ -924,6 +930,8 @@ export function DocumentPane({
         path={doc.path}
         readOnly={doc.readonly}
         wordWrap={wordWrap}
+        focusMode={focusMode}
+        typewriterMode={typewriterMode}
         codeLineNumbers={codeLineNumbers}
         placeholder={t('ui.pane.emptyPlaceholder')}
         onChange={handleEditorChange}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyScrollRatio, readScrollRatio, type ScrollMetrics } from './position.js';
+import { applyScrollRatio, readScrollRatio, typewriterScrollTop, type ScrollMetrics } from './position.js';
 
 /**
  * 这两个函数只有四行，但它们是**三个内核共用的除零边界**。
@@ -75,5 +75,45 @@ describe('applyScrollRatio', () => {
     const element = metrics(100, 1000, 200);
     applyScrollRatio(element, Number.NaN);
     expect(element.scrollTop).toBe(0);
+  });
+});
+
+describe('typewriterScrollTop', () => {
+  // 与打字机模式的关系：内核取到光标的视口坐标与滚动容器的几何后喂进来，
+  // 这里钉住的是「该不该动、往哪动、边界不越界」这三件事。
+
+  it('光标已经在正中 → null（不动，免得每个字都跟滚动合成器打架）', () => {
+    // 光标在视口 400 = 容器顶 100 + 半高 300，scrollTop 随便给，内容位置恒居中
+    expect(typewriterScrollTop(400, 100, 0, 600)).toBeNull();
+    expect(typewriterScrollTop(400, 100, 500, 600)).toBeNull();
+  });
+
+  it('差值不足 1px 也算居中 → null', () => {
+    expect(typewriterScrollTop(399.5, 100, 0, 600)).toBeNull();
+  });
+
+  it('光标偏下 → 向下滚，把光标抬回中线', () => {
+    // 光标视口 600，容器顶 100：内容位置 500，中线应是 scrollTop 200
+    expect(typewriterScrollTop(600, 100, 0, 600)).toBe(200);
+  });
+
+  it('光标偏上 → 向上滚（负差值）', () => {
+    // 光标视口 150，容器顶 100：内容位置 50，中线应是 scrollTop -250，
+    // 也就是「当前已经在比中线更靠上的位置」→ 目标比当前小
+    expect(typewriterScrollTop(150, 100, 400, 600)).toBe(150);
+  });
+
+  it('目标夹到 0：文档开头无法居中，也不许滚成负数', () => {
+    // 光标就在视口上部、内容位置 50 → 理论中线 -250 → 夹成 0，
+    // 而当前 scrollTop 若已是 0，差值为 0 → null
+    expect(typewriterScrollTop(150, 100, 0, 600)).toBeNull();
+    expect(typewriterScrollTop(150, 100, 40, 600)).toBe(0);
+  });
+
+  it('容器还没布局（高度 0）或几何不是数字 → null', () => {
+    expect(typewriterScrollTop(300, 100, 0, 0)).toBeNull();
+    expect(typewriterScrollTop(Number.NaN, 100, 0, 600)).toBeNull();
+    expect(typewriterScrollTop(300, Number.NaN, 0, 600)).toBeNull();
+    expect(typewriterScrollTop(300, 100, Number.NaN, 600)).toBeNull();
   });
 });

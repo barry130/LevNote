@@ -44,7 +44,7 @@ import { texProblem, type MathKind } from '../../core/math.js';
 import { MATH_BLOCK, MATH_INLINE, TEX_ATTR } from './math.js';
 import { USER_EDIT_META } from './plugin.js';
 
-const mathViewKey = new PluginKey('qingmo-math-view');
+const mathViewKey = new PluginKey('levnote-math-view');
 
 /** `attrs` 是 `any`，取值一律收窄。 */
 function readTex(attrs: ProseNode['attrs']): string {

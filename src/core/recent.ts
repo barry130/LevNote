@@ -13,7 +13,7 @@
 
 import type { StorageLike } from './settings.js';
 
-export const RECENT_FILES_KEY = 'qingmo.recentFiles';
+export const RECENT_FILES_KEY = 'levnote.recentFiles';
 
 /** 持久化的上界。菜单里只展示更少的一条（见 definitions.ts 的菜单槽数）。 */
 export const RECENT_FILES_MAX = 15;

@@ -30,7 +30,7 @@ HTML 导出落盘成文件，打印交给打印窗口。导出 HTML 里那份 `@
 ### 2. 打印对话框是出口，不是降级
 
 前端把 HTML 交给 Rust 命令 `print_html` → Rust 开一个子窗口 → HTML 经
-**自定义协议 `qingmo-print://`** 从内存表喂给 WebView → 加载完成后注入脚本
+**自定义协议 `levnote-print://`** 从内存表喂给 WebView → 加载完成后注入脚本
 调 `window.print()` 弹系统打印对话框 → 「另存为 PDF」（WebView2 内置目的地）
 或选真打印机。
 
@@ -41,15 +41,15 @@ wry 内部；而打印对话框是三平台共有的「打印管线」，还顺�
 
 ### 3. HTML 走内存自定义协议，不落临时文件
 
-`register_uri_scheme_protocol("qingmo-print")` 在 `run()` 注册一次；打印
-窗口的 URL 是 `qingmo-print://localhost/<id>.html`，协议处理器按 id 从
+`register_uri_scheme_protocol("levnote-print")` 在 `run()` 注册一次；打印
+窗口的 URL 是 `levnote-print://localhost/<id>.html`，协议处理器按 id 从
 `PRINT_PAGES` 内存表（`Mutex<BTreeMap>`）取 HTML。**窗口销毁（`Destroyed`）
 即摘表项**；窗口创建失败也摘。404（表里没有）返回一个说清楚「打印会话
 已失效，回主窗口重来」的页面 —— 硬约束 2，不静默。
 
 平台差异收在处理器里只看 `uri().path()`：Windows 实际请求是
-`http://qingmo-print.localhost/<id>.html`，macOS / Linux 是
-`qingmo-print://localhost/<id>.html`，**path 两边长一个样**。
+`http://levnote-print.localhost/<id>.html`，macOS / Linux 是
+`levnote-print://localhost/<id>.html`，**path 两边长一个样**。
 
 ### 4. 打印窗口自带一条引导条（`@media print` 隐藏）
 

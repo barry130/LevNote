@@ -4,7 +4,7 @@ import { buildSampleDocument, SAMPLE_DOCUMENT_NAME } from './sample-document.js'
 
 describe('示例文档（B1）', () => {
   it('文件名与内容的基本形状', () => {
-    expect(SAMPLE_DOCUMENT_NAME).toBe('轻墨示例.md');
+    expect(SAMPLE_DOCUMENT_NAME).toBe('轻笺示例.md');
     const content = buildSampleDocument();
     // 以一级标题开头：大纲面板与文档标题都有着落
     expect(content.startsWith('# ')).toBe(true);

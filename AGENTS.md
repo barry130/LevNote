@@ -293,9 +293,9 @@ CSS 模块被替换成空实现，`?raw` 也拿不到内容 —— **测试假�
 
 ### 6. `cargo check` 通过但 `cargo test` 报 `LNK1181`
 
-手删过 `target/debug/build/qingmo-*/out` 会导致这个：那里除了 codegen 资产，
+手删过 `target/debug/build/levnote-*/out` 会导致这个：那里除了 codegen 资产，
 还有 `tauri-build` 生成的 `resource.lib`。`cargo check` 不链接所以看不出来。
-**用 `cargo clean -p qingmo`，不要手删 cargo 的输出目录。**
+**用 `cargo clean -p levnote`，不要手删 cargo 的输出目录。**
 
 ### 7. jsdom 缺三个 DOM 接口，报错位置与被测代码无关
 
@@ -557,7 +557,7 @@ notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mt
 
 **P3-16 打印 / 导出 PDF 已完成（2026-10-04，ADR 0030）**：与自包含 HTML
 共用 `buildSelfContainedHtml` 渲染，出口是系统打印对话框（wry 未暴露
-程序化 PrintToPdf）；HTML 经内存自定义协议 `qingmo-print://` 供给打印
+程序化 PrintToPdf）；HTML 经内存自定义协议 `levnote-print://` 供给打印
 子窗口，窗口销毁即清。
 
 **P3-17 i18n 骨架已完成（2026-10-04，ADR 0031）**：`core/i18n/` 目录 +

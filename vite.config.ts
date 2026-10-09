@@ -56,7 +56,7 @@ const packageVersion = (JSON.parse(readFileSync(new URL('./package.json', import
  * 那条弯路与结论记在该函数的注释里。
  */
 const katexWoff2Only: PostcssPlugin = {
-  postcssPlugin: 'qingmo:katex-woff2-only',
+  postcssPlugin: 'levnote:katex-woff2-only',
   Once(root, { result }) {
     // 只认编辑器那份。导出侧读的是 `?raw`（原样文本，不走 CSS 管线），
     // 它有自己的 data URI 内联逻辑，两条路刻意分开。
@@ -76,25 +76,25 @@ export default defineConfig({
     /**
      * **必须写成 `import.meta.env.X`，不能写成裸标识符。**
      *
-     * 一开始写的是 `__QINGMO_VERSION__`。`vite build` 与 vitest 都会替换它，
+     * 一开始写的是 `__LEVNOTE_VERSION__`。`vite build` 与 vitest 都会替换它，
      * 单测因此全绿 —— 但 **dev server 不替换裸标识符**：实测（Vite 8.3.1）
      * 请求 `/src/ui/SettingsDialog.tsx` 拿回来的还是
-     * `children: ["版本 ", __QINGMO_VERSION__]`。
+     * `children: ["版本 ", __LEVNOTE_VERSION__]`。
      *
      * 后果不是「版本号显示不出来」，而是**点一下设置整个应用就没了**：
      * 渲染到那一行抛 `ReferenceError`，没有错误边界，React 把整棵树卸掉。
      * 一个纯装饰性的字符串换来一个致命的启动期依赖，这笔账不该做。
      *
      * 写成 `import.meta.env.*` 之后 dev 会把它合并进注入的 env 对象
-     * （实测拿到 `{"...","QINGMO_VERSION":"0.1.0"}`），build 与 vitest 也认。
+     * （实测拿到 `{"...","LEVNOTE_VERSION":"0.1.0"}`），build 与 vitest 也认。
      * 顺带的好处：属性访问在缺失时只是 `undefined`，不会再抛。
      */
-    'import.meta.env.QINGMO_VERSION': JSON.stringify(packageVersion),
+    'import.meta.env.LEVNOTE_VERSION': JSON.stringify(packageVersion),
   },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@qingmo/interop-spec': fileURLToPath(
+      '@levnote/interop-spec': fileURLToPath(
         new URL('./packages/interop-spec/src/index.ts', import.meta.url),
       ),
     },

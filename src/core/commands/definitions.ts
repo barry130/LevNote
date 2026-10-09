@@ -642,6 +642,28 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => ctx.ui.toggleCodeLineNumbers(),
   },
   {
+    /**
+     * 专注 / 打字机（Typora 的两个写作模式）。
+     *
+     * 与 `view.toggleWordWrap` 同属「设置层开关」：命令只翻偏好，
+     * 哪些内核消费它由各内核决定（Markdown 两个都认；代码内核只认打字机；
+     * 纯文本与导图忽略）。菜单项不按内核禁用 —— 与「行号」同一先例：
+     * 偏好是全局的，当前文档用不上时切了也没害处。
+     */
+    id: 'view.toggleFocusMode',
+    title: t('command.view.toggleFocusMode.title'),
+    category: t('command.category.view'),
+    keywords: ['focus', 'zhuanzhu', '专注', '沉浸'],
+    run: (ctx) => ctx.ui.toggleFocusMode(),
+  },
+  {
+    id: 'view.toggleTypewriterMode',
+    title: t('command.view.toggleTypewriterMode.title'),
+    category: t('command.category.view'),
+    keywords: ['typewriter', 'daziji', '打字机'],
+    run: (ctx) => ctx.ui.toggleTypewriterMode(),
+  },
+  {
     id: 'view.toggleFullscreen',
     title: t('command.view.toggleFullscreen.title'),
     category: t('command.category.view'),
@@ -742,12 +764,12 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // 构建期注入的常量必须写成 `import.meta.env.X`（硬约束 14）——
     // dev server 不替换裸标识符，写错的表现是「点一下关于整个应用就没了」
     run: (ctx) => {
-      void ctx.ui.notify(t('core.cmd.aboutBody', { version: String(import.meta.env.QINGMO_VERSION ?? '') }), t('command.app.about.title'));
+      void ctx.ui.notify(t('core.cmd.aboutBody', { version: String(import.meta.env.LEVNOTE_VERSION ?? '') }), t('command.app.about.title'));
     },
   },
 
   /**
-   * 示例文档（B1）：往工作区根写入 `轻墨示例.md` 并打开。
+   * 示例文档（B1）：往工作区根写入 `轻笺示例.md` 并打开。
    *
    * 与 `file.new` 同一条编排（stat → 写 → open），也守同一条红线：
    * **已存在就不再写** —— 用户可能已经改过这份示例，覆盖就是毁内容

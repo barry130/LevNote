@@ -627,7 +627,7 @@ mod tests {
     fn scratch_dir(tag: &str) -> PathBuf {
         static COUNTER: AtomicUsize = AtomicUsize::new(0);
         let dir = std::env::temp_dir().join(format!(
-            "qingmo-fsman-{}-{}-{}",
+            "levnote-fsman-{}-{}-{}",
             tag,
             std::process::id(),
             COUNTER.fetch_add(1, Ordering::Relaxed)

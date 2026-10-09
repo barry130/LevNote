@@ -961,10 +961,10 @@ B3 / B4 是原规划就指出「应尽早启动申请」的事项 —— 它们�
 
 - 跑一次 `npm run dev` 或 `npm run desktop`，目视确认 Markdown 编辑器与导出 HTML 的样子
   （这是 P2 唯一没有被自动化覆盖的验收项，见本文第零节）
-- 中国商标网查询「轻墨」在第 9 类（软件）与第 42 类（技术服务）的可注册性
+- 中国商标网查询「轻笺」在第 9 类（软件）与第 42 类（技术服务）的可注册性
 - GitHub / npm / crates.io 的名称占用检查
-- 域名可用性：`qingmo.app` / `.dev` / `.io`
-- 品牌 lockup 中的中文**转曲**后再对外使用（`qingmo-lockup.svg` 目前用系统字体）
+- 域名可用性：`levnote.app` / `.dev` / `.io`
+- 品牌 lockup 中的中文**转曲**后再对外使用（`levnote-lockup.svg` 目前用系统字体）
 
 ---
 
@@ -994,7 +994,7 @@ B3 / B4 是原规划就指出「应尽早启动申请」的事项 —— 它们�
 
 | 症状 | 原因 | 正确做法 |
 |---|---|---|
-| `cargo check` 通过但 `cargo test` 报 `LNK1181: 无法打开输入文件 …\out\resource.lib` | 手删过 `target/debug/build/qingmo-*/out`。那里除了 codegen 资产还有 `tauri-build` 生成的 `resource.lib`（图标与 manifest）。`cargo check` 不链接所以看不出来 | 用 `cargo clean -p qingmo`（793 文件 / 2.0 GiB，但在可接受范围内），**不要手删 cargo 的输出目录** |
-| `cargo check` 报 `failed to write asset … 拒绝访问 (os error 5)` | 上一轮 codegen 的产物被占用（编辑器 / 杀软 / 残留句柄） | 同上，`cargo clean -p qingmo` |
+| `cargo check` 通过但 `cargo test` 报 `LNK1181: 无法打开输入文件 …\out\resource.lib` | 手删过 `target/debug/build/levnote-*/out`。那里除了 codegen 资产还有 `tauri-build` 生成的 `resource.lib`（图标与 manifest）。`cargo check` 不链接所以看不出来 | 用 `cargo clean -p levnote`（793 文件 / 2.0 GiB，但在可接受范围内），**不要手删 cargo 的输出目录** |
+| `cargo check` 报 `failed to write asset … 拒绝访问 (os error 5)` | 上一轮 codegen 的产物被占用（编辑器 / 杀软 / 残留句柄） | 同上，`cargo clean -p levnote` |
 | vitest 里 `import css from './x.css?raw'` 拿到空字符串，测试假绿 | vitest 默认 `css: false`，CSS 模块被替换成空实现 | `vite.config.ts` 的 `test` 里显式开 `css: true`。不开的话「导出的版式 CSS 是否真的内联」这类断言会永远通过 |
 

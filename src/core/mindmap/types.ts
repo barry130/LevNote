@@ -20,7 +20,7 @@
  * **「更高版本写的键，低版本必须原样保留。解析时落到 `extra`，序列化时照原样写回，
  * 同时给一条 `UNKNOWN_KEY` 提示。」** 这里照办，而且**顶层与每个节点各有一个桶**。
  *
- * 「没有这条，任何新增属性都是一次单向的数据损失」—— 用户在两台机器上装了不同版本的轻墨，
+ * 「没有这条，任何新增属性都是一次单向的数据损失」—— 用户在两台机器上装了不同版本的轻笺，
  * 文件来回拷不会掉信息。
  *
  * ## 一个必须记住的后果：`extra` **不能**跟着内核数据走
@@ -35,7 +35,7 @@
  */
 
 /** 文件标识。顶层 `format` 不是这个值的 JSON，就不是我们的导图。 */
-export const MINDMAP_FORMAT = 'qingmo.mindmap';
+export const MINDMAP_FORMAT = 'levnote.mindmap';
 
 /**
  * 当前文件格式版本。
@@ -127,7 +127,7 @@ export interface MindmapDocument {
   extra: Record<string, unknown>;
   /**
    * 源文件里读到的版本号。**写回时按它写，不擅自升级** ——
-   * 把一个 v1 文件升级成 v2 会让老版本的轻墨读不了，而用户没要求过这件事。
+   * 把一个 v1 文件升级成 v2 会让老版本的轻笺读不了，而用户没要求过这件事。
    */
   version: number;
 }
@@ -151,7 +151,7 @@ export type MindmapIssueCode =
   | 'NOT_JSON'
   /** 顶层不是对象（是数组 / 字符串 / null…）。**致命**。 */
   | 'NOT_OBJECT'
-  /** `format` 不是 `qingmo.mindmap`。**致命** —— 这不是我们的文件。 */
+  /** `format` 不是 `levnote.mindmap`。**致命** —— 这不是我们的文件。 */
   | 'WRONG_FORMAT'
   /** 缺 `root`，或它不是对象。**致命** —— 没有树可画。 */
   | 'MISSING_ROOT'

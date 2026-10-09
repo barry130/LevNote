@@ -183,7 +183,7 @@ export async function inlineAssets(root: HTMLElement, io: InlineIo): Promise<Inl
  *
  * `toDOM` 是**同步**的，而 KaTeX 是动态加载的（见 `core/katex.ts`）。
  * 让 `toDOM` 能渲染，KaTeX 就只能静态引入 —— 272 KB 进主包，
- * 每个打开轻墨的人都要先下载它。而且 `toDOM` 里抛异常会把编辑器带崩，
+ * 每个打开轻笺的人都要先下载它。而且 `toDOM` 里抛异常会把编辑器带崩，
  * 而非法公式**必然**抛。
  *
  * 于是分工是：内核写一个带 `data-tex` 的壳（内容是公式源码），

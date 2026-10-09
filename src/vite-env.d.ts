@@ -7,7 +7,7 @@
  *
  * ## 为什么挂在 `import.meta.env` 上，而不是一个裸的全局常量
  *
- * 一开始声明的是 `declare const __QINGMO_VERSION__: string`。它**只在 build
+ * 一开始声明的是 `declare const __LEVNOTE_VERSION__: string`。它**只在 build
  * 与 vitest 里被替换**，dev server 不认 —— 实测请求 `/src/ui/SettingsDialog.tsx`
  * 拿回来的还是裸标识符。于是开发时渲染到那一行就抛 `ReferenceError`，
  * 没有错误边界，React 把整棵树卸掉：**点一下设置，应用直接没了**。
@@ -19,7 +19,7 @@
  * 任何 `import` 都会变成运行时查找，而它其实在打包时就已经被替换成字面量了。
  */
 interface ImportMetaEnv {
-  readonly QINGMO_VERSION: string;
+  readonly LEVNOTE_VERSION: string;
 }
 
 /**

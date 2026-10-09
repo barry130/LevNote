@@ -145,7 +145,7 @@ async function fetchFontDataUri(file: string): Promise<string | null> {
 
 const DEFAULT_IO: MathStyleIo = {
   // 动态引入：这份 CSS 有 25 KB，只有「导出带公式的文档」时才用得上，
-  // 没理由让每个打开轻墨的人都先下载它
+  // 没理由让每个打开轻笺的人都先下载它
   readCss: async () => (await import('katex/dist/katex.min.css?raw')).default,
   loadFont: fetchFontDataUri,
 };

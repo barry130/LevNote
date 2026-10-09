@@ -1,9 +1,9 @@
 {
-  "name": "qingmo",
+  "name": "levnote",
   "private": true,
-  "version": "0.3.27",
+  "version": "0.3.28",
   "type": "module",
-  "description": "轻墨 — Typora / Notepad++ / 思维导图 / draw.io 四合一的轻量桌面编辑器",
+  "description": "轻笺 — Typora / Notepad++ / 思维导图 / draw.io 四合一的轻量桌面编辑器",
   "license": "MIT",
   "packageManager": "pnpm@11.7.0",
   "scripts": {

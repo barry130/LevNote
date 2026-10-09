@@ -18,7 +18,7 @@
 
 ## 决策
 
-1. **新增 `core/session.ts`**，单独一个存储键 `qingmo.session.v1`
+1. **新增 `core/session.ts`**，单独一个存储键 `levnote.session.v1`
    （与 `settings` / `positions` 各自独立）。
 2. **草稿就是整篇 `doc.text`**，在标签页**被激活之前**写进 `DocumentStore`，
    于是那个标签页天然是脏的（`text !== savedText`）。

@@ -107,6 +107,17 @@ describe('loadSettings', () => {
     expect(off.rememberPositions).toBe(false);
   });
 
+  it('专注 / 打字机默认关，且能被显式打开；非布尔取值回落默认', () => {
+    expect(DEFAULT_SETTINGS.focusMode).toBe(false);
+    expect(DEFAULT_SETTINGS.typewriterMode).toBe(false);
+    const on = loadSettings(memoryStorage(JSON.stringify({ focusMode: true, typewriterMode: true })));
+    expect(on.focusMode).toBe(true);
+    expect(on.typewriterMode).toBe(true);
+    const bad = loadSettings(memoryStorage(JSON.stringify({ focusMode: 'yes', typewriterMode: 1 })));
+    expect(bad.focusMode).toBe(false);
+    expect(bad.typewriterMode).toBe(false);
+  });
+
   it('非布尔的位置记忆取值被忽略（回落默认）', () => {
     expect(loadSettings(memoryStorage(JSON.stringify({ rememberPositions: 'yes' }))).rememberPositions).toBe(true);
   });

@@ -148,6 +148,10 @@ interface PaneSlotProps {
   active: boolean;
   store: DocumentStore;
   wordWrap: boolean;
+  /** 专注模式。视图偏好，外壳持有；内核不适用时忽略。 */
+  focusMode: boolean;
+  /** 打字机模式。同上。 */
+  typewriterMode: boolean;
   codeLineNumbers: boolean;
   onToggleCodeLineNumbers: (next: boolean) => void;
   splitRatio: number;
@@ -168,6 +172,8 @@ function PaneSlot({
   active,
   store,
   wordWrap,
+  focusMode,
+  typewriterMode,
   codeLineNumbers,
   onToggleCodeLineNumbers,
   splitRatio,
@@ -197,6 +203,8 @@ function PaneSlot({
         store={store}
         active={active}
         wordWrap={wordWrap}
+        focusMode={focusMode}
+        typewriterMode={typewriterMode}
         codeLineNumbers={codeLineNumbers}
         onToggleCodeLineNumbers={onToggleCodeLineNumbers}
         splitRatio={splitRatio}
@@ -1003,6 +1011,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       // 代码内核与代码块的显隐由各面板的 effect 消费这些字段
       toggleWordWrap: () => update({ wordWrap: !settings.wordWrap }),
       toggleCodeLineNumbers: () => update({ codeLineNumbers: !settings.codeLineNumbers }),
+      toggleFocusMode: () => update({ focusMode: !settings.focusMode }),
+      toggleTypewriterMode: () => update({ typewriterMode: !settings.typewriterMode }),
       // 全屏是平台桥的动作（桌面 = Tauri 窗口级，浏览器 = Fullscreen API），
       // 失败就让它 reject 落进未处理 Promise —— 两端实现都不该在正常路径上失败
       toggleFullscreen: () => {
@@ -1182,6 +1192,10 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           return settings.wordWrap;
         case 'view.toggleCodeLineNumbers':
           return settings.codeLineNumbers;
+        case 'view.toggleFocusMode':
+          return settings.focusMode;
+        case 'view.toggleTypewriterMode':
+          return settings.typewriterMode;
         case 'view.rich':
         case 'view.source':
         case 'view.split': {
@@ -1569,6 +1583,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
                 active={tab.id === activeId}
                 store={store}
                 wordWrap={settings.wordWrap}
+                focusMode={settings.focusMode}
+                typewriterMode={settings.typewriterMode}
                 codeLineNumbers={settings.codeLineNumbers}
                 onToggleCodeLineNumbers={(next) => update({ codeLineNumbers: next })}
                 splitRatio={settings.splitRatio}

@@ -321,6 +321,18 @@ export function SettingsDialog({
               onChange={(next) => onChange({ wordWrap: next })}
             />
             <Toggle
+              label={t('ui.settings.focusMode')}
+              hint={t('ui.settings.focusModeHint')}
+              checked={settings.focusMode}
+              onChange={(next) => onChange({ focusMode: next })}
+            />
+            <Toggle
+              label={t('ui.settings.typewriterMode')}
+              hint={t('ui.settings.typewriterModeHint')}
+              checked={settings.typewriterMode}
+              onChange={(next) => onChange({ typewriterMode: next })}
+            />
+            <Toggle
               label={t('ui.settings.restoreSession')}
               hint={t('ui.settings.restoreSessionHint')}
               checked={settings.restoreSession}
@@ -417,7 +429,7 @@ export function SettingsDialog({
             <h3>{t('ui.settings.about')}</h3>
             <div className="settings-row">
               <span className="settings-row-label">{t('ui.app.appName')}</span>
-              <span className="settings-hint">{t('ui.settings.version', { version: String(import.meta.env.QINGMO_VERSION) })}</span>
+              <span className="settings-hint">{t('ui.settings.version', { version: String(import.meta.env.LEVNOTE_VERSION) })}</span>
             </div>
             <p className="settings-hint">
               {t('ui.settings.aboutBody')}

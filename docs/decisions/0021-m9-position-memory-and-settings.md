@@ -26,12 +26,12 @@ M9 的交付是两件看着不相干的事，放在一起做是因为它们**共
 2. **`textLength` 是一致性凭据**：恢复时内核拿它和当前文档比，**不一致就只恢复滚动、
    不动光标**。
 3. **滚动读写放进契约**（`EditorHandle.getPosition` / `setPosition`），外壳不碰 DOM。
-4. **位置单独一个存储键**（`qingmo.positions.v1`），与设置分开；**LRU 上限 200 条**
+4. **位置单独一个存储键**（`levnote.positions.v1`），与设置分开；**LRU 上限 200 条**
    （`core/positions.ts`）。
 5. **内核推、外壳记**（`EditorMountProps.onPositionChange`）—— 外壳不依赖卸载时序。
 6. **落盘防抖 600ms，但切文档时立刻结算**（不等防抖）。
 7. 设置页的**快捷键表由 `CommandRegistry` 派生**；**没有保存按钮**（每项即时生效）；
-   **版本号从 `package.json` 注入**（`import.meta.env.QINGMO_VERSION`）。
+   **版本号从 `package.json` 注入**（`import.meta.env.LEVNOTE_VERSION`）。
 
 ## 理由
 
@@ -118,8 +118,8 @@ DOM —— 那正是硬约束 11 禁止的事。
 - **不写死版本号**。写死的那个一定会漂（发版时改了 `package.json` 却忘了改界面），
   漂了之后表现是「关于页显示的版本号是旧的」，一个没人会去核对的数字。
   所以从 `package.json` 经 `define` 注入（`vite.config.ts`）。
-  > **注入的键必须写成 `'import.meta.env.QINGMO_VERSION'`，不能写成裸标识符。**
-  > 这一条是补记的：第一版写的是裸的 `__QINGMO_VERSION__`，`vite build` 与 vitest
+  > **注入的键必须写成 `'import.meta.env.LEVNOTE_VERSION'`，不能写成裸标识符。**
+  > 这一条是补记的：第一版写的是裸的 `__LEVNOTE_VERSION__`，`vite build` 与 vitest
   > 都会替换它 —— **单测因此全绿** —— 但 dev server 不替换（Vite 8.3.1 实测）。
   > 结果是**点一下设置整个应用就没了**：渲染到那一行抛 `ReferenceError`，
   > 没有错误边界，React 把整棵树卸掉。

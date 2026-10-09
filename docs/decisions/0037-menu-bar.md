@@ -35,7 +35,7 @@
 `formatting.toggleInline` 的薄封装）、段落 12 条（标题/正文/引用/列表/代码块
 走 `toggleBlock`，表格/数学块/图表/分隔线走 `insertBlock` —— 与斜杠菜单
 同一入口）、主题 3 条（`setTheme` 的直接入口，`paper`/`ink`/`system`）、
-关于 1 条（版本号经 `import.meta.env.QINGMO_VERSION`，硬约束 14 的写法）。
+关于 1 条（版本号经 `import.meta.env.LEVNOTE_VERSION`，硬约束 14 的写法）。
 这些命令进了 BUILT_IN_COMMANDS 之后，命令面板与自定义快捷键**免费**获得
 它们 —— 那正是「能力清单唯一」要的效果。
 

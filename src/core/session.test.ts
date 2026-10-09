@@ -34,7 +34,7 @@ const blocked: StorageLike = {
   },
 };
 
-const KEY = 'qingmo.session.v1';
+const KEY = 'levnote.session.v1';
 
 function tab(path: string, draft: string | null = null, at = 0): SessionTab {
   return { path, draft, at };

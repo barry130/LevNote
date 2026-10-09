@@ -139,7 +139,7 @@ export function fontFaceWithSrc(face: FontFace, src: string): string {
  * 目标环境只有 WebView2（Chromium）与 WKWebView（WebKit），两者从 2016 年起
  * 就支持 woff2。它们会一直躺在安装包里。
  *
- * woff / ttf 是给不认 woff2 的老浏览器准备的，而轻墨没有那种目标环境。
+ * woff / ttf 是给不认 woff2 的老浏览器准备的，而轻笺没有那种目标环境。
  *
  * ## 为什么必须**就地改**，而不是把 CSS 重新 parse 一遍
  *

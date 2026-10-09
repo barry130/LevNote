@@ -34,6 +34,8 @@ function MarkdownEditor({
   readOnly,
   placeholder,
   codeLineNumbers = true,
+  focusMode = false,
+  typewriterMode = false,
 }: EditorMountProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
@@ -79,6 +81,18 @@ function MarkdownEditor({
   const initialValueRef = useRef(initialValue);
   const readOnlyRef = useRef(readOnly);
   const placeholderRef = useRef(placeholder);
+  // 专注 / 打字机的初始状态：与 readOnly 同一条「创建时读一次」的规矩。
+  // 之后的切换不重建内核，走下面那个 effect 里的 setComposeMode
+  const composeRef = useRef({ focus: focusMode, typewriter: typewriterMode });
+  composeRef.current = { focus: focusMode, typewriter: typewriterMode };
+  /** 内核实例。创建是异步的，切换偏好的 effect 必须经它、不能闭包捕获。 */
+  const instanceRef = useRef<MarkdownEditorInstance | null>(null);
+
+  useEffect(() => {
+    // 偏好切换实时生效，不重建内核（重建会丢光标、滚动位置与撤销栈）。
+    // 内核还没建好时这里安静跳过 —— 创建时读的 composeRef 已经是当前值。
+    instanceRef.current?.setComposeMode(composeRef.current);
+  }, [focusMode, typewriterMode]);
 
   useEffect(() => {
     const root = mountRef.current;
@@ -94,6 +108,7 @@ function MarkdownEditor({
           defaultValue: initialValueRef.current,
           readOnly: readOnlyRef.current,
           placeholder: placeholderRef.current,
+          compose: composeRef.current,
           onChange: (markdown) => onChangeRef.current(markdown),
           onCursorChange: (position) => onCursorChangeRef.current?.(position),
           onPositionChange: (position) => onPositionChangeRef.current?.(position),
@@ -132,6 +147,7 @@ function MarkdownEditor({
           return;
         }
         instance = created;
+        instanceRef.current = created;
 
         const handle: EditorHandle = {
           getValue: () => created.getMarkdown(),
@@ -163,6 +179,7 @@ function MarkdownEditor({
 
     return () => {
       disposed = true;
+      instanceRef.current = null;
       if (instance) void instance.destroy();
     };
     // 空依赖：内核只在挂载时创建一次。

@@ -48,3 +48,31 @@ export function applyScrollRatio(element: ScrollMetrics, ratio: number): void {
   if (!(span > 0)) return;
   element.scrollTop = clamp01(ratio) * span;
 }
+
+/**
+ * 打字机模式的滚动算术：把光标所在行挪到编辑区的**垂直正中**。
+ *
+ * 与上面两个函数同属一处的原因一样 —— Markdown 与代码内核都要它，
+ * 而差一行的算术必须只有一份。参数全是普通数字（视口坐标系）：
+ * 内核自己用 `coordsAtPos()` 取光标、用容器取几何，这里只做减法。
+ *
+ * 返回 `null` 表示**不用动**：容器还没布局（高度为 0，jsdom 或首帧）、
+ * 拿到的几何不是数字，或者光标已经在正中（差值小于 1px —— 每敲一个字
+ * 都重设一次 `scrollTop` 会跟浏览器的滚动合成器打架，也会吵醒位置记忆）。
+ * 调用方拿到 `null` 直接返回，不写 `scrollTop`。
+ */
+export function typewriterScrollTop(
+  caretViewportTop: number,
+  scrollerViewportTop: number,
+  currentScrollTop: number,
+  clientHeight: number,
+): number | null {
+  if (!Number.isFinite(caretViewportTop) || !Number.isFinite(scrollerViewportTop)) return null;
+  if (!Number.isFinite(currentScrollTop) || !Number.isFinite(clientHeight)) return null;
+  if (!(clientHeight > 0)) return null;
+  const caretContentTop = caretViewportTop - scrollerViewportTop + currentScrollTop;
+  const target = Math.max(0, caretContentTop - clientHeight / 2);
+  const delta = target - currentScrollTop;
+  if (Math.abs(delta) < 1) return null;
+  return target;
+}

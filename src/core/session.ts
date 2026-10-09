@@ -85,7 +85,7 @@ export const EMPTY_SESSION: SessionState = {
  * `v1` 与设置、位置那两个键**各自独立**：改了会话的格式只让会话失效，
  * 用户的主题与光标记忆照旧。
  */
-const STORAGE_KEY = 'qingmo.session.v1';
+const STORAGE_KEY = 'levnote.session.v1';
 
 /** 最多恢复多少个标签页。超出的按「最后编辑时间」从旧到新丢。 */
 export const MAX_SESSION_TABS = 50;

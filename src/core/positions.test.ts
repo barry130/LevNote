@@ -116,7 +116,7 @@ describe('savePositions', () => {
       },
     };
     savePositions(spy, EMPTY_POSITIONS);
-    expect(keys).toEqual(['qingmo.positions.v1']);
+    expect(keys).toEqual(['levnote.positions.v1']);
   });
 });
 

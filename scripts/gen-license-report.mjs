@@ -111,7 +111,7 @@ function collectCargo() {
 
   const out = [];
   for (const pkg of packages) {
-    if (pkg.name === 'qingmo') continue;
+    if (pkg.name === 'levnote') continue;
     // git 依赖与路径依赖不在 registry 里；本项目没有，遇到了如实标注
     if (!pkg.source.startsWith('registry+')) {
       out.push({ name: pkg.name, version: pkg.version, license: '非 registry 来源，请人工核对' });
