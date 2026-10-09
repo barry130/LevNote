@@ -127,8 +127,14 @@ export type ViewMode = 'rich' | 'source' | 'split';
  *   （`core.path.*` 七条），经 `failTreeAction(problem)` 落到 `tree.error.message`
  *   再上屏，是**同一族的独立生产者**（同一族的两个写入路径各传一个来源）；
  *   扫字段要先扫它**全部**的写入点，只看一个必然漏。
- * - `core/document/block-preview.ts:44/49/67` 的 `reason: t(...)` ——
- *   经契约交给内核画，内核不重问就不会重算；
+ * - `core/document/block-preview.ts` 交给内核的那条契约出口上**有两个**译文字段
+ *   （同文件、同函数族、同机制）—— 扫出口要扫**它全部译文字段**，不是一个：
+ *   ① `buildDocBlockPreview()` 里 `reason: t(...)` 三处（`cannotResolve` /
+ *   `unreadable` / `badMindmap`，字段是 `DocBlockPreview.reason`）；
+ *   ② `firstLines()` 里截断尾 `t('core.bprev.truncatedN')` 拼进 `snippet`
+ *   （字段是 `DocBlockPreview.snippet`）—— `>40` 行的 text 引用即走到，
+ *   内核 `code-block-view.ts` 把 `snippet` 原样 `textContent` 画，切语言不重问；
+ *   两者经契约交给内核画，内核不重问就不会重算；
  * - `SettingsDialog.tsx:156` `setError(t('ui.settings.keyUnsafe'))`。
  *
  * 上面这几处**都不在本单白名单内**，逐处判据见回奏的 AC6 扫描清单。
@@ -138,9 +144,9 @@ export type ViewMode = 'rich' | 'source' | 'split';
  * 同一族还有**一处白名单内**的，判的是「不改 + 登记」：
  * `App.tsx` 的 `resolveDocBlockPreview` 回调里
  * `reason: t('ui.app.refNoBaseReason')`（宿主文档没有路径信息时）。它与
- * `block-preview.ts:44/49/67` 是**同一个契约字段**（`DocBlockPreview.reason`，
- * 内核拿到就画、不重问），单侧改不动：① 修它要动 `core/editor/types.ts`
- * 的契约（白名单外）；② 该分支生产不可达 —— 标签页只在 `store.open()`
+ * 同一契约出口上的 `reason` 三条与 `snippet`（见上）同因，单侧改不动：
+ * ① 修它要动 `core/editor/types.ts` 的契约（白名单外）；
+ * ② 该分支生产不可达 —— 标签页只在 `store.open()`
  * 成功后入 `tabs`，活动面板的 `doc` 恒非 null，唯一置 null 的 `close()`
  * 在生产代码里无人调用。**白名单是「允许动的边界」，不是「必须改的清单」**
  * —— 判据落在「`t()` 结果是否跨渲染存活 + 可达性」上，不落在文件归属上。

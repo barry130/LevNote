@@ -28,7 +28,9 @@
   - 文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族，**两个
     生产者**：`failTreeAction` 的 10 处调用 —— 其中 8 处直传 `t()` —— 与
     `core/path.ts` 的 `validateEntryName()`，后者逐条返回译文）；
-  - 引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文给内核）；
+  - 引用卡片摘要（`core/document/block-preview.ts`）交给内核的**两个**译文字段：
+    读不到时的原因（`reason`），与 `>40` 行的 text 引用里那行截断尾
+    「……（共 N 行）」（`firstLines()` 拼进 `snippet`，内核原样画、切语言不重问）；
     同一个契约字段还有**白名单内**的一处（`App.tsx` 的 `resolveDocBlockPreview`
     在宿主文档没有路径信息时的 `reason`）—— 修它要动 `core/editor/types.ts`
     契约，且该分支生产不可达（标签页只在打开成功后入列），故同样登记；

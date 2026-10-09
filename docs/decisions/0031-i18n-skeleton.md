@@ -314,7 +314,7 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 | `core/document/images.ts` `PasteImageFail.reason` | 译文烤成字符串 | 本模块 `legacyText()` 出口就是给它留的 |
 | `core/search/replace.ts` `describeReplaceOutcome` / `skipped[].reason` | `t()` 拼好句子 | 经 `App.tsx` 的 `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存 state |
 | `core/workspace/store.ts` 的 `tree.error` 一族 | 译文进 store 字段 | **两个生产者**：① `failTreeAction` 的 **10 处调用**（**8 处**直传 `t()`：`fsManageUnsupported` / `cannotDetermineTarget`×2 / `createFailed` / `renameNoDir` / `renameFailed` / `deleteDirty` / `deleteFailed`）+ `toggleDir` 直接写 `tree.error` 的 `cannotReadDir` 一处；② `core/path.ts` 的 `validateEntryName()` **逐条 `return t()`**（`core.path.*` 七条），经 `failTreeAction(problem)` 落到 `tree.error.message` —— **同一族的独立生产者，先前漏登**（刑部封驳 P1-B） |
-| `core/document/block-preview.ts:44/49/67` | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算 |
+| `core/document/block-preview.ts` 交译文给内核的**两个**译文字段 | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算。**同文件、同函数族、同机制，先前只登了一个字段**：① `buildDocBlockPreview()` 的 `reason: t(...)` 三处（`cannotResolve` / `unreadable` / `badMindmap`）；② `firstLines()` 拼进 `snippet` 的截断尾 `t('core.bprev.truncatedN')`（`>40` 行的 text 引用即走到，**生产可达**）—— 刑部封驳第四轮 P1 |
 | `src/ui/App.tsx` `resolveDocBlockPreview` 的 `reason: t('ui.app.refNoBaseReason')` | **白名单内**，但交的是**同一个契约字段** `DocBlockPreview.reason` | 登记而非本批改：修它要动 `core/editor/types.ts` 契约（白名单外）；且该分支生产不可达（标签页只在 `open()` 成功后入 `tabs`，`doc` 恒非 null；唯一置 null 的 `close()` 生产无人调用） |
 | `src/ui/CodeBlockPicker.tsx` 的 `useMemo`（`label: t('ui.codeblock.useTyped')` 进了**被渲染的**行对象，deps 无 locale） | `t()` 结果存进被渲染的对象 | **白名单外**；与 `SlashMenu` 同一形状但结局相反 —— 后者 `t()` 只喂打分、文字渲染期现取（正确形态），此处把译文塞进被渲染的 `label`（快照） |
 | `SettingsDialog.tsx:156` | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
@@ -322,7 +322,8 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 > 表里那处 `App.tsx` 是**白名单内**的 —— 台账里要单独一句说明它为何「在白名单内却判登记」：
 > **判据落点是「这条 `t()` 结果是否跨渲染存活」，不是「文件在不在白名单」**。
 > 白名单只是「本批允许动的边界」，不是「本批必须改的清单」。它与
-> `block-preview.ts:44/49/67` 同属一个契约出口，单侧改不动（要动契约即越界）。
+> `block-preview.ts` 上表那一行同属一个契约出口（`DocBlockPreview`），单侧改不动
+> （要动契约即越界）。
 
 **另有一处表面相同、根因不同，单列以免与上表混淆**：
 `store.ts` 的 `save()` 冲突分支（`asAppError` 拿到 `code === 'CONFLICT'` 时）写进
@@ -366,7 +367,7 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 
 **（二）残留表把 `failTreeAction` 数错，且漏登一个同族生产者。**
 实测 `failTreeAction` 有 **10 处调用**（不是 3 处），其中 **8 处**直传 `t()` 结果；
-余下 2 处（`:694` / `:735`）传的是 `core/path.ts` 的 **`validateEntryName()` 返回值** ——
+余下 2 处（`createEntry` / `renameEntry` 里传 `core/path.ts` 的 **`validateEntryName()` 返回值**那两处）——
 该函数**逐条 `return t()`**（`core.path.*` 七条），落到 `tree.error.message` 再上屏，
 是**同一族的独立生产者**。残留表已补登 `validateEntryName` 一行，
 四处口径（`store.ts` 注释 / 本文 / `CHANGELOG` / `release-smoke`）同步。
@@ -430,3 +431,30 @@ text: '硬编码译文' }` 仍能过 `tsc`（刑部实测）—— 准确说法�
 8 条臂各回滚一次，每次都只有对应那一条红。判据：**「回滚任意一个 X 即红」
 必须逐 X 全跑，不能只跑参数化列表内那部分** —— 列表与全集有差时，那句话
 就是空的（假绿）。
+
+### 复评记录七 · 第四轮封驳整改（2026-10-10）
+
+第四轮封驳（刑部）判 AC1–AC5 / AC8 通过，落两条**收口级**问题。逐条整改：
+
+**（一）AC6 仍未闭合：同一个契约出口的另一个译文字段漏登，且生产可达。**
+已登记的 `block-preview.ts:44/49/67` 是 `buildDocBlockPreview()` 里的
+`reason: t(...)` 三处（`DocBlockPreview.reason`）；漏的是**同文件、同函数族、
+同一契约出口**的 `firstLines()` 里那行截断尾 ——
+`t('core.bprev.truncatedN')` 拼进 `snippet`（`DocBlockPreview.snippet`）。
+内核 `code-block-view.ts` 把 `snippet` 原样 `textContent` 画，切语言不重问。
+
+> **判据收窄一句（本轮的账根）**：**扫一个契约出口，要扫它全部译文字段，
+> 不是一个字段。** 上一轮判据说「按全部落点机械遍历，不按已知家族枚举」，
+> 但执行时**扫了一个出口、只扫了它的一个字段** —— 同族的错换了一层壳。
+> 残留表原先那行只写 `:44/49/67`，会让后人读成「这个出口已经清点完」。
+
+修法**只能登记**（`block-preview.ts` 在白名单外）：残留表把 `snippet` 与
+`reason` **并列登记成一行**（「两个译文字段」），三处口径同步。
+四处口径（`store.ts` 残留注释 / 本文 / `CHANGELOG` / `release-smoke`）已同步。
+
+**（二）行号在反复位移的文件里是负资产 —— 同一段刚立的规矩自己破了。**
+复评记录五（四）刚写「一律改成函数名 / 调用点特征，不再引行号」，
+而本文同一节的整改段仍留着裸行号（`validateEntryName` 那两处调用点）。
+已删裸行号，只留 `createEntry` / `renameEntry` 两个调用点特征。
+**教训**：立了规矩要在**同一份文档内**全文回扫一遍 —— 「改了又留」
+正是本单被抓过两次的形态。
