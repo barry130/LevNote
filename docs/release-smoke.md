@@ -157,9 +157,12 @@ pnpm run licenses                                     # 升过依赖才需要：
         跨文件替换汇总（`core/search/replace.ts` → `SearchPanel.tsx` 存 state）；
         文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族：
         `failTreeAction` 的 10 处调用 + `core/path.ts` 的 `validateEntryName()`）；
-        引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文；
-        同一契约字段在 `App.tsx` 的 `resolveDocBlockPreview` 里还有一处，
-        白名单内但同因登记）；
+        引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文给
+        内核，内核不重问语言就不重算）；同一契约字段在 `App.tsx` 的
+        `resolveDocBlockPreview` 里还有一处（**白名单内**但同因登记）——
+        修它要动 `core/editor/types.ts` 的契约（白名单外），且**该分支生产
+        不可达**：标签页只在 `store.open()` 成功后入列、`doc` 恒非 null，
+        唯一能把 `doc` 置 null 的 `close()` 在生产代码里无人调用；
         设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
         另有一处**表面相同、根因不同**：保存冲突横幅（`save()` 的冲突分支）那句
         来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码中文）—— 是这一侧

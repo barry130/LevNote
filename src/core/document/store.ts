@@ -102,11 +102,11 @@ export type ViewMode = 'rich' | 'source' | 'split';
  *
  * **它曾经「只有注释约束、无编译期拦截」**（门下实测：在白名单文件里插一句
  * `{ text: '硬编码译文' }` → `tsc` / 全量测试**全绿**）—— 注释拦不住任何人。
- * 现在 `text` 变体带一个**唯一的品牌符号**（`LegacyTextNotice` 上的
- * `[LEGACY_TEXT]`），只有 `legacyText()` 那一个出口能造出来：直接写字面量
- * `{ text: ... }` 是**编译错误**（缺品牌字段）。与命令面的
- * `BuiltInCommandSpec` 不接受字面量 `title` 是同一条纪律 —— 该拦的形状
- * 交给类型系统，不靠人记得。
+ * 现在 `text` 变体带一个**品牌符号**（`LegacyTextNotice` 上的
+ * `[LEGACY_TEXT]`），且 `LegacyTextNotice` 与 `legacyText()` 都收成
+ * **模块私有**：只有本文件能造出它，直接写字面量 `{ text: ... }` 是
+ * **编译错误**（缺品牌字段）。与命令面的 `BuiltInCommandSpec` 不接受
+ * 字面量 `title` 是同一条纪律 —— 该拦的形状交给类型系统，不靠人记得。
  *
  * **重审条件**：哪天 `images.ts` 交回 key（那时 `text` 变体整个删除），
  * 品牌符号随之一并删掉。
@@ -114,7 +114,7 @@ export type ViewMode = 'rich' | 'source' | 'split';
  * ## 本轮的已知残留（不是「唯一」—— 详见 ADR 0031 复评记录四）
  *
  * - `core/document/images.ts` 的 `PasteImageFail.reason`（译文烤成字符串，
- *   本文件的 `legacyText()` 就是给它留的出口）；
+ *   本文件**模块私有**的 `legacyText()` 就是给它留的出口）；
  * - `core/search/replace.ts` 的跨文件替换汇总（`describeReplaceOutcome` /
  *   `skipped[].reason` 全是 `t()` 拼好的句子）→ 经 `App.tsx` 的
  *   `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存进 state；
@@ -157,29 +157,34 @@ const LEGACY_TEXT: unique symbol = Symbol('levnote.legacyTextNotice');
  * 已经查好表的一句话（**旧形态**）。
  *
  * 带上品牌符号之后，`{ text: '...' }` 这种字面量**不再是** `Notice` ——
- * 编译器会挡住它。想造一个只能走 `legacyText()`，而它的文档字符串里写着
- * 「只为 `images.ts` 那一个来源保留」。
+ * 编译器会挡住它。**它不对外导出**：想造一个只能在本文件里走 `legacyText()`，
+ * 而那个函数的文档字符串里写着「只为 `images.ts` 那一个来源保留」。
+ * 收成私有是刻意的 —— 全仓对它的引用**只在 `store.ts` 内部**（写这一句时
+ * 已 grep 核实），导出它等于给任何文件留一道绕开门（刑部封驳实测：
+ * `export` 状态下 `legacyText('硬编码译文')` 与
+ * `{ ...legacyText(''), text: '…' }` 两种写法 `tsc` 都是 rc 0）。
  */
-export interface LegacyTextNotice {
+interface LegacyTextNotice {
   readonly text: string;
   readonly [LEGACY_TEXT]: true;
 }
 
 /**
- * 把一句已经查好表的译文包成 `Notice`。
+ * 把一句已经查好表的译文包成 `Notice`。**模块私有**（理由见上）。
  *
- * **这是 `text` 变体的唯一「正门」**，只为 `core/document/images.ts` 的
- * `PasteImageFail.reason` 保留（那个文件不在本单白名单内，把 6 条译文
- * 烤成了字符串）。**新写的 notice 一律走 `key` 变体** —— 走这条出口
- * 会让那句话停在写入时的语言。
+ * 只为 `core/document/images.ts` 的 `PasteImageFail.reason` 保留（那个文件
+ * 不在本单白名单内，把 6 条译文烤成了字符串）。**新写的 notice 一律走 `key`
+ * 变体** —— 走这条出口会让那句话停在写入时的语言。
  *
  * **已知边界：品牌门挡的是「字面量」，不是「绕道」。** 先可信地调一次
  * `legacyText('x')`、再 `{ ...legacyText('x'), text: '硬编码译文' }` 仍能
  * 过 `tsc`（实测，仅第 1 行字面量报错）—— 只是那要求调用方**先碰一次**这个
- * 唯一出口，与「随便写个 `{ text: ... }` 就过」不是一回事。所以准确说法是
- * 「唯一**正门**」，`tsc` 不封锁旁的 `spread`。
+ * 出口，与「随便写个 `{ text: ... }` 就过」不是一回事。
+ * **收成模块私有之后，能碰到它的只剩本文件**：将来要破门**必须先在本文件
+ * 加一个导出**，那一步一定看得见。所以准确说法是「**可疑动作只能落在本文件
+ * 内**」，而不是「`tsc` 挡得住一切绕道」。
  */
-export function legacyText(text: string): LegacyTextNotice {
+function legacyText(text: string): LegacyTextNotice {
   return { text, [LEGACY_TEXT]: true };
 }
 
