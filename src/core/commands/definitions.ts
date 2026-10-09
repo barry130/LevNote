@@ -12,12 +12,70 @@ import type { Command, CommandContext } from './types.js';
 import type { BlockFormat, InlineFormat } from '../editor/types.js';
 import { ENCODINGS, encodingSlug, encodingLabel } from '../encodings.js';
 import { describeRoundTrip, formatRoundTripReport } from '../fidelity.js';
-import { t } from '../i18n/index.js';
+import { t, type MessageKey } from '../i18n/index.js';
 import { extractToReference, flattenReference } from '../document/block-ops.js';
 import { asAppError } from '../document/types.js';
 import { isDesktop, printHtml } from '../platform/index.js';
 import { basename, dirname, joinPath } from '../path.js';
 import { buildSampleDocument, SAMPLE_DOCUMENT_NAME } from '../sample-document.js';
+
+/**
+ * 命令文案的**惰性求值**（2026-10-09，#TASK-I18N-CMD-LIVE-01）。
+ *
+ * ## 为什么不能是 `title: t('...')`
+ *
+ * 这个模块产出的是**模块级常量**：`title: t(...)` 在模块加载那一刻求值并烤进
+ * 对象，而那一刻语言还停在默认的 zh-CN。运行中切语言时，重注册拿到的是
+ * **同一批已经烤死的对象** —— 「重注册」于是成了一次无效动作，菜单下拉项、
+ * 命令面板条目、快捷键表全都停在旧语言。
+ *
+ * 所以内置命令在这里**只声明 key**，`title` / `category` 是**读的那一刻才查表**
+ * 的 getter。与 `ViewSwitcher` / `SlashMenu` / `encodings.ts` 已立的纪律同源
+ * （ADR 0031 复评记录二：静态清单存 key、渲染时才 `t()`）—— 命令面当初漏了这刀。
+ *
+ * ## 为什么是 getter，而不是把 `Command.title` 改成函数
+ *
+ * `Command` 是外壳**按契约消费**的形状：菜单、命令面板、快捷键表三处都读
+ * `command.title` 当字符串。改成函数等于让每个调用方各写一次 `title()`，
+ * 漏一处就是屏幕上的一行 `function () { ... }`。getter 让「消费方零改动」
+ * 与「求值时机正确」同时成立，`rankCommands`（模糊搜索）之类的纯函数一行不用动。
+ *
+ * ## 编译期就拦住「又烤一次」
+ *
+ * `BuiltInCommandSpec` **不接受**字面量 `title` / `category` —— 写了就是编译错误。
+ * 那是这个缺陷的形状本身，不该靠人记得别写。数据类命令（最近打开的文件）
+ * 走 `titleFrom`，与 key 同一条惰性路径，只是标题的来源不是目录。
+ */
+type TitleInput =
+  | { readonly titleKey: MessageKey; readonly titleFrom?: undefined }
+  | { readonly titleFrom: () => string; readonly titleKey?: undefined };
+
+type BuiltInCommandSpec = Omit<Command, 'title' | 'category'> &
+  TitleInput & {
+    /** 分组 key。与 `titleKey` 同一理由 —— 快捷键表按它分组显示。 */
+    readonly categoryKey: MessageKey;
+  };
+
+/**
+ * 把一条「只声明 key」的规格变成命令对象。
+ *
+ * 命令对象上**不留 `titleKey` / `categoryKey`**（解构时摘掉）：它们只是构造
+ * 输入，不该出现在 `Object.keys(command)` 里。id / 快捷键 / keywords / enabled /
+ * run 全都原样搬过去 —— 因此它们的行为**一字未变**，变的只是文案的求值时机。
+ */
+function builtInCommand(spec: BuiltInCommandSpec): Command {
+  const { titleKey, titleFrom, categoryKey, ...body } = spec;
+  return {
+    ...body,
+    get title() {
+      if (titleKey !== undefined) return t(titleKey);
+      return titleFrom === undefined ? body.id : titleFrom();
+    },
+    get category() {
+      return t(categoryKey);
+    },
+  };
+}
 
 function activeDocument(ctx: CommandContext) {
   return ctx.workspace.activeStore?.getSnapshot().doc ?? null;
@@ -186,10 +244,10 @@ const INLINE_FORMATS = [
   { id: 'inlineCode', inline: 'inlineCode' },
 ] as const satisfies readonly { id: string; inline: InlineFormat }[];
 
-const INLINE_FORMAT_COMMANDS: readonly Command[] = INLINE_FORMATS.map(({ id, inline }) => ({
+const INLINE_FORMAT_COMMANDS: readonly Command[] = INLINE_FORMATS.map(({ id, inline }) => builtInCommand({
   id: `format.${id}`,
-  title: t(`command.format.${id}.title`),
-  category: t('command.category.format'),
+  titleKey: `command.format.${id}.title`,
+  categoryKey: 'command.category.format',
   keywords: [id, 'geshi'],
   enabled: (ctx: CommandContext) => hasDocument(ctx) && ctx.ui.editor()?.formatting !== undefined,
   run: (ctx: CommandContext) => {
@@ -224,10 +282,10 @@ const PARAGRAPH_BLOCK_COMMANDS: readonly Command[] = (
     { id: 'paragraph.orderedList', block: 'orderedList', level: undefined },
     { id: 'paragraph.codeBlock', block: 'codeBlock', level: undefined },
   ] as readonly { id: ParagraphBlockId; block: BlockFormat; level: number | undefined }[]
-).map(({ id, block, level }) => ({
+).map(({ id, block, level }) => builtInCommand({
   id,
-  title: t(`command.${id}.title`),
-  category: t('command.category.paragraph'),
+  titleKey: `command.${id}.title`,
+  categoryKey: 'command.category.paragraph',
   keywords: [id, 'duanluo'],
   enabled: (ctx: CommandContext) => hasDocument(ctx) && ctx.ui.editor()?.formatting !== undefined,
   run: (ctx: CommandContext) => {
@@ -237,10 +295,10 @@ const PARAGRAPH_BLOCK_COMMANDS: readonly Command[] = (
 
 const PARAGRAPH_INSERT_COMMANDS: readonly Command[] = (
   ['table', 'mathBlock', 'diagram', 'drawio', 'hr'] as const
-).map((insertable) => ({
+).map((insertable) => builtInCommand({
   id: `paragraph.${insertable}`,
-  title: t(`command.paragraph.${insertable}.title`),
-  category: t('command.category.paragraph'),
+  titleKey: `command.paragraph.${insertable}.title`,
+  categoryKey: 'command.category.paragraph',
   keywords: [insertable, 'charu', 'duanluo'],
   enabled: (ctx: CommandContext) => hasDocument(ctx) && ctx.ui.editor()?.formatting !== undefined,
   run: (ctx: CommandContext) => {
@@ -248,10 +306,10 @@ const PARAGRAPH_INSERT_COMMANDS: readonly Command[] = (
   },
 }));
 
-const THEME_COMMANDS: readonly Command[] = (['system', 'paper', 'ink'] as const).map((preference) => ({
+const THEME_COMMANDS: readonly Command[] = (['system', 'paper', 'ink'] as const).map((preference) => builtInCommand({
   id: `theme.${preference}`,
-  title: t(`command.theme.${preference}.title`),
-  category: t('command.category.theme'),
+  titleKey: `command.theme.${preference}.title`,
+  categoryKey: 'command.category.theme',
   keywords: [preference, 'theme', 'zhuti'],
   run: (ctx: CommandContext) => {
     ctx.ui.setTheme(preference);
@@ -265,10 +323,10 @@ const THEME_COMMANDS: readonly Command[] = (['system', 'paper', 'ink'] as const)
  * （状态栏的下拉显示的也是它），这里不再造第二个名字。可勾选状态由外壳
  * 按文档当前的编码判断（`menuChecked`），命令本身无状态。
  */
-const ENCODING_COMMANDS: readonly Command[] = ENCODINGS.map((option) => ({
+const ENCODING_COMMANDS: readonly Command[] = ENCODINGS.map((option) => builtInCommand({
   id: `encoding.set.${encodingSlug(option.encoding, option.bom)}`,
-  title: encodingLabel(option),
-  category: t('command.category.encoding'),
+  titleFrom: () => encodingLabel(option),
+  categoryKey: 'command.category.encoding',
   keywords: [option.encoding, 'bianma', 'encoding', '编码'],
   enabled: (ctx: CommandContext) => {
     const doc = activeDocument(ctx);
@@ -284,27 +342,27 @@ export const ENCODING_COMMAND_IDS: readonly string[] = ENCODING_COMMANDS.map((co
 
 export const BUILT_IN_COMMANDS: readonly Command[] = [
   // ---- 文件 -------------------------------------------------------------
-  {
+  builtInCommand({
     id: 'file.open',
-    title: t('command.file.open.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.open.title',
+    categoryKey: 'command.category.file',
     keybinding: 'Mod+O',
     keywords: ['open', 'dakaishejian'],
     run: (ctx) => {
       void ctx.workspace.openViaDialog();
     },
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.openFolder',
-    title: t('command.file.openFolder.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.openFolder.title',
+    categoryKey: 'command.category.file',
     keybinding: 'Mod+Shift+O',
     keywords: ['open folder', 'workspace', 'gongzuoqu'],
     run: (ctx) => {
       void ctx.workspace.openFolder();
     },
-  },
-  {
+  }),
+  builtInCommand({
     /**
      * 新建文件：选位置、起名、落一个空文件、打开。
      *
@@ -317,8 +375,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
      * 新建撞上已有文件时明确说明并停手，而不是把它清空。
      */
     id: 'file.new',
-    title: t('command.file.new.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.new.title',
+    categoryKey: 'command.category.file',
     keywords: ['new file', 'create', 'xinjian'],
     run: (ctx) => {
       void (async () => {
@@ -340,11 +398,11 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
         await ctx.workspace.open(path);
       })();
     },
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.save',
-    title: t('command.file.save.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.save.title',
+    categoryKey: 'command.category.file',
     keybinding: 'Mod+S',
     keywords: ['save', 'baocun'],
     enabled: (ctx) => {
@@ -358,22 +416,22 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => {
       void ctx.workspace.save();
     },
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.saveAs',
-    title: t('command.file.saveAs.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.saveAs.title',
+    categoryKey: 'command.category.file',
     keybinding: 'Mod+Shift+S',
     keywords: ['save as', 'lingcunwei'],
     enabled: hasDocument,
     run: (ctx) => {
       void ctx.workspace.saveAs();
     },
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.saveAll',
-    title: t('command.file.saveAll.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.saveAll.title',
+    categoryKey: 'command.category.file',
     keywords: ['save all', 'baocun', '保存全部'],
     // 一个脏标签页都没有时禁用 —— 与 file.save 的「不忙时才放行」同一原则：
     // 显示为禁用告诉用户「现在没有要保存的东西」，而不是点了没反应
@@ -381,76 +439,76 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     run: (ctx) => {
       void ctx.workspace.saveAll();
     },
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.reload',
-    title: t('command.file.reload.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.reload.title',
+    categoryKey: 'command.category.file',
     keywords: ['reload', 'chongxinjiazai'],
     enabled: hasDocument,
     run: (ctx) => {
       void ctx.workspace.reload();
     },
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.closeTab',
-    title: t('command.file.closeTab.title'),
-    category: t('command.category.file'),
+    titleKey: 'command.file.closeTab.title',
+    categoryKey: 'command.category.file',
     keybinding: 'Mod+W',
     keywords: ['close', 'guanbi'],
     enabled: hasDocument,
     run: (ctx) => ctx.ui.closeActiveTab(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.exportHtml',
-    title: t('command.file.exportHtml.title'),
-    category: t('command.category.export'),
+    titleKey: 'command.file.exportHtml.title',
+    categoryKey: 'command.category.export',
     keybinding: 'Mod+Shift+E',
     keywords: ['export', 'html', 'daochu'],
     enabled: hasDocument,
     run: runExport,
-  },
-  {
+  }),
+  builtInCommand({
     id: 'file.exportPdf',
-    title: t('command.file.exportPdf.title'),
-    category: t('command.category.export'),
+    titleKey: 'command.file.exportPdf.title',
+    categoryKey: 'command.category.export',
     keywords: ['pdf', 'print', 'dayin', 'daochu'],
     // 浏览器预览没有打印子窗口，禁用比「点了报错」诚实；
     // printHtml 里还有一道明确拒绝，防的是别的入口直接调动作。
     enabled: (ctx) => hasDocument(ctx) && isDesktop(),
     run: runPrintExport,
-  },
+  }),
 
   // ---- 标签页 -----------------------------------------------------------
-  {
+  builtInCommand({
     id: 'tab.next',
-    title: t('command.tab.next.title'),
-    category: t('command.category.tab'),
+    titleKey: 'command.tab.next.title',
+    categoryKey: 'command.category.tab',
     keybinding: 'Ctrl+Tab',
     keywords: ['next tab'],
     enabled: (ctx) => ctx.workspace.getSnapshot().tabs.length > 1,
     run: (ctx) => ctx.workspace.cycle(1),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'tab.prev',
-    title: t('command.tab.prev.title'),
-    category: t('command.category.tab'),
+    titleKey: 'command.tab.prev.title',
+    categoryKey: 'command.category.tab',
     keybinding: 'Ctrl+Shift+Tab',
     keywords: ['previous tab'],
     enabled: (ctx) => ctx.workspace.getSnapshot().tabs.length > 1,
     run: (ctx) => ctx.workspace.cycle(-1),
-  },
+  }),
 
   // ---- 视图 -------------------------------------------------------------
-  {
+  builtInCommand({
     id: 'view.toggleSidebar',
-    title: t('command.view.toggleSidebar.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleSidebar.title',
+    categoryKey: 'command.category.view',
     keybinding: 'Mod+B',
     keywords: ['sidebar', 'cebianlan'],
     run: (ctx) => ctx.ui.toggleSidebar(),
-  },
-  {
+  }),
+  builtInCommand({
     /**
      * 活动栏的「文件浏览器」。
      *
@@ -462,23 +520,23 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
      * `CommandRegistry.enabled`，这里是那套约定的第六个。
      */
     id: 'view.filesView',
-    title: t('command.view.filesView.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.filesView.title',
+    categoryKey: 'command.category.view',
     keywords: ['files', 'explorer', 'wenjianliulanqi', '文件树'],
     run: (ctx) => ctx.ui.openFilesView(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.toggleOutline',
-    title: t('command.view.toggleOutline.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleOutline.title',
+    categoryKey: 'command.category.view',
     keybinding: 'Mod+Shift+L',
     keywords: ['outline', 'dagang'],
     run: (ctx) => ctx.ui.toggleOutline(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.toggleSource',
-    title: t('command.view.toggleSource.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleSource.title',
+    categoryKey: 'command.category.view',
     /**
      * 与 horseMD 的「源码模式切换」同一个键位。
      *
@@ -491,25 +549,25 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // 用禁用而不是隐藏：隐藏会让用户以为这个功能不存在。
     enabled: (ctx) => ctx.ui.canToggleSourceView(),
     run: (ctx) => ctx.ui.toggleSourceView(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'edit.extractReference',
-    title: t('command.edit.extractReference.title'),
-    category: t('command.category.edit'),
+    titleKey: 'command.edit.extractReference.title',
+    categoryKey: 'command.category.edit',
     keywords: ['extract', 'reference', 'doc-block', 'tiqu', 'yinyong'],
     // 只有 Markdown 内核实现了 blockTransform（doc-block 是 Markdown 的语法）；
     // 其它内核禁用而不是隐藏 —— 与 view.toggleSource 同一条原则
     enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.blockTransform !== undefined,
     run: (ctx) => runExtractReference(ctx),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'edit.inlineReference',
-    title: t('command.edit.inlineReference.title'),
-    category: t('command.category.edit'),
+    titleKey: 'command.edit.inlineReference.title',
+    categoryKey: 'command.category.edit',
     keywords: ['flatten', 'inline', 'doc-block', 'laping', 'zhankai'],
     enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.blockTransform !== undefined,
     run: (ctx) => runInlineReference(ctx),
-  },
+  }),
   /**
    * 撤销 / 重做（菜单入口）。
    *
@@ -519,23 +577,23 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
    * 两次撤销会在同一按键上叠加执行。所以这两个命令只走菜单 / 面板入口；
    * 用户确实想给它们自定义全局键时，可以在设置页录制（后果自负）。
    */
-  {
+  builtInCommand({
     id: 'edit.undo',
-    title: t('command.edit.undo.title'),
-    category: t('command.category.edit'),
+    titleKey: 'command.edit.undo.title',
+    categoryKey: 'command.category.edit',
     keywords: ['undo', 'chexiao'],
     enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.undo !== undefined,
     run: (ctx) => ctx.ui.editor()?.undo?.(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'edit.redo',
-    title: t('command.edit.redo.title'),
-    category: t('command.category.edit'),
+    titleKey: 'command.edit.redo.title',
+    categoryKey: 'command.category.edit',
     keywords: ['redo', 'chongzuo'],
     enabled: (ctx) => hasDocument(ctx) && ctx.ui.editor()?.redo !== undefined,
     run: (ctx) => ctx.ui.editor()?.redo?.(),
-  },
-  {
+  }),
+  builtInCommand({
     /**
      * 复制为 HTML。
      *
@@ -543,8 +601,8 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
      * 降级说出来（硬约束 2）—— 用户得知道剪贴板里拿到的不是格式化结果。
      */
     id: 'edit.copyHtml',
-    title: t('command.edit.copyHtml.title'),
-    category: t('command.category.edit'),
+    titleKey: 'command.edit.copyHtml.title',
+    categoryKey: 'command.category.edit',
     keywords: ['copy html', 'fuzhi', '剪贴板'],
     enabled: hasDocument,
     run: (ctx) => {
@@ -574,7 +632,7 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
         );
       })();
     },
-  },
+  }),
   /**
    * 三档视图的直接入口。
    *
@@ -593,55 +651,55 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
    * 「能不能切到源码那一侧」，而分屏正是「源码那一侧 + 预览」。
    * 富文本那一档永远可用（兜底内核也能渲染），所以它没有 `enabled`。
    */
-  {
+  builtInCommand({
     id: 'view.rich',
-    title: t('command.view.rich.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.rich.title',
+    categoryKey: 'command.category.view',
     keybinding: 'Mod+1',
     keywords: ['rich', 'wysiwyg', 'fuwenben', '预览', '所见即所得'],
     run: (ctx) => ctx.ui.setViewMode('rich'),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.source',
-    title: t('command.view.source.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.source.title',
+    categoryKey: 'command.category.view',
     keybinding: 'Mod+2',
     keywords: ['source', 'yuanma', '源码', 'markdown'],
     enabled: (ctx) => ctx.ui.canToggleSourceView(),
     run: (ctx) => ctx.ui.setViewMode('source'),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.split',
-    title: t('command.view.split.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.split.title',
+    categoryKey: 'command.category.view',
     keybinding: 'Mod+3',
     keywords: ['split', 'side by side', 'bingshu', '分屏', '双栏', 'fenping'],
     enabled: (ctx) => ctx.ui.canToggleSourceView(),
     run: (ctx) => ctx.ui.setViewMode('split'),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.cycleTheme',
-    title: t('command.view.cycleTheme.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.cycleTheme.title',
+    categoryKey: 'command.category.view',
     keybinding: 'Mod+Shift+T',
     keywords: ['theme', 'zhuti', 'dark', 'light'],
     run: (ctx) => ctx.ui.cycleTheme(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.toggleWordWrap',
-    title: t('command.view.toggleWordWrap.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleWordWrap.title',
+    categoryKey: 'command.category.view',
     keywords: ['word wrap', 'huanhang', '换行', '软换行'],
     run: (ctx) => ctx.ui.toggleWordWrap(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.toggleCodeLineNumbers',
-    title: t('command.view.toggleCodeLineNumbers.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleCodeLineNumbers.title',
+    categoryKey: 'command.category.view',
     keywords: ['line numbers', 'hanghao', '行号'],
     run: (ctx) => ctx.ui.toggleCodeLineNumbers(),
-  },
-  {
+  }),
+  builtInCommand({
     /**
      * 专注 / 打字机（Typora 的两个写作模式）。
      *
@@ -651,44 +709,44 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
      * 偏好是全局的，当前文档用不上时切了也没害处。
      */
     id: 'view.toggleFocusMode',
-    title: t('command.view.toggleFocusMode.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleFocusMode.title',
+    categoryKey: 'command.category.view',
     keywords: ['focus', 'zhuanzhu', '专注', '沉浸'],
     run: (ctx) => ctx.ui.toggleFocusMode(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.toggleTypewriterMode',
-    title: t('command.view.toggleTypewriterMode.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleTypewriterMode.title',
+    categoryKey: 'command.category.view',
     keywords: ['typewriter', 'daziji', '打字机'],
     run: (ctx) => ctx.ui.toggleTypewriterMode(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'view.toggleFullscreen',
-    title: t('command.view.toggleFullscreen.title'),
-    category: t('command.category.view'),
+    titleKey: 'command.view.toggleFullscreen.title',
+    categoryKey: 'command.category.view',
     // F11 是全屏的通用键位；功能键在输入框里不产生文本，isAllowedInEditable 放行
     keybinding: 'F11',
     keywords: ['fullscreen', 'quanping', '全屏'],
     run: (ctx) => {
       void ctx.ui.toggleFullscreen();
     },
-  },
+  }),
 
   // ---- 导航 -------------------------------------------------------------
-  {
+  builtInCommand({
     id: 'find.open',
-    title: t('command.find.open.title'),
-    category: t('command.category.navigate'),
+    titleKey: 'command.find.open.title',
+    categoryKey: 'command.category.navigate',
     keybinding: 'Mod+F',
     keywords: ['find', 'search', 'chazhao'],
     enabled: hasDocument,
     run: (ctx) => ctx.ui.openFind(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'search.inFolder',
-    title: t('command.search.inFolder.title'),
-    category: t('command.category.navigate'),
+    titleKey: 'command.search.inFolder.title',
+    categoryKey: 'command.category.navigate',
     /**
      * 与 VSCode 同一个键位。
      *
@@ -701,29 +759,29 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // （而它只是需要一个前置条件，命令面板里那行提示正好告诉他缺什么）
     enabled: (ctx) => ctx.workspace.getSnapshot().tree.root !== null,
     run: (ctx) => ctx.ui.openSearchFolder(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'palette.open',
-    title: t('command.palette.open.title'),
-    category: t('command.category.navigate'),
+    titleKey: 'command.palette.open.title',
+    categoryKey: 'command.category.navigate',
     keybinding: 'Mod+P',
     keywords: ['command palette', 'minglingmianban'],
     run: (ctx) => ctx.ui.openPalette(),
-  },
-  {
+  }),
+  builtInCommand({
     id: 'app.settings',
-    title: t('command.app.settings.title'),
-    category: t('command.category.app'),
+    titleKey: 'command.app.settings.title',
+    categoryKey: 'command.category.app',
     keybinding: 'Mod+,',
     keywords: ['settings', 'preferences', 'shezhi', 'pianhao'],
     run: (ctx) => ctx.ui.openSettings(),
-  },
+  }),
 
   // ---- 诊断 ---------------------------------------------------------------
-  {
+  builtInCommand({
     id: 'diagnostics.roundTrip',
-    title: t('command.diagnostics.roundTrip.title'),
-    category: t('command.category.diagnostics'),
+    titleKey: 'command.diagnostics.roundTrip.title',
+    categoryKey: 'command.category.diagnostics',
     keywords: ['roundtrip', 'fidelity', 'diagnostics', 'wangfan', 'baozhen'],
     // 内核没实现 roundTrip（导图内核）时禁用 —— 这是「没有这个能力」，
     // 不是「这份文档用不上」，但一致的呈现仍是禁用而非隐藏
@@ -732,7 +790,7 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
       return doc !== null && typeof ctx.ui.editor()?.roundTrip === 'function';
     },
     run: runRoundTripCheck,
-  },
+  }),
   // ---- 格式 ---------------------------------------------------------------
   // 四条都只是 `formatting` 契约的薄封装：能不能用问内核（Markdown 实现了它，
   // 导图/代码内核没有），格式切换本身由内核完成（含 USER_EDIT_META，与
@@ -756,17 +814,17 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
   // 与状态栏下拉同一份候选清单（core/encodings.ts）；只改元数据，保存时生效
   ...ENCODING_COMMANDS,
 
-  {
+  builtInCommand({
     id: 'app.about',
-    title: t('command.app.about.title'),
-    category: t('command.category.app'),
+    titleKey: 'command.app.about.title',
+    categoryKey: 'command.category.app',
     keywords: ['about', 'version', 'guanyu', 'banben'],
     // 构建期注入的常量必须写成 `import.meta.env.X`（硬约束 14）——
     // dev server 不替换裸标识符，写错的表现是「点一下关于整个应用就没了」
     run: (ctx) => {
       void ctx.ui.notify(t('core.cmd.aboutBody', { version: String(import.meta.env.LEVNOTE_VERSION ?? '') }), t('command.app.about.title'));
     },
-  },
+  }),
 
   /**
    * 示例文档（B1）：往工作区根写入 `轻笺示例.md` 并打开。
@@ -775,10 +833,10 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
    * **已存在就不再写** —— 用户可能已经改过这份示例，覆盖就是毁内容
    * （硬约束 2）。想重置就删掉文件再点一次，这与示例文档里写的话一致。
    */
-  {
+  builtInCommand({
     id: 'help.sampleDocument',
-    title: t('command.help.sampleDocument.title'),
-    category: t('command.category.help'),
+    titleKey: 'command.help.sampleDocument.title',
+    categoryKey: 'command.category.help',
     keywords: ['sample', 'example', 'demo', 'shili', '示例', '导览'],
     enabled: (ctx) => ctx.workspace.getSnapshot().tree.root !== null,
     run: (ctx) => {
@@ -802,12 +860,12 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
         await ctx.workspace.open(path);
       })();
     },
-  },
+  }),
 
-  {
+  builtInCommand({
     id: 'ui.escape',
-    title: t('command.ui.escape.title'),
-    category: t('command.category.navigate'),
+    titleKey: 'command.ui.escape.title',
+    categoryKey: 'command.category.navigate',
     keybinding: 'Escape',
     keywords: ['cancel', 'close'],
     run: (ctx) => {
@@ -815,7 +873,7 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
       ctx.ui.closeFind();
       ctx.ui.closeSettings();
     },
-  },
+  }),
 ];
 
 /** 「最近打开」进菜单的条数（持久化上界更大，见 core/recent.ts）。 */
@@ -835,14 +893,14 @@ export function buildRecentFileCommands(paths: readonly string[], open: (path: s
   return paths.slice(0, RECENT_MENU_SLOTS).map((path, index) => {
     const name = basename(path);
     const dir = dirname(path);
-    return {
+    return builtInCommand({
       id: `file.recent.${index}`,
-      title: dir === null ? name : `${name} — ${dir}`,
-      category: t('command.category.file'),
+      titleFrom: () => (dir === null ? name : `${name} — ${dir}`),
+      categoryKey: 'command.category.file',
       keywords: [name, 'recent', 'zuijin', '最近打开'],
       dynamic: true,
       run: () => open(path),
-    } satisfies Command;
+    });
   });
 }
 

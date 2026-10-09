@@ -24,7 +24,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, use
 
 import type { DocumentProvider } from '../core/document/types.js';
 import { buildDocBlockPreview } from '../core/document/block-preview.js';
-import { BUILT_IN_COMMANDS, registerBuiltInCommands } from '../core/commands/definitions.js';
+import { registerBuiltInCommands } from '../core/commands/definitions.js';
 import { detectPlatform, isEditableTarget, type Platform } from '../core/commands/keybinding.js';
 import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
@@ -1110,21 +1110,24 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   }, [registry, recentPaths, workspace]);
 
   /**
-   * 语言（P3 第 17 项第二阶段）：设置是真相来源，这里推给 i18n 并**重新注册**
-   * 内置命令 —— 命令标题在注册时经 `t()` 求值，已经烤进命令对象里，
-   * 不重注册的话菜单与命令面板会停留在旧语言。`register` 对同 id 原位覆盖，
-   * 命令面板的顺序不受影响。
+   * 语言（P3 第 17 项第二阶段）：设置是真相来源，这里推给 i18n。
    *
-   * 之后 bump 一次 `localeTick`：这次布局 effect 跑在渲染之后、绘制之前，
-   * 再渲染一遍（仍然是绘制前）让所有按 `t()` 现取的文案换上新语言 ——
-   * 没有这一拍，切换语言的第一帧会画出旧文案。
+   * **不再重注册内置命令**（2026-10-09，#TASK-I18N-CMD-LIVE-01）。以前这里对
+   * `BUILT_IN_COMMANDS` 跑一遍 `register`，想靠「重新求值」把命令标题刷新 ——
+   * 而命令对象是**模块级常量**，`title` 早在模块加载时就经 `t()` 烤死了，
+   * 重注册拿到的是同一批对象，一次都没有生效过。现在命令的 `title` / `category`
+   * 是读的那一刻才查表的 getter（`definitions.ts` 的 `builtInCommand`），
+   * 所以刷新文案只需要**重渲染**，不需要碰注册表。
+   *
+   * bump `localeTick` 就是那一拍：这次布局 effect 跑在渲染之后、绘制之前，
+   * 再渲染一遍（仍然在绘制前）让所有按 `t()` 现取的文案换上新语言 ——
+   * 没有它，切换语言的第一帧会画出旧文案。
    */
   const [localeTick, setLocaleTick] = useState(0);
   useLayoutEffect(() => {
     setLocale(settings.locale);
-    for (const command of BUILT_IN_COMMANDS) registry.register(command);
     setLocaleTick((tick) => tick + 1);
-  }, [settings.locale, registry]);
+  }, [settings.locale]);
   void localeTick;
 
   /**
@@ -1659,8 +1662,10 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           两者不会同时开：打开设置要走命令或工具栏，而命令面板打开时会先关掉自己 */}
       {settingsOpen && (
         <SettingsDialog
-          // 语言切换时整页重挂：快捷键表的 memo 依赖里没有 locale
-          //（registry 的身份不变），换 key 是让派生表跟着重算的最直接办法
+          // 语言切换时整页重挂：快捷键表的**分组名**是 memo 里现取存成字符串的
+          //（命令标题自己会变，分组名不会），memo 的依赖里没有 locale，换 key
+          // 是让派生表跟着重算的最直接办法；顺带把 `editingId` / `recorded`
+          // 一起归零 —— 语言都换了，还停在「正在录制快捷键」没有意义
           key={localeTick}
           settings={settings}
           onChange={update}

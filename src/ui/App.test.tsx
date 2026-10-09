@@ -3354,3 +3354,198 @@ describe('在文件夹中检索', () => {
     expect(mounted.container.querySelector('.search-panel')).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 命令面文案跟随语言（#TASK-I18N-CMD-LIVE-01）
+// ---------------------------------------------------------------------------
+
+/**
+ * 这几条是**可观察行为**探针，不是「字典里有译文」的第二遍：
+ * 真实渲染 `App`，走真实设置页的语言下拉，然后**逐区域读屏幕上的文本**。
+ *
+ * 缺陷的形状决定了探针必须这么写 —— 「有重注册代码」看起来一切正常，
+ * 只有读出来的字符串会告诉你它没生效。同时所有查询都**按 id / 结构**定位，
+ * 不按文字找元素：语言一切换，按文字找的那套自己就先失效了。
+ */
+describe('命令面文案跟随语言', () => {
+  /** 顶层菜单名（去掉「(F)」助记符后缀）。 */
+  function menuNames(m: Mounted): string[] {
+    return [...m.container.querySelectorAll('.menubar-button')].map(
+      (button) => button.textContent?.replace(/\([A-Z]\)$/, '').trim() ?? '',
+    );
+  }
+
+  /** 按菜单 id 打开下拉（不按文字找 —— 语言一切，文字就变了）。 */
+  async function menuLabels(m: Mounted, menuId: string): Promise<string[]> {
+    const top = m.container.querySelector<HTMLButtonElement>(`[data-menu-id="${menuId}"] .menubar-button`);
+    if (top === null) throw new Error(`找不到菜单：${menuId}`);
+    await act(async () => {
+      top.click();
+    });
+    await settle();
+    const dropdown = m.container.querySelector(`[data-menu-id="${menuId}"] [role='menu']`);
+    if (dropdown === null) throw new Error(`菜单没打开：${menuId}`);
+    const labels = [...dropdown.querySelectorAll('.menubar-item-label')].map((item) => item.textContent?.trim() ?? '');
+    // 收起来：后面还要开别的浮层，留着展开会互相挡
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    });
+    await settle();
+    return labels;
+  }
+
+  /** 菜单里逐条的「快捷键 + 禁用态」（刻意不含文字 —— 这是行为快照）。 */
+  async function menuBehaviour(m: Mounted, menuId: string): Promise<string[]> {
+    const top = m.container.querySelector<HTMLButtonElement>(`[data-menu-id="${menuId}"] .menubar-button`);
+    if (top === null) throw new Error(`找不到菜单：${menuId}`);
+    await act(async () => {
+      top.click();
+    });
+    await settle();
+    const dropdown = m.container.querySelector(`[data-menu-id="${menuId}"] [role='menu']`);
+    if (dropdown === null) throw new Error(`菜单没打开：${menuId}`);
+    const rows = [...dropdown.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]')].map(
+      (item) => `${item.querySelector('.menubar-item-key')?.textContent?.trim() ?? ''}|${item.disabled}`,
+    );
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    });
+    await settle();
+    return rows;
+  }
+
+  /**
+   * 活动栏底部两个入口：**按位置**取（设置是最后一个，命令面板是倒数第二个）。
+   *
+   * 它们没有 id，而文字会随语言变 —— 位置是此刻唯一与语言无关的定位方式。
+   */
+  function activityButton(m: Mounted, fromEnd: number): HTMLButtonElement {
+    const buttons = [...m.container.querySelectorAll<HTMLButtonElement>('.activitybar .activity-item')];
+    const button = buttons[buttons.length - 1 - fromEnd];
+    if (button === undefined) throw new Error(`活动栏里没有倒数第 ${fromEnd + 1} 个入口`);
+    return button;
+  }
+
+  async function clickActivity(m: Mounted, fromEnd: number): Promise<void> {
+    await act(async () => {
+      activityButton(m, fromEnd).click();
+    });
+    await settle();
+  }
+
+  /** 命令面板此刻的条目（分组 / 标题）。 */
+  function paletteEntries(m: Mounted): string[] {
+    return [...m.container.querySelectorAll('.palette-row')].map(
+      (row) =>
+        `${row.querySelector('.palette-category')?.textContent?.trim() ?? ''}/${row.querySelector('.palette-title')?.textContent?.trim() ?? ''}`,
+    );
+  }
+
+  /** 快捷键表的分组名与每条命令的文字。 */
+  function shortcutTable(m: Mounted): { categories: string[]; titles: string[] } {
+    return {
+      categories: [...m.container.querySelectorAll('.settings-keys-category')].map((item) => item.textContent?.trim() ?? ''),
+      titles: [...m.container.querySelectorAll('.settings-keys-row')].map(
+        (row) => row.querySelector('span')?.textContent?.trim() ?? '',
+      ),
+    };
+  }
+
+  /**
+   * 走真实设置页把语言切过去，**保持设置页开着**（快捷键表就在这一页上）。
+   *
+   * 刻意不直接调 `setLocale`：那样只证明「i18n 模块能被切」，证明不了
+   * 「用户在设置页切一下，界面跟着变」—— 而后者才是这个缺陷的现象。
+   */
+  async function openSettingsAndSwitchLocale(m: Mounted, locale: 'en' | 'zh-CN'): Promise<void> {
+    await clickActivity(m, 0);
+    const select = [...m.container.querySelectorAll<HTMLSelectElement>('.settings select')].find((element) =>
+      [...element.options].some((option) => option.value === 'en'),
+    );
+    if (select === undefined) throw new Error('设置页里没有语言下拉');
+    await act(async () => {
+      select.value = locale;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await settle();
+  }
+
+  /** 关掉设置页（Esc 挂在 window 捕获阶段，与真实链路一致）。 */
+  async function closeOverlay(): Promise<void> {
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    });
+    await settle();
+  }
+
+  it('切 en 后菜单下拉项 / 命令面板条目 / 快捷键表分组与条目都变英文', async () => {
+    mounted = await mount(() => undefined);
+
+    // 中文基线（同时是「改之前的样子」的对照 —— 断言它会变，而不只是断言英文在）
+    const zhMenu = await menuLabels(mounted, 'file');
+    expect(zhMenu).toContain('打开文件');
+    const zhBehaviour = await menuBehaviour(mounted, 'file');
+
+    await clickActivity(mounted, 1); // 命令面板
+    expect(paletteEntries(mounted)).toContain('文件/打开文件');
+    await closeOverlay();
+
+    await openSettingsAndSwitchLocale(mounted, 'en');
+
+    // ① 快捷键表（设置页此刻开着）
+    const enShortcuts = shortcutTable(mounted);
+    expect(enShortcuts.titles).toContain('Open File…');
+    expect(enShortcuts.categories).toContain('File');
+    expect(enShortcuts.titles).not.toContain('打开文件');
+    expect(enShortcuts.categories).not.toContain('文件');
+
+    // ② 菜单顶层名与下拉项
+    expect(menuNames(mounted)).toContain('File');
+    const enMenu = await menuLabels(mounted, 'file');
+    expect(enMenu).toContain('Open File…');
+    expect(enMenu).not.toEqual(zhMenu);
+    expect(enMenu).not.toContain('打开文件');
+
+    // ③ 命令面板条目
+    await clickActivity(mounted, 1);
+    const enPalette = paletteEntries(mounted);
+    expect(enPalette.some((row) => row.endsWith('/Open File…'))).toBe(true);
+    expect(enPalette.some((row) => row.endsWith('/打开文件'))).toBe(false);
+
+    // ④ 只换文案：快捷键与可用性一字未变
+    await closeOverlay();
+    expect(await menuBehaviour(mounted, 'file')).toEqual(zhBehaviour);
+  });
+
+  it('再切回 zh-CN，三处都翻回来（两向都验）', async () => {
+    mounted = await mount(() => undefined);
+    await openSettingsAndSwitchLocale(mounted, 'en');
+    expect(shortcutTable(mounted).titles).toContain('Open File…');
+    await closeOverlay();
+    expect(await menuLabels(mounted, 'file')).toContain('Open File…');
+
+    await openSettingsAndSwitchLocale(mounted, 'zh-CN');
+
+    expect(shortcutTable(mounted).titles).toContain('打开文件');
+    expect(shortcutTable(mounted).categories).toContain('文件');
+    expect(shortcutTable(mounted).titles).not.toContain('Open File…');
+    await closeOverlay();
+
+    expect(menuNames(mounted)).toContain('文件');
+    expect(await menuLabels(mounted, 'file')).toContain('打开文件');
+
+    await clickActivity(mounted, 1);
+    expect(paletteEntries(mounted)).toContain('文件/打开文件');
+  });
+
+  it('空工作区下禁用态不随语言漂（行为快照逐条相同）', async () => {
+    mounted = await mount(() => undefined);
+    const zh = await menuBehaviour(mounted, 'file');
+    // 没有文档：保存 / 另存为 / 重新加载 / 关闭标签页都禁用 —— 断言这个分布真的存在
+    expect(zh.some((row) => row.endsWith('|true'))).toBe(true);
+
+    await openSettingsAndSwitchLocale(mounted, 'en');
+    await closeOverlay();
+    expect(await menuBehaviour(mounted, 'file')).toEqual(zh);
+  });
+});
