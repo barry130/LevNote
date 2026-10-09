@@ -159,7 +159,7 @@ pnpm run licenses                                     # 升过依赖才需要：
         `failTreeAction` 的 10 处调用 + `core/path.ts` 的 `validateEntryName()`）；
         引用卡片摘要（`core/document/block-preview.ts`）交给内核的两个译文字段
         —— 读不到时的原因，与 `>40` 行 text 引用里那行截断尾「……（共 N 行）」
-        （内核不重问语言就不重算）；同一契约字段在 `App.tsx` 的
+        （`core.bprev.truncatedN`，内核不重问语言就不重算）；同一契约字段在 `App.tsx` 的
         `resolveDocBlockPreview` 里还有一处（**白名单内**但同因登记）——
         修它要动 `core/editor/types.ts` 的契约（白名单外），且**该分支生产
         不可达**：标签页只在 `store.open()` 成功后入列、`doc` 恒非 null，

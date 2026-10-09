@@ -30,7 +30,8 @@
     `core/path.ts` 的 `validateEntryName()`，后者逐条返回译文）；
   - 引用卡片摘要（`core/document/block-preview.ts`）交给内核的**两个**译文字段：
     读不到时的原因（`reason`），与 `>40` 行的 text 引用里那行截断尾
-    「……（共 N 行）」（`firstLines()` 拼进 `snippet`，内核原样画、切语言不重问）；
+    「……（共 N 行）」（`core.bprev.truncatedN`，`firstLines()` 拼进 `snippet`，
+    内核原样画、切语言不重问）；
     同一个契约字段还有**白名单内**的一处（`App.tsx` 的 `resolveDocBlockPreview`
     在宿主文档没有路径信息时的 `reason`）—— 修它要动 `core/editor/types.ts`
     契约，且该分支生产不可达（标签页只在打开成功后入列），故同样登记；
