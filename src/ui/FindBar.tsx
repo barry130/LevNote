@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { EditorHandle } from '../core/editor/types.js';
 import type { FindOptions } from '../core/search/find.js';
+import { renderNotice, type Notice } from '../core/document/store.js';
 import { t } from '../core/i18n/index.js';
 
 export interface FindBarProps {
@@ -34,7 +35,12 @@ export function FindBar({ handle, onClose }: FindBarProps) {
   const [showReplace, setShowReplace] = useState(false);
   const [count, setCount] = useState(0);
   const [index, setIndex] = useState(-1);
-  const [notice, setNotice] = useState('');
+  /**
+   * 替换汇总那句话。存 `Notice`（key + 参数）而**不是**查好表的字符串 ——
+   * 与状态栏 notice 同一族快照，同一条纪律（ADR 0031 复评记录二 + 四）。
+   * 用户在设置页切语言时，屏幕上还挂着的那句要跟着变。
+   */
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const search = handle?.search ?? null;
@@ -63,7 +69,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
       search.clear();
       setCount(0);
       setIndex(-1);
-      setNotice('');
+      setNotice(null);
       return;
     }
 
@@ -72,7 +78,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
     setIndex(total > 0 ? 0 : -1);
     // 正则非法时 find 会返回 0（见 find.ts 的 createFindPattern）——
     // 这时要给一个明确的提示，否则用户会以为「这个正则没有匹配」
-    setNotice(regex && total === 0 ? t('ui.find.regexInvalid') : '');
+    setNotice(regex && total === 0 ? { key: 'ui.find.regexInvalid' } : null);
     if (total > 0) search.reveal(0);
     // options 是每帧新建的对象，逐字段列出依赖，避免每次渲染都重跑
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,7 +106,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
     const done = search.replaceAll(replacement);
     setCount(0);
     setIndex(-1);
-    setNotice(t('ui.find.replaced', { n: done }));
+    setNotice({ key: 'ui.find.replaced', params: { n: done } });
   }, [search, count, replacement]);
 
   const close = useCallback(() => {
@@ -197,7 +203,7 @@ export function FindBar({ handle, onClose }: FindBarProps) {
         </>
       )}
 
-      {notice !== '' && <span className="find-notice">{notice}</span>}
+      {notice !== null && <span className="find-notice">{renderNotice(notice)}</span>}
 
       <span className="grow" />
       <button type="button" title={t('ui.find.closeShortcut')} onClick={close}>

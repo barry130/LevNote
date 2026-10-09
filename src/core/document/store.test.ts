@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { DocumentStore, isDirty } from './store.js';
+import { setLocale } from '../i18n/index.js';
+import { DocumentStore, isDirty, renderNotice } from './store.js';
 import type {
   BinaryWriteOutcome,
   BomKind,
@@ -28,6 +29,8 @@ interface FakeFile {
   bom: BomKind;
   mtimeMs: number;
   readonly: boolean;
+  /** 编码探测有损（Rust 侧判定的）。给假盘一个开关，好走到 `openedLossy` 那条路。 */
+  lossy: boolean;
 }
 
 /** 内存文件系统。行为刻意贴近 Rust 侧：mtime 不符就拒绝写入。 */
@@ -46,6 +49,7 @@ class FakeProvider implements DocumentProvider {
       bom: options.bom ?? 'none',
       mtimeMs: options.mtimeMs ?? this.tick(),
       readonly: options.readonly ?? false,
+      lossy: options.lossy ?? false,
     });
   }
 
@@ -90,7 +94,7 @@ class FakeProvider implements DocumentProvider {
       size: file.text.length,
       mtimeMs: file.mtimeMs,
       readonly: file.readonly,
-      lossy: false,
+      lossy: file.lossy,
     };
   }
 
@@ -119,6 +123,7 @@ class FakeProvider implements DocumentProvider {
       bom: request.bom ?? existing?.bom ?? 'none',
       mtimeMs,
       readonly: existing?.readonly ?? false,
+      lossy: existing?.lossy ?? false,
     });
 
     return {
@@ -545,5 +550,250 @@ describe('resolveDocBlock（P5 第 25 项：doc-block 引用的图表文件）',
 
   it('没有打开的文档时返回 null', async () => {
     await expect(store.resolveDocBlock('x.drawio')).resolves.toBeNull();
+  });
+});
+
+describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
+  /**
+   * 这一族的缺陷形态是「把 `t()` 的结果存成字符串」—— 快照。
+   * 判据不是「新写入的 notice 在切语言后是英文」（那只证明新写入对），
+   * 而是「**切语言那一刻已经躺在 state 里的那条**也跟着变」。
+   * 所以这里断言的是：state 里存的是 **key**，渲染结果**随语言变**。
+   */
+  it('打开文件后 state 里存的是 key + 参数，不是查好表的字符串', async () => {
+    provider.put('/p/a.md', '正文');
+    await store.open('/p/a.md');
+
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    // 关键：**没有把译文烤进 state**
+    expect(notice).toMatchObject({ key: 'core.store.opened', params: { name: 'a.md' } });
+    expect(JSON.stringify(notice)).not.toContain('已打开');
+  });
+
+  it('同一条 notice 在切语言后渲染出另一种语言 —— **不重新打开文档**', async () => {
+    provider.put('/p/a.md', '正文');
+    await store.open('/p/a.md');
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    if (notice === null) return;
+
+    // 切语言之前：中文
+    setLocale('zh-CN');
+    expect(renderNotice(notice)).toBe('已打开 a.md');
+
+    // 只切语言，**一个动作都不做** —— 那条已经在 state 里的 notice 自己活过来
+    setLocale('en');
+    expect(renderNotice(notice)).toBe('Opened a.md');
+
+    setLocale('zh-CN');
+  });
+
+  it('落盘失败时走 text 变体（images.ts 的 reason 已是译文，本轮已知残留），渲染时原样交回', async () => {
+    provider.put('demo.md', '前文');
+    await store.open('demo.md');
+
+    // 虚拟盘路径没有目录信息 —— writePastedImage 会失败并给一句话
+    const result = await store.pasteImage(new ArrayBuffer(4), 'image/png');
+    expect(result).toBeNull();
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    if (notice === null || !('text' in notice)) throw new Error('这条 notice 应当是 text 变体');
+    expect(renderNotice(notice)).toBe(notice.text);
+  });
+
+  /**
+   * 逐写入点遍历（P2-3 封驳整改）。
+   *
+   * 上一版只钉住 `opened` 一处 ——「存 key 不存译文」那句宣称覆盖的是**全部**
+   * 写入点，实测却只覆盖 1/7。这个用例把 8 个写入点各走一遍，逐个断言
+   * 「state 里是 key 变体」+「切语言后渲染成另一种语言」。回滚任意一个
+   * 写入点（改回 `{ text: t(...) }`），它就会红 —— 这才是「类型换掉之后
+   * 编译器会把漏改的点报出来」那句话在测试侧的对应物。
+   */
+  const noticeCases: ReadonlyArray<{
+    key: string;
+    run: (target: DocumentStore) => Promise<void>;
+    expectedKey: string;
+  }> = [
+    {
+      key: 'opened',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+      },
+      expectedKey: 'core.store.opened',
+    },
+    {
+      // `openedLossy` 与 `opened` 共用同一个 `commit`（三元表达式二选一），
+      // 靠假盘给一个 `lossy: true` 才能真正走到它 ——「虚拟盘给不出」是错的，
+      // 那只是假盘先前没开这个开关（封驳 P1-A 实测）。
+      key: 'openedLossy',
+      run: async (target) => {
+        provider.put('/p/lossy.md', '正文', { lossy: true });
+        await target.open('/p/lossy.md');
+      },
+      expectedKey: 'core.store.openedLossy',
+    },
+    {
+      key: 'imageSaved',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        const src = await target.pasteImage(new ArrayBuffer(8), 'image/png');
+        if (src === null) throw new Error('粘贴图片应当成功');
+      },
+      expectedKey: 'core.store.imageSaved',
+    },
+    {
+      key: 'renamed',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        target.retargetPath('/p/renamed.md');
+      },
+      expectedKey: 'core.store.renamed',
+    },
+    {
+      key: 'saved',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        if (!(await target.save())) throw new Error('保存应当成功');
+      },
+      expectedKey: 'core.store.saved',
+    },
+    {
+      key: 'savedAs',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        if (!(await target.saveAs())) throw new Error('另存为应当成功');
+      },
+      expectedKey: 'core.store.savedAs',
+    },
+    {
+      key: 'reloaded',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        if (!(await target.reload())) throw new Error('重新加载应当成功');
+      },
+      expectedKey: 'core.store.reloaded',
+    },
+    {
+      key: 'overwritten',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        target.updateText('改过的正文');
+        if (!(await target.resolveConflict('overwrite'))) throw new Error('覆盖应当成功');
+      },
+      expectedKey: 'core.store.overwritten',
+    },
+  ];
+
+  it.each(noticeCases)('写入点 $key：存的是 key，切语言那一条跟着变', async ({ run, expectedKey }) => {
+    await run(store);
+
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    if (notice === null) return;
+    if (!('key' in notice)) throw new Error(`写入点 ${expectedKey} 存的仍是译文，不是 key`);
+
+    expect(notice.key).toBe(expectedKey);
+
+    setLocale('zh-CN');
+    const zh = renderNotice(notice);
+    setLocale('en');
+    const en = renderNotice(notice);
+    setLocale('zh-CN');
+
+    // 同一条 notice 在两种语言下渲染出**不同**的句子 —— 这就证明它是查表得来的
+    expect(zh).not.toBe(en);
+  });
+
+  it('clearNotice 与 close 把 notice 归 null（不是空串）', async () => {
+    provider.put('/p/a.md', '正文');
+    await store.open('/p/a.md');
+    expect(store.getSnapshot().notice).not.toBeNull();
+
+    store.clearNotice();
+    expect(store.getSnapshot().notice).toBeNull();
+
+    await store.open('/p/a.md');
+    store.close(true);
+    expect(store.getSnapshot().notice).toBeNull();
+  });
+});
+
+describe('error / conflict 也是「读的时候才查表」（#TASK-I18N-SNAPSHOT-01 封驳整改）', () => {
+  /**
+   * 这两条与 notice 同族，但字段类型**不能**像 notice 那样改成结构化联合 ——
+   * `error` 的契约是 `AppErrorShape`，它被白名单外的消费方（`workspace/store.ts`
+   * 的 `openError`）用着。所以修法是 getter：**消费者写的仍是 `error.message`，
+   * 只是那一下现查表**（ADR 0031 复评记录三给命令面立过的形状）。
+   *
+   * 判据与 notice 那条一样，不看「新的写入是英文」，看的是
+   * 「**切语言那一刻已经躺在 state 里的那条**也跟着变」。
+   */
+  it('只读文件保存失败：state 里存的是 key，切语言那一条错误跟着变', async () => {
+    provider.put('/p/locked.md', '正文', { readonly: true });
+    await store.open('/p/locked.md');
+
+    expect(await store.save()).toBe(false);
+    const error = store.getSnapshot().error;
+    expect(error).not.toBeNull();
+    if (error === null) return;
+
+    setLocale('zh-CN');
+    expect(error.message).toBe('locked.md 是只读文件，请用「另存为」');
+
+    // 一个动作都不做 —— 已经躺在 state 里的那条错误自己活过来
+    setLocale('en');
+    expect(error.message).toBe('locked.md is read-only — use “Save As” instead');
+
+    setLocale('zh-CN');
+  });
+
+  it('本地有改动 + 磁盘被外部改写：冲突那句话说切就切，不重新检测', async () => {
+    provider.put('/p/a.md', 'v1');
+    await store.open('/p/a.md');
+    store.updateText('我的改动');
+    provider.touchExternally('/p/a.md', '别人的改动');
+    await store.checkExternalChange();
+
+    const conflict = store.getSnapshot().conflict;
+    expect(conflict).not.toBeNull();
+    if (conflict === null) return;
+
+    setLocale('zh-CN');
+    expect(conflict.message).toBe('磁盘上的文件已被其他程序修改，而你本地也有改动');
+
+    setLocale('en');
+    expect(conflict.message).toBe(
+      'The file on disk was changed by another program, and you also have local changes',
+    );
+
+    setLocale('zh-CN');
+  });
+
+  it('有未保存改动时拒绝打开新文件 —— 那条错误同样是切语言可变的', async () => {
+    provider.put('/p/a.md', 'x');
+    provider.put('/p/b.md', 'y');
+    await store.open('/p/a.md');
+    store.updateText('changed');
+
+    expect(await store.open('/p/b.md')).toBe(false);
+    const error = store.getSnapshot().error;
+    expect(error?.code).toBe('INTERNAL');
+    if (error == null) return;
+
+    setLocale('zh-CN');
+    expect(error.message).toBe('当前文档有未保存的改动，请先处理');
+    setLocale('en');
+    expect(error.message).toBe('This document has unsaved changes — resolve them first');
+
+    setLocale('zh-CN');
   });
 });

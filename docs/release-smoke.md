@@ -1,6 +1,6 @@
 # 发布冒烟清单（release smoke）
 
-> 发版前**人工**跑一遍的清单。单测（1,467 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
+> 发版前**人工**跑一遍的清单。单测（1,489 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
 > 而发版要兜住的是「自动化天生测不了」的那一批：真布局、真渲染、真文件系统、真对话框。
 > 这份清单把那批事**点名**，每一条都写了**为什么只能人工测** —— 没写理由的条目不该出现在这里。
 >
@@ -33,7 +33,7 @@ test / build + cargo test / fmt / clippy）—— 但它只**验**不**发**。
 ## 第 0 步 · 自动门禁（先跑，全绿才轮到人工）
 
 ```bash
-pnpm run check                                        # typecheck + lint + 1,467 条测试
+pnpm run check                                        # typecheck + lint + 1,489 条测试
 cargo test --manifest-path src-tauri/Cargo.toml       # 66 条 Rust 测试
 pnpm run licenses                                     # 升过依赖才需要：重算许可证清单
 ```
@@ -102,6 +102,10 @@ pnpm run licenses                                     # 升过依赖才需要：
 ### 3d. Tauri / 操作系统面 —— 浏览器与 mock 都没有这些东西
 
 - [ ] 原生对话框：打开文件夹、保存、删除确认
+- [ ] **窗口标题（真机）**：打开 `a.md` → 标题栏显示 `a.md — 轻笺` → 设置页切 English
+      → **那一刻**标题栏变成 `a.md — LevNote`。浏览器面只见 `document.title`，
+      桌面下真实通道是 Tauri 的 `set_title`（单测只能钉「有没有再调一次、
+      带的是不是新文案」，**真窗口上到底刷没刷**只有真机看得见）。
 - [ ] 文件监听：应用开着时用记事本改同一个文件 → 出现外部改动提示；选「从磁盘重新加载」内容正确
       （notify 的事件在真文件系统上才发生；mtime 判决、防抖窗口都是真机行为）
 - [ ] 图片粘贴：截图 → Markdown 里 Ctrl+V → 落盘到 `<文档名>.assets/`、相对路径、显示成功
@@ -132,10 +136,46 @@ pnpm run licenses                                     # 升过依赖才需要：
         面板条目 / 快捷键表）是 `core/commands/definitions.ts` 的惰性
         文案，2026-10-09 前它们**只变顶层名、不变条目**，是一条真实缺陷
         （#TASK-I18N-CMD-LIVE-01，已修）；只盯菜单顶层名会漏掉它。
+      - **快照型文案要「先让它上屏，再切语言」**（#TASK-I18N-SNAPSHOT-01）
+        —— 这两处不看「切完再做一次动作」，那是查不出问题的：
+        - **窗口标题**：打开 `a.md`（标题显示 `a.md — 轻笺`）→ 切 English
+          → 标题栏**那一刻**就变成 `a.md — LevNote`，不必切标签或做别的动作。
+          修之前它停在中文（effect 的 deps 漏了 locale）。
+        - **状态栏那句话**：打开文件后状态栏右侧出现「已打开 a.md」
+          （`文档还需保存` / `已替换 N 处` 同理）→ 切 English →
+          **同一句**当场变成 `Opened a.md`。
+        - **错误横幅 / 冲突横幅**：只读文件点保存（横幅出现）→ 切 English
+          → **同一句**当场变英文；冲突横幅同理（外部改动 + 本地也有改动）。
+        - 查找栏的「已替换 N 处」也在这一批里（同一个快照族）。
       - **编辑器里由内核画的浮动说明与按钮仍是中文**（代码块语言标签与
         「正在渲染图表…」、公式「正在渲染公式…」、图片「无法显示本地
         图片：…」、导图与引用卡片上的按钮）—— 内核（`src/modules/**`）
         零 i18n 接入，**已知部分覆盖，记进 release notes，不当 bug 报**。
+      - **已知残留**（不是「唯一一处」，均不当 bug 报、各在
+        #TASK-I18N-SNAPSHOT-01 的 ADR 0031 复评记录四里登记）：
+        粘贴图片失败时状态栏那句话（`core/document/images.ts`）；
+        跨文件替换汇总（`core/search/replace.ts` → `SearchPanel.tsx` 存 state）；
+        文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族：
+        `failTreeAction` 的 10 处调用 + `core/path.ts` 的 `validateEntryName()`）；
+        引用卡片摘要（`core/document/block-preview.ts`）交给内核的两个译文字段
+        —— 读不到时的原因，与 `>40` 行 text 引用里那行截断尾「……（共 N 行）」
+        （`core.bprev.truncatedN`，内核不重问语言就不重算）；同一契约字段在 `App.tsx` 的
+        `resolveDocBlockPreview` 里还有一处（**白名单内**但同因登记）——
+        修它要动 `core/editor/types.ts` 的契约（白名单外），且**该分支生产
+        不可达**：标签页只在 `store.open()` 成功后入列、`doc` 恒非 null，
+        唯一能把 `doc` 置 null 的 `close()` 在生产代码里无人调用；
+        代码块语言面板搜索框里「使用 “xxx”」那一行（`ui/CodeBlockPicker.tsx`
+        的 `useMemo` 把 `t('ui.codeblock.useTyped')` 塞进**被渲染的**行对象）；
+        公式 / 图表渲染失败时内核画的那句话（`core/katex.ts` /
+        `core/mermaid-render.ts` / `core/drawio-render.ts` 的 `Render.message`）；
+        设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
+        另有一处**表面相同、根因不同**：保存冲突横幅（`save()` 的冲突分支）那句
+        来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码中文）—— 是这一侧
+        没有 i18n 通道，与内核零接入同源，不属快照族。
+        上列**多数在白名单外**，只有 `App.tsx` 那一条是白名单内（理由已随行写明），
+        均另立 follow-up。
+        > `DocumentPane.tsx` 的 `editorError` **不在**此列 —— 它存的是内核
+        > 抛出的原始错误，不是查好表的译文，本就不属这一族。
 
 ---
 

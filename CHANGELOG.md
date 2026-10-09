@@ -7,6 +7,70 @@
 
 ---
 
+## [未发布]
+
+### 修复
+
+- **运行中切换语言时，窗口标题与状态栏那句话也跟着变了**。此前设置页切
+  English，界面上多数文案会变，但有两处**停在旧语言**，而它们明明还挂在
+  屏幕上：**窗口标题**（`a.md — 轻笺` 不变）与**状态栏右侧那句话**
+  （`已打开 a.md` 不变）。根因是同族缺陷的两种形态 —— 标题是**副作用依赖
+  漏了语言**（求值时机对，触发时机漏）；状态栏那句是**把文案在动作发生的
+  那一刻就查好表存成了字符串**（快照），之后切语言不会再重算。查找栏的
+  「已替换 N 处」属于同一族，一并修好。
+- **同一批把同族的另三处快照也修了**：错误横幅（只读文件保存失败 / 未保存
+  改动时拒绝打开）与冲突横幅（磁盘被外部改写）那几句话，此前也是存成字符串，
+  切语言不会再变。改法是把「查表」推迟到读取那一刻，**消费方一行没动**。
+- **已知残留（不是「唯一一处」）**，另立 follow-up —— 其中**多数在白名单外**，
+  只有 `App.tsx` 那一条是**白名单内**（理由见该行）：
+  - 粘贴图片失败时状态栏那句话（`core/document/images.ts`，译文烤成字符串）；
+  - 跨文件替换汇总（`core/search/replace.ts` 拼好句子 → `SearchPanel.tsx` 存 state）；
+  - 文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族，**两个
+    生产者**：`failTreeAction` 的 10 处调用 —— 其中 8 处直传 `t()` —— 与
+    `core/path.ts` 的 `validateEntryName()`，后者逐条返回译文）；
+  - 引用卡片摘要（`core/document/block-preview.ts`）交给内核的**两个**译文字段：
+    读不到时的原因（`reason`），与 `>40` 行的 text 引用里那行截断尾
+    「……（共 N 行）」（`core.bprev.truncatedN`，`firstLines()` 拼进 `snippet`，
+    内核原样画、切语言不重问）；
+    同一个契约字段还有**白名单内**的一处（`App.tsx` 的 `resolveDocBlockPreview`
+    在宿主文档没有路径信息时的 `reason`）—— 修它要动 `core/editor/types.ts`
+    契约，且该分支生产不可达（标签页只在打开成功后入列），故同样登记；
+  - 公式 / 图表渲染失败时内核画的那句话（`core/katex.ts` / `core/mermaid-render.ts`
+    / `core/drawio-render.ts` 的 `Render.message`）—— 与引用卡片摘要同机制：
+    `t('core.render.*')` 的结果经返回值交给 NodeView、拿到就画、不重问语言
+    （三个渲染出口，第三轮封驳 P1-1 的机械遍历补登）；
+  - 设置页的按键安全提示（`SettingsDialog.tsx` 的 state）；
+  - 代码块语言面板搜索框里「使用 “xxx”」那一行（`ui/CodeBlockPicker.tsx`
+    的 `useMemo` 把 `t('ui.codeblock.useTyped')` 塞进**被渲染的**行对象，
+    deps 无 locale）—— 与 `SlashMenu` 同一形状但结局相反，**白名单外**在列。
+  - 保存冲突横幅也有一处**表面相同、根因不同**：`save()` 的冲突分支写进
+    `conflict.message` 的那句来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码
+    中文），不经 `t()` —— 是「这一侧没有 i18n 通道」，与 `src/modules/**`
+    零接入同源，不属快照族（`src-tauri/**` 本单禁改，登记为独立 follow-up）。
+  > `DocumentPane.tsx` 的 `editorError` **不在**此列 —— 它存的是内核抛出的
+  > 原始错误（`thrown.message`），不是查好表的译文，本就不属这一族。
+
+### 内部
+
+- `StoreState.notice` 由 `string` 改为结构化的 `Notice`（**存文案 key 与
+  参数，渲染时才查表**），与「静态清单存 key、渲染时才 `t()`」是同一条
+  纪律；渲染统一走 `renderNotice()`，状态栏与查找栏两处消费方零分叉。
+- `Notice` 的 `{ text }` 变体（只为 `images.ts` 那一处保留）现在带**品牌
+  符号**，且 `LegacyTextNotice` 与 `legacyText()` 都收成**模块私有**：
+  直接写字面量 `{ text: '...' }` 是编译错误。此前它**只有注释约束、没有
+  编译期拦截**（门下实测：插一句硬编码译文 → `tsc` 与全量测试全绿）；
+  只加品牌符号也仍不够（刑部实测：只要 `legacyText` 还导出，
+  `legacyText('硬编码译文')` 与 `{ ...legacyText(''), text: '…' }` 两种写法
+  `tsc` 都是 rc 0 —— 品牌是结构类型，展开绕不过）。收私有后，能碰到
+  `legacyText` 的只剩 `store.ts` 自己，想破门**必须先在本文件内动手**。
+  **这道门的准确强度是「拦外人、不拦自己人」**：收私有只封住「别的文件来造」，
+  **封不住本文件内**顺手写 `legacyText(t(...))`（实测 `tsc` rc 0）—— 兜住它的是
+  测试（8 条写入点参数化遍历）与评审，不是类型。
+  与命令面的 `BuiltInCommandSpec` 不接受字面量 `title` 是同一条纪律 ——
+  该拦的形状交给类型系统。
+
+---
+
 ## [0.3.28] — 2026-10-09
 
 ### 修复

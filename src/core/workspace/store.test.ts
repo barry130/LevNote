@@ -21,6 +21,7 @@ import type {
   WriteRequest,
 } from '../document/types.js';
 import { WorkspaceStore } from './store.js';
+import { renderNotice } from '../document/store.js';
 import type { WorkspaceFileManager } from './fsmanage.js';
 
 interface FakeFile {
@@ -397,13 +398,16 @@ describe('会话恢复', () => {
     const workspace = new WorkspaceStore(seeded());
     await workspace.restoreTabs([{ path: 'C:\\n\\a.md', draft: null }], 'C:\\n\\a.md');
     expect(workspace.getSnapshot().tabs[0]?.dirty).toBe(false);
-    expect(workspace.activeStore?.getSnapshot().notice).toBe('已打开 a.md');
+    // notice 现在存的是 **key + 参数**（#TASK-I18N-SNAPSHOT-01），渲染时才查表 ——
+    // 这里断言渲染结果，保持这条用例原本的语义（「那句话是准的」）
+    const notice = workspace.activeStore?.getSnapshot().notice ?? null;
+    expect(notice !== null && renderNotice(notice)).toBe('已打开 a.md');
   });
 
   it('有草稿时把「已打开 X」清掉 —— 那句话说的是磁盘读取，而屏幕上现在是草稿', async () => {
     const workspace = new WorkspaceStore(seeded());
     await workspace.restoreTabs([{ path: 'C:\\n\\a.md', draft: '草稿' }], 'C:\\n\\a.md');
-    expect(workspace.activeStore?.getSnapshot().notice).toBe('');
+    expect(workspace.activeStore?.getSnapshot().notice).toBeNull();
   });
 
   it('打不开的路径进 failed，**不写 openError**，其余标签页照常恢复', async () => {
