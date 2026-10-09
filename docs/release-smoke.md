@@ -158,7 +158,10 @@ pnpm run licenses                                     # 升过依赖才需要：
         文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族）；
         引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文）；
         设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
-        这几处都在白名单之外，另立 follow-up。
+        另有一处**表面相同、根因不同**：保存冲突横幅（`store.ts:566`）那句
+        来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码中文）—— 是这一侧
+        没有 i18n 通道，与内核零接入同源，不属快照族。这几处都在白名单之外，
+        另立 follow-up。
         > `DocumentPane.tsx` 的 `editorError` **不在**此列 —— 它存的是内核
         > 抛出的原始错误，不是查好表的译文，本就不属这一族。
 
