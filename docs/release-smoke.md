@@ -1,6 +1,6 @@
 # 发布冒烟清单（release smoke）
 
-> 发版前**人工**跑一遍的清单。单测（1,481 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
+> 发版前**人工**跑一遍的清单。单测（1,489 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
 > 而发版要兜住的是「自动化天生测不了」的那一批：真布局、真渲染、真文件系统、真对话框。
 > 这份清单把那批事**点名**，每一条都写了**为什么只能人工测** —— 没写理由的条目不该出现在这里。
 >
@@ -33,7 +33,7 @@ test / build + cargo test / fmt / clippy）—— 但它只**验**不**发**。
 ## 第 0 步 · 自动门禁（先跑，全绿才轮到人工）
 
 ```bash
-pnpm run check                                        # typecheck + lint + 1,481 条测试
+pnpm run check                                        # typecheck + lint + 1,489 条测试
 cargo test --manifest-path src-tauri/Cargo.toml       # 66 条 Rust 测试
 pnpm run licenses                                     # 升过依赖才需要：重算许可证清单
 ```
