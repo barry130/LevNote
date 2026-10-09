@@ -187,6 +187,13 @@ class FakeProvider implements DocumentProvider {
  *
  * 次数不是随便写的：内核创建是 `await` 一次 Promise 链，之后 `onReady`
  * 会推一次状态更新。三轮足够覆盖，写多了只是白等。
+ *
+ * **最后那次「等一帧」不能省。** 浮层状态（表格工具条、代码块语言面板）
+ * 是内核用 `requestAnimationFrame` **合并上报**的，而 `setTimeout(0)` 是宏任务、
+ * 排在 rAF 回调（约 16ms 的定时器）之前 —— 三轮 `setTimeout(0)` 加起来实测才 2ms，
+ * 一帧都等不到。慢机器上表现就是「工具条该出现的时候还没出现」，
+ * 断言随机挂掉。一帧之后 React 的那次状态更新还需要一次宏任务才渲染完，
+ * 所以再接一轮 `setTimeout(0)`。
  */
 async function settle(rounds = 3): Promise<void> {
   for (let i = 0; i < rounds; i += 1) {
@@ -194,6 +201,10 @@ async function settle(rounds = 3): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
   }
+  await nextFrame();
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 }
 
 /**
@@ -2827,6 +2838,75 @@ describe('设置页', () => {
     // 断言「有版本字样」而不是断言具体值：具体值会随发版变，
     // 断言它等于把测试变成 package.json 的第二份副本
     expect(text).toContain(`版本 ${import.meta.env.LEVNOTE_VERSION}`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 专注 / 打字机模式（ADR 0039）
+// ---------------------------------------------------------------------------
+
+describe('专注 / 打字机模式', () => {
+  /** 偏好落盘的那一份。与设置页读的是同一个键，断言它等于断言「真的存进去了」。 */
+  function storedFlag(key: 'focusMode' | 'typewriterMode'): boolean | undefined {
+    const raw = JSON.parse(localStorage.getItem('levnote.settings.v1') ?? '{}');
+    return raw[key];
+  }
+
+  /** 点菜单里那个开关（开菜单 → 点项 → 菜单收起，与真实链路一致）。 */
+  async function toggleFromViewMenu(text: string): Promise<void> {
+    const dropdown = await openMenu(mounted!.container, '视图');
+    const item = menuItem(dropdown, text);
+    if (item === null) throw new Error(`视图菜单里没有：${text}`);
+    await act(async () => {
+      item.click();
+    });
+    await settle();
+  }
+
+  /** 读一次菜单勾选状态（读完把菜单收起来，免得下一次 openMenu 把它点关）。 */
+  async function checkedInViewMenu(text: string): Promise<string | null> {
+    const dropdown = await openMenu(mounted!.container, '视图');
+    const state = menuItem(dropdown, text)?.getAttribute('aria-checked') ?? null;
+    const top = mounted!.container.querySelector<HTMLButtonElement>('.menubar-menu .menubar-button');
+    await act(async () => {
+      top?.click();
+    });
+    await settle();
+    return state;
+  }
+
+  /**
+   * 连点两次必须能翻回来。
+   *
+   * 开关的实现是 `update({ focusMode: !settings.focusMode })` —— 闭包读的是
+   * 渲染时那一份 settings。`ui` 这个 useCallback 的依赖表漏了 focusMode 时，
+   * 第二次点击仍会读到旧值，于是「再开一次」：值卡在 true，菜单勾选也停在原地。
+   */
+  it('★ 连点两次「专注模式」真的能翻回来，菜单勾选跟着走', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n\n正文\n'));
+    await mounted.open('note.md');
+
+    expect(await checkedInViewMenu('专注模式')).toBe('false');
+
+    await toggleFromViewMenu('专注模式');
+    expect(storedFlag('focusMode')).toBe(true);
+    expect(await checkedInViewMenu('专注模式')).toBe('true');
+
+    // 第二次点击：这条断言就是那个回归 —— 依赖表漏项时它会停在 true
+    await toggleFromViewMenu('专注模式');
+    expect(storedFlag('focusMode')).toBe(false);
+    expect(await checkedInViewMenu('专注模式')).toBe('false');
+  });
+
+  it('打字机模式走同一条依赖表，同样点两次能翻回来', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n\n正文\n'));
+    await mounted.open('note.md');
+
+    await toggleFromViewMenu('打字机模式');
+    expect(storedFlag('typewriterMode')).toBe(true);
+
+    await toggleFromViewMenu('打字机模式');
+    expect(storedFlag('typewriterMode')).toBe(false);
   });
 });
 

@@ -1048,10 +1048,14 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       paneInfo,
       provider,
       settings.codeLineNumbers,
+      // 专注 / 打字机是 `ui.toggleFocusMode` 读的设置，漏了它这个 useCallback
+      // 会一直握着旧快照 —— 连点两次只翻一次，勾选也停在原地
+      settings.focusMode,
       settings.outlineVisible,
       settings.sidebarView,
       settings.sidebarVisible,
       settings.theme,
+      settings.typewriterMode,
       settings.wordWrap,
       update,
       workspace,
@@ -1215,10 +1219,13 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     [
       paneInfo,
       settings.codeLineNumbers,
+      // 同上：`menuChecked` 要画这两个开关的 ✓，漏了它菜单勾选永远停在旧值
+      settings.focusMode,
       settings.outlineVisible,
       settings.sidebarView,
       settings.sidebarVisible,
       settings.theme,
+      settings.typewriterMode,
       settings.wordWrap,
       workspace,
     ],

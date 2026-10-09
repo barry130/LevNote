@@ -23,15 +23,15 @@
 - **原子写入 + mtime 乐观锁**：写到一半崩溃不会毁掉文件，也绝不静默覆盖别人的改动。
 - 安装包约 **3.2 MB**（Tauri 2，不是 Electron）；KaTeX 与 Mermaid 都按需加载，不进主程序。
 
-> **当前进度**：四类里 **2/4 已落地**（Markdown、代码 / 文本）；
-> **思维导图的文件层与内核接入已完成**（P4 第 20–22 项，2026-10-02）——
-> `.mindmap` 是 JSON、结构自持（`docs/format-spec.md` §7.1），
-> 编辑走 mind-elixir 5.15.1，**打开不改再保存逐字节一致**；
-> 剩下全文检索（第 23 项）。draw.io 是 P5。
-> **两个开工前置都已验完**（2026-10-02）：思维导图的 V2 —— 500 节点压测，
-> 成本由顶层分支数决定，≤150 条顶层分支全部在判据内；draw.io 的 V1 ——
-> 查看器能独立渲染、体积 2.914 MiB（含 bpmn/flowchart 两个库）**远低于 6 MB 判据**。
-> 见 [`ROADMAP.md`](ROADMAP.md)。
+> **当前进度**：四类一等公民 **4/4 已落地** —— Markdown、代码 / 文本、
+> 思维导图（P4 第 20–23 项）、draw.io 只读查看器（P5-25）。
+> **思维导图**（2026-10-04）：`.mindmap` 是 JSON、结构自持（`docs/format-spec.md` §7.1），
+> 编辑走 mind-elixir 5.15.1，**打开不改再保存逐字节一致**；工作区**全文检索**
+> （第 23 项）与侧栏第二栏同批落地。
+> **draw.io**（2026-10-04，ADR 0027）：Markdown 里的 `kind: diagram` doc-block
+> 渲染成真图，reference / inline 两种模式；查看器 2.654 MiB（`public/drawio/`）
+> 按需注入、不进 bundle。
+> 后续项见 [`ROADMAP.md`](ROADMAP.md)。
 
 ---
 

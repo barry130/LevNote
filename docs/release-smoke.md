@@ -1,6 +1,6 @@
 # 发布冒烟清单（release smoke）
 
-> 发版前**人工**跑一遍的清单。单测（1,441 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
+> 发版前**人工**跑一遍的清单。单测（1,457 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
 > 而发版要兜住的是「自动化天生测不了」的那一批：真布局、真渲染、真文件系统、真对话框。
 > 这份清单把那批事**点名**，每一条都写了**为什么只能人工测** —— 没写理由的条目不该出现在这里。
 >
@@ -8,13 +8,15 @@
 
 ---
 
-## 发版次序（现状：有远端、流水线未接通，全程人工）
+## 发版次序（现状：门禁已自动、发版仍人工）
 
-仓库已绑定到远端（`https://cnb.cool/canace/LevNote`，2026-10-09），
-但发布流水线**不会自动触发** —— `.github/workflows/ci.yml` 是 GitHub Actions
-的格式，CNB 不跑它，要接上得另写一份 `.cnb.yml`（`open-decisions.md` 的 B5）。
-签名主体也未到位（B3 / B4）—— 所以现阶段发版就是下面这串人工动作，
-**次序即依赖**：
+仓库已绑定到远端（`https://cnb.cool/canace/LevNote`，2026-10-09）。
+**门禁已接通**：`.cnb.yml` 在每次 push / PR 上跑第 0 步那套（typecheck / lint /
+test / build + cargo test / fmt / clippy）—— 但它只**验**不**发**。
+`.github/workflows/ci.yml` 是 GitHub Actions 格式、CNB 不跑它，留着给 GitHub 侧用。
+
+**发版流水线（出安装包 + 签名）仍未接通**：签名主体未到位（B3 / B4）——
+所以发版的第 3–6 步现阶段仍是人工动作，**次序即依赖**：
 
 1. 改版本号三处（`package.json` / `src-tauri/Cargo.toml` / `src-tauri/tauri.conf.json`），
    `CHANGELOG.md` 加对应小节；
@@ -24,14 +26,14 @@
 5. `git tag v<版本号>` 并写一句 release note（冒烟结果记在这里）；
 6. 安装包与 release note 归档到发布位置（现阶段人工保管）。
 
-流水线接通（`.cnb.yml`）与签名主体到位后，第 3–6 步交给流水线
+发版流水线（出包 + 签名）与签名主体到位后，第 3–6 步交给流水线
 （产物上传 + 签名），本清单的第 4 步**不随之自动化** ——
 挑一条真机人工冒烟永远保留。
 
 ## 第 0 步 · 自动门禁（先跑，全绿才轮到人工）
 
 ```bash
-pnpm run check                                        # typecheck + lint + 1,441 条测试
+pnpm run check                                        # typecheck + lint + 1,457 条测试
 cargo test --manifest-path src-tauri/Cargo.toml       # 66 条 Rust 测试
 pnpm run licenses                                     # 升过依赖才需要：重算许可证清单
 ```
@@ -122,8 +124,8 @@ pnpm run licenses                                     # 升过依赖才需要：
 - [ ] 跨文件替换：小工作区（含一个 GBK 文件）替换一轮 → 未打开的文件被替换且编码不变，
       打开且脏的文件被跳过并在结果里列出来
 - [ ] 最近文件：文件菜单里出现刚关的文档，点击能打开；清理后列表为空
-- [ ] 语言切换：设置页切 English → 菜单 / 命令面板 / 快捷键表变英文（面板内文案仍中文 ——
-      已知部分覆盖，记进 release notes，不当 bug 报）
+- [ ] 语言切换：设置页切 English → 菜单 / 命令面板 / 快捷键表 / 外壳与内核的用户可见文案
+      全部变英文（E2/E3 批次已把 `ui/` 与 `core/` 的裸中文字面量迁完，实测 0 处残留）
 
 ---
 

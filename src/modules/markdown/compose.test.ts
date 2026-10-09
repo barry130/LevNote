@@ -10,7 +10,7 @@
 
 import { Schema, type Node as ProseNode } from '@milkdown/kit/prose/model';
 import { EditorState, TextSelection, type Transaction } from '@milkdown/kit/prose/state';
-import { DecorationSet } from '@milkdown/kit/prose/view';
+import { type Decoration, DecorationSet } from '@milkdown/kit/prose/view';
 import { describe, expect, it } from 'vitest';
 
 import { composeKey, composePlugin, DIMMED_CLASS } from './plugin.js';
@@ -34,6 +34,23 @@ function threeParagraphs(): ProseNode {
     schema.node('paragraph', null, [schema.text('第二段')]),
     schema.node('paragraph', null, [schema.text('第三段')]),
   ]);
+}
+
+/**
+ * 取一个装饰的类名。
+ *
+ * 装饰的**公开类型**只有 from / to / spec，没有 .type —— 类名实际落在内部的
+ * type.attrs 上（Decoration.node / Decoration.inline 传的 attrs 原样存在那里）。
+ * 这里不 as 也不 any，而是把内部字段读成 unknown 再逐层收窄：
+ * 读不到就是 undefined，断言照常失败，不会把「类名变了」静默放过。
+ */
+function classNameOf(decoration: Decoration): string | undefined {
+  const internals: unknown = Reflect.get(decoration, 'type');
+  if (typeof internals !== 'object' || internals === null) return undefined;
+  const attrs: unknown = Reflect.get(internals, 'attrs');
+  if (typeof attrs !== 'object' || attrs === null) return undefined;
+  const className: unknown = Reflect.get(attrs, 'class');
+  return typeof className === 'string' ? className : undefined;
 }
 
 function setup(initial = { focus: false, typewriter: false }) {
@@ -62,11 +79,15 @@ function setup(initial = { focus: false, typewriter: false }) {
       tr.setSelection(TextSelection.create(state.doc, pos));
     });
   };
-  const decorations = (): DecorationSet => plugin.props?.decorations?.(state) ?? DecorationSet.empty;
+  const decorations = (): DecorationSet => {
+    const decorationsProp = plugin.props?.decorations;
+    const source = decorationsProp?.call(plugin, state);
+    return source instanceof DecorationSet ? source : DecorationSet.empty;
+  };
   const dimmedTos = (): number[] =>
     decorations()
       .find()
-      .filter((d) => d.type.attrs['class'] === DIMMED_CLASS)
+      .filter((d) => classNameOf(d) === DIMMED_CLASS)
       .map((d) => d.to);
 
   return {
