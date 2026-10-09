@@ -163,11 +163,14 @@ pnpm run licenses                                     # 升过依赖才需要：
         修它要动 `core/editor/types.ts` 的契约（白名单外），且**该分支生产
         不可达**：标签页只在 `store.open()` 成功后入列、`doc` 恒非 null，
         唯一能把 `doc` 置 null 的 `close()` 在生产代码里无人调用；
+        代码块语言面板搜索框里「使用 “xxx”」那一行（`ui/CodeBlockPicker.tsx`
+        的 `useMemo` 把 `t('ui.codeblock.useTyped')` 塞进**被渲染的**行对象）；
         设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
         另有一处**表面相同、根因不同**：保存冲突横幅（`save()` 的冲突分支）那句
         来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码中文）—— 是这一侧
-        没有 i18n 通道，与内核零接入同源，不属快照族。这几处都在白名单之外，
-        另立 follow-up。
+        没有 i18n 通道，与内核零接入同源，不属快照族。
+        上列**多数在白名单外**，只有 `App.tsx` 那一条是白名单内（理由已随行写明），
+        均另立 follow-up。
         > `DocumentPane.tsx` 的 `editorError` **不在**此列 —— 它存的是内核
         > 抛出的原始错误，不是查好表的译文，本就不属这一族。
 

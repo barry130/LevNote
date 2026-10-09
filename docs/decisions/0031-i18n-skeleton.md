@@ -97,6 +97,16 @@ ui/ 目录 18 个组件（设置页 / 文件树 / 标签栏 / 大纲 / 检索 / 
   违例**：`mermaid-render` / `drawio-render` 的空图表常量原来是模块级
   `const X = t(...)`，已改为在返回点现调 `t()`（常量只有同模块与测试在用，
   测试同样改为按 key 现查）。
+  > **订正（复评记录五，刑部实测）**：上面把 `CodeBlockPicker` 列为**正面
+  > 样板**是**错的** —— 它的语言行**多数**确实是「存 key、渲染期现取」，但
+  > 搜索框里那行「使用 “xxx”」（`useMemo` 返回的 `label: t('ui.codeblock.useTyped')`）
+  > 是**存进被渲染对象**的，`deps` 无 locale ⇒ 切语言不重算。它与
+  > `SlashMenu` 同一形状却结局相反：`SlashMenu` 的 `t()` **只喂给
+  > `rankCommands` 打分**、条目文字在 JSX 期现取（正确），
+  > `CodeBlockPicker` 另外把译文塞进**被渲染的** `label`（快照）。
+  > **判据要落到「这个 `t()` 的结果最终去哪（打分 vs 渲染）」，
+  > 而不是「这个调用点形状像不像」。** 该文件不在本单白名单内，
+  > 已登记为 known residual（见文末残留表）。
 - **zh 值逐字节不变**，测试按文字找元素的辅助函数与全部中文断言不用动。
   「目录无占位符」的旧测试前提作废（插值文案进目录了），改为钉
   「两份目录同 key 的占位符集合一致」—— 这是插值文案的翻译契约。
@@ -291,7 +301,7 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 是否跨渲染存活），而不是按「已知家族」枚举。** 漏的 `error` / `conflict`
 就在**同一个文件、同一个模式**里，按家族枚举必然漏。
 
-### 本轮已知残留（白名单外，逐条登记 · 另立 follow-up）
+### 本轮已知残留（逐条登记 · 另立 follow-up；**多数**在白名单外，一处在内）
 
 | 位置 | 形态 | 来源 |
 |---|---|---|
@@ -300,6 +310,7 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 | `core/workspace/store.ts` 的 `tree.error` 一族 | 译文进 store 字段 | **两个生产者**：① `failTreeAction` 的 **10 处调用**（**8 处**直传 `t()`：`fsManageUnsupported` / `cannotDetermineTarget`×2 / `createFailed` / `renameNoDir` / `renameFailed` / `deleteDirty` / `deleteFailed`）+ `toggleDir` 直接写 `tree.error` 的 `cannotReadDir` 一处；② `core/path.ts` 的 `validateEntryName()` **逐条 `return t()`**（`core.path.*` 七条），经 `failTreeAction(problem)` 落到 `tree.error.message` —— **同一族的独立生产者，先前漏登**（刑部封驳 P1-B） |
 | `core/document/block-preview.ts:44/49/67` | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算 |
 | `src/ui/App.tsx` `resolveDocBlockPreview` 的 `reason: t('ui.app.refNoBaseReason')` | **白名单内**，但交的是**同一个契约字段** `DocBlockPreview.reason` | 登记而非本批改：修它要动 `core/editor/types.ts` 契约（白名单外）；且该分支生产不可达（标签页只在 `open()` 成功后入 `tabs`，`doc` 恒非 null；唯一置 null 的 `close()` 生产无人调用） |
+| `src/ui/CodeBlockPicker.tsx` 的 `useMemo`（`label: t('ui.codeblock.useTyped')` 进了**被渲染的**行对象，deps 无 locale） | `t()` 结果存进被渲染的对象 | **白名单外**；与 `SlashMenu` 同一形状但结局相反 —— 后者 `t()` 只喂打分、文字渲染期现取（正确形态），此处把译文塞进被渲染的 `label`（快照） |
 | `SettingsDialog.tsx:156` | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
 
 > 表里那处 `App.tsx` 是**白名单内**的 —— 台账里要单独一句说明它为何「在白名单内却判登记」：

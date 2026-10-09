@@ -21,7 +21,8 @@
 - **同一批把同族的另三处快照也修了**：错误横幅（只读文件保存失败 / 未保存
   改动时拒绝打开）与冲突横幅（磁盘被外部改写）那几句话，此前也是存成字符串，
   切语言不会再变。改法是把「查表」推迟到读取那一刻，**消费方一行没动**。
-- **已知残留（不是「唯一一处」）**，均在本单白名单之外、另立 follow-up：
+- **已知残留（不是「唯一一处」）**，另立 follow-up —— 其中**多数在白名单外**，
+  只有 `App.tsx` 那一条是**白名单内**（理由见该行）：
   - 粘贴图片失败时状态栏那句话（`core/document/images.ts`，译文烤成字符串）；
   - 跨文件替换汇总（`core/search/replace.ts` 拼好句子 → `SearchPanel.tsx` 存 state）；
   - 文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族，**两个
@@ -31,7 +32,10 @@
     同一个契约字段还有**白名单内**的一处（`App.tsx` 的 `resolveDocBlockPreview`
     在宿主文档没有路径信息时的 `reason`）—— 修它要动 `core/editor/types.ts`
     契约，且该分支生产不可达（标签页只在打开成功后入列），故同样登记；
-  - 设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
+  - 设置页的按键安全提示（`SettingsDialog.tsx` 的 state）；
+  - 代码块语言面板搜索框里「使用 “xxx”」那一行（`ui/CodeBlockPicker.tsx`
+    的 `useMemo` 把 `t('ui.codeblock.useTyped')` 塞进**被渲染的**行对象，
+    deps 无 locale）—— 与 `SlashMenu` 同一形状但结局相反，**白名单外**在列。
   - 保存冲突横幅也有一处**表面相同、根因不同**：`save()` 的冲突分支写进
     `conflict.message` 的那句来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码
     中文），不经 `t()` —— 是「这一侧没有 i18n 通道」，与 `src/modules/**`
