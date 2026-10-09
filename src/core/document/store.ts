@@ -183,6 +183,13 @@ interface LegacyTextNotice {
  * **收成模块私有之后，能碰到它的只剩本文件**：将来要破门**必须先在本文件
  * 加一个导出**，那一步一定看得见。所以准确说法是「**可疑动作只能落在本文件
  * 内**」，而不是「`tsc` 挡得住一切绕道」。
+ *
+ * **门挡在哪一层（#TASK-I18N-SNAPSHOT-01 第三轮封驳 P2-2）**：
+ * `LEGACY_TEXT` 与 `legacyText()` 都**没有 `export`** —— 这道门拦的是
+ * **模块外**；**本模块内**任何代码仍可直接写 `{ text, [LEGACY_TEXT]: true }`
+ * （品牌字段就在手边），不受拦。所以旧措辞「只有 `legacyText()` 一个出口
+ * 能造出来」**只在模块外成立**。别把「编译期有能力拦」读成「本层也拦得住」
+ * —— 与「判据落在哪一层」是同一条纪律。
  */
 function legacyText(text: string): LegacyTextNotice {
   return { text, [LEGACY_TEXT]: true };
