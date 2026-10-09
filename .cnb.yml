@@ -120,6 +120,16 @@
     - name: 准备 rustfmt / clippy
       script: rustup component add rustfmt clippy
 
+    # `src/lib.rs` 里 `tauri::generate_context!()` 是**编译期**宏，会在建期校验
+    # `tauri.conf.json` 的 `frontendDist`（`../dist`）存在 —— 而 `dist/` 是构建产物、
+    # 被 gitignore，干净检出里没有它。缺了会在**编译阶段**直接 panic：
+    #   error: proc macro panicked ... The `frontendDist` configuration is set to
+    #   "../dist" but this path doesn't exist
+    # Rust 测试不碰前端，给个占位目录即可（真实产物由前端那条流水线负责验）。
+    # 不用 Node 装真前端：两条流水线刻意保持独立，Rust 这条不该被 Node 拖住。
+    - name: 准备编译前置（frontendDist 占位）
+      script: mkdir -p dist
+
     # **测试放在格式 / Clippy 之前**：stages 里任一任务失败会中断后续任务，
     # 先跑测试才能保证「`cargo test` 是绿的」这件事在流水线变红时依然被看到。
     - name: 测试
