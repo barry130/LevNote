@@ -22,20 +22,19 @@
 # 4. **不在此处做「发包 / 签名」。** 那要各平台原生工具链与签名主体，与「推送即跑门禁」
 #    是两件事。等真需要时单独立项。
 #
-# ## 已知基线红（本轮发现，台账未预见，白名单外 · 待立项）
+# ## Rust 侧基线红（已修 · 见 PR 后续提交）
 #
-# 本仓的门禁在**修本轮之前**其实有 **5 处**红，而非台账记录的 3 处前端红：
-# 前端 `tsc` / `vite build` / `vitest`（本轮已修绿），另有 Rust 侧两处：
-#   - `cargo fmt --check`：**39 处** diff，横跨 10 个文件，1.77 / 1.87 / 1.99 三个
-#     工具链下均为 39（与 rustfmt 版本无关，是代码本身没格式过）；
+# 建这道门禁时，Rust 侧另有两处**既有**红（不在首轮前端白名单内）：
+#   - `cargo fmt --check`：**39 处** diff，横跨 10 个文件 —— 与 rustfmt 版本无关
+#     （1.77 / 1.87 / 1.99 三工具链下均为 39），是代码本身没格式过；
 #   - `cargo clippy --all-targets -- -D warnings`：2 条 error，都在**测试代码**里
 #     （`src/search/walk.rs` needless_borrows_for_generic_args、
 #      `src/watch/mod.rs` redundant_closure）—— 只跑 lib 的 clippy 是绿的。
 #
-# 这两处的修法都在 `src-tauri/**`，而本任务白名单**不含** `src-tauri/**`，
-# 所以此处**照实开门禁、不掩盖**：门禁一旦上了，它就该显示真相。
-# 「有规则但不执行」比「没有规则」更糟 —— 用 `allowFailure` 把红刷成绿正是这条反模式。
-# 修 Rust 基线的任务已作为 follow-up 上报中书令（属机械改动：`cargo fmt` + 两处 lint 小改）。
+# 当时**照实开门禁、不掩盖**（「有规则但不执行」比「没有规则」更糟，
+# 用 `allowFailure` 把红刷成绿正是这条反模式），作为 follow-up 上报。
+# 现两处已按机械改动修绿：`cargo fmt` 全树格式化（语义无关）+ 两条 lint 小改，
+# 未加 `#[allow]`、未改 rustfmt 配置去回避。改后 `cargo test` 66 条不变。
 #
 # ## 缓存
 #

@@ -168,7 +168,9 @@ pub struct SearchState {
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     // 这些锁里没有会 panic 的代码，中毒只可能来自别的线程的 panic。
     // 即便如此也不该把整个检索链路带崩 —— 拿到里面的数据继续用。
-    mutex.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 impl SearchState {
@@ -227,7 +229,10 @@ fn validate_root(raw: &str) -> AppResult<PathBuf> {
     }
     let path = PathBuf::from(trimmed);
     if !path.is_dir() {
-        return Err(AppError::invalid_path(format!("不是文件夹：{}", path.display())));
+        return Err(AppError::invalid_path(format!(
+            "不是文件夹：{}",
+            path.display()
+        )));
     }
     Ok(path)
 }
@@ -253,7 +258,10 @@ pub async fn search_in_workspace(
     let options = SearchOptions {
         include_ignored: request.include_ignored,
         max_results: request.max_results.unwrap_or(DEFAULT_MAX_RESULTS).max(1),
-        max_file_bytes: request.max_file_bytes.unwrap_or(DEFAULT_MAX_FILE_BYTES).max(1),
+        max_file_bytes: request
+            .max_file_bytes
+            .unwrap_or(DEFAULT_MAX_FILE_BYTES)
+            .max(1),
     };
 
     let search_id = request.search_id;

@@ -28,11 +28,11 @@
 
 use std::collections::BTreeMap;
 use std::sync::{
-    Mutex,
     atomic::{AtomicU64, Ordering},
+    Mutex,
 };
 
-use tauri::{AppHandle, Url, WebviewUrl, WebviewWindowBuilder, WindowEvent, http};
+use tauri::{http, AppHandle, Url, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 use crate::error::{AppError, AppResult};
 
@@ -162,7 +162,11 @@ pub fn open_print_window(app: &AppHandle, html: String, title: &str) -> AppResul
 /// 不存在嵌套等待。
 #[tauri::command]
 pub async fn print_html(app: AppHandle, html: String, title: String) -> AppResult<()> {
-    let title = if title.trim().is_empty() { "打印预览" } else { title.as_str() };
+    let title = if title.trim().is_empty() {
+        "打印预览"
+    } else {
+        title.as_str()
+    };
     let owned = title.to_string();
     open_print_window(&app, html, &owned)
 }
@@ -181,13 +185,20 @@ mod tests {
     #[test]
     fn 存进去的会话能按路径取回() {
         let id = "t_exist".to_string();
-        lock_pages().unwrap().insert(id.clone(), "<html>正文</html>".to_string());
+        lock_pages()
+            .unwrap()
+            .insert(id.clone(), "<html>正文</html>".to_string());
 
         let response = serve(&request_for("t_exist.html"));
         assert_eq!(response.status(), 200);
         // 字节串字面量不许非 ASCII，用 as_bytes 比对
         assert_eq!(response.body(), "<html>正文</html>".as_bytes());
-        let content_type = response.headers().get("Content-Type").unwrap().to_str().unwrap();
+        let content_type = response
+            .headers()
+            .get("Content-Type")
+            .unwrap()
+            .to_str()
+            .unwrap();
         assert!(content_type.starts_with("text/html"));
 
         lock_pages().unwrap().remove(&id);

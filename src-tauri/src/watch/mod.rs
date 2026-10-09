@@ -79,31 +79,40 @@ pub fn init(app: AppHandle) -> AppResult<()> {
         return Ok(());
     }
 
-    let debouncer = new_debouncer(Duration::from_millis(DEBOUNCE_MS), move |result: DebounceEventResult| {
-        let batch = match result {
-            Ok(events) => {
-                // HashSet 去重：一次保存的多个原始事件合并成一个路径集合，
-                // 前端拿到的内容与事件顺序无关
-                let mut paths: HashSet<String> = HashSet::new();
-                for event in events {
-                    paths.insert(event.path.to_string_lossy().to_string());
+    let debouncer = new_debouncer(
+        Duration::from_millis(DEBOUNCE_MS),
+        move |result: DebounceEventResult| {
+            let batch = match result {
+                Ok(events) => {
+                    // HashSet 去重：一次保存的多个原始事件合并成一个路径集合，
+                    // 前端拿到的内容与事件顺序无关
+                    let mut paths: HashSet<String> = HashSet::new();
+                    for event in events {
+                        paths.insert(event.path.to_string_lossy().to_string());
+                    }
+                    if paths.is_empty() {
+                        return;
+                    }
+                    FsChangeBatch {
+                        paths: paths.into_iter().collect(),
+                        error: None,
+                    }
                 }
-                if paths.is_empty() {
-                    return;
-                }
-                FsChangeBatch { paths: paths.into_iter().collect(), error: None }
-            }
-            Err(thrown) => FsChangeBatch {
-                paths: Vec::new(),
-                error: Some(thrown.to_string()),
-            },
-        };
-        // 发送失败只可能意味着前端已经不在了（窗口关闭）—— 没什么可做的
-        let _ = app.emit("fs://changed", batch);
-    })
+                Err(thrown) => FsChangeBatch {
+                    paths: Vec::new(),
+                    error: Some(thrown.to_string()),
+                },
+            };
+            // 发送失败只可能意味着前端已经不在了（窗口关闭）—— 没什么可做的
+            let _ = app.emit("fs://changed", batch);
+        },
+    )
     .map_err(|thrown| AppError::internal(format!("文件监听器创建失败：{thrown}")))?;
 
-    *guard = Some(WatchState { debouncer, watched: BTreeSet::new() });
+    *guard = Some(WatchState {
+        debouncer,
+        watched: BTreeSet::new(),
+    });
     Ok(())
 }
 
@@ -130,7 +139,11 @@ pub fn replace(paths: &[String]) -> AppResult<Vec<String>> {
         state.watched.remove(&path);
     }
     for path in add {
-        let mode = if path.is_dir() { RecursiveMode::Recursive } else { RecursiveMode::NonRecursive };
+        let mode = if path.is_dir() {
+            RecursiveMode::Recursive
+        } else {
+            RecursiveMode::NonRecursive
+        };
         match state.debouncer.watcher().watch(&path, mode) {
             Ok(()) => {
                 state.watched.insert(path);
@@ -152,7 +165,10 @@ pub fn watch_replace(paths: Vec<String>) -> AppResult<Vec<String>> {
 }
 
 /// 纯函数：当前集合与期望集合的差量（要加的、要摘的）。
-fn plan_diff(current: &BTreeSet<PathBuf>, desired: &BTreeSet<PathBuf>) -> (Vec<PathBuf>, Vec<PathBuf>) {
+fn plan_diff(
+    current: &BTreeSet<PathBuf>,
+    desired: &BTreeSet<PathBuf>,
+) -> (Vec<PathBuf>, Vec<PathBuf>) {
     let add = desired.difference(current).cloned().collect();
     let remove = current.difference(desired).cloned().collect();
     (add, remove)
@@ -163,7 +179,7 @@ mod tests {
     use super::*;
 
     fn set(items: &[&str]) -> BTreeSet<PathBuf> {
-        items.iter().map(|p| PathBuf::from(p)).collect()
+        items.iter().map(PathBuf::from).collect()
     }
 
     #[test]
@@ -205,12 +221,18 @@ mod tests {
 
     #[test]
     fn 批次载荷能序列化成前端要的形状() {
-        let batch = FsChangeBatch { paths: vec!["C:\\w\\a.md".into()], error: None };
+        let batch = FsChangeBatch {
+            paths: vec!["C:\\w\\a.md".into()],
+            error: None,
+        };
         let json = serde_json::to_value(&batch).unwrap();
         assert_eq!(json["paths"], serde_json::json!(["C:\\w\\a.md"]));
         assert_eq!(json["error"], serde_json::Value::Null);
 
-        let failed = FsChangeBatch { paths: vec![], error: Some("gone".into()) };
+        let failed = FsChangeBatch {
+            paths: vec![],
+            error: Some("gone".into()),
+        };
         let json = serde_json::to_value(&failed).unwrap();
         assert_eq!(json["error"], serde_json::json!("gone"));
     }
