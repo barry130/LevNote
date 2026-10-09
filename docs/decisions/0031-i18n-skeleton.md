@@ -91,15 +91,16 @@ ui/ 目录 18 个组件（设置页 / 文件树 / 标签栏 / 大纲 / 检索 / 
 译文。落地时确认的三件事：
 
 - **静态清单存 key、渲染时才 `t()`**（ViewSwitcher / BlockHandle / SlashMenu /
-  SelectionToolbar / TableToolbar / CodeBlockPicker）：模块加载时求值会把语言
+  SelectionToolbar / TableToolbar）：模块加载时求值会把语言
   钉死在启动那一刻。含 `useMemo` 的地方（块手柄菜单条目）同样只存 key ——
   memo 不会因切语言重跑，把译文存进去就会过期。**这条在 E3 批次又抓到两处
   违例**：`mermaid-render` / `drawio-render` 的空图表常量原来是模块级
   `const X = t(...)`，已改为在返回点现调 `t()`（常量只有同模块与测试在用，
   测试同样改为按 key 现查）。
-  > **订正（复评记录五，刑部实测）**：上面把 `CodeBlockPicker` 列为**正面
-  > 样板**是**错的** —— 它的语言行**多数**确实是「存 key、渲染期现取」，但
-  > 搜索框里那行「使用 “xxx”」（`useMemo` 返回的 `label: t('ui.codeblock.useTyped')`）
+  > **订正（复评记录五，刑部实测）**：上面这份样板清单**本来还列了
+  > `CodeBlockPicker`，那是错的**（已从清单里移除）。它的语言行**多数**
+  > 确实是「存 key、渲染期现取」，但搜索框里那行「使用 “xxx”」
+  > （`useMemo` 返回的 `label: t('ui.codeblock.useTyped')`）
   > 是**存进被渲染对象**的，`deps` 无 locale ⇒ 切语言不重算。它与
   > `SlashMenu` 同一形状却结局相反：`SlashMenu` 的 `t()` **只喂给
   > `rankCommands` 打分**、条目文字在 JSX 期现取（正确），
@@ -312,13 +313,13 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 | 位置 | 形态 | 来源 |
 |---|---|---|
 | `core/document/images.ts` `PasteImageFail.reason` | 译文烤成字符串 | 本模块 `legacyText()` 出口就是给它留的 |
-| `core/search/replace.ts` `describeReplaceOutcome` / `skipped[].reason` | `t()` 拼好句子 | 经 `App.tsx` 的 `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存 state |
+| `core/search/replace.ts` `describeReplaceOutcome` / `skipped[].reason` | `t()` 拼好句子 | 经 `App.tsx` 的 `handleReplaceAll` 返回值 → `SearchPanel` 的 `setReplaceMessage` 存 state |
 | `core/workspace/store.ts` 的 `tree.error` 一族 | 译文进 store 字段 | **两个生产者**：① `failTreeAction` 的 **10 处调用**（**8 处**直传 `t()`：`fsManageUnsupported` / `cannotDetermineTarget`×2 / `createFailed` / `renameNoDir` / `renameFailed` / `deleteDirty` / `deleteFailed`）+ `toggleDir` 直接写 `tree.error` 的 `cannotReadDir` 一处；② `core/path.ts` 的 `validateEntryName()` **逐条 `return t()`**（`core.path.*` 七条），经 `failTreeAction(problem)` 落到 `tree.error.message` —— **同一族的独立生产者，先前漏登**（刑部封驳 P1-B） |
 | `core/document/block-preview.ts` 交译文给内核的**两个**译文字段 | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算。**同文件、同函数族、同机制，先前只登了一个字段**：① `buildDocBlockPreview()` 的 `reason: t(...)` 三处（`cannotResolve` / `unreadable` / `badMindmap`）；② `firstLines()` 拼进 `snippet` 的截断尾 `t('core.bprev.truncatedN')`（`>40` 行的 text 引用即走到，**生产可达**）—— 刑部封驳第四轮 P1 |
 | `src/ui/App.tsx` `resolveDocBlockPreview` 的 `reason: t('ui.app.refNoBaseReason')` | **白名单内**，但交的是**同一个契约字段** `DocBlockPreview.reason` | 登记而非本批改：修它要动 `core/editor/types.ts` 契约（白名单外）；且该分支生产不可达（标签页只在 `open()` 成功后入 `tabs`，`doc` 恒非 null；唯一置 null 的 `close()` 生产无人调用） |
 | `src/ui/CodeBlockPicker.tsx` 的 `useMemo`（`label: t('ui.codeblock.useTyped')` 进了**被渲染的**行对象，deps 无 locale） | `t()` 结果存进被渲染的对象 | **白名单外**；与 `SlashMenu` 同一形状但结局相反 —— 后者 `t()` 只喂打分、文字渲染期现取（正确形态），此处把译文塞进被渲染的 `label`（快照） |
 | `core/katex.ts` `MathRender.message` / `core/mermaid-render.ts` `MermaidRender.message` / `core/drawio-render.ts` `DrawioRender.message` | 交译文给内核 | **三个渲染出口**，同一机制（本轮机械遍历补登，先前从未登记）：`t('core.render.*')` 的结果经返回值交给 NodeView，NodeView 拿到就 `paintDiagramNote(result.message)` / `paint('failed', result.message)`，**不重问语言**。实测：切 en 后同一份结果对象仍是中文（`drawioEmpty` / `mermaidEmpty` 探针）；空图表 / 缺 chunk / 公式语法错时生产可达（第三轮封驳 P1-1 的「逐个出口 × 全部译文字段」机械扫补齐） |
-| `SettingsDialog.tsx:156` | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
+| `SettingsDialog.tsx` 的 `error` state | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
 
 > 表里那处 `App.tsx` 是**白名单内**的 —— 台账里要单独一句说明它为何「在白名单内却判登记」：
 > **判据落点是「这条 `t()` 结果是否跨渲染存活」，不是「文件在不在白名单」**。
@@ -345,7 +346,7 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 **不在上表的两处容易误列，特此书面否掉**：
 - `DocumentPane.tsx` 的 `editorError` —— 存的是内核抛出的**原始错误**
   （`thrown.message`），不是 `t()` 的返回值，本就不属这一族；
-- `SlashMenu.tsx:99` 的 `useMemo` —— 体内 `t(item.labelKey)` 只喂给
+- `SlashMenu.tsx` 的 `useMemo` —— 体内 `t(item.labelKey)` 只喂给
   `rankCommands` 打分，条目文字是 JSX 渲染期现取，属「存 key」的正确形态。
 
 ### 复评记录五 · 第二轮封驳整改（2026-10-10，`3dd6783` 之上）
@@ -385,14 +386,17 @@ R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个
 （全文件 `core.store.*` 共 11 个 = 8 notice + `dirtyBeforeFormat` + `readonlySave` +
 `conflictDetected`）。**「订正」行带「实测」担保却是错数字，比不订正更伤。**
 
-**（四）陈旧行号清理。** 本轮反复位移的文件里，行号引用是负资产：`store.ts` 注释里的
-「本文件第 364 行」、本文复评记录四里的 `:314` / `:420` / `:585`、残留表里的
-`store.ts:566` / `workspace/store.ts:593` —— 一律改成「函数名 / 调用点特征」，
-不再引行号。
+**（四）陈旧行号清理。** 本轮反复位移的文件里，行号引用是负资产：
+`store.ts` 注释里自引的「本文件第 N 行」、本文复评记录四里给三处 `error` /
+`conflict` 写入点标的行号、残留表里给 `save()` 冲突分支与 `tree.error` 一族
+标的行号 —— 一律改成「函数名 / 调用点特征」，**不再引行号**（连本节这条
+自陈也照办，免得自己就是下一个漂移源）。
 
-**（五）品牌门措辞收窄：「唯一出口」→「唯一正门」。** `{ ...legacyText('x'),
-text: '硬编码译文' }` 仍能过 `tsc`（刑部实测）—— 准确说法是「唯一**正门**」，
-`spread` 是已知边界，已写进上文（三）的边界注与 `store.ts` 注释。
+**（五）品牌门措辞收窄：不再写「唯一出口」/「唯一正门」。** 收成模块私有后，
+准确说法是**「拦外人、不拦自己人」** —— 别的文件造不出，本文件内
+`legacyText(t(...))` 与 `{ text, [LEGACY_TEXT]: true }` 照样过 `tsc`（刑部实测）。
+「唯一正门」这个说法也收掉：它读起来像「本层也拦得住」，与本轮补的那半句冲突。
+已写进上文（三）的边界注与 `store.ts` 注释。
 
 **（六）可复用的教训（并入经验卡）。** 「宣称面」不只是文档里那句完成度宣称，
 **测试用例名也是宣称面**：用例名说「遍历 8 条」而实际 `it.each` 只有 7 例，
@@ -485,7 +489,7 @@ text: '硬编码译文' }` 仍能过 `tsc`（刑部实测）—— 准确说法�
 |---|---|---|
 | P1-1 同族扫描漏同出口另一字段 | `block-preview` 的 `snippet` 已由并行实例补登；**但机械遍历没跑到底** | **把遍历跑到底**：又补出三个渲染出口（见下） |
 | P1-2 参数化遍历宣称 8 实 7 | 已闭合（`openedLossy` 并入 `it.each`，8 例） | — |
-| P2-1 行号/计数失实 | 已闭合（`:566` / `mod.rs` / `364 行` / `failTreeAction` / `9 key` 均已订正） | 顺带订正「每条臂只有 1 条红」的过度精确宣称 |
+| P2-1 行号/计数失实 | 已闭合（残留表里的裸行号、`mod.rs` 锚点、`legacyText` 自引行号、`failTreeAction` 处数、notice key 数均已订正为函数名 / 调用点特征与实测值） | 顺带订正「每条臂只有 1 条红」的过度精确宣称 |
 | P2-2 品牌门半句 | 只写了一半 | 补「本模块内 `legacyText(t(...))` 也过 `tsc`」 |
 
 **（一）P1-1 的机械遍历跑到底 —— 又补出三个渲染出口。** 判据定为「**逐个契约

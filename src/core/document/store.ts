@@ -117,7 +117,7 @@ export type ViewMode = 'rich' | 'source' | 'split';
  *   本文件**模块私有**的 `legacyText()` 就是给它留的出口）；
  * - `core/search/replace.ts` 的跨文件替换汇总（`describeReplaceOutcome` /
  *   `skipped[].reason` 全是 `t()` 拼好的句子）→ 经 `App.tsx` 的
- *   `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存进 state；
+ *   `handleReplaceAll` 返回值 → `SearchPanel` 的 `setReplaceMessage` 存进 state；
  * - `core/workspace/store.ts` 的 `tree.error` 一族 —— 有**两个**生产者：
  *   ① `failTreeAction` 的 **10 处调用**（其中 **8 处**直传 `t()` 结果：
  *   `fsManageUnsupported` / `cannotDetermineTarget` ×2 / `createFailed` /
@@ -143,7 +143,7 @@ export type ViewMode = 'rich' | 'source' | 'split';
  *   `mermaidEmpty` 探针）；空图表 / 缺 chunk / 公式语法错时生产可达。
  *   **按「逐个契约出口 × 它的全部译文字段」机械扫出来的，先前从未登记**
  *   （第三轮封驳 P1-1 的机械遍历补齐）。
- * - `SettingsDialog.tsx:156` `setError(t('ui.settings.keyUnsafe'))`。
+ * - `SettingsDialog.tsx` 的 `error` state（`setError(t('ui.settings.keyUnsafe'))`）。
  *
  * 上面这几处**都不在本单白名单内**，逐处判据见回奏的 AC6 扫描清单。
  * `error` / `conflict` 两个 store 字段与 notice 同型，已在同一批里改齐
