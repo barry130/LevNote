@@ -42,7 +42,7 @@ corepack enable       # 首次：让 pnpm 命令可用（版本钉在 package.js
 pnpm install
 pnpm run desktop      # 真桌面版（Tauri 2，需要 Rust 工具链）
 pnpm run dev          # 只跑前端（浏览器预览，内存虚拟盘，用于调界面）
-pnpm run test         # 单元测试（1,441 条）
+pnpm run test         # 单元测试（1,457 条）
 pnpm run typecheck    # 类型检查
 pnpm run check        # 上面两条加 lint 一起跑 —— 提交前必须全绿
 pnpm run lint         # ESLint（类型感知）。**阻塞**，配置里没有关掉的规则
