@@ -132,6 +132,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 导出 | `core/export/`（`document.ts` 组装，`inline-html.ts` 加工，`export-document.ts` 动作）。**打印 PDF 与它共用同一份渲染**：`print-document.ts` 动作 + `src-tauri/src/export/print.rs`（内存自定义协议 + 打印子窗口，ADR 0030）。**`print_html` 必须是 async 命令** —— 同步命令在主线程内联执行，里面开窗口要等 WebView2 回调，回调靠消息循环，循环正被命令占着 → 死锁（白屏 + 全应用关不掉，ADR 0030 §6） |
 | **写回磁盘时被改写成什么样**（列表符号 / 分隔线 / 表格） | `modules/markdown/setup.ts` 的 `useDashSymbols`（`bullet` / `rule` 都设成 `'-'`）。**`remark-stringify` 的默认是 `'*'`**，改回去会让「打开一份用 `-` 写的文档 → **改一个字** → 保存」把全篇的 `-` 静默换成 `*`。清单与实测见 `docs/open-decisions.md` 的「原文保真的实测与收窄」 |
 | Markdown 编辑体验 | `modules/markdown/` |
+| **专注模式 / 打字机模式** | 两个视图偏好（ADR 0039）。Markdown 侧是 `modules/markdown/plugin.ts` 的 `composePlugin`——**两个开关共用一个状态对象**；切换走 `setComposeMode`（`modules/markdown/setup.ts`）**只派发一条带 meta 的事务，不重建内核**（重建会丢光标 / 滚动 / 撤销栈，且那条事务必须带 `addToHistory: false`）。代码内核只认打字机，状态是一个闭包对象而非 Compartment（不改编辑行为）。**打字机只写 `scrollTop`、绝不 dispatch**（dispatch → 位置记忆 → 又滚动，停不下来）；滚动算术只有一份，在 `core/editor/position.ts` 的 `typewriterScrollTop`（返回 `null` = 不用动，含「差值 < 1px」那个阈值）。浓淡归内核样式表 `markdown.css` 的 `.qm-dimmed`（硬约束 13）。专注**只看顶层块**；打字机与专注的生效范围不对称，且**范围写在设置页提示里**。新增内核要么支持实时开关，要么在 `core/editor/types.ts` 的 `EditorMountProps` 注释里写明不支持 |
 | 代码编辑体验 | `modules/code/` |
 | **`.mindmap` 的读写** | `core/mindmap/`（纯函数、**不 import 任何内核** —— 「结构自持，不绑定具体内核」是 §7.1 的设计意图）。字段对应表见 `docs/format-spec.md` §7.1.2 |
 | **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
@@ -648,6 +649,15 @@ undefined 原样传，包一层永远存在的函数会画出假按钮）。
 状态栏三档切换，`--titlebar-bg` 已改名 `--menubar-bg`）；
 **状态栏是中性配色**（VSCode Modern 风格：底色与 chrome 同源 + 上边线，
 彩色只留给 `--accent` 选中态与语义徽章 —— 别再把「主题色铺满」加回来）。
+
+**专注 / 打字机已完成（2026-10-09，ADR 0039）**：两个视图偏好（`settings.focusMode` /
+`typewriterMode`），设置页两个开关 + 视图菜单两个命令（`view.toggleFocusMode` /
+`view.toggleTypewriterMode`，**刻意不给默认快捷键**）。Markdown 侧一个
+`composePlugin` 管两件事，代码内核只认打字机。**两条纪律**：切换偏好
+**不重建内核**（丢光标 / 滚动 / 撤销栈），只派发一条带 meta 且
+`addToHistory: false` 的事务；**打字机绝不 dispatch**，只写 `scrollTop`
+（dispatch → 位置记忆上报 → 又滚动，停不下来）。测试只钉插件契约，
+滚动那半边 jsdom 里是空操作 —— 已点名进 `docs/release-smoke.md` 第 3a 步。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、
