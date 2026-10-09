@@ -26,6 +26,9 @@
   - 跨文件替换汇总（`core/search/replace.ts` 拼好句子 → `SearchPanel.tsx` 存 state）；
   - 文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族）；
   - 引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文给内核）；
+    同一个契约字段还有**白名单内**的一处（`App.tsx` 的 `resolveDocBlockPreview`
+    在宿主文档没有路径信息时的 `reason`）—— 修它要动 `core/editor/types.ts`
+    契约，且该分支生产不可达（标签页只在打开成功后入列），故同样登记；
   - 设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
   - 保存冲突横幅也有一处**表面相同、根因不同**：`store.ts:566` 写进
     `conflict.message` 的那句来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码

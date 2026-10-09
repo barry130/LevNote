@@ -128,6 +128,16 @@ export type ViewMode = 'rich' | 'source' | 'split';
  * `error` / `conflict` 两个 store 字段与 notice 同型，已在同一批里改齐
  * （见 `localizedError` / `localizedConflict`）。
  *
+ * 同一族还有**一处白名单内**的，判的是「不改 + 登记」：
+ * `App.tsx` 的 `resolveDocBlockPreview` 回调里
+ * `reason: t('ui.app.refNoBaseReason')`（宿主文档没有路径信息时）。它与
+ * `block-preview.ts:44/49/67` 是**同一个契约字段**（`DocBlockPreview.reason`，
+ * 内核拿到就画、不重问），单侧改不动：① 修它要动 `core/editor/types.ts`
+ * 的契约（白名单外）；② 该分支生产不可达 —— 标签页只在 `store.open()`
+ * 成功后入 `tabs`，活动面板的 `doc` 恒非 null，唯一置 null 的 `close()`
+ * 在生产代码里无人调用。**白名单是「允许动的边界」，不是「必须改的清单」**
+ * —— 判据落在「`t()` 结果是否跨渲染存活 + 可达性」上，不落在文件归属上。
+ *
  * **注意 `DocumentPane.tsx` 的 `editorError` 不在上面** —— 它存的是
  * `thrown.message`（内核抛出的原始错误），不是 `t()` 的返回值，
  * 因此不属这一族。这是扫描时最容易误列的一处，判据要落到**来源**上。

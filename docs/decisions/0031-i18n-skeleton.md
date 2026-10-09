@@ -272,7 +272,13 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 | `core/search/replace.ts` `describeReplaceOutcome` / `skipped[].reason` | `t()` 拼好句子 | 经 `App.tsx` 的 `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存 state |
 | `core/workspace/store.ts:593` + `failTreeAction` 3 处调用 | 译文进 store 字段 | `tree.error.message` |
 | `core/document/block-preview.ts:44/49/67` | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算 |
+| `src/ui/App.tsx` `resolveDocBlockPreview` 的 `reason: t('ui.app.refNoBaseReason')` | **白名单内**，但交的是**同一个契约字段** `DocBlockPreview.reason` | 登记而非本批改：修它要动 `core/editor/types.ts` 契约（白名单外）；且该分支生产不可达（标签页只在 `open()` 成功后入 `tabs`，`doc` 恒非 null；唯一置 null 的 `close()` 生产无人调用） |
 | `SettingsDialog.tsx:156` | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
+
+> 表里那处 `App.tsx` 是**白名单内**的 —— 台账里要单独一句说明它为何「在白名单内却判登记」：
+> **判据落点是「这条 `t()` 结果是否跨渲染存活」，不是「文件在不在白名单」**。
+> 白名单只是「本批允许动的边界」，不是「本批必须改的清单」。它与
+> `block-preview.ts:44/49/67` 同属一个契约出口，单侧改不动（要动契约即越界）。
 
 **另有一处表面相同、根因不同，单列以免与上表混淆**：
 `store.ts:566`（保存时磁盘 mtime 不符）写进 `conflict.message` 的那句话

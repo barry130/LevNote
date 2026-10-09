@@ -156,7 +156,9 @@ pnpm run licenses                                     # 升过依赖才需要：
         粘贴图片失败时状态栏那句话（`core/document/images.ts`）；
         跨文件替换汇总（`core/search/replace.ts` → `SearchPanel.tsx` 存 state）；
         文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族）；
-        引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文）；
+        引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文；
+        同一契约字段在 `App.tsx` 的 `resolveDocBlockPreview` 里还有一处，
+        白名单内但同因登记）；
         设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
         另有一处**表面相同、根因不同**：保存冲突横幅（`store.ts:566`）那句
         来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码中文）—— 是这一侧
