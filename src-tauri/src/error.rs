@@ -53,7 +53,11 @@ impl ErrorCode {
 
 impl AppError {
     pub fn new(code: ErrorCode, message: impl Into<String>) -> Self {
-        Self { code, message: message.into(), detail: None }
+        Self {
+            code,
+            message: message.into(),
+            detail: None,
+        }
     }
 
     pub fn with_detail(mut self, detail: impl Into<String>) -> Self {

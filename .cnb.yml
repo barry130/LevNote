@@ -1,0 +1,158 @@
+# 云原生构建（CNB）—— 仓级门禁。
+#
+# 为什么要有这个文件：`.github/workflows/ci.yml` 是 GitHub Actions 格式，
+# CNB **不执行**它 —— 所以本仓在 CNB 上一直没有门禁，「文档说全绿」没人能证伪。
+# 这个文件让「类型 / 规范 / 测试 / 构建」在**每次推送与 PR** 上真跑一遍。
+#
+# ## 四个刻意的决定（与 `.github/workflows/ci.yml` 逐条对齐）
+#
+# 1. **前端与 Rust 拆成两条流水线，不串行。** 两者互相独立（前端跑在 Node 里，
+#    Rust 测试不需要 WebView），串起来只会让反馈变慢。同事件下的多条流水线并发执行，
+#    正好是想要的效果。
+#
+# 2. **`vite build` 单独跑，不混进 `pnpm run check`。** `tsc --noEmit` 通过不代表
+#    打包器能过 —— 路径别名、CSS `?raw`、动态 import 只有在真正的打包器里才暴露
+#    （本仓刚踩过：`@lezer/highlight` 缺声明时 `tsc` 报 4 条、`vite build` 直接失败）。
+#    分开跑，才能一眼看出坏在哪一步。
+#
+# 3. **Rust 侧要装 WebKitGTK / GTK 的头文件。** Tauri 的 Rust 侧要链接它们才能编译。
+#    不装的话 `cargo test` 在**链接阶段**失败，那种报错看着像代码问题，实际是环境缺件。
+#    用 `apt-get` 现装而非预烘镜像：本轮不引入 Dockerfile 这类新载体。
+#
+# 4. **不在此处做「发包 / 签名」。** 那要各平台原生工具链与签名主体，与「推送即跑门禁」
+#    是两件事。等真需要时单独立项。
+#
+# ## Rust 侧基线红（已修 · 见 PR 后续提交）
+#
+# 建这道门禁时，Rust 侧另有两处**既有**红（不在首轮前端白名单内）：
+#   - `cargo fmt --check`：**39 处** diff，横跨 10 个文件 —— 与 rustfmt 版本无关
+#     （1.77 / 1.87 / 1.99 三工具链下均为 39），是代码本身没格式过；
+#   - `cargo clippy --all-targets -- -D warnings`：2 条 error，都在**测试代码**里
+#     （`src/search/walk.rs` needless_borrows_for_generic_args、
+#      `src/watch/mod.rs` redundant_closure）—— 只跑 lib 的 clippy 是绿的。
+#
+# 当时**照实开门禁、不掩盖**（「有规则但不执行」比「没有规则」更糟，
+# 用 `allowFailure` 把红刷成绿正是这条反模式），作为 follow-up 上报。
+# 现两处已按机械改动修绿：`cargo fmt` 全树格式化（语义无关）+ 两条 lint 小改，
+# 未加 `#[allow]`、未改 rustfmt 配置去回避。改后 `cargo test` 66 条不变。
+#
+# ## 缓存
+#
+# pnpm store 与 cargo 的 registry / target 挂 `docker.volumes` 做节点级缓存
+# （https://docs.cnb.cool/zh/build/pipeline-cache.md）—— 依赖下载与 Rust 编译是这里
+# 最贵的两件事。缓存只在当前构建节点内有效，命中不了只是慢一点，不影响正确性。
+
+# 前端的六步在 push 与 pull_request 上完全一样。抄两份的下场是「改了一处忘了另一处」——
+# 正是这个文件要防的那类问题（文档说绿、实际红）。所以用锚点，只留一份真相。
+.frontend-stages: &frontend-stages
+  # pnpm 的版本由 `packageManager` 字段钉住（本仓 pnpm@11.7.0）。从 package.json 现读、
+  # 不在流水线里再写一遍 —— 两处写死必然漂。
+  - name: 安装 pnpm（版本取自 package.json）
+    script: |
+      set -eu
+      PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@').pop()")"
+      npm install -g "pnpm@${PNPM_VERSION}"
+      pnpm --version
+
+  # --frozen-lockfile：锁文件与 package.json 对不上时直接失败，而不是悄悄按最新
+  # 范围重装 —— CI 装的必须就是锁文件里那一份。
+  #
+  # --store-dir 显式指定：pnpm 会按「工作区与 HOME 是否同一文件系统」自动选存储位置，
+  # 工作区是独立挂载时它会退到项目内 `./.pnpm-store` —— 那样上面那条卷缓存**永远不命中**
+  # （实测本机工作区就是独立挂载，退到了 `/workspace/.pnpm-store/v11`）。
+  # 写死成卷挂载的同一个路径，缓存才真的复用得上。
+  - name: 安装依赖
+    script: pnpm install --frozen-lockfile --store-dir /root/.local/share/pnpm/store
+
+  - name: 类型检查
+    script: pnpm run typecheck
+
+  # lint **阻塞**。它曾经以「非阻塞」引入（首轮 33 条历史问题），欠账清零后转为强制 ——
+  # 「有规则但不执行」比「没有规则」更糟，因为它让人以为已经守住了。
+  - name: ESLint
+    script: pnpm run lint
+
+  - name: 单元测试
+    script: pnpm run test
+
+  - name: 构建
+    script: pnpm exec vite build
+
+.frontend-pipeline: &frontend-pipeline
+  runner:
+    cpus: 4
+  docker:
+    image: node:22
+    volumes:
+      # pnpm 的内容寻址存储；copy-on-write 让并发构建共享同一份底本。
+      # 路径取自 pnpm 默认（`pnpm store path`，HOME=/root）—— 与官方文档示例同源。
+      - /root/.local/share/pnpm/store:copy-on-write
+  stages: *frontend-stages
+
+.rust-pipeline: &rust-pipeline
+  runner:
+    cpus: 4
+  docker:
+    # 必须是 **≥1.90**：Cargo.lock 里的 tauri-runtime-wry 2.12 / tauri-utils 2.10
+    # 要求 rustc 1.90，darling 0.24 / encoding_rs 0.8.42 / icu_* 要求 1.88。
+    # 用 1.87 会在**依赖解析阶段**就失败（不是代码问题，是工具链太旧）。
+    # `src-tauri/Cargo.toml` 里写的 `rust-version = "1.77"` 已过期，属另一处待订正项。
+    image: rust:1.90-bookworm
+    volumes:
+      # 官方 rust 镜像里 CARGO_HOME 是 /usr/local/cargo：registry 缓存省下载，
+      # target 缓存省重复编译（Tauri 全量编译很贵）。
+      - /usr/local/cargo/registry:copy-on-write
+      - ./src-tauri/target:copy-on-write
+  stages:
+    # Tauri 在 Linux 上要这些库的头文件才能编译（缺了会在**链接阶段**失败）。
+    # 注意 Debian 12 无 `libappindicator3-dev`，改用 `libayatana-appindicator3-dev`。
+    - name: 安装系统依赖
+      script: |
+        set -eu
+        apt-get update
+        apt-get install -y --no-install-recommends \
+          libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+          libgtk-3-dev libsoup-3.0-dev
+        rm -rf /var/lib/apt/lists/*
+
+    # 官方 rust 镜像通常已带 rustfmt / clippy；显式再声明一次，缺了会自己装上（幂等）。
+    - name: 准备 rustfmt / clippy
+      script: rustup component add rustfmt clippy
+
+    # `src/lib.rs` 里 `tauri::generate_context!()` 是**编译期**宏，会在建期校验
+    # `tauri.conf.json` 的 `frontendDist`（`../dist`）存在 —— 而 `dist/` 是构建产物、
+    # 被 gitignore，干净检出里没有它。缺了会在**编译阶段**直接 panic：
+    #   error: proc macro panicked ... The `frontendDist` configuration is set to
+    #   "../dist" but this path doesn't exist
+    # Rust 测试不碰前端，给个占位目录即可（真实产物由前端那条流水线负责验）。
+    # 不用 Node 装真前端：两条流水线刻意保持独立，Rust 这条不该被 Node 拖住。
+    - name: 准备编译前置（frontendDist 占位）
+      script: mkdir -p dist
+
+    # **测试放在格式 / Clippy 之前**：stages 里任一任务失败会中断后续任务，
+    # 先跑测试才能保证「`cargo test` 是绿的」这件事在流水线变红时依然被看到。
+    - name: 测试
+      script: cargo test --manifest-path src-tauri/Cargo.toml
+
+    - name: 格式检查
+      script: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+    # -D warnings：警告即失败。与 ESLint 同一条理由 ——
+    # 「有规则但不执行」和「没有规则」在效果上是一样的，而前者更糟。
+    - name: Clippy
+      script: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+$:
+  # 推送就开门禁（所有分支 —— 特性分支也要在提 PR 之前就红起来）
+  push:
+    - name: 前端（类型 / 规范 / 测试 / 构建）
+      <<: *frontend-pipeline
+    - name: Rust（测试 / 格式 / Clippy）
+      <<: *rust-pipeline
+
+  # PR 跑的是**预合并后**的代码，能抓到只在合入时才出现的冲突面
+  pull_request:
+    - name: 前端（类型 / 规范 / 测试 / 构建）
+      <<: *frontend-pipeline
+    - name: Rust（测试 / 格式 / Clippy）
+      <<: *rust-pipeline

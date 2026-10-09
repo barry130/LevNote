@@ -190,7 +190,10 @@ impl Collector<'_> {
         self.scanned_files += 1;
         self.scanned_bytes += size;
 
-        let remaining = self.options.max_results.saturating_sub(self.total_matches as usize);
+        let remaining = self
+            .options
+            .max_results
+            .saturating_sub(self.total_matches as usize);
         if remaining == 0 {
             self.reason = SearchReason::Truncated;
             return false;
@@ -308,7 +311,8 @@ mod tests {
 
     /// 建一个临时目录。名字带进程号与序号，避免并发测试互相踩。
     fn scratch(name: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!("levnote-search-{}-{}", std::process::id(), name));
+        let base =
+            std::env::temp_dir().join(format!("levnote-search-{}-{}", std::process::id(), name));
         let _ = stdfs::remove_dir_all(&base);
         stdfs::create_dir_all(&base).unwrap();
         base
@@ -323,7 +327,11 @@ mod tests {
     }
 
     /// 走一遍，收集全部命中与收尾统计。
-    fn search(root: &Path, query: &str, options: SearchOptions) -> (Vec<(String, usize)>, SearchSummary) {
+    fn search(
+        root: &Path,
+        query: &str,
+        options: SearchOptions,
+    ) -> (Vec<(String, usize)>, SearchSummary) {
         let matcher = Matcher::build(query, false, false, false).unwrap();
         let cancel = Arc::new(AtomicBool::new(false));
         let mut found: Vec<(String, usize)> = Vec::new();
@@ -447,7 +455,11 @@ mod tests {
     fn gbk_files_are_decoded_with_the_shared_codec() {
         let root = scratch("gbk");
         // 「中文测试」的 GBK 字节
-        write(&root, "gbk.txt", &[0xD6, 0xD0, 0xCE, 0xC4, 0xB2, 0xE2, 0xCA, 0xD4]);
+        write(
+            &root,
+            "gbk.txt",
+            [0xD6, 0xD0, 0xCE, 0xC4, 0xB2, 0xE2, 0xCA, 0xD4],
+        );
 
         let (found, _) = search(&root, "测试", options());
         assert_eq!(found.len(), 1);
@@ -514,7 +526,13 @@ mod tests {
         let (found, _) = search(&root, "needle", options());
         let names: Vec<String> = found
             .iter()
-            .map(|(path, _)| Path::new(path).file_name().unwrap().to_string_lossy().to_string())
+            .map(|(path, _)| {
+                Path::new(path)
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string()
+            })
             .collect();
         // 深度优先 + 每层按路径排序：a.md → 进 m/ → n.md → z.md
         assert_eq!(names, vec!["a.md", "n.md", "z.md"]);

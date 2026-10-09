@@ -29,7 +29,10 @@ fn temp_path_for(target: &Path) -> AppResult<PathBuf> {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    Ok(dir.join(format!(".{name}.levnote-{}-{stamp}.tmp", std::process::id())))
+    Ok(dir.join(format!(
+        ".{name}.levnote-{}-{stamp}.tmp",
+        std::process::id()
+    )))
 }
 
 /// 原子写入。成功返回最终字节数。

@@ -74,12 +74,21 @@ impl Matcher {
     /// 因为那边是**边打字边查**（`(` 的中间态就是非法正则，报错会让查找栏一直闪红），
     /// 而这边是**停下来才查**（面板有防抖，用户停手才发起）。
     /// 这时候还报错，说明用户是真的写错了，该告诉他。
-    pub fn build(query: &str, case_sensitive: bool, whole_word: bool, regex: bool) -> AppResult<Self> {
+    pub fn build(
+        query: &str,
+        case_sensitive: bool,
+        whole_word: bool,
+        regex: bool,
+    ) -> AppResult<Self> {
         if query.is_empty() {
             return Err(AppError::invalid_path("检索词为空"));
         }
 
-        let mut source = if regex { query.to_string() } else { regex::escape(query) };
+        let mut source = if regex {
+            query.to_string()
+        } else {
+            regex::escape(query)
+        };
         if whole_word {
             // `(?-u:\b)` 而不是裸 `\b`：**刻意与 `find.ts` 对齐**。
             // JS 的 `\b` 按 ASCII 的 `\w`（`[A-Za-z0-9_]`）定义，
@@ -106,7 +115,10 @@ impl Matcher {
     /// 不会死循环 —— 但会产出长度 0 的命中，上层要如实画出来（标一个光标位），
     /// 而不是丢掉它。
     fn hits(&self, line: &str) -> Vec<(usize, usize)> {
-        self.pattern.find_iter(line).map(|m| (m.start(), m.end())).collect()
+        self.pattern
+            .find_iter(line)
+            .map(|m| (m.start(), m.end()))
+            .collect()
     }
 
     /// 扫一整篇文本，最多返回 `max` 处命中。
@@ -155,7 +167,10 @@ impl Matcher {
 /// 眼里只有一行，于是整个文件会被当成「第 1 行」推给用户，跳转也就跳不准。
 fn split_lines(text: &str) -> Box<dyn Iterator<Item = &str> + '_> {
     if text.contains('\n') {
-        Box::new(text.split('\n').map(|line| line.strip_suffix('\r').unwrap_or(line)))
+        Box::new(
+            text.split('\n')
+                .map(|line| line.strip_suffix('\r').unwrap_or(line)),
+        )
     } else if text.contains('\r') {
         Box::new(text.split('\r'))
     } else {
@@ -241,12 +256,19 @@ mod tests {
     }
 
     fn columns(matcher: &Matcher, text: &str) -> Vec<(u32, u32)> {
-        matcher.scan(text, 100).into_iter().map(|h| (h.column, h.length)).collect()
+        matcher
+            .scan(text, 100)
+            .into_iter()
+            .map(|h| (h.column, h.length))
+            .collect()
     }
 
     #[test]
     fn literal_match_is_case_insensitive_by_default() {
-        assert_eq!(columns(&plain("abc"), "ABC abc AbC"), vec![(0, 3), (4, 3), (8, 3)]);
+        assert_eq!(
+            columns(&plain("abc"), "ABC abc AbC"),
+            vec![(0, 3), (4, 3), (8, 3)]
+        );
     }
 
     #[test]
@@ -354,7 +376,10 @@ mod tests {
         let line = format!("{}hit{}", "x".repeat(1000), "y".repeat(100));
         let hits = plain("hit").scan(&line, 10);
         assert_eq!(hits[0].text_offset, 928);
-        assert_eq!(hits[0].text, format!("{}hit{}", "x".repeat(72), "y".repeat(100)));
+        assert_eq!(
+            hits[0].text,
+            format!("{}hit{}", "x".repeat(72), "y".repeat(100))
+        );
         assert!(!hits[0].tail_cut);
     }
 
@@ -384,7 +409,10 @@ mod tests {
     #[test]
     fn scan_reports_every_hit_on_a_line() {
         let hits = plain("ab").scan("ab-ab-ab", 10);
-        assert_eq!(hits.iter().map(|h| h.column).collect::<Vec<_>>(), vec![0, 3, 6]);
+        assert_eq!(
+            hits.iter().map(|h| h.column).collect::<Vec<_>>(),
+            vec![0, 3, 6]
+        );
         assert!(hits.iter().all(|h| h.text == "ab-ab-ab"));
     }
 

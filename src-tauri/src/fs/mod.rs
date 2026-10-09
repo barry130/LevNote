@@ -137,7 +137,10 @@ fn guard_not_dir(path: &Path) -> AppResult<()> {
 fn stat_of(path: &Path) -> AppResult<FileStat> {
     let meta = fs::metadata(path).map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
-            AppError::new(ErrorCode::NotFound, format!("文件不存在：{}", path.display()))
+            AppError::new(
+                ErrorCode::NotFound,
+                format!("文件不存在：{}", path.display()),
+            )
         } else {
             AppError::from(e)
         }
@@ -200,9 +203,8 @@ pub fn read_text_file(path: String, forced_encoding: Option<String>) -> AppResul
         });
     }
 
-    Err(last_error.unwrap_or_else(|| {
-        AppError::new(ErrorCode::Conflict, "文件持续被外部改写，暂时无法读取")
-    }))
+    Err(last_error
+        .unwrap_or_else(|| AppError::new(ErrorCode::Conflict, "文件持续被外部改写，暂时无法读取")))
 }
 
 /// 只读文件头部做编码探测，用于「不打开文件也能提示编码」的场景。
@@ -374,7 +376,10 @@ fn map_structural_error(e: std::io::Error, path: &Path) -> AppError {
     match e.kind() {
         std::io::ErrorKind::AlreadyExists => AppError::new(
             ErrorCode::Conflict,
-            format!("目标已存在，为避免覆盖已有内容，本次操作已取消：{}", path.display()),
+            format!(
+                "目标已存在，为避免覆盖已有内容，本次操作已取消：{}",
+                path.display()
+            ),
         ),
         std::io::ErrorKind::NotFound => AppError::new(
             ErrorCode::NotFound,
@@ -431,7 +436,10 @@ pub fn rename_path(from: String, to: String) -> AppResult<()> {
     if t.exists() {
         return Err(AppError::new(
             ErrorCode::Conflict,
-            format!("目标已存在，为避免覆盖已有内容，本次重命名已取消：{}", t.display()),
+            format!(
+                "目标已存在，为避免覆盖已有内容，本次重命名已取消：{}",
+                t.display()
+            ),
         ));
     }
     fs::rename(&f, &t)?;
@@ -592,7 +600,10 @@ mod tests {
     #[test]
     fn percent_decode_handles_ascii_and_chinese() {
         assert_eq!(percent_decode("a/b.png").unwrap(), "a/b.png");
-        assert_eq!(percent_decode("C%3A%5C%E7%AC%94%E8%AE%B0").unwrap(), "C:\\笔记");
+        assert_eq!(
+            percent_decode("C%3A%5C%E7%AC%94%E8%AE%B0").unwrap(),
+            "C:\\笔记"
+        );
         assert_eq!(percent_decode("%E4%B8%AD.md").unwrap(), "中.md");
     }
 
@@ -654,7 +665,13 @@ mod tests {
         assert!(create_directory(dir.join("sub").to_string_lossy().to_string()).is_ok());
         assert!(dir.join("sub").is_dir());
         // 父目录不存在：报可读的错，而不是静默补出目录链
-        let missing = create_directory(dir.join("no-such").join("deep").to_string_lossy().to_string()).unwrap_err();
+        let missing = create_directory(
+            dir.join("no-such")
+                .join("deep")
+                .to_string_lossy()
+                .to_string(),
+        )
+        .unwrap_err();
         assert_eq!(missing.code, ErrorCode::NotFound);
         assert!(fs::remove_dir_all(&dir).is_ok());
     }
@@ -667,14 +684,22 @@ mod tests {
         fs::write(&from, "A").unwrap();
         fs::write(&to, "B").unwrap();
 
-        let err = rename_path(from.to_string_lossy().to_string(), to.to_string_lossy().to_string()).unwrap_err();
+        let err = rename_path(
+            from.to_string_lossy().to_string(),
+            to.to_string_lossy().to_string(),
+        )
+        .unwrap_err();
         assert_eq!(err.code, ErrorCode::Conflict);
         // 拒绝之后两边都原样保留
         assert_eq!(fs::read_to_string(&from).unwrap(), "A");
         assert_eq!(fs::read_to_string(&to).unwrap(), "B");
 
         // 换个不存在的目标名：成功
-        rename_path(from.to_string_lossy().to_string(), dir.join("c.md").to_string_lossy().to_string()).unwrap();
+        rename_path(
+            from.to_string_lossy().to_string(),
+            dir.join("c.md").to_string_lossy().to_string(),
+        )
+        .unwrap();
         assert!(!from.exists());
         assert_eq!(fs::read_to_string(dir.join("c.md")).unwrap(), "A");
         assert!(fs::remove_dir_all(&dir).is_ok());

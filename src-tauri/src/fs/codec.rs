@@ -81,9 +81,8 @@ fn guess_encoding(bytes: &[u8]) -> &'static Encoding {
 
 /// 通过标签找编码，供 UI 手动指定编码时使用。
 pub fn lookup_encoding(label: &str) -> Result<&'static Encoding, AppError> {
-    Encoding::for_label(label.as_bytes()).ok_or_else(|| {
-        AppError::new(ErrorCode::UnknownEncoding, format!("不认识的编码：{label}"))
-    })
+    Encoding::for_label(label.as_bytes())
+        .ok_or_else(|| AppError::new(ErrorCode::UnknownEncoding, format!("不认识的编码：{label}")))
 }
 
 /// 探测并解码。`forced` 为 Some 时跳过探测，强制用指定编码。
@@ -145,7 +144,10 @@ pub fn encode(text: &str, label: &str, bom: Bom) -> Result<Vec<u8>, AppError> {
     if had_errors {
         return Err(AppError::new(
             ErrorCode::UnrepresentableEncoding,
-            format!("目标编码 {} 无法表示文本中的部分字符，已取消写入以避免内容损坏", enc.name()),
+            format!(
+                "目标编码 {} 无法表示文本中的部分字符，已取消写入以避免内容损坏",
+                enc.name()
+            ),
         ));
     }
     // encode() 对不可表示字符会退回数字实体，这里做一次「编码→解码」回读校验作为双保险。
@@ -153,7 +155,10 @@ pub fn encode(text: &str, label: &str, bom: Bom) -> Result<Vec<u8>, AppError> {
     if back != text {
         return Err(AppError::new(
             ErrorCode::UnrepresentableEncoding,
-            format!("以 {} 编码后回读内容不一致，已取消写入以避免内容损坏", enc.name()),
+            format!(
+                "以 {} 编码后回读内容不一致，已取消写入以避免内容损坏",
+                enc.name()
+            ),
         ));
     }
 
