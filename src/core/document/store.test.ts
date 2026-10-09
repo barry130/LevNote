@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { setLocale, t } from '../i18n/index.js';
+import { setLocale } from '../i18n/index.js';
 import { DocumentStore, isDirty, renderNotice } from './store.js';
 import type {
   BinaryWriteOutcome,
@@ -29,6 +29,8 @@ interface FakeFile {
   bom: BomKind;
   mtimeMs: number;
   readonly: boolean;
+  /** 编码探测有损（Rust 侧判定的）。给假盘一个开关，好走到 `openedLossy` 那条路。 */
+  lossy: boolean;
 }
 
 /** 内存文件系统。行为刻意贴近 Rust 侧：mtime 不符就拒绝写入。 */
@@ -47,6 +49,7 @@ class FakeProvider implements DocumentProvider {
       bom: options.bom ?? 'none',
       mtimeMs: options.mtimeMs ?? this.tick(),
       readonly: options.readonly ?? false,
+      lossy: options.lossy ?? false,
     });
   }
 
@@ -91,7 +94,7 @@ class FakeProvider implements DocumentProvider {
       size: file.text.length,
       mtimeMs: file.mtimeMs,
       readonly: file.readonly,
-      lossy: false,
+      lossy: file.lossy,
     };
   }
 
@@ -120,6 +123,7 @@ class FakeProvider implements DocumentProvider {
       bom: request.bom ?? existing?.bom ?? 'none',
       mtimeMs,
       readonly: existing?.readonly ?? false,
+      lossy: existing?.lossy ?? false,
     });
 
     return {
@@ -602,7 +606,7 @@ describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
    * 逐写入点遍历（P2-3 封驳整改）。
    *
    * 上一版只钉住 `opened` 一处 ——「存 key 不存译文」那句宣称覆盖的是**全部**
-   * 写入点，实测却只覆盖 1/7。这个用例把 7 个写入点各走一遍，逐个断言
+   * 写入点，实测却只覆盖 1/7。这个用例把 8 个写入点各走一遍，逐个断言
    * 「state 里是 key 变体」+「切语言后渲染成另一种语言」。回滚任意一个
    * 写入点（改回 `{ text: t(...) }`），它就会红 —— 这才是「类型换掉之后
    * 编译器会把漏改的点报出来」那句话在测试侧的对应物。
@@ -619,6 +623,17 @@ describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
         await target.open('/p/a.md');
       },
       expectedKey: 'core.store.opened',
+    },
+    {
+      // `openedLossy` 与 `opened` 共用同一个 `commit`（三元表达式二选一），
+      // 靠假盘给一个 `lossy: true` 才能真正走到它 ——「虚拟盘给不出」是错的，
+      // 那只是假盘先前没开这个开关（封驳 P1-A 实测）。
+      key: 'openedLossy',
+      run: async (target) => {
+        provider.put('/p/lossy.md', '正文', { lossy: true });
+        await target.open('/p/lossy.md');
+      },
+      expectedKey: 'core.store.openedLossy',
     },
     {
       key: 'imageSaved',
@@ -696,23 +711,6 @@ describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
 
     // 同一条 notice 在两种语言下渲染出**不同**的句子 —— 这就证明它是查表得来的
     expect(zh).not.toBe(en);
-  });
-
-  /**
-   * `openedLossy` 与 `opened` 共用同一个 `commit`（三元表达式二选一），
-   * 虚拟盘给不出 `lossy: true`，所以没法在上面的遍历里单独走到它。
-   * 这里把「两条 key 都在、且是不同句子」钉住，防 key 拼错 —— 形态正确性
-   * 由上面 `opened` 那条覆盖。
-   */
-  it('lossy 打开走的是 openedLossy 那条 key', () => {
-    setLocale('zh-CN');
-    const normal = t('core.store.opened', { name: 'x.md' });
-    const lossy = t('core.store.openedLossy', { name: 'x.md' });
-    expect(lossy).not.toBe(normal);
-
-    setLocale('en');
-    expect(t('core.store.openedLossy', { name: 'x.md' })).not.toBe(t('core.store.opened', { name: 'x.md' }));
-    setLocale('zh-CN');
   });
 
   it('clearNotice 与 close 把 notice 归 null（不是空串）', async () => {

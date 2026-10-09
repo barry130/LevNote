@@ -24,13 +24,15 @@
 - **已知残留（不是「唯一一处」）**，均在本单白名单之外、另立 follow-up：
   - 粘贴图片失败时状态栏那句话（`core/document/images.ts`，译文烤成字符串）；
   - 跨文件替换汇总（`core/search/replace.ts` 拼好句子 → `SearchPanel.tsx` 存 state）；
-  - 文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族）；
+  - 文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族，**两个
+    生产者**：`failTreeAction` 的 10 处调用 —— 其中 8 处直传 `t()` —— 与
+    `core/path.ts` 的 `validateEntryName()`，后者逐条返回译文）；
   - 引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文给内核）；
     同一个契约字段还有**白名单内**的一处（`App.tsx` 的 `resolveDocBlockPreview`
     在宿主文档没有路径信息时的 `reason`）—— 修它要动 `core/editor/types.ts`
     契约，且该分支生产不可达（标签页只在打开成功后入列），故同样登记；
   - 设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
-  - 保存冲突横幅也有一处**表面相同、根因不同**：`store.ts:566` 写进
+  - 保存冲突横幅也有一处**表面相同、根因不同**：`save()` 的冲突分支写进
     `conflict.message` 的那句来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码
     中文），不经 `t()` —— 是「这一侧没有 i18n 通道」，与 `src/modules/**`
     零接入同源，不属快照族（`src-tauri/**` 本单禁改，登记为独立 follow-up）。
@@ -43,8 +45,9 @@
   参数，渲染时才查表**），与「静态清单存 key、渲染时才 `t()`」是同一条
   纪律；渲染统一走 `renderNotice()`，状态栏与查找栏两处消费方零分叉。
 - `Notice` 的 `{ text }` 变体（只为 `images.ts` 那一处保留）现在带**品牌
-  符号**：直接写字面量 `{ text: '...' }` 是编译错误，唯一的出口是
-  `legacyText()`。此前它**只有注释约束、没有编译期拦截**（门下实测：插一句
+  符号**：直接写字面量 `{ text: '...' }` 是编译错误，唯一的**正门**是
+  `legacyText()`（品牌门挡的是字面量，不是绕道 —— `{ ...legacyText('x'),
+  text: '硬编码译文' }` 仍过 `tsc`，已写进 ADR 的已知边界）。此前它**只有注释约束、没有编译期拦截**（门下实测：插一句
   硬编码译文 → `tsc` 与全量测试全绿）。与命令面的 `BuiltInCommandSpec`
   不接受字面量 `title` 是同一条纪律 —— 该拦的形状交给类型系统。
 

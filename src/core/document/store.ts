@@ -114,12 +114,19 @@ export type ViewMode = 'rich' | 'source' | 'split';
  * ## 本轮的已知残留（不是「唯一」—— 详见 ADR 0031 复评记录四）
  *
  * - `core/document/images.ts` 的 `PasteImageFail.reason`（译文烤成字符串，
- *   本文件第 364 行的 `legacyText()` 就是给它留的出口）；
+ *   本文件的 `legacyText()` 就是给它留的出口）；
  * - `core/search/replace.ts` 的跨文件替换汇总（`describeReplaceOutcome` /
  *   `skipped[].reason` 全是 `t()` 拼好的句子）→ 经 `App.tsx` 的
  *   `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存进 state；
- * - `core/workspace/store.ts` 的 `tree.error` 一族（`:593` 与
- *   `failTreeAction` 的 3 处调用）；
+ * - `core/workspace/store.ts` 的 `tree.error` 一族 —— 有**两个**生产者：
+ *   ① `failTreeAction` 的 **10 处调用**（其中 **8 处**直传 `t()` 结果：
+ *   `fsManageUnsupported` / `cannotDetermineTarget` ×2 / `createFailed` /
+ *   `renameNoDir` / `renameFailed` / `deleteDirty` / `deleteFailed`），
+ *   以及 `toggleDir` 里直接写 `tree.error` 的 `cannotReadDir` 一处；
+ *   ② `core/path.ts` 的 `validateEntryName()` —— 它**逐条 `return t()`**
+ *   （`core.path.*` 七条），经 `failTreeAction(problem)` 落到 `tree.error.message`
+ *   再上屏，是**同一族的独立生产者**（同一族的两个写入路径各传一个来源）；
+ *   扫字段要先扫它**全部**的写入点，只看一个必然漏。
  * - `core/document/block-preview.ts:44/49/67` 的 `reason: t(...)` ——
  *   经契约交给内核画，内核不重问就不会重算；
  * - `SettingsDialog.tsx:156` `setError(t('ui.settings.keyUnsafe'))`。
@@ -161,10 +168,16 @@ export interface LegacyTextNotice {
 /**
  * 把一句已经查好表的译文包成 `Notice`。
  *
- * **这是 `text` 变体的唯一出口**，只为 `core/document/images.ts` 的
+ * **这是 `text` 变体的唯一「正门」**，只为 `core/document/images.ts` 的
  * `PasteImageFail.reason` 保留（那个文件不在本单白名单内，把 6 条译文
  * 烤成了字符串）。**新写的 notice 一律走 `key` 变体** —— 走这条出口
  * 会让那句话停在写入时的语言。
+ *
+ * **已知边界：品牌门挡的是「字面量」，不是「绕道」。** 先可信地调一次
+ * `legacyText('x')`、再 `{ ...legacyText('x'), text: '硬编码译文' }` 仍能
+ * 过 `tsc`（实测，仅第 1 行字面量报错）—— 只是那要求调用方**先碰一次**这个
+ * 唯一出口，与「随便写个 `{ text: ... }` 就过」不是一回事。所以准确说法是
+ * 「唯一**正门**」，`tsc` 不封锁旁的 `spread`。
  */
 export function legacyText(text: string): LegacyTextNotice {
   return { text, [LEGACY_TEXT]: true };

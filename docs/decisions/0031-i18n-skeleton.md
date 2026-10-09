@@ -192,12 +192,15 @@ ui/ 目录 18 个组件（设置页 / 文件树 / 标签栏 / 大纲 / 检索 / 
   > 都拦不住硬编码译文（门下实测）。现已给 `text` 变体加品牌符号做成
   > **编译期**拦截，见下方「封驳整改（三）」。
   >
-  > **另订正**：「写入点 6 处」是初稿的估算，实测是 **8 条写入路径 / 9 个 key**
-  > （`opened` 与 `openedLossy` 共用一个 commit）。参数化遍历用例按 8 条建。
+  > **另订正**：「写入点 6 处」是初稿的估算，实测是 **8 条写入路径 / 8 个 key**
+  > （`opened` / `openedLossy` / `imageSaved` / `renamed` / `saved` / `savedAs` /
+  > `reloaded` / `overwritten`）。先前写「9 个 key」是**错数字**（`9` 对不上任何
+  > 口径 —— 全文件 `core.store.*` 共 11 个：8 个 notice + `dirtyBeforeFormat` +
+  > `readonlySave` + `conflictDetected`）。参数化遍历用例按 8 条建。
 
 ### 为什么没有拆成「本轮只做标题、notice 单列」
 
-R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts` 内，
+R4 要求给成本依据。实测：`notice` 的**写入路径 8 条 / key 8 个**（`store.ts` 内，
 全是 `this.commit({ notice: ... })` 一行）、**读取点 2 处**（`DocumentPane`
 渲染、`FindBar` 无关 —— 它有自己的 state）。改动面**全部落在白名单内**，
 且类型换掉之后**编译器会把每一个漏改的点报出来**（`Notice` 不是 `string`，
@@ -225,8 +228,9 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 三处的「唯一 / 一处」一并删掉，改按实况列举。
 
 **（二）白名单文件内漏了两处同型实例。** 复评记录四漏列、漏改：
-`core/document/store.ts` 的 `error.message`（`:314` 未保存改动拒打开 /
-`:420` 只读保存 / 其余 `asAppError` 赋值点）与 `conflict.message`（`:585`）。
+`core/document/store.ts` 的 `error.message`（未保存改动拒打开 / 只读保存 /
+其余 `asAppError` 赋值点）与 `conflict.message`（本地有改动时的检测冲突）。
+行号在本轮反复位移的文件里是负资产 —— 只引**函数名 / 调用点特征**，不再引行号。
 
 **修法的关键取舍**：它们**不能像 `notice` 那样改成结构化联合** ——
 `error` 的契约是 `AppErrorShape`，被白名单外的消费方
@@ -245,9 +249,17 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 文件里插一句 `this.commit({ notice: { text: '硬编码译文' } })`，`tsc` 与
 全量测试**全绿** —— 所谓「新写的 notice 一律走 key 变体」只是一句注释，
 拦不住任何人。整改：`text` 变体带上**唯一品牌符号**（`LegacyTextNotice`
-的 `[LEGACY_TEXT]`），只有 `legacyText()` 一个出口能造出来，直接写字面量
+的 `[LEGACY_TEXT]`），只有 `legacyText()` 一个**正门**能造出来，直接写字面量
 `{ text: ... }` 是**编译错误**。与命令面的 `BuiltInCommandSpec` 不接受
 字面量 `title` 是同一条纪律：**该拦的形状交给类型系统，不靠人记得**。
+
+> **边界（登记，不阻塞）**：品牌门挡的是**字面量**，不是**绕道**。
+> `{ ...legacyText('x'), text: '硬编码译文' }` 仍能过 `tsc`（实测，仅第 1 行
+> 字面量报错）—— 但它要求调用方**先碰一次**这个唯一出口，与「随便写个
+> `{ text: ... }` 就过」不是一回事。所以准确说法是「唯一**正门**」，
+> 别让后人读成「`tsc` 全封」。若要把旁门也堵死，得让 `text` 变体带一个
+> 运行时不可伪造的令牌（`WeakSet` 登记），代价是每次 notice 构造多一次
+> 簿记 —— 本轮判不值，**重审条件**：出现第二处 `text` 变体来源时再上。
 
 **（四）测试覆盖与宣称面不对齐（P2-3）。** 上一版两条新用例**只钉住
 `opened` 一处写入点** —— 回滚其余 6 个写入点（`imageSaved` / `renamed` /
@@ -255,6 +267,8 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 是「notice 存 key」。补一条**参数化遍历全部 8 条写入路径**的用例，
 回滚任意一个写入点即红 —— 这才是「类型换掉之后编译器会把漏改的点报出来」
 那句话在测试侧的对应物。
+> **订正（复评记录五）**：这一版宣称「8 条」，实际 `it.each` 只有 **7 例** ——
+> `openedLossy` 被单列成一条**不进 store** 的用例。第 8 条已在复评记录五并入遍历。
 
 **（五）口径以外的教训（复用面比本单大）。** 这一轮真正的坑不是 `t()` 的
 求值时机，而是**「扫描面」与「宣称面」不一致**：判据（「`t()` 的结果活过
@@ -270,7 +284,7 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 |---|---|---|
 | `core/document/images.ts` `PasteImageFail.reason` | 译文烤成字符串 | 本模块 `legacyText()` 出口就是给它留的 |
 | `core/search/replace.ts` `describeReplaceOutcome` / `skipped[].reason` | `t()` 拼好句子 | 经 `App.tsx` 的 `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存 state |
-| `core/workspace/store.ts:593` + `failTreeAction` 3 处调用 | 译文进 store 字段 | `tree.error.message` |
+| `core/workspace/store.ts` 的 `tree.error` 一族 | 译文进 store 字段 | **两个生产者**：① `failTreeAction` 的 **10 处调用**（**8 处**直传 `t()`：`fsManageUnsupported` / `cannotDetermineTarget`×2 / `createFailed` / `renameNoDir` / `renameFailed` / `deleteDirty` / `deleteFailed`）+ `toggleDir` 直接写 `tree.error` 的 `cannotReadDir` 一处；② `core/path.ts` 的 `validateEntryName()` **逐条 `return t()`**（`core.path.*` 七条），经 `failTreeAction(problem)` 落到 `tree.error.message` —— **同一族的独立生产者，先前漏登**（刑部封驳 P1-B） |
 | `core/document/block-preview.ts:44/49/67` | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算 |
 | `src/ui/App.tsx` `resolveDocBlockPreview` 的 `reason: t('ui.app.refNoBaseReason')` | **白名单内**，但交的是**同一个契约字段** `DocBlockPreview.reason` | 登记而非本批改：修它要动 `core/editor/types.ts` 契约（白名单外）；且该分支生产不可达（标签页只在 `open()` 成功后入 `tabs`，`doc` 恒非 null；唯一置 null 的 `close()` 生产无人调用） |
 | `SettingsDialog.tsx:156` | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
@@ -281,8 +295,10 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 > `block-preview.ts:44/49/67` 同属一个契约出口，单侧改不动（要动契约即越界）。
 
 **另有一处表面相同、根因不同，单列以免与上表混淆**：
-`store.ts:566`（保存时磁盘 mtime 不符）写进 `conflict.message` 的那句话
-**来自 Rust**（`src-tauri/src/fs/mod.rs:254` 的硬编码中文），不经 `t()` ——
+`store.ts` 的 `save()` 冲突分支（`asAppError` 拿到 `code === 'CONFLICT'` 时）写进
+`conflict.message` 的那句话
+**来自 Rust**（`src-tauri/src/fs/mod.rs` 的 `write_text_file`，乐观锁失败时那句
+硬编码中文），不经 `t()` ——
 它不是「快照」（求值时机问题），而是**这一侧根本没有 i18n 通道**，
 与 `src/modules/**` 零接入同源。`src-tauri/**` 本单禁改（0 改动），
 登记为独立 follow-up，**不与上表合并**（根因不同，修法也不同：
@@ -293,3 +309,44 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
   （`thrown.message`），不是 `t()` 的返回值，本就不属这一族；
 - `SlashMenu.tsx:99` 的 `useMemo` —— 体内 `t(item.labelKey)` 只喂给
   `rankCommands` 打分，条目文字是 JSX 渲染期现取，属「存 key」的正确形态。
+
+### 复评记录五 · 第二轮封驳整改（2026-10-10，`3dd6783` 之上）
+
+刑部独立测试第二次封驳，判「命门 AC2 与三条核心修法已通过」，但指出
+**上一轮 P2-3 的同一根因（「宣称面 ≠ 覆盖 / 扫描面」）在本轮复现**，
+另有三处口径数字 / 行号错。逐条整改：
+
+**（一）参数化遍历宣称 8 条、实际只有 7 条 —— 第 8 条 `openedLossy` 没进遍历。**
+上一版把它单列成一条「只调 `t()` 比字符串、不进 store」的用例（旧注释写
+「虚拟盘给不出 `lossy: true`」—— **这句是错的**：假盘是测试自己的代码，
+`readTextFile` 里写死 `lossy: false` 只是「没让假盘给」）。整改：`FakeProvider`
+的 `put()` 与 `readTextFile()` 参数化 `lossy`，`openedLossy` 并入 `it.each`。
+**反向对照**（刑部实测 + 本部复跑）：把 `openedLossy` 那一臂退回
+`legacyText(t(...))` → **正好 1 条红**（`写入点 openedLossy`），此前是 **0 红**。
+
+**（二）残留表把 `failTreeAction` 数错，且漏登一个同族生产者。**
+实测 `failTreeAction` 有 **10 处调用**（不是 3 处），其中 **8 处**直传 `t()` 结果；
+余下 2 处（`:694` / `:735`）传的是 `core/path.ts` 的 **`validateEntryName()` 返回值** ——
+该函数**逐条 `return t()`**（`core.path.*` 七条），落到 `tree.error.message` 再上屏，
+是**同一族的独立生产者**。残留表已补登 `validateEntryName` 一行，
+四处口径（`store.ts` 注释 / 本文 / `CHANGELOG` / `release-smoke`）同步。
+
+**（三）口径数字订正：`notice` 的 key 是 8 个不是 9 个。** 上一版「订正」行里写
+「**9 个 key**」—— 实测去重 = 8（`opened` / `openedLossy` / `imageSaved` /
+`renamed` / `saved` / `savedAs` / `reloaded` / `overwritten`）。`9` 对不上任何口径
+（全文件 `core.store.*` 共 11 个 = 8 notice + `dirtyBeforeFormat` + `readonlySave` +
+`conflictDetected`）。**「订正」行带「实测」担保却是错数字，比不订正更伤。**
+
+**（四）陈旧行号清理。** 本轮反复位移的文件里，行号引用是负资产：`store.ts` 注释里的
+「本文件第 364 行」、本文复评记录四里的 `:314` / `:420` / `:585`、残留表里的
+`store.ts:566` / `workspace/store.ts:593` —— 一律改成「函数名 / 调用点特征」，
+不再引行号。
+
+**（五）品牌门措辞收窄：「唯一出口」→「唯一正门」。** `{ ...legacyText('x'),
+text: '硬编码译文' }` 仍能过 `tsc`（刑部实测）—— 准确说法是「唯一**正门**」，
+`spread` 是已知边界，已写进上文（三）的边界注与 `store.ts` 注释。
+
+**（六）可复用的教训（并入经验卡）。** 「宣称面」不只是文档里那句完成度宣称，
+**测试用例名也是宣称面**：用例名说「遍历 8 条」而实际 `it.each` 只有 7 例，
+就是判决的那处「宣称漂移」。写完 `it.each` 要**数一遍条目**，
+与注释 / 文档里的数字对账。
