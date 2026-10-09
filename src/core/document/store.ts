@@ -16,6 +16,7 @@ import {
   asAppError,
   type AppErrorShape,
   type BomKind,
+  type ErrorCode,
   type DocumentProvider,
   type LineEndingName,
   type ProviderKind,
@@ -94,17 +95,74 @@ export type ViewMode = 'rich' | 'source' | 'split';
  * 与 ADR 0031 复评记录二为组件立下的「静态清单存 key、渲染时才 `t()`」
  * 是同一条纪律 —— 那时漏掉的正是命令面与这两处快照。
  *
- * ## `text` 变体只服务一个来源
+ * ## `text` 变体只服务一个来源，且**有编译期拦截**
  *
  * `images.ts` 的 `PasteImageFail.reason` 已经是查好表的一句话，而那个文件
- * **不在本轮改动范围内**（它把 6 条译文烤成了字符串）。所以这一支保留原样，
- * 是本轮**已知的唯一残留** —— 要彻底消掉它得让 `images.ts` 也交回 key，
- * 另立 follow-up 处理，见 ADR 0031 复评记录四。
- * 它**不是为了给新代码留后门**：新写的 notice 一律走 `key` 变体。
+ * **不在本轮改动范围内**（它把 6 条译文烤成了字符串）。所以这一支保留原样。
+ *
+ * **它曾经「只有注释约束、无编译期拦截」**（门下实测：在白名单文件里插一句
+ * `{ text: '硬编码译文' }` → `tsc` / 全量测试**全绿**）—— 注释拦不住任何人。
+ * 现在 `text` 变体带一个**唯一的品牌符号**（`LegacyTextNotice` 上的
+ * `[LEGACY_TEXT]`），只有 `legacyText()` 那一个出口能造出来：直接写字面量
+ * `{ text: ... }` 是**编译错误**（缺品牌字段）。与命令面的
+ * `BuiltInCommandSpec` 不接受字面量 `title` 是同一条纪律 —— 该拦的形状
+ * 交给类型系统，不靠人记得。
+ *
+ * **重审条件**：哪天 `images.ts` 交回 key（那时 `text` 变体整个删除），
+ * 品牌符号随之一并删掉。
+ *
+ * ## 本轮的已知残留（不是「唯一」—— 详见 ADR 0031 复评记录四）
+ *
+ * - `core/document/images.ts` 的 `PasteImageFail.reason`（译文烤成字符串，
+ *   本文件第 364 行的 `legacyText()` 就是给它留的出口）；
+ * - `core/search/replace.ts` 的跨文件替换汇总（`describeReplaceOutcome` /
+ *   `skipped[].reason` 全是 `t()` 拼好的句子）→ 经 `App.tsx` 的
+ *   `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存进 state；
+ * - `core/workspace/store.ts` 的 `tree.error` 一族（`:593` 与
+ *   `failTreeAction` 的 3 处调用）；
+ * - `core/document/block-preview.ts:44/49/67` 的 `reason: t(...)` ——
+ *   经契约交给内核画，内核不重问就不会重算；
+ * - `SettingsDialog.tsx:156` `setError(t('ui.settings.keyUnsafe'))`。
+ *
+ * 上面这几处**都不在本单白名单内**，逐处判据见回奏的 AC6 扫描清单。
+ * `error` / `conflict` 两个 store 字段与 notice 同型，已在同一批里改齐
+ * （见 `localizedError` / `localizedConflict`）。
+ *
+ * **注意 `DocumentPane.tsx` 的 `editorError` 不在上面** —— 它存的是
+ * `thrown.message`（内核抛出的原始错误），不是 `t()` 的返回值，
+ * 因此不属这一族。这是扫描时最容易误列的一处，判据要落到**来源**上。
  */
+
+/** `text` 变体的品牌符号。**只有这个模块能造出带它的对象。** */
+const LEGACY_TEXT: unique symbol = Symbol('levnote.legacyTextNotice');
+
+/**
+ * 已经查好表的一句话（**旧形态**）。
+ *
+ * 带上品牌符号之后，`{ text: '...' }` 这种字面量**不再是** `Notice` ——
+ * 编译器会挡住它。想造一个只能走 `legacyText()`，而它的文档字符串里写着
+ * 「只为 `images.ts` 那一个来源保留」。
+ */
+export interface LegacyTextNotice {
+  readonly text: string;
+  readonly [LEGACY_TEXT]: true;
+}
+
+/**
+ * 把一句已经查好表的译文包成 `Notice`。
+ *
+ * **这是 `text` 变体的唯一出口**，只为 `core/document/images.ts` 的
+ * `PasteImageFail.reason` 保留（那个文件不在本单白名单内，把 6 条译文
+ * 烤成了字符串）。**新写的 notice 一律走 `key` 变体** —— 走这条出口
+ * 会让那句话停在写入时的语言。
+ */
+export function legacyText(text: string): LegacyTextNotice {
+  return { text, [LEGACY_TEXT]: true };
+}
+
 export type Notice =
   | { readonly key: MessageKey; readonly params?: Readonly<Record<string, string | number>> }
-  | { readonly text: string };
+  | LegacyTextNotice;
 
 /**
  * 把 `Notice` 渲染成一句话。
@@ -115,6 +173,59 @@ export type Notice =
  */
 export function renderNotice(notice: Notice): string {
   return 'text' in notice ? notice.text : t(notice.key, notice.params);
+}
+
+/**
+ * 错误横幅 / 冲突横幅里那句话（同批 · #TASK-I18N-SNAPSHOT-01）。
+ *
+ * ## 形态同族，修法不同：这里用 getter，不是结构化联合
+ *
+ * `error` / `conflict` 与 `notice` 是**同一种快照形态**（`t()` 的结果在动作
+ * 那一刻被烤进 store 字段，之后切语言不再重算），但字段类型没法像 `notice`
+ * 那样改成联合 —— `error` 的契约是 `AppErrorShape`，它**在别处被消费**
+ * （`core/workspace/store.ts` 的 `openError`、`App.tsx` 的打开失败横幅），
+ * 而那个文件不在本单白名单内。改字段类型会连着它们一起动。
+ *
+ * 而「读取时才查表」这件事**不需要改类型** —— 一个 getter 就够：
+ * 消费者写的仍是 `error.message`，只是那一下会现查表。这正是 ADR 0031
+ * 复评记录三为命令面立过的形状（`title` / `category` 是读的那一刻才查表的
+ * getter），理由也相同：**让「消费方零改动」与「求值时机正确」同时成立**。
+ *
+ * ## 这不是「随便存译文也行」
+ *
+ * 能存译文的只有**最终渲染出来的那一份**。这里 getter 给出的仍是
+ * 「**读的那一刻**」的译文，不是「写入那一刻」的 —— 与 `notice` 存 key
+ * 是同一条纪律的两种落地。
+ *
+ * **重审条件**：若哪天 `AppErrorShape` 的消费方都收进了白名单，
+ * 可以把它统一成 `Notice` 那样的结构化联合 —— 那时 getter 就该退场。
+ */
+function localizedError(
+  code: ErrorCode,
+  key: MessageKey,
+  params?: Readonly<Record<string, string | number>>,
+): AppErrorShape {
+  return {
+    code,
+    detail: null,
+    // getter：查表推迟到读取（渲染）那一刻，运行中切语言也跟着变
+    get message(): string {
+      return t(key, params);
+    },
+  };
+}
+
+/** 冲突横幅那句话。与 `localizedError` 同一形状，服务 `ConflictInfo`。 */
+function localizedConflict(
+  key: MessageKey,
+  params?: Readonly<Record<string, string | number>>,
+): ConflictInfo {
+  return {
+    detectedAt: Date.now(),
+    get message(): string {
+      return t(key, params);
+    },
+  };
 }
 
 export interface StoreState {
@@ -298,7 +409,7 @@ export class DocumentStore {
     });
 
     if (!result.ok) {
-      this.commit({ notice: { text: result.reason } });
+      this.commit({ notice: legacyText(result.reason) });
       return null;
     }
 
@@ -311,7 +422,7 @@ export class DocumentStore {
   async open(path: string): Promise<boolean> {
     if (this.state.doc && isDirty(this.state.doc)) {
       // 调用方（UI）负责先问用户是否丢弃改动；这里只做兜底
-      this.commit({ error: { code: 'INTERNAL', message: t('core.store.dirtyBeforeFormat'), detail: null } });
+      this.commit({ error: localizedError('INTERNAL', 'core.store.dirtyBeforeFormat') });
       return false;
     }
 
@@ -417,7 +528,7 @@ export class DocumentStore {
 
     if (doc.readonly) {
       this.commit({
-        error: { code: 'PERMISSION_DENIED', message: t('core.store.readonlySave', { name: doc.displayName }), detail: null },
+        error: localizedError('PERMISSION_DENIED', 'core.store.readonlySave', { name: doc.displayName }),
       });
       return false;
     }
@@ -582,7 +693,7 @@ export class DocumentStore {
     if (stat.mtimeMs === doc.mtimeMs) return;
 
     if (isDirty(doc)) {
-      this.commit({ conflict: { message: t('core.store.conflictDetected'), detectedAt: Date.now() } });
+      this.commit({ conflict: localizedConflict('core.store.conflictDetected') });
     } else {
       // 本地没有改动，直接跟上磁盘，不打扰用户
       await this.reload();

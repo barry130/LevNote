@@ -1,6 +1,6 @@
 # 发布冒烟清单（release smoke）
 
-> 发版前**人工**跑一遍的清单。单测（1,476 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
+> 发版前**人工**跑一遍的清单。单测（1,481 条前端 + 66 条 Rust）覆盖的是我们想到的路径，
 > 而发版要兜住的是「自动化天生测不了」的那一批：真布局、真渲染、真文件系统、真对话框。
 > 这份清单把那批事**点名**，每一条都写了**为什么只能人工测** —— 没写理由的条目不该出现在这里。
 >
@@ -33,7 +33,7 @@ test / build + cargo test / fmt / clippy）—— 但它只**验**不**发**。
 ## 第 0 步 · 自动门禁（先跑，全绿才轮到人工）
 
 ```bash
-pnpm run check                                        # typecheck + lint + 1,476 条测试
+pnpm run check                                        # typecheck + lint + 1,481 条测试
 cargo test --manifest-path src-tauri/Cargo.toml       # 66 条 Rust 测试
 pnpm run licenses                                     # 升过依赖才需要：重算许可证清单
 ```
@@ -102,6 +102,10 @@ pnpm run licenses                                     # 升过依赖才需要：
 ### 3d. Tauri / 操作系统面 —— 浏览器与 mock 都没有这些东西
 
 - [ ] 原生对话框：打开文件夹、保存、删除确认
+- [ ] **窗口标题（真机）**：打开 `a.md` → 标题栏显示 `a.md — 轻笺` → 设置页切 English
+      → **那一刻**标题栏变成 `a.md — LevNote`。浏览器面只见 `document.title`，
+      桌面下真实通道是 Tauri 的 `set_title`（单测只能钉「有没有再调一次、
+      带的是不是新文案」，**真窗口上到底刷没刷**只有真机看得见）。
 - [ ] 文件监听：应用开着时用记事本改同一个文件 → 出现外部改动提示；选「从磁盘重新加载」内容正确
       （notify 的事件在真文件系统上才发生；mtime 判决、防抖窗口都是真机行为）
 - [ ] 图片粘贴：截图 → Markdown 里 Ctrl+V → 落盘到 `<文档名>.assets/`、相对路径、显示成功
@@ -140,14 +144,23 @@ pnpm run licenses                                     # 升过依赖才需要：
         - **状态栏那句话**：打开文件后状态栏右侧出现「已打开 a.md」
           （`文档还需保存` / `已替换 N 处` 同理）→ 切 English →
           **同一句**当场变成 `Opened a.md`。
+        - **错误横幅 / 冲突横幅**：只读文件点保存（横幅出现）→ 切 English
+          → **同一句**当场变英文；冲突横幅同理（外部改动 + 本地也有改动）。
         - 查找栏的「已替换 N 处」也在这一批里（同一个快照族）。
       - **编辑器里由内核画的浮动说明与按钮仍是中文**（代码块语言标签与
         「正在渲染图表…」、公式「正在渲染公式…」、图片「无法显示本地
         图片：…」、导图与引用卡片上的按钮）—— 内核（`src/modules/**`）
         零 i18n 接入，**已知部分覆盖，记进 release notes，不当 bug 报**。
-      - **唯一残留**（已知、不当 bug 报）：粘贴图片失败时状态栏那句话
-        仍停在旧语言 —— 文案在 `core/document/images.ts` 里、本轮不在
-        改动范围内（#TASK-I18N-SNAPSHOT-01 的 ADR 0031 复评记录四）。
+      - **已知残留**（不是「唯一一处」，均不当 bug 报、各在
+        #TASK-I18N-SNAPSHOT-01 的 ADR 0031 复评记录四里登记）：
+        粘贴图片失败时状态栏那句话（`core/document/images.ts`）；
+        跨文件替换汇总（`core/search/replace.ts` → `SearchPanel.tsx` 存 state）；
+        文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族）；
+        引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文）；
+        设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
+        这几处都在白名单之外，另立 follow-up。
+        > `DocumentPane.tsx` 的 `editorError` **不在**此列 —— 它存的是内核
+        > 抛出的原始错误，不是查好表的译文，本就不属这一族。
 
 ---
 

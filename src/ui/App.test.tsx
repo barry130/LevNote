@@ -3734,6 +3734,61 @@ describe('快照型文案第二批：窗口标题 / 状态栏 notice / 查找栏
     // 同一条汇总，没有再做替换动作
     expect(mounted.container.querySelector('.find-notice')?.textContent).toBe('Replaced 1 occurrence(s)');
   });
+
+  /**
+   * `error` / `conflict` 两个横幅是同一族（封驳整改补入）。
+   *
+   * 它们的字段类型仍是 `AppErrorShape` / `ConflictInfo` —— 不能像 notice 那样
+   * 改成结构化联合（那份契约被白名单外的消费方用着）。修法是 getter，
+   * 所以**消费方一行没动**：屏上这句读的就是 `error.message`。
+   * 这里钉的正是「消费方没动、旧快照也活过来」这件事。
+   */
+  it('错误横幅（只读文件保存失败）：切 en 时**已经在屏上**那句话变英文', async () => {
+    const m = await mount((p) => p.put('locked.md', '正文\n', { readonly: true }));
+    mounted = m;
+    await m.open('locked.md');
+
+    // 触发一次只读保存失败 —— 错误横幅上屏
+    const store = m.store;
+    await act(async () => {
+      await store.save();
+    });
+    await settle();
+
+    const banner = m.container.querySelector('.banner.error');
+    expect(banner?.textContent).toContain('只读文件');
+
+    await openSettingsAndSwitchLocale(m, 'en');
+
+    // 同一个横幅节点，没有再做保存动作
+    const after = m.container.querySelector('.banner.error');
+    expect(after?.textContent).toContain('read-only');
+    expect(after?.textContent).not.toContain('只读文件');
+  });
+
+  it('冲突横幅：切 en 时**已经在屏上**那句话变英文，不重新检测', async () => {
+    const m = await mount((p) => p.put('note.md', 'v1\n'));
+    mounted = m;
+    await m.open('note.md');
+
+    // 本地改动 + 磁盘被外部改写 → checkExternalChange 判成冲突
+    const store = m.store;
+    store.updateText('我的改动');
+    m.provider.put('note.md', '别人的改动\n');
+    await act(async () => {
+      await store.checkExternalChange();
+    });
+    await settle();
+
+    const banner = m.container.querySelector('.banner.warn');
+    expect(banner?.textContent).toContain('磁盘上的文件已被其他程序修改');
+
+    await openSettingsAndSwitchLocale(m, 'en');
+
+    const after = m.container.querySelector('.banner.warn');
+    expect(after?.textContent).toContain('was changed by another program');
+    expect(after?.textContent).not.toContain('磁盘上的文件已被其他程序修改');
+  });
 });
 
 

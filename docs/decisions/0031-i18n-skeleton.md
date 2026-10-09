@@ -188,6 +188,12 @@ ui/ 目录 18 个组件（设置页 / 文件树 / 标签栏 / 大纲 / 检索 / 
   在 `core/document/images.ts` 里被烤成了字符串（`PasteImageFail.reason`），
   要彻底消掉得让那个模块也交回 key —— 与本轮白名单冲突，另立 follow-up。
   **新写的 notice 一律走 `key` 变体**。
+  > **订正（封驳后）**：这句「不是后门」当时**只是一句注释**，`tsc` 与测试
+  > 都拦不住硬编码译文（门下实测）。现已给 `text` 变体加品牌符号做成
+  > **编译期**拦截，见下方「封驳整改（三）」。
+  >
+  > **另订正**：「写入点 6 处」是初稿的估算，实测是 **8 条写入路径 / 9 个 key**
+  > （`opened` 与 `openedLossy` 共用一个 commit）。参数化遍历用例按 8 条建。
 
 ### 为什么没有拆成「本轮只做标题、notice 单列」
 
@@ -203,5 +209,73 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 - `docs/release-smoke.md`：语言切换条新增「**先让它上屏，再切语言**」一段 ——
   点名窗口标题与状态栏那句话，并说明「切完再做一次动作」**查不出**这两个缺陷
   （那是判据本身的一部分，不写进去，下次人工冒烟会漏掉）。
-- `CHANGELOG.md`：新增「未发布 → 修复」条，并写明 `images.ts` 那一处已知残留。
+  **3d 补一条真机项**：窗口标题在桌面下走 Tauri 的 `set_title`，
+  浏览器面只见 `document.title` —— 真窗口那条通道要人工看一眼。
+- `CHANGELOG.md`：新增「未发布 → 修复」条。
 - **`AGENTS.md` 本轮未动**（归 #TASK 另一单独占，防打架）。
+
+### 复评记录四 · 封驳整改（2026-10-10）
+
+门下与刑部对**同一提交**（`69b1c3f`）各判一次驳，指出四条：
+
+**（一）「唯一残留」是错的 —— 同一个错结论被同步了三遍。**
+`images.ts` 只是**已知里的一处**。这不是「三处不同源」，是三处**把同一个
+错的完成度宣称复制了三份**（正落 CASEBOOK「判别力自证须覆盖叙述面」与
+「测试契约覆盖宣称漂移」两卡）。本文与 `CHANGELOG.md` / `release-smoke.md`
+三处的「唯一 / 一处」一并删掉，改按实况列举。
+
+**（二）白名单文件内漏了两处同型实例。** 复评记录四漏列、漏改：
+`core/document/store.ts` 的 `error.message`（`:314` 未保存改动拒打开 /
+`:420` 只读保存 / 其余 `asAppError` 赋值点）与 `conflict.message`（`:585`）。
+
+**修法的关键取舍**：它们**不能像 `notice` 那样改成结构化联合** ——
+`error` 的契约是 `AppErrorShape`，被白名单外的消费方
+（`workspace/store.ts` 的 `openError`、`App.tsx` 的打开失败横幅）用着，
+改字段类型会连着它们一起动（越界）。所以改用**读取时才查表的 getter**
+（`localizedError` / `localizedConflict`），形状与复评记录三给命令面立过的
+`title` / `category` getter 相同：**让「消费方零改动」与「求值时机正确」
+同时成立**。实测：`DocumentPane` / `App` 那两个消费方**一行没动**。
+
+判断依据由此补一条：**「改类型逼编译器找漏改」与「getter 就地改变求值
+时机」是消除这类快照的两种手段，选哪个取决于那份契约有没有越界的消费方** ——
+越界了用 getter（不动契约，靠测试遍历写入点兜底），没越界才改类型
+（让编译器替你找齐）。
+
+**（三）`{ text }` 变体的约束强度 ≈ 0（门下实测）。** 原写法下，在白名单
+文件里插一句 `this.commit({ notice: { text: '硬编码译文' } })`，`tsc` 与
+全量测试**全绿** —— 所谓「新写的 notice 一律走 key 变体」只是一句注释，
+拦不住任何人。整改：`text` 变体带上**唯一品牌符号**（`LegacyTextNotice`
+的 `[LEGACY_TEXT]`），只有 `legacyText()` 一个出口能造出来，直接写字面量
+`{ text: ... }` 是**编译错误**。与命令面的 `BuiltInCommandSpec` 不接受
+字面量 `title` 是同一条纪律：**该拦的形状交给类型系统，不靠人记得**。
+
+**（四）测试覆盖与宣称面不对齐（P2-3）。** 上一版两条新用例**只钉住
+`opened` 一处写入点** —— 回滚其余 6 个写入点（`imageSaved` / `renamed` /
+`saved` / `savedAs` / `reloaded` / `overwritten`）一条都不红，而用例名宣称的
+是「notice 存 key」。补一条**参数化遍历全部 8 条写入路径**的用例，
+回滚任意一个写入点即红 —— 这才是「类型换掉之后编译器会把漏改的点报出来」
+那句话在测试侧的对应物。
+
+**（五）口径以外的教训（复用面比本单大）。** 这一轮真正的坑不是 `t()` 的
+求值时机，而是**「扫描面」与「宣称面」不一致**：判据（「`t()` 的结果活过
+这次求值」）写对了，但**执行扫描时只扫了「notice 家族」而非「这条判据的
+全部落点」**。判断依据由此再补一条：**判据的正确性不等于扫描的完备性 ——
+写完判据后要按「所有可能落点」机械遍历一遍（这里是全仓 `t(` 调用点 ×
+是否跨渲染存活），而不是按「已知家族」枚举。** 漏的 `error` / `conflict`
+就在**同一个文件、同一个模式**里，按家族枚举必然漏。
+
+### 本轮已知残留（白名单外，逐条登记 · 另立 follow-up）
+
+| 位置 | 形态 | 来源 |
+|---|---|---|
+| `core/document/images.ts` `PasteImageFail.reason` | 译文烤成字符串 | 本模块 `legacyText()` 出口就是给它留的 |
+| `core/search/replace.ts` `describeReplaceOutcome` / `skipped[].reason` | `t()` 拼好句子 | 经 `App.tsx` 的 `handleReplaceAll` 返回值 → `SearchPanel.tsx:81` 存 state |
+| `core/workspace/store.ts:593` + `failTreeAction` 3 处调用 | 译文进 store 字段 | `tree.error.message` |
+| `core/document/block-preview.ts:44/49/67` | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算 |
+| `SettingsDialog.tsx:156` | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
+
+**不在上表的两处容易误列，特此书面否掉**：
+- `DocumentPane.tsx` 的 `editorError` —— 存的是内核抛出的**原始错误**
+  （`thrown.message`），不是 `t()` 的返回值，本就不属这一族；
+- `SlashMenu.tsx:99` 的 `useMemo` —— 体内 `t(item.labelKey)` 只喂给
+  `rankCommands` 打分，条目文字是 JSX 渲染期现取，属「存 key」的正确形态。

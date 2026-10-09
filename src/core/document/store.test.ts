@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { setLocale } from '../i18n/index.js';
+import { setLocale, t } from '../i18n/index.js';
 import { DocumentStore, isDirty, renderNotice } from './store.js';
 import type {
   BinaryWriteOutcome,
@@ -598,6 +598,123 @@ describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
     expect(renderNotice(notice)).toBe(notice.text);
   });
 
+  /**
+   * 逐写入点遍历（P2-3 封驳整改）。
+   *
+   * 上一版只钉住 `opened` 一处 ——「存 key 不存译文」那句宣称覆盖的是**全部**
+   * 写入点，实测却只覆盖 1/7。这个用例把 7 个写入点各走一遍，逐个断言
+   * 「state 里是 key 变体」+「切语言后渲染成另一种语言」。回滚任意一个
+   * 写入点（改回 `{ text: t(...) }`），它就会红 —— 这才是「类型换掉之后
+   * 编译器会把漏改的点报出来」那句话在测试侧的对应物。
+   */
+  const noticeCases: ReadonlyArray<{
+    key: string;
+    run: (target: DocumentStore) => Promise<void>;
+    expectedKey: string;
+  }> = [
+    {
+      key: 'opened',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+      },
+      expectedKey: 'core.store.opened',
+    },
+    {
+      key: 'imageSaved',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        const src = await target.pasteImage(new ArrayBuffer(8), 'image/png');
+        if (src === null) throw new Error('粘贴图片应当成功');
+      },
+      expectedKey: 'core.store.imageSaved',
+    },
+    {
+      key: 'renamed',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        target.retargetPath('/p/renamed.md');
+      },
+      expectedKey: 'core.store.renamed',
+    },
+    {
+      key: 'saved',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        if (!(await target.save())) throw new Error('保存应当成功');
+      },
+      expectedKey: 'core.store.saved',
+    },
+    {
+      key: 'savedAs',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        if (!(await target.saveAs())) throw new Error('另存为应当成功');
+      },
+      expectedKey: 'core.store.savedAs',
+    },
+    {
+      key: 'reloaded',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        if (!(await target.reload())) throw new Error('重新加载应当成功');
+      },
+      expectedKey: 'core.store.reloaded',
+    },
+    {
+      key: 'overwritten',
+      run: async (target) => {
+        provider.put('/p/a.md', '正文');
+        await target.open('/p/a.md');
+        target.updateText('改过的正文');
+        if (!(await target.resolveConflict('overwrite'))) throw new Error('覆盖应当成功');
+      },
+      expectedKey: 'core.store.overwritten',
+    },
+  ];
+
+  it.each(noticeCases)('写入点 $key：存的是 key，切语言那一条跟着变', async ({ run, expectedKey }) => {
+    await run(store);
+
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    if (notice === null) return;
+    if (!('key' in notice)) throw new Error(`写入点 ${expectedKey} 存的仍是译文，不是 key`);
+
+    expect(notice.key).toBe(expectedKey);
+
+    setLocale('zh-CN');
+    const zh = renderNotice(notice);
+    setLocale('en');
+    const en = renderNotice(notice);
+    setLocale('zh-CN');
+
+    // 同一条 notice 在两种语言下渲染出**不同**的句子 —— 这就证明它是查表得来的
+    expect(zh).not.toBe(en);
+  });
+
+  /**
+   * `openedLossy` 与 `opened` 共用同一个 `commit`（三元表达式二选一），
+   * 虚拟盘给不出 `lossy: true`，所以没法在上面的遍历里单独走到它。
+   * 这里把「两条 key 都在、且是不同句子」钉住，防 key 拼错 —— 形态正确性
+   * 由上面 `opened` 那条覆盖。
+   */
+  it('lossy 打开走的是 openedLossy 那条 key', () => {
+    setLocale('zh-CN');
+    const normal = t('core.store.opened', { name: 'x.md' });
+    const lossy = t('core.store.openedLossy', { name: 'x.md' });
+    expect(lossy).not.toBe(normal);
+
+    setLocale('en');
+    expect(t('core.store.openedLossy', { name: 'x.md' })).not.toBe(t('core.store.opened', { name: 'x.md' }));
+    setLocale('zh-CN');
+  });
+
   it('clearNotice 与 close 把 notice 归 null（不是空串）', async () => {
     provider.put('/p/a.md', '正文');
     await store.open('/p/a.md');
@@ -609,5 +726,76 @@ describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
     await store.open('/p/a.md');
     store.close(true);
     expect(store.getSnapshot().notice).toBeNull();
+  });
+});
+
+describe('error / conflict 也是「读的时候才查表」（#TASK-I18N-SNAPSHOT-01 封驳整改）', () => {
+  /**
+   * 这两条与 notice 同族，但字段类型**不能**像 notice 那样改成结构化联合 ——
+   * `error` 的契约是 `AppErrorShape`，它被白名单外的消费方（`workspace/store.ts`
+   * 的 `openError`）用着。所以修法是 getter：**消费者写的仍是 `error.message`，
+   * 只是那一下现查表**（ADR 0031 复评记录三给命令面立过的形状）。
+   *
+   * 判据与 notice 那条一样，不看「新的写入是英文」，看的是
+   * 「**切语言那一刻已经躺在 state 里的那条**也跟着变」。
+   */
+  it('只读文件保存失败：state 里存的是 key，切语言那一条错误跟着变', async () => {
+    provider.put('/p/locked.md', '正文', { readonly: true });
+    await store.open('/p/locked.md');
+
+    expect(await store.save()).toBe(false);
+    const error = store.getSnapshot().error;
+    expect(error).not.toBeNull();
+    if (error === null) return;
+
+    setLocale('zh-CN');
+    expect(error.message).toBe('locked.md 是只读文件，请用「另存为」');
+
+    // 一个动作都不做 —— 已经躺在 state 里的那条错误自己活过来
+    setLocale('en');
+    expect(error.message).toBe('locked.md is read-only — use “Save As” instead');
+
+    setLocale('zh-CN');
+  });
+
+  it('本地有改动 + 磁盘被外部改写：冲突那句话说切就切，不重新检测', async () => {
+    provider.put('/p/a.md', 'v1');
+    await store.open('/p/a.md');
+    store.updateText('我的改动');
+    provider.touchExternally('/p/a.md', '别人的改动');
+    await store.checkExternalChange();
+
+    const conflict = store.getSnapshot().conflict;
+    expect(conflict).not.toBeNull();
+    if (conflict === null) return;
+
+    setLocale('zh-CN');
+    expect(conflict.message).toBe('磁盘上的文件已被其他程序修改，而你本地也有改动');
+
+    setLocale('en');
+    expect(conflict.message).toBe(
+      'The file on disk was changed by another program, and you also have local changes',
+    );
+
+    setLocale('zh-CN');
+  });
+
+  it('有未保存改动时拒绝打开新文件 —— 那条错误同样是切语言可变的', async () => {
+    provider.put('/p/a.md', 'x');
+    provider.put('/p/b.md', 'y');
+    await store.open('/p/a.md');
+    store.updateText('changed');
+
+    expect(await store.open('/p/b.md')).toBe(false);
+    const error = store.getSnapshot().error;
+    expect(error?.code).toBe('INTERNAL');
+    if (error == null) return;
+
+    setLocale('zh-CN');
+    expect(error.message).toBe('当前文档有未保存的改动，请先处理');
+    setLocale('en');
+    expect(error.message).toBe('This document has unsaved changes — resolve them first');
+
+    setLocale('zh-CN');
   });
 });
