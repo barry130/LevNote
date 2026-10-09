@@ -537,7 +537,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,457 条前端 + 66 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,467 条前端 + 66 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 382.99 kB（gzip 120.26 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -566,8 +566,12 @@ notify 8 + notify-debouncer-mini 0.7（主版本锁死）。事件是通知、mt
 **新命令的标题与分组直接写进 `core/i18n/messages.ts`，definitions.ts 里
 用 `t('command.…')` 取** —— 不要再写中文裸字符串。
 **en 目录已落地（2026-10-07，ADR 0031 复评）**：`settings.locale` +
-设置页语言下拉；命令标题是**注册时求值**的，App 在 locale 变化时原位
-重注册内置命令（ADR 0031 复评记录）。**E2 批次（同日，复评记录二）**：
+设置页语言下拉。**命令标题是惰性求值的（2026-10-09，复评记录三）**：
+`definitions.ts` 里内置命令只声明 `titleKey` / `categoryKey`，命令对象上的
+`title` / `category` 是**读的那一刻才查表**的 getter —— 切语言只需要重渲染，
+**不要再写「重注册一遍」那种刷新**（`BUILT_IN_COMMANDS` 是模块级常量，
+重注册拿到的是同一批对象，曾经因此让命令面形同被钉死在启动语言上）。
+**E2 批次（同日，复评记录二）**：
 外壳 ui/ 全部组件的界面文案已抽进目录（约 180 条，en 同量）。
 **E3 批次（同日，复评记录二补记）**：core 层全部用户可见消息已迁完 ——
 保存 notice、检索与替换汇总、AppError 文案、`.mindmap` 解析降级提示、

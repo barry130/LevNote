@@ -210,8 +210,11 @@ export function SettingsDialog({
       else byCategory.set(command.category, [row]);
     }
     return [...byCategory].map(([category, rows]) => ({ category, rows }));
-    // 语言切换后这张表的标题来自重新注册过的命令 —— 重挂由外壳的 key 保证，
-    // 不用在这里塞一个 linter 会当成「多余」的 locale 依赖
+    // 语言切换后**分组名**也要变 —— 而它是上面循环里现取、被这张表**存成字符串**的
+    // （命令标题不同，是命令对象上的 getter，渲染时自己会变）。这张 memo 的依赖里
+    // 没有 locale，所以它不会重跑：外壳切语言时用 `key={localeTick}` 把整页重挂，
+    // 让这张表连同 `editingId` / `recorded` 一起回到干净状态。
+    // 别删那个 key —— 删了分组名会停在旧语言，而命令标题照常变，很难看出哪里不对。
   }, [registry, platform, settings.keybindings]);
 
   return (

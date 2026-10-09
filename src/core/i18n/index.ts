@@ -9,11 +9,19 @@
  *
  * ## 语言状态与设置页（2026-10-07 起接入）
  *
- * `settings.locale` 是真相来源；App 的 effect 在它变化时调 `setLocale`。
+ * `settings.locale` 是真相来源；App 的 effect 在它变化时调 `setLocale`，
+ * 再 bump 一次自己的 `localeTick` 让整棵外壳重渲染一遍。
  * 只有 zh-CN 一份目录的年代，暴露「语言」偏好只会做出一个切了没反应的
- * 死设置 —— 那正是当初不接设置页的原因。英文目录落地后这一页翻过去了：
- * `setLocale` 现在会**通知订阅者**，因为命令标题在注册时经 `t()` 求值、
- * 已经烤进命令对象里，App 收到通知后要重新注册一遍内置命令。
+ * 死设置 —— 那正是当初不接设置页的原因。
+ *
+ * ## 订阅者与「重注册」都已不需要（2026-10-09）
+ *
+ * `setLocale` 仍会通知 `subscribeLocale` 的订阅者，但**目前的消费方一个都不靠它**：
+ * 命令面的 `title` / `category` 现在是**读的那一刻才查表**的 getter
+ * （`core/commands/definitions.ts` 的 `builtInCommand`），刷新文案只需要重渲染。
+ * 在此之前这里挂着一个反例 —— 注释说「App 收到通知后要重新注册一遍内置命令」，
+ * 而命令对象是模块级常量、`title` 早被 `t()` 烤死，重注册从未生效过
+ * （#TASK-I18N-CMD-LIVE-01）。
  */
 
 import { en, zhCN, type MessageKey, type SupportedLocale } from './messages.js';
