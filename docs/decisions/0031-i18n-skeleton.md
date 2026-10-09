@@ -274,6 +274,14 @@ R4 要求给成本依据。实测：`notice` 的**写入点 6 处**（`store.ts`
 | `core/document/block-preview.ts:44/49/67` | 交译文给内核 | 经 `core/editor/types.ts` 契约；内核不重问就不重算 |
 | `SettingsDialog.tsx:156` | `t()` 进组件 state | `setError(t('ui.settings.keyUnsafe'))` |
 
+**另有一处表面相同、根因不同，单列以免与上表混淆**：
+`store.ts:566`（保存时磁盘 mtime 不符）写进 `conflict.message` 的那句话
+**来自 Rust**（`src-tauri/src/fs/mod.rs:254` 的硬编码中文），不经 `t()` ——
+它不是「快照」（求值时机问题），而是**这一侧根本没有 i18n 通道**，
+与 `src/modules/**` 零接入同源。`src-tauri/**` 本单禁改（0 改动），
+登记为独立 follow-up，**不与上表合并**（根因不同，修法也不同：
+一个改成 key，一个要在 Rust 侧建 i18n 通道）。
+
 **不在上表的两处容易误列，特此书面否掉**：
 - `DocumentPane.tsx` 的 `editorError` —— 存的是内核抛出的**原始错误**
   （`thrown.message`），不是 `t()` 的返回值，本就不属这一族；

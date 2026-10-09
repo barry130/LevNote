@@ -27,6 +27,10 @@
   - 文件树报错文案（`core/workspace/store.ts` 的 `tree.error` 一族）；
   - 引用卡片摘要读不到时的原因（`core/document/block-preview.ts` 交译文给内核）；
   - 设置页的按键安全提示（`SettingsDialog.tsx` 的 state）。
+  - 保存冲突横幅也有一处**表面相同、根因不同**：`store.ts:566` 写进
+    `conflict.message` 的那句来自 Rust（`src-tauri/src/fs/mod.rs` 的硬编码
+    中文），不经 `t()` —— 是「这一侧没有 i18n 通道」，与 `src/modules/**`
+    零接入同源，不属快照族（`src-tauri/**` 本单禁改，登记为独立 follow-up）。
   > `DocumentPane.tsx` 的 `editorError` **不在**此列 —— 它存的是内核抛出的
   > 原始错误（`thrown.message`），不是查好表的译文，本就不属这一族。
 
