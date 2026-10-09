@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import type { LineEndingName } from '../core/document/types.js';
+import { renderNotice } from '../core/document/store.js';
 import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
 import type {
   BlockHandleState,
@@ -1245,7 +1246,7 @@ export function DocumentPane({
         )}
 
         <span className="grow" />
-        {notice && <span className="hint">{notice}</span>}
+        {notice !== null && <span className="hint">{renderNotice(notice)}</span>}
         <span className="sep">│</span>
         <span className="hint">{t('ui.pane.shortcutHint')}</span>
         {/* 视图三档放在最右：VSCode 的状态栏最右侧就是「这份文档是什么、

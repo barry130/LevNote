@@ -1370,6 +1370,19 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
   // ---- 窗口标题 ---------------------------------------------------------
 
+  /**
+   * ## 依赖里**必须有 `settings.locale`**（#TASK-I18N-SNAPSHOT-01）
+   *
+   * 求值时机本身是对的（`t()` 就在 effect 体内现调），漏掉的是**触发时机**：
+   * deps 只有 `activeTab` 时，切语言不会重跑这个 effect，屏幕上那个标题
+   * 就一直停在旧语言 —— 而它明明还挂着、本该跟着变。
+   *
+   * 为什么加 deps 就够、不需要别的同步手段：语言是**上一步**落地的 ——
+   * 上面那个 `useLayoutEffect` 在同一个 commit 里先跑 `setLocale`，
+   * 而 layout effect 一定早于 passive effect（本 effect）。所以这里读到的
+   * 已经是新语言。（`localeTick` 那一次重渲染不会重跑本 effect：deps 没变，
+   * 而它要的效果已经拿到了。）
+   */
   useEffect(() => {
     const title = activeTab ? `${activeTab.dirty ? '• ' : ''}${t('ui.app.winTitle', { name: activeTab.displayName })}` : t('ui.app.appName');
     document.title = title;
@@ -1377,7 +1390,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     void import('@tauri-apps/api/window')
       .then(({ getCurrentWindow }) => getCurrentWindow().setTitle(title))
       .catch(() => undefined);
-  }, [activeTab]);
+  }, [activeTab, settings.locale]);
 
   // ---- 侧栏宽度拖拽 -----------------------------------------------------
 

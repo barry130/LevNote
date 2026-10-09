@@ -10,7 +10,7 @@
  */
 
 import { randomSalt, readImageAsUrl, writePastedImage } from './images.js';
-import { t } from '../i18n/index.js';
+import { t, type MessageKey } from '../i18n/index.js';
 import { resolveRelative } from '../path.js';
 import {
   asAppError,
@@ -81,6 +81,42 @@ export interface ConflictInfo {
  */
 export type ViewMode = 'rich' | 'source' | 'split';
 
+/**
+ * 状态栏那句话（P3 第 17 项 · 快照型文案第二批，#TASK-I18N-SNAPSHOT-01）。
+ *
+ * ## 为什么存 key 而不是存已经查好表的字符串
+ *
+ * `t()` 的结果是**那一刻**的译文。把它存进 state 就成了快照：用户在设置页
+ * 把语言切成 English，屏幕上那条「已打开 a.md」不会跟着变 —— 而它此刻明明
+ * 还挂在状态栏上。留一个**key + 参数**在 state 里、到**渲染时**才查表，
+ * 这一条 notice 就与整个界面共用同一个语言。
+ *
+ * 与 ADR 0031 复评记录二为组件立下的「静态清单存 key、渲染时才 `t()`」
+ * 是同一条纪律 —— 那时漏掉的正是命令面与这两处快照。
+ *
+ * ## `text` 变体只服务一个来源
+ *
+ * `images.ts` 的 `PasteImageFail.reason` 已经是查好表的一句话，而那个文件
+ * **不在本轮改动范围内**（它把 6 条译文烤成了字符串）。所以这一支保留原样，
+ * 是本轮**已知的唯一残留** —— 要彻底消掉它得让 `images.ts` 也交回 key，
+ * 另立 follow-up 处理，见 ADR 0031 复评记录四。
+ * 它**不是为了给新代码留后门**：新写的 notice 一律走 `key` 变体。
+ */
+export type Notice =
+  | { readonly key: MessageKey; readonly params?: Readonly<Record<string, string | number>> }
+  | { readonly text: string };
+
+/**
+ * 把 `Notice` 渲染成一句话。
+ *
+ * 查表只发生在这里（渲染的那一刻）—— 别在写入 state 的地方先 `t()` 一遍，
+ * 那正是这份类型要消除的写法。两个消费方（状态栏、查找栏）共用它，
+ * 免得各写一份联合类型的分支。
+ */
+export function renderNotice(notice: Notice): string {
+  return 'text' in notice ? notice.text : t(notice.key, notice.params);
+}
+
 export interface StoreState {
   doc: OpenDocument | null;
   status: DocumentStatus;
@@ -91,8 +127,8 @@ export interface StoreState {
   providerKind: ProviderKind;
   /** 有待进行的磁盘操作 */
   busy: boolean;
-  /** 状态栏的一句话反馈 */
-  notice: string;
+  /** 状态栏的一句话反馈。**存 key 不存译文** —— 见 `Notice`。 */
+  notice: Notice | null;
   /** 当前看的是渲染后的视图还是源码。见 `ViewMode`。 */
   viewMode: ViewMode;
 }
@@ -117,7 +153,7 @@ export function emptyStoreState(providerKind: ProviderKind = 'desktop'): StoreSt
     conflict: null,
     providerKind,
     busy: false,
-    notice: '',
+    notice: null,
     viewMode: 'rich',
   };
 }
@@ -184,7 +220,7 @@ export class DocumentStore {
   }
 
   clearError = (): void => this.commit({ error: null });
-  clearNotice = (): void => this.commit({ notice: '' });
+  clearNotice = (): void => this.commit({ notice: null });
 
   /**
    * 把文档里的图片 `src` 解析成能直接放进 `<img>` 的 URL。拿不到时返回 `null`。
@@ -262,12 +298,12 @@ export class DocumentStore {
     });
 
     if (!result.ok) {
-      this.commit({ notice: result.reason });
+      this.commit({ notice: { text: result.reason } });
       return null;
     }
 
     // 说清楚「图片已经在磁盘上了，但文档还没保存」—— 这是用户真正会担心的事
-    this.commit({ notice: t('core.store.imageSaved', { name: basename(result.path) }) });
+    this.commit({ notice: { key: 'core.store.imageSaved', params: { name: basename(result.path) } } });
     return result.src;
   };
 
@@ -287,8 +323,8 @@ export class DocumentStore {
         doc,
         busy: false,
         notice: doc.lossy
-          ? t('core.store.openedLossy', { name: doc.displayName })
-          : t('core.store.opened', { name: doc.displayName }),
+          ? { key: 'core.store.openedLossy', params: { name: doc.displayName } }
+          : { key: 'core.store.opened', params: { name: doc.displayName } },
       });
       return true;
     } catch (thrown) {
@@ -366,7 +402,7 @@ export class DocumentStore {
     if (!doc || doc.path === newPath) return;
     this.commit({
       doc: { ...doc, path: newPath, displayName: basename(newPath) },
-      notice: t('core.store.renamed', { name: basename(newPath) }),
+      notice: { key: 'core.store.renamed', params: { name: basename(newPath) } },
     });
   }
 
@@ -402,7 +438,7 @@ export class DocumentStore {
       this.commit({
         busy: false,
         conflict: null,
-        notice: t('core.store.saved', { name: doc.displayName }),
+        notice: { key: 'core.store.saved', params: { name: doc.displayName } },
         doc: {
           ...doc,
           savedText: doc.text,
@@ -454,7 +490,12 @@ export class DocumentStore {
         bom: outcome.bom,
         readonly: false,
       };
-      this.commit({ doc: next, busy: false, conflict: null, notice: t('core.store.savedAs', { name: next.displayName }) });
+      this.commit({
+        doc: next,
+        busy: false,
+        conflict: null,
+        notice: { key: 'core.store.savedAs', params: { name: next.displayName } },
+      });
       return true;
     } catch (thrown) {
       this.commit({ busy: false, error: asAppError(thrown) });
@@ -471,7 +512,12 @@ export class DocumentStore {
     try {
       const file = await this.provider.readTextFile(doc.path, doc.encoding);
       // 沿用同一个 session：这是同一份文档被重新读取，编辑器实例不该重建
-      this.commit({ doc: toDocument(file, doc.session), busy: false, conflict: null, notice: t('core.store.reloaded', { name: doc.displayName }) });
+      this.commit({
+        doc: toDocument(file, doc.session),
+        busy: false,
+        conflict: null,
+        notice: { key: 'core.store.reloaded', params: { name: doc.displayName } },
+      });
       return true;
     } catch (thrown) {
       this.commit({ busy: false, error: asAppError(thrown) });
@@ -499,7 +545,7 @@ export class DocumentStore {
           });
           this.commit({
             busy: false,
-            notice: t('core.store.overwritten', { name: doc.displayName }),
+            notice: { key: 'core.store.overwritten', params: { name: doc.displayName } },
             doc: { ...doc, savedText: doc.text, savedLineEnding: doc.lineEnding, mtimeMs: outcome.mtimeMs },
           });
           return true;
@@ -549,7 +595,7 @@ export class DocumentStore {
     if (!doc) return true;
     if (!force && isDirty(doc)) return false;
 
-    this.commit({ doc: null, conflict: null, error: null, busy: false, notice: '' });
+    this.commit({ doc: null, conflict: null, error: null, busy: false, notice: null });
     return true;
   }
 

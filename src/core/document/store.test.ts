@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { DocumentStore, isDirty } from './store.js';
+import { setLocale } from '../i18n/index.js';
+import { DocumentStore, isDirty, renderNotice } from './store.js';
 import type {
   BinaryWriteOutcome,
   BomKind,
@@ -545,5 +546,68 @@ describe('resolveDocBlock（P5 第 25 项：doc-block 引用的图表文件）',
 
   it('没有打开的文档时返回 null', async () => {
     await expect(store.resolveDocBlock('x.drawio')).resolves.toBeNull();
+  });
+});
+
+describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
+  /**
+   * 这一族的缺陷形态是「把 `t()` 的结果存成字符串」—— 快照。
+   * 判据不是「新写入的 notice 在切语言后是英文」（那只证明新写入对），
+   * 而是「**切语言那一刻已经躺在 state 里的那条**也跟着变」。
+   * 所以这里断言的是：state 里存的是 **key**，渲染结果**随语言变**。
+   */
+  it('打开文件后 state 里存的是 key + 参数，不是查好表的字符串', async () => {
+    provider.put('/p/a.md', '正文');
+    await store.open('/p/a.md');
+
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    // 关键：**没有把译文烤进 state**
+    expect(notice).toMatchObject({ key: 'core.store.opened', params: { name: 'a.md' } });
+    expect(JSON.stringify(notice)).not.toContain('已打开');
+  });
+
+  it('同一条 notice 在切语言后渲染出另一种语言 —— **不重新打开文档**', async () => {
+    provider.put('/p/a.md', '正文');
+    await store.open('/p/a.md');
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    if (notice === null) return;
+
+    // 切语言之前：中文
+    setLocale('zh-CN');
+    expect(renderNotice(notice)).toBe('已打开 a.md');
+
+    // 只切语言，**一个动作都不做** —— 那条已经在 state 里的 notice 自己活过来
+    setLocale('en');
+    expect(renderNotice(notice)).toBe('Opened a.md');
+
+    setLocale('zh-CN');
+  });
+
+  it('落盘失败时走 text 变体（images.ts 的 reason 已是译文，本轮已知残留），渲染时原样交回', async () => {
+    provider.put('demo.md', '前文');
+    await store.open('demo.md');
+
+    // 虚拟盘路径没有目录信息 —— writePastedImage 会失败并给一句话
+    const result = await store.pasteImage(new ArrayBuffer(4), 'image/png');
+    expect(result).toBeNull();
+    const notice = store.getSnapshot().notice;
+    expect(notice).not.toBeNull();
+    if (notice === null || !('text' in notice)) throw new Error('这条 notice 应当是 text 变体');
+    expect(renderNotice(notice)).toBe(notice.text);
+  });
+
+  it('clearNotice 与 close 把 notice 归 null（不是空串）', async () => {
+    provider.put('/p/a.md', '正文');
+    await store.open('/p/a.md');
+    expect(store.getSnapshot().notice).not.toBeNull();
+
+    store.clearNotice();
+    expect(store.getSnapshot().notice).toBeNull();
+
+    await store.open('/p/a.md');
+    store.close(true);
+    expect(store.getSnapshot().notice).toBeNull();
   });
 });

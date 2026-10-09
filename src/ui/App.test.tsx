@@ -3367,6 +3367,70 @@ describe('在文件夹中检索', () => {
  * 只有读出来的字符串会告诉你它没生效。同时所有查询都**按 id / 结构**定位，
  * 不按文字找元素：语言一切换，按文字找的那套自己就先失效了。
  */
+/**
+ * 活动栏底部两个入口：**按位置**取（设置是最后一个，命令面板是倒数第二个）。
+ *
+ * 它们没有 id，而文字会随语言变 —— 位置是此刻唯一与语言无关的定位方式。
+ */
+function activityButton(m: Mounted, fromEnd: number): HTMLButtonElement {
+  const buttons = [...m.container.querySelectorAll<HTMLButtonElement>('.activitybar .activity-item')];
+  const button = buttons[buttons.length - 1 - fromEnd];
+  if (button === undefined) throw new Error(`活动栏里没有倒数第 ${fromEnd + 1} 个入口`);
+  return button;
+}
+
+async function clickActivity(m: Mounted, fromEnd: number): Promise<void> {
+  await act(async () => {
+    activityButton(m, fromEnd).click();
+  });
+  await settle();
+}
+
+/** 命令面板此刻的条目（分组 / 标题）。 */
+function paletteEntries(m: Mounted): string[] {
+  return [...m.container.querySelectorAll('.palette-row')].map(
+    (row) =>
+      `${row.querySelector('.palette-category')?.textContent?.trim() ?? ''}/${row.querySelector('.palette-title')?.textContent?.trim() ?? ''}`,
+  );
+}
+
+/** 快捷键表的分组名与每条命令的文字。 */
+function shortcutTable(m: Mounted): { categories: string[]; titles: string[] } {
+  return {
+    categories: [...m.container.querySelectorAll('.settings-keys-category')].map((item) => item.textContent?.trim() ?? ''),
+    titles: [...m.container.querySelectorAll('.settings-keys-row')].map(
+      (row) => row.querySelector('span')?.textContent?.trim() ?? '',
+    ),
+  };
+}
+
+/**
+ * 走真实设置页把语言切过去，**保持设置页开着**（快捷键表就在这一页上）。
+ *
+ * 刻意不直接调 `setLocale`：那样只证明「i18n 模块能被切」，证明不了
+ * 「用户在设置页切一下，界面跟着变」—— 而后者才是这个缺陷的现象。
+ */
+async function openSettingsAndSwitchLocale(m: Mounted, locale: 'en' | 'zh-CN'): Promise<void> {
+  await clickActivity(m, 0);
+  const select = [...m.container.querySelectorAll<HTMLSelectElement>('.settings select')].find((element) =>
+    [...element.options].some((option) => option.value === 'en'),
+  );
+  if (select === undefined) throw new Error('设置页里没有语言下拉');
+  await act(async () => {
+    select.value = locale;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await settle();
+}
+
+/** 关掉设置页（Esc 挂在 window 捕获阶段，与真实链路一致）。 */
+async function closeOverlay(): Promise<void> {
+  await act(async () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  });
+  await settle();
+}
+
 describe('命令面文案跟随语言', () => {
   /** 顶层菜单名（去掉「(F)」助记符后缀）。 */
   function menuNames(m: Mounted): string[] {
@@ -3412,70 +3476,6 @@ describe('命令面文案跟随语言', () => {
     });
     await settle();
     return rows;
-  }
-
-  /**
-   * 活动栏底部两个入口：**按位置**取（设置是最后一个，命令面板是倒数第二个）。
-   *
-   * 它们没有 id，而文字会随语言变 —— 位置是此刻唯一与语言无关的定位方式。
-   */
-  function activityButton(m: Mounted, fromEnd: number): HTMLButtonElement {
-    const buttons = [...m.container.querySelectorAll<HTMLButtonElement>('.activitybar .activity-item')];
-    const button = buttons[buttons.length - 1 - fromEnd];
-    if (button === undefined) throw new Error(`活动栏里没有倒数第 ${fromEnd + 1} 个入口`);
-    return button;
-  }
-
-  async function clickActivity(m: Mounted, fromEnd: number): Promise<void> {
-    await act(async () => {
-      activityButton(m, fromEnd).click();
-    });
-    await settle();
-  }
-
-  /** 命令面板此刻的条目（分组 / 标题）。 */
-  function paletteEntries(m: Mounted): string[] {
-    return [...m.container.querySelectorAll('.palette-row')].map(
-      (row) =>
-        `${row.querySelector('.palette-category')?.textContent?.trim() ?? ''}/${row.querySelector('.palette-title')?.textContent?.trim() ?? ''}`,
-    );
-  }
-
-  /** 快捷键表的分组名与每条命令的文字。 */
-  function shortcutTable(m: Mounted): { categories: string[]; titles: string[] } {
-    return {
-      categories: [...m.container.querySelectorAll('.settings-keys-category')].map((item) => item.textContent?.trim() ?? ''),
-      titles: [...m.container.querySelectorAll('.settings-keys-row')].map(
-        (row) => row.querySelector('span')?.textContent?.trim() ?? '',
-      ),
-    };
-  }
-
-  /**
-   * 走真实设置页把语言切过去，**保持设置页开着**（快捷键表就在这一页上）。
-   *
-   * 刻意不直接调 `setLocale`：那样只证明「i18n 模块能被切」，证明不了
-   * 「用户在设置页切一下，界面跟着变」—— 而后者才是这个缺陷的现象。
-   */
-  async function openSettingsAndSwitchLocale(m: Mounted, locale: 'en' | 'zh-CN'): Promise<void> {
-    await clickActivity(m, 0);
-    const select = [...m.container.querySelectorAll<HTMLSelectElement>('.settings select')].find((element) =>
-      [...element.options].some((option) => option.value === 'en'),
-    );
-    if (select === undefined) throw new Error('设置页里没有语言下拉');
-    await act(async () => {
-      select.value = locale;
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await settle();
-  }
-
-  /** 关掉设置页（Esc 挂在 window 捕获阶段，与真实链路一致）。 */
-  async function closeOverlay(): Promise<void> {
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-    });
-    await settle();
   }
 
   it('切 en 后菜单下拉项 / 命令面板条目 / 快捷键表分组与条目都变英文', async () => {
@@ -3549,3 +3549,192 @@ describe('命令面文案跟随语言', () => {
     expect(await menuBehaviour(mounted, 'file')).toEqual(zh);
   });
 });
+
+
+
+describe('快照型文案第二批：窗口标题 / 状态栏 notice / 查找栏（#TASK-I18N-SNAPSHOT-01）', () => {
+  /**
+   * 这一族的缺陷形态有两种，**两种都要测「切语言那一刻已经在屏上的那一份」**：
+   *
+   * 1. **effect deps 漏 locale**（窗口标题）：`t()` 的求值时机对，但触发时机漏 ——
+   *    切语言不会重跑那个 effect，屏幕上那个标题停在旧语言；
+   * 2. **把 `t()` 的结果存成字符串**（状态栏 notice / 查找栏 replaceAll）：
+   *    切语言时文案早已被烤成字符串，再也不会重算。
+   *
+   * 判据是门下的原话：**不许只测「切完之后再做一次动作、新文案是英文」** ——
+   * 那只能证明新写入对，证明不了旧快照也活了。所以下面每条都是
+   * 「先让那句话在屏上 → 切语言 → 断言**同一条**变了」。
+   */
+
+  function activityButton(m: Mounted, label: string): HTMLButtonElement {
+    const found = [...m.container.querySelectorAll<HTMLButtonElement>('.activitybar button')].find(
+      (item) => item.textContent?.trim() === label,
+    );
+    if (found === undefined) throw new Error(`活动栏里没有 ${label}`);
+    return found;
+  }
+
+  /** 状态栏上那条 notice（`.hint` 是它的类名，见 `DocumentPane`）。 */
+  function noticeText(m: Mounted): string | null {
+    return statusbarOf(m.container)?.querySelector('.hint')?.textContent ?? null;
+  }
+
+  /** 打开查找栏并把查询词打进去（走真实的 input 事件，与浏览器一致）。 */
+  async function openFindBar(m: Mounted, query: string): Promise<void> {
+    await act(async () => {
+      activityButton(m, '查找').click();
+    });
+    await settle();
+    const input = m.container.querySelector<HTMLInputElement>('.find-input');
+    if (input === null) throw new Error('查找栏没有打开');
+    await act(async () => {
+      // React 受控输入：直接改 `input.value` 不触发 onChange，必须走原生 setter
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, query);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await settle();
+  }
+
+  it('AC1+AC2：切 en 时**已经在屏上**的窗口标题与状态栏 notice 一起变英文', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文\n'));
+    await mounted.open('note.md');
+
+    // 两条文案此刻都在屏上（这就是「旧快照」本身）
+    expect(document.title).toBe('note.md — 轻笺');
+    expect(noticeText(mounted)).toBe('已打开 note.md');
+
+    await openSettingsAndSwitchLocale(mounted, 'en');
+
+    // 判据的关键：**没有再做任何动作**，同一条 notice / 同一个标题变了
+    expect(document.title).toBe('note.md — LevNote');
+    expect(noticeText(mounted)).toBe('Opened note.md');
+  });
+
+
+  /**
+   * **桌面面**（AC1 的第二半）。
+   *
+   * 浏览器面只需 `document.title`，但桌面下窗口标题还有一条真实通道：
+   * `getCurrentWindow().setTitle()`。两条都写、只修了一条的情况是存在的，
+   * 所以这里用官方的 `@tauri-apps/api/mocks`（`mockIPC` + `mockWindows`）
+   * 把后端换成记录调用的假的，直接断言「切语言之后**真的又调了一次**
+   * `set_title`，且带的是新文案」。
+   *
+   * 装成桌面之后文件监听、拖放、关闭拦截那几条 effect 也会跑起来 ——
+   * `mockIPC` 顺带把它们的命令（`watch_replace` / `plugin:event|*`）一并接住，
+   * 卸载时 `clearMocks()` 收尾。**用官方 mocks 而不是自己手搓
+   * `__TAURI_INTERNALS__`**：手搓要连 event 插件的内部契约一起仿，
+   * 少仿一个字段就是一条 unhandled rejection。
+   */
+  it('AC1（桌面面）：切 en 会再调一次 set_title，带的是英文标题', async () => {
+    const { mockIPC, mockWindows, clearMocks } = await import('@tauri-apps/api/mocks');
+    const titles: string[] = [];
+    mockWindows('main');
+    mockIPC(
+      (cmd, args) => {
+        // `args` 的形状是 `Record<string, unknown> | number[] | undefined` ——
+        // 用窄化而不是断言（本单禁新增 `as`）
+        if (cmd === 'plugin:window|set_title' && typeof args === 'object' && args !== null && 'value' in args) {
+          titles.push(String(args.value));
+        }
+        if (cmd === 'watch_replace') return [];
+        return undefined;
+      },
+      // 文件监听那几条 effect 会 `listen('fs://changed')` —— 事件插件也得接住
+      { shouldMockEvents: true },
+    );
+
+    try {
+      mounted = await mount((p) => p.put('note.md', '正文\n'));
+      await mounted.open('note.md');
+      expect(titles).toContain('note.md — 轻笺');
+
+      await openSettingsAndSwitchLocale(mounted, 'en');
+
+      // 关键：**切语言这一步真的又调了一次**，而不是只有首帧那一次
+      expect(titles[titles.length - 1]).toBe('note.md — LevNote');
+    } finally {
+      await mounted?.unmount().catch(() => undefined);
+      mounted = null;
+      clearMocks();
+      /**
+       * `clearMocks()` 只删对象**里面的字段**，`window.__TAURI_INTERNALS__`
+       * 这个空壳会留下 —— 而 `isDesktop()` 判的是 `'__TAURI_INTERNALS__' in window`。
+       * 不把这个键整个拿掉，**后面每个用例都会被当成桌面环境**，
+       * 于是一堆 effect 在没有后端的情况下跑起来（表现为一片 unhandled rejection，
+       * 且错在别的用例上）。
+       *
+       * 用 `Reflect.deleteProperty` 而不是 `delete`：`Window` 上这个属性是
+       * 非可选声明，`delete` 会被 TS 拦下（"must be optional"）。
+       */
+      Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
+      Reflect.deleteProperty(window, '__TAURI_EVENT_PLUGIN_INTERNALS__');
+    }
+  });
+
+  it('AC3：再切回 zh-CN，两条一起翻回来（两向都验）', async () => {
+    mounted = await mount((p) => p.put('note.md', '正文\n'));
+    await mounted.open('note.md');
+    await openSettingsAndSwitchLocale(mounted, 'en');
+    expect(document.title).toBe('note.md — LevNote');
+    expect(noticeText(mounted)).toBe('Opened note.md');
+
+    await openSettingsAndSwitchLocale(mounted, 'zh-CN');
+
+    expect(document.title).toBe('note.md — 轻笺');
+    expect(noticeText(mounted)).toBe('已打开 note.md');
+  });
+
+  it('没有文档时窗口标题用 appName，切语言同样变（走的是同一条 effect）', async () => {
+    mounted = await mount(() => undefined);
+    expect(document.title).toBe('轻笺');
+
+    await openSettingsAndSwitchLocale(mounted, 'en');
+
+    expect(document.title).toBe('LevNote');
+  });
+
+  it('查找栏的替换汇总也是 key 快照：切 en 时**已经在屏上**那句变英文', async () => {
+    mounted = await mount((p) => p.put('note.md', 'aaa bbb\n'));
+    await mounted.open('note.md');
+    await openFindBar(mounted, 'bbb');
+
+    // 展开替换栏 → 填替换词 → 全部替换（走真实的按钮与事件）
+    const toggle = [...mounted.container.querySelectorAll<HTMLButtonElement>('.findbar button')].find(
+      (button) => button.title === '显示替换',
+    );
+    if (toggle === undefined) throw new Error('找不到「显示替换」按钮');
+    await act(async () => {
+      toggle.click();
+    });
+    await settle();
+
+    const inputs = [...mounted.container.querySelectorAll<HTMLInputElement>('.find-input')];
+    const replacement = inputs[1];
+    if (replacement === undefined) throw new Error('替换输入框没有出现');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(replacement, 'ccc');
+      replacement.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await settle();
+
+    const replaceAll = [...mounted.container.querySelectorAll<HTMLButtonElement>('.findbar button')].find(
+      (button) => button.textContent?.trim() === '全部替换',
+    );
+    if (replaceAll === undefined) throw new Error('找不到「全部替换」按钮');
+    await act(async () => {
+      replaceAll.click();
+    });
+    await settle();
+
+    expect(mounted.container.querySelector('.find-notice')?.textContent).toBe('已替换 1 处');
+
+    await openSettingsAndSwitchLocale(mounted, 'en');
+
+    // 同一条汇总，没有再做替换动作
+    expect(mounted.container.querySelector('.find-notice')?.textContent).toBe('Replaced 1 occurrence(s)');
+  });
+});
+
+
+
