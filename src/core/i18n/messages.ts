@@ -479,6 +479,16 @@ export const zhCN = {
   'ui.app.readLostRecentBody': '（存储里那一段这次用不了）。重新打开过的文件会重新出现在菜单里。',
   'ui.app.readLostSessionTitle': '上次的会话没读回来',
   'ui.app.readLostSessionBody': '（存储里那一段这次用不了）。上次开着的标签页、当时的路径、以及其中未保存的草稿都没了 —— 如果那段内容是在存储坏掉之前写的，已经找不回来了。',
+  // 监听（ADR 0045）：丢的不是「已经存下的东西」，是**「早点知道的机会」**。
+  // 所以说的是后果（新文件与外部改动不会自己出现），不是术语（inotify / watch）。
+  'ui.app.watchLostTitle': '外部改动可能发现不了',
+  'ui.app.watchLostBody': '（{reason}）。别的程序新建或改过的文件，不会再自动出现在目录树里，也不会再提示「这份在磁盘上被改过」—— 你可以在别的程序里改一份，然后直接在这里保存覆盖掉它。',
+  'ui.app.watchLostBodyNoReason': '文件监听出了点问题（说不出是哪一件）。别的程序新建或改过的文件，不会再自动出现在目录树里，也不会再提示「这份在磁盘上被改过」。',
+  'ui.app.watchLostPaths': '另有 {n} 条路径没能监视上（多半已经被删掉或移动了）。',
+  // 同一族里较弱的一档：**只有**「几条路径没监视上」时不算「整条链断了」，
+  // 用重话说就成了虚惊 —— 而虚惊多了，用户会开始忽略这一类横幅。
+  'ui.app.watchPartialTitle': '有 {n} 条路径没在监视',
+  'ui.app.watchPartialBody': '（多半已经被删掉或移动了）。这些路径上的外部改动不会再自动发现；如果里面有你还开着的文档，保存前请自己看一眼磁盘上的版本。',
   'ui.app.kernelFailTitle': '有 {n} 个编辑内核没能加载',
   'ui.app.kernelFailBody': '相关文档会以纯文本打开 —— 其余功能不受影响。重启应用通常会解决。',
   'ui.app.restoringTitle': '正在恢复上次的标签页…',
@@ -1194,6 +1204,12 @@ export const en: Record<MessageKey, string> = {
   'ui.app.readLostRecentBody': ' (that part of storage could not be used). Files you open again will reappear in the menu.',
   'ui.app.readLostSessionTitle': 'The last session did not come back',
   'ui.app.readLostSessionBody': ' (that part of storage could not be used). The tabs you had open, their paths, and any unsaved drafts in them are gone — anything typed before that part of storage broke cannot be recovered.',
+  'ui.app.watchLostTitle': 'Changes outside the app may go unnoticed',
+  'ui.app.watchLostBody': ' ({reason}). Files created or changed by another program will no longer appear in the file tree on their own, and you will no longer be told that a file changed on disk — you could edit one elsewhere and then save straight over it from here.',
+  'ui.app.watchLostBodyNoReason': 'The file watcher hit a problem (it did not say what). Files created or changed by another program will no longer appear in the file tree on their own, and you will no longer be told that a file changed on disk.',
+  'ui.app.watchLostPaths': 'Also, {n} path(s) could not be watched (they were probably deleted or moved).',
+  'ui.app.watchPartialTitle': '{n} path(s) are not being watched',
+  'ui.app.watchPartialBody': ' (they were probably deleted or moved). External changes on those paths will no longer be noticed; if one of them is a document you have open, check the on-disk version yourself before saving.',
   'ui.app.kernelFailTitle': '{n} editor kernel(s) failed to load',
   'ui.app.kernelFailBody': 'Affected documents open as plain text — everything else works. Restarting the app usually fixes this.',
   'ui.app.restoringTitle': 'Restoring the last session…',

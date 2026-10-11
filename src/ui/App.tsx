@@ -209,6 +209,92 @@ function describePositionNames(loss: ReadLoss): string {
   return `${loss.positionNames.join('、')}${suffix}`;
 }
 
+/**
+ * 文件监听出了什么问题（ADR 0045）。
+ *
+ * ## 为什么这一条不能只写控制台
+ *
+ * 监听的失败**不像保存失败那样当场可见**：用户按了保存、看到「已保存」，一切正常；
+ * 而监听没起来时，用户正在丢的东西是「磁盘上被别人改了什么」——目录树不刷新、
+ * 冲突检测不再报警，于是用户可能把别人的改动整份覆盖掉，**全程没有一句提示**。
+ *
+ * 更要命的是它**不会自愈**：保存失败下一次就可能成功，而监听一旦停摆，
+ * 「下一批事件」与「窗口聚焦时的全量比对」都等不到那条被漏掉的事件了 ——
+ * 目录被删、inotify/inotify-kqueue 监视额度耗尽，这两种都会让事件**永久**不再到达。
+ * 原来的处置是 `console.warn`，那在发布版里等于把「安全网没了」写进一个没人看的盒子。
+ *
+ * ## 两个槽，都是**整份替换**而不是累加
+ *
+ * `reason` 来自事件批次里的 `error`，`failedPaths` 来自 `watch_replace` 的返回值。
+ * 两路各说各的：一次后端报错不该顺手抹掉「哪些路径没监视上」，反之亦然。
+ * 整份替换还顺带让横幅**能自愈** —— 下一批正常事件、一次全成功的 `watch_replace`
+ * 会把各自的槽清回空，这条横幅描述的是**此刻**的状态，不是日志。
+ *
+ * ## `reason` 是三态，不是两态
+ *
+ * `null` = 这一路**没有问题**；`''` = **有问题但拿不出原因**；其余 = 原因原文。
+ * 压成两态（`''` 同时表示「没事」与「有事但说不出」）会让「拒绝里没有可读的原因」
+ * 整条消失 —— 那正是 ADR 0045 记的那条教训：**报 0 等于把一次丢失又藏了回去**。
+ */
+interface WatchIssue {
+  /** 监听后端报的原因（原文，可能是系统措辞）。`null` = 这一路没问题。 */
+  readonly reason: string | null;
+  /** 没能监视上的路径（多半已被删掉或移动）。 */
+  readonly failedPaths: readonly string[];
+}
+
+const NO_WATCH_ISSUE: WatchIssue = { reason: null, failedPaths: [] };
+
+/**
+ * 折进「监听出了什么问题」。
+ *
+ * **只覆盖传进来的那一半**：两路来源互不相干，抹掉另一半等于让后端的一次报错
+ * 把「路径没监视上」也一起藏了。覆盖而不是累加：同一个失败重复收到
+ * （例如严格模式挂两次 effect）不会翻倍。
+ *
+ * `reason` 用 `undefined` 表示「不碰这一槽」、`null` 表示「清空」——
+ * 所以这里不能写 `patch.reason ?? current.reason`：那样 `null` 会落回旧值，
+ * 而 `null` 正是「这一路好了」的意思。
+ */
+type WatchIssuePatch = {
+  readonly reason?: string | null;
+  readonly failedPaths?: readonly string[];
+};
+
+function foldWatchIssue(current: WatchIssue, patch: WatchIssuePatch): WatchIssue {
+  return {
+    reason: patch.reason === undefined ? current.reason : patch.reason,
+    failedPaths: patch.failedPaths ?? current.failedPaths,
+  };
+}
+
+/** 「此刻有没有该告诉用户的监听问题」。 */
+function hasWatchIssue(issue: WatchIssue): boolean {
+  return issue.reason !== null || issue.failedPaths.length > 0;
+}
+
+/**
+ * 一份监听问题的「指纹」：内容一样就是同一件事，不该重新说。
+ *
+ * 用 NUL 分隔而不是 `JSON.stringify`：路径里可能出现几乎任何字符，
+ * 而我们要的是一个**不会撞车**的拼接，不是好看的 JSON。
+ */
+function watchIssueSignature(issue: WatchIssue): string {
+  return [issue.reason ?? '', ...issue.failedPaths].join('\u0000');
+}
+
+/**
+ * 从一个拒绝里取出能给人看的原因。
+ *
+ * 取不到就返回空串（**不是** `null`）——「出错了但说不出是哪一件」仍然要说，
+ * 只是换一句不带括号里那句话的说法。`String(thrown)` 拼出来的
+ * `[object Object]` 对用户没有任何意义，那才是把一次故障藏起来的另一种写法。
+ */
+function watchReasonOf(thrown: unknown): string {
+  if (thrown instanceof Error) return thrown.message;
+  return typeof thrown === 'string' ? thrown : '';
+}
+
 export interface AppProps {
   workspace: WorkspaceStore;
   provider: DocumentProvider;
@@ -414,6 +500,18 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   const [readLossDismissed, setReadLossDismissed] = useState(false);
   const sessionWarningVisible =
     sessionWarning.droppedDrafts > 0 || sessionWarning.failed.length > 0 || sessionWarning.writeFailed;
+
+  /**
+   * 文件监听出了什么问题（ADR 0045），以及用户按掉的是**哪一次**问题。
+   *
+   * 按掉的记成一份「指纹」而不是一个布尔：同一个问题反复报不重复打扰，
+   * 而**换了一个问题就要重新说** —— 后端报的错与没监视上的路径是两件事，
+   * 用户按掉前者不代表后者也不用管。与 `readLossDismissed` 只判一次不同，
+   * 理由是监听故障**可以在应用开着的时候发生好几次**，
+   * 每一次都意味着一段「安全网没了」的时间。
+   */
+  const [watchIssue, setWatchIssue] = useState<WatchIssue>(NO_WATCH_ISSUE);
+  const [dismissedWatchIssue, setDismissedWatchIssue] = useState<string | null>(null);
 
   const [handle, setHandle] = useState<EditorHandle | null>(null);
   const handleRef = useRef<EditorHandle | null>(null);
@@ -920,6 +1018,16 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   const readLossVisible = !readLossDismissed && hasReadLoss(readLoss);
   /** 位置那一条的点名（含「等 N 份」）。空串 = 点不出名，那就不说。 */
   const readLossPositionNames = describePositionNames(readLoss);
+
+  /**
+   * 监听这条横幅此刻该不该出现。
+   *
+   * 按掉的是**当前这一份**问题（存的是它的指纹），所以内容变了就重新说。
+   * 已知的一处缝隙：问题消失、之后又以**完全相同**的样子回来时，
+   * 指纹相同 → 不再提醒。留着它是因为补上它要么多一次渲染、要么多一个复位点，
+   * 两个代价都比「少提醒一次同样的问题」更贵（ADR 0045 的重审条件里记着）。
+   */
+  const watchIssueVisible = hasWatchIssue(watchIssue) && watchIssueSignature(watchIssue) !== dismissedWatchIssue;
 
   const rememberPositions = settings.rememberPositions;
 
@@ -1561,16 +1669,29 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     void onFilesChanged((batch) => {
       if (disposed) return;
       if (batch.error !== undefined) {
-        // 监听后端自身出了问题（比如被监视的目录被删）。说一句原因，
-        // 但不弹横幅 —— 下一批事件与焦点兜底会继续工作
-        console.warn('文件监听出错：', batch.error);
+        // 监听后端自身出了问题（比如被监视的目录被删、监视额度耗尽）。
+        // **说出来，而不是写进控制台**（ADR 0045）：这一类故障**不会自愈** ——
+        // 事件从此不再到达，而兜底那两条路（下一批事件、窗口聚焦时的全量比对）
+        // 都建立在「事件还会来」的前提上。原来的 `console.warn` 在发布版里
+        // 等于把「安全网没了」写进一个没人会打开的盒子。
+        setWatchIssue((issue) => foldWatchIssue(issue, { reason: batch.error }));
         return;
       }
+      // 正常的一批到达 = 监听还活着：顺手把之前那条原因收起来（`null` = 这一路好了）。
+      // 横幅说的是**此刻**的状态，不是一份故障日志
+      setWatchIssue((issue) => (issue.reason === null ? issue : foldWatchIssue(issue, { reason: null })));
       workspace.handleFsChanges(batch.paths);
-    }).then((unlisten) => {
-      if (disposed) unlisten();
-      else cleanup = unlisten;
-    });
+    })
+      .then((unlisten) => {
+        if (disposed) unlisten();
+        else cleanup = unlisten;
+      })
+      // 订阅本身失败（插件没装上、invoke 被拒）：一个事件都收不到，
+      // 而 `void promise` 不接 catch 就是一条没人处理的拒绝 —— 同样一个字都不说
+      .catch((thrown: unknown) => {
+        if (disposed) return;
+        setWatchIssue((issue) => foldWatchIssue(issue, { reason: watchReasonOf(thrown) }));
+      });
 
     return () => {
       disposed = true;
@@ -1600,9 +1721,26 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     if (!isDesktop()) return;
     // 全关了也要把集合清空 —— 否则 Rust 侧会一直守着一个已经关闭的目录
     const paths: string[] = JSON.parse(watchPathsKey) as string[];
-    void watchFiles(paths).then((failed) => {
-      if (failed.length > 0) console.warn('这些路径没能监视（多半已不存在，下次刷新会重试）：', failed);
-    });
+    // 集合换得很快时，旧的一次 `watch_replace` 可能后到。
+    // 它的返回值描述的是**上一份**集合，落到状态里就成了「明明全监视上了，
+    // 却还挂着几条没监视上」—— 所以它落地前先看自己是不是过期了
+    let disposed = false;
+    void watchFiles(paths)
+      .then((failed) => {
+        if (disposed) return;
+        // 没监视上的路径**整份替换**：这一次全监视上了就是全监视上了，
+        // 上一批的失败已经过去了。横幅因此能自愈（ADR 0045）
+        setWatchIssue((issue) => foldWatchIssue(issue, { failedPaths: [...failed] }));
+      })
+      .catch((thrown: unknown) => {
+        // `watch_replace` 自己被拒（Rust 侧没初始化、锁被毒化……）：
+        // 这一整条监视链根本没起来，原来只有一条没人处理的拒绝
+        if (disposed) return;
+        setWatchIssue((issue) => foldWatchIssue(issue, { reason: watchReasonOf(thrown) }));
+      });
+    return () => {
+      disposed = true;
+    };
   }, [watchPathsKey]);
 
   // ---- 拖入文件 / 目录打开，有未保存改动时拦下关闭 ----------------------
@@ -1877,6 +2015,47 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
             )}
           </span>
           <button type="button" onClick={() => setReadLossDismissed(true)}>
+            {t('ui.app.dismiss')}
+          </button>
+        </div>
+      )}
+
+      {/*
+        监听的坏消息（ADR 0045）。**再单独一条**，因为它与上面两条都不是一件事：
+        上面两条说的都是「上一次的东西没保住 / 读不出来」，这条说的是
+        **「此刻正在丢的那道安全网没了」** —— 磁盘上的改动不再自动被发现，
+        用户可能在毫无察觉的情况下把别人的修改覆盖掉。
+
+        `warn` 而不是 `error`：没有任何一份用户的数据已经因此丢失，
+        丢的是「早点知道的机会」。但两半分开说 —— 后端报了原因是一件事，
+        有几条路径没监视上是另一件事（多半只是那几条路径已被删掉）。
+      */}
+      {watchIssueVisible && (
+        <div className="banner warn">
+          <span className="grow">
+            {/*
+              两档而不是一档：后端报错了 = **整条链**可能已经断了，
+              而「有几条路径没监视上」多半只是那几条刚好被删掉 / 移动了。
+              把后者也说成「外部改动可能发现不了」是虚惊 ——
+              而**虚惊多了，用户就会开始忽略这一类横幅**，那时真的那一次也没人看。
+            */}
+            {watchIssue.reason !== null ? (
+              <>
+                <strong>{t('ui.app.watchLostTitle')}</strong>
+                {watchIssue.reason === ''
+                  ? t('ui.app.watchLostBodyNoReason')
+                  : t('ui.app.watchLostBody', { reason: watchIssue.reason })}
+                {watchIssue.failedPaths.length > 0 &&
+                  t('ui.app.watchLostPaths', { n: watchIssue.failedPaths.length })}
+              </>
+            ) : (
+              <>
+                <strong>{t('ui.app.watchPartialTitle', { n: watchIssue.failedPaths.length })}</strong>
+                {t('ui.app.watchPartialBody')}
+              </>
+            )}
+          </span>
+          <button type="button" onClick={() => setDismissedWatchIssue(watchIssueSignature(watchIssue))}>
             {t('ui.app.dismiss')}
           </button>
         </div>

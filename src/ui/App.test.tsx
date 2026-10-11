@@ -21,6 +21,11 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+// `import type` 编译后被抹掉，不会在没有 internals 的环境里真的去 import 那个包。
+// 这里只用它把假后端回调的参数类型对齐成官方声明 —— 手写一遍窄化出来的类型
+// 在官方加一个联合成员时就会不匹配，而那种不匹配报错在用例里很难看懂。
+import type { InvokeArgs } from '@tauri-apps/api/core';
+
 import type { DocumentStore } from '../core/document/store.js';
 import { DEFAULT_SETTINGS, type StorageLike, type ViewSettings } from '../core/settings.js';
 import type {
@@ -4498,5 +4503,189 @@ describe('存储里的东西读不出来（ADR 0044）', () => {
     const m = mounted;
 
     expect(bannerText(m)).toContain('最近打开的 3 条没读回来');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 监听没起来（ADR 0045）
+// ---------------------------------------------------------------------------
+
+describe('监听没起来（ADR 0045）', () => {
+  /**
+   * 假后端的命令处理。返回 `unknown` 是因为 mockIPC 的回调本来就接受任意值，
+   * 而我们只在关心的命令上给形状。
+   */
+  type IpcHandler = (cmd: string, payload?: InvokeArgs) => unknown;
+
+  /** 默认的后端：一切正常（监视集合空、没失败路径、事件能发）。 */
+  const healthy: IpcHandler = (cmd) => (cmd === 'watch_replace' ? [] : undefined);
+
+  /**
+   * 装成桌面环境再跑一段断言。
+   *
+   * **监听的 effect 只在 `isDesktop()` 下跑** —— 用 jsdom 的默认环境去断言这条横幅，
+   * 等于断言一条永远不出现的文案，绿了也什么都没验（这条 ADR 的用例最容易这样假绿）。
+   *
+   * 收尾三件事一件都不能少：卸载 → `clearMocks()` → **把两个 internals 键整个删掉**。
+   * `clearMocks()` 只删对象**里面的字段**，空壳会留下，而 `isDesktop()` 判的是
+   * `'__TAURI_INTERNALS__' in window` —— 不删，后面每个用例都会被当成桌面环境。
+   */
+  async function onDesktop(handler: IpcHandler, body: (m: Mounted) => Promise<void>): Promise<void> {
+    const { mockIPC, mockWindows, clearMocks } = await import('@tauri-apps/api/mocks');
+    mockWindows('main');
+    mockIPC(handler, { shouldMockEvents: true });
+    let m: Mounted | null = null;
+    try {
+      m = await mount((p) => p.put('note.md', '# 标题\n'));
+      await body(m);
+    } finally {
+      await m?.unmount().catch(() => undefined);
+      // 交给全局 afterEach 去清（这里清过一次，再来一次就是对已卸载的根调 unmount）
+      mounted = null;
+      clearMocks();
+      Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
+      Reflect.deleteProperty(window, '__TAURI_EVENT_PLUGIN_INTERNALS__');
+    }
+  }
+
+  /** 全部横幅的文字。监听这条是**独立的第三条**，所以按顺序全取。 */
+  function bannerText(m: Mounted): string {
+    return [...m.container.querySelectorAll('.banner')].map((item) => item.textContent ?? '').join('\n');
+  }
+
+  /** 往监听那条通道投一批事件（Rust 侧 `FsChangeBatch` 的形状）。 */
+  async function emitBatch(batch: { paths?: readonly string[]; error?: string }): Promise<void> {
+    const { emit } = await import('@tauri-apps/api/event');
+    await act(async () => {
+      await emit('fs://changed', batch);
+    });
+    await settle();
+  }
+
+  it('★ 监听命令自己被拒：应用照常起来，但把「安全网没了」说清楚', async () => {
+    await onDesktop(
+      (cmd) => {
+        // Rust 侧 `watch_replace` 被拒的真实形状（setup 没跑 / 锁被毒化）
+        if (cmd === 'watch_replace') throw new Error('文件监听尚未初始化（setup 没跑？）');
+        return undefined;
+      },
+      async (m) => {
+        await m.open('note.md');
+
+        // 不能因为监听没起来就白屏 —— 要做的是**照样能用，并说明少了什么**
+        expect(m.container.textContent).toContain('标题');
+        expect(bannerText(m)).toContain('外部改动可能发现不了');
+        expect(bannerText(m)).toContain('文件监听尚未初始化');
+      },
+    );
+  });
+
+  it('★ 事件批次里带着后端的错误：把它的原因原样说出来', async () => {
+    await onDesktop(healthy, async (m) => {
+      expect(bannerText(m)).toBe('');
+
+      await emitBatch({ paths: [], error: '被监视的目录已经被删掉了' });
+
+      expect(bannerText(m)).toContain('外部改动可能发现不了');
+      expect(bannerText(m)).toContain('被监视的目录已经被删掉了');
+    });
+  });
+
+  it('★ 拒绝里拿不出可读的原因：仍然要说 —— 报 0 就是把一次故障藏回去', async () => {
+    await onDesktop(
+      (cmd) => {
+        // `watchReasonOf` 对「非 Error、非字符串」的拒绝也返回空串，
+        // 那条分支在这里**造不出来**：`@typescript-eslint/prefer-promise-reject-errors`
+        // 与 `only-throw-error` 都禁止 `Promise.reject('字符串')` 与 `throw '字符串'`，
+        // 而 Tauri 的 invoke 在真机上恰恰是这么拒的。
+        // 所以这里用一个**消息为空**的 Error 走到同一句「说不出是哪一件」——
+        // 本条用例真正要钉住的是「原因取不到 ≠ 这件事消失」，那一半在两种拒法下是同一条。
+        if (cmd === 'watch_replace') throw new Error('');
+        return undefined;
+      },
+      async (m) => {
+        expect(bannerText(m)).toContain('外部改动可能发现不了');
+        // 换一句不带括号里那句话的说法，而不是把整件事吞掉
+        expect(bannerText(m)).toContain('说不出是哪一件');
+        expect(bannerText(m)).not.toContain('[object Object]');
+      },
+    );
+  });
+
+  it('★ 只有几条路径没监视上：说较弱的那一档，不拿重话虚惊', async () => {
+    await onDesktop(
+      (cmd) => {
+        if (cmd === 'watch_replace') return ['C:\\ws\\gone.md', 'C:\\ws\\moved.md'];
+        return undefined;
+      },
+      async (m) => {
+        expect(bannerText(m)).toContain('有 2 条路径没在监视');
+        // 整条链没断 —— 用「外部改动可能发现不了」这种话是虚惊，
+        // 而虚惊多了用户就会开始忽略这一类横幅
+        expect(bannerText(m)).not.toContain('外部改动可能发现不了');
+      },
+    );
+  });
+
+  it('★ 后端报错时把没监视上的路径一并说出来 —— 两路来源互不相干', async () => {
+    await onDesktop(
+      (cmd) => (cmd === 'watch_replace' ? ['C:\\ws\\gone.md'] : undefined),
+      async (m) => {
+        await emitBatch({ paths: [], error: '监视额度用完了' });
+
+        const text = bannerText(m);
+        expect(text).toContain('监视额度用完了');
+        expect(text).toContain('另有 1 条路径没能监视上');
+      },
+    );
+  });
+
+  it('★ 监听恢复了就自己收起来 —— 横幅说的是此刻的状态，不是一份故障日志', async () => {
+    await onDesktop(healthy, async (m) => {
+      await emitBatch({ paths: [], error: '暂时性的错误' });
+      expect(bannerText(m)).toContain('外部改动可能发现不了');
+
+      // 后面来了一批正常事件 = 监听还活着
+      await emitBatch({ paths: [] });
+
+      expect(bannerText(m)).toBe('');
+    });
+  });
+
+  it('★ 一切正常时一句都不说 —— 这一族最容易被做坏的地方就是「每次开应用都弹一条」', async () => {
+    await onDesktop(healthy, async (m) => {
+      await m.open('note.md');
+      await emitBatch({ paths: ['C:\\ws\\note.md'] });
+
+      expect(bannerText(m)).toBe('');
+    });
+  });
+
+  it('★ 可以关掉；关掉之后**换了**一个问题会重新说', async () => {
+    await onDesktop(healthy, async (m) => {
+      await emitBatch({ paths: [], error: '第一次的错误' });
+      expect(bannerText(m)).toContain('第一次的错误');
+
+      await m.click('知道了');
+      expect(bannerText(m)).toBe('');
+
+      // 同一个问题：不重复打扰
+      await emitBatch({ paths: [], error: '第一次的错误' });
+      expect(bannerText(m)).toBe('');
+
+      // 换了另一个问题：重新说 —— 按掉的是**那一件**，不是这一类
+      await emitBatch({ paths: [], error: '第二次的错误' });
+      expect(bannerText(m)).toContain('第二次的错误');
+    });
+  });
+
+  it('★ StrictMode 双挂不会多出一条：折的是「此刻有什么」，不是次数', async () => {
+    await onDesktop(
+      (cmd) => (cmd === 'watch_replace' ? ['C:\\ws\\gone.md'] : undefined),
+      async (m) => {
+        expect(m.container.querySelectorAll('.banner')).toHaveLength(1);
+        expect(bannerText(m)).toContain('有 1 条路径没在监视');
+      },
+    );
   });
 });
