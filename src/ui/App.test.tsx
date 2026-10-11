@@ -27,6 +27,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { InvokeArgs } from '@tauri-apps/api/core';
 
 import type { DocumentStore } from '../core/document/store.js';
+import { drawioTemplateXml } from '../core/drawio.js';
+import { parseMindmap } from '../core/mindmap/parse.js';
 import { DEFAULT_SETTINGS, type StorageLike, type ViewSettings } from '../core/settings.js';
 import type {
   WorkspaceBatch,
@@ -1356,6 +1358,188 @@ describe('分屏：源码与预览并排', () => {
     expect(panes.length).toBe(2);
     expect(panes[0]?.style.flexGrow).toBe('0.5');
     expect(mounted.store.getSnapshot().doc?.text).toBe(SOURCE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// .drawio 的可编辑路径（ADR 0048）
+// ---------------------------------------------------------------------------
+
+describe('图纸的编辑入口（ADR 0048）', () => {
+  /**
+   * ADR 0048 的主张是「`.drawio` 有自己的内核，也铺好了可编辑的路径」。
+   * 那条路径**一天也没有被证明过**：`src/modules/wiring.test.ts` 钉的是
+   * `drawioAdapter.sourceView === codeAdapter` 这一个字段，而
+   *
+   * - 三档切换器、分屏左栏是否真的按 `sourceView` 开出来；
+   * - 在那份 XML 上改动之后，store 会不会变脏、`save()` 会不会真的写回磁盘；
+   * - 切回图纸视图时内核拿到的是**新**内容还是打开那一刻的旧内容；
+   * - 只读的图纸视图会不会因为「渲染了一次」就把文档标脏；
+   *
+   * 这四条一个都没有用例。所以这一组把它们逐条钉住。
+   *
+   * 注：这一组**不 mock** `core/drawio-render`，跑的就是真实渲染器。
+   * jsdom 里 `viewer.min.js` 加载不上，于是走 `DrawioRenderFail` 占位 ——
+   * 那正是「资源缺位时如实降级」的那条路径本身，所以不必避开。
+   * 因此断言全部落在**接缝**上（哪个内核、哪份文本、脏不脏、落没落盘），
+   * 而不是「图有没有画出来」—— 那是 `DrawioEditor.test.tsx` 与浏览器探针的活。
+   */
+
+  const TEMPLATE = drawioTemplateXml();
+  /** 改过的那份：顶掉了 `value`，这样「拿到的是新内容」才有得断言。 */
+  const EDITED = TEMPLATE.replace('标题', '改过的标签');
+
+  it('打开图纸：进的是图纸内核，且三档切换器把编辑入口开出来了', async () => {
+    mounted = await mount((p) => p.put('流程.drawio', TEMPLATE));
+    await mounted.open('流程.drawio');
+
+    expect(mounted.container.querySelector('.qm-drawio')).not.toBeNull();
+    expect(mounted.container.querySelector('.qm-code')).toBeNull();
+    // 「有源码视图可切」是 `sourceView !== undefined` 的唯一判据（DocumentPane）
+    for (const label of ['富文本', '源码', '分屏']) {
+      const button = [...mounted.container.querySelectorAll<HTMLButtonElement>('.view-switcher button')].find(
+        (item) => item.textContent?.trim() === label,
+      );
+      expect(button, `三档切换器里应该有「${label}」`).toBeDefined();
+      expect(button?.disabled).toBe(false);
+    }
+  });
+
+  it('图纸视图从不把文档弄脏 —— 渲染一次不等于「改了」', async () => {
+    mounted = await mount((p) => p.put('流程.drawio', TEMPLATE));
+    await mounted.open('流程.drawio');
+    await settle();
+
+    expect(statusOf(mounted.container)).toBe('已保存');
+    expect(mounted.store.getSnapshot().status).not.toBe('dirty');
+  });
+
+  it('切到源码视图：拿到的是原始 XML（不是渲染结果），且切视图不算脏', async () => {
+    mounted = await mount((p) => p.put('流程.drawio', TEMPLATE));
+    await mounted.open('流程.drawio');
+
+    await mounted.click('源码');
+
+    expect(mounted.container.querySelector('.qm-code .cm-content')).not.toBeNull();
+    expect(mounted.container.querySelector('.qm-drawio')).toBeNull();
+    expect(renderedText(mounted.container)).toContain('<mxCell');
+    expect(pressedModes(mounted.container)).toEqual(['源码']);
+    expect(statusOf(mounted.container)).toBe('已保存');
+  });
+
+  /** 这一条是整组的核心：改 → 脏 → 落盘 → 切回来拿到新内容，一个都不能少。 */
+  it('在源码视图里改 XML：会变脏、保存会写回磁盘、切回图纸视图拿到的是新内容', async () => {
+    mounted = await mount((p) => p.put('流程.drawio', TEMPLATE));
+    await mounted.open('流程.drawio');
+    await mounted.click('源码');
+
+    // 用 `store.updateText` 而不是模拟打字：内核 `onChange` 里做的**就是**这一件事。
+    // （左栏是 CodeMirror，jsdom 里没有可信的打字路径 —— 同「分屏」那组的理由。）
+    await act(async () => {
+      mounted?.store.updateText(EDITED);
+    });
+    await settle();
+
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+    expect(renderedText(mounted.container)).toContain('改过的标签');
+
+    await act(async () => {
+      await mounted?.store.save();
+    });
+    await settle();
+
+    expect(statusOf(mounted.container)).toBe('已保存');
+    const written = mounted.provider.writes.map((item) => item.text);
+    expect(written).toContain(EDITED);
+
+    await mounted.click('富文本');
+
+    // 关键的一条：切回来时内核挂上的是**新**那份，不是打开时的旧 XML。
+    expect(mounted.container.querySelector('.qm-drawio')).not.toBeNull();
+    expect(mounted.store.getSnapshot().doc?.text).toBe(EDITED);
+  });
+
+  it('分屏：左边改 XML、右边看图 —— 两条路指向同一份文档', async () => {
+    mounted = await mount((p) => p.put('流程.drawio', TEMPLATE));
+    await mounted.open('流程.drawio');
+
+    await clickViewMode(mounted.container, '分屏');
+
+    const panes = splitPanes(mounted.container);
+    expect(panes.length).toBe(2);
+    // 左栏是代码内核（可编辑），右栏是图纸视图（只读）
+    expect(panes[0]?.querySelector('.qm-code .cm-content')).not.toBeNull();
+    expect(mounted.container.querySelector('.qm-drawio')).not.toBeNull();
+    expect(mounted.container.querySelector('.editor-divider')).not.toBeNull();
+
+    await act(async () => {
+      mounted?.store.updateText(EDITED);
+    });
+    await settle();
+
+    expect(statusOf(mounted.container)).toBe('有未保存的改动');
+    expect(mounted.store.getSnapshot().doc?.text).toBe(EDITED);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 思维导图的入口（ADR 0048）
+// ---------------------------------------------------------------------------
+
+describe('思维导图能被主动造出来（ADR 0048）', () => {
+  /**
+   * `.mindmap` 的内核一直都在（ADR 0007 / 0025 / 0043），本轮之前缺的是**入口** ——
+   * 菜单里只有「新建」落空文本文件，于是用户没有任何办法得到一份导图。
+   * `src/core/commands/definitions.test.ts` 钉的是那条命令**自己**的行为，
+   * 这里钉的是它在**真实外壳**上走通：菜单 → 存盘对话框 → 落盘 → 打开 → 导图画布。
+   *
+   * 「看得见」这三个字落在这条链上：入口在菜单里、落的是真导图、打开就是画布，
+   * 三段任何一段断了，用户看到的都只是一句承诺。
+   */
+
+  it('文件菜单里有「新建思维导图」，且没有灰掉', async () => {
+    mounted = await mount(() => {});
+    const dropdown = await openMenu(mounted.container, '文件');
+
+    const item = menuItem(dropdown, '新建思维导图');
+    expect(item, '文件菜单里应该有「新建思维导图」').not.toBeNull();
+    expect(item?.disabled).not.toBe(true);
+  });
+
+  it('点它 → 存盘 → 落下来的是一份真导图，并且直接开成导图画布', async () => {
+    mounted = await mount((p) => {
+      p.savePathTarget = 'C:\\out\\会议.mindmap';
+    });
+
+    await mounted.clickMenuItem('文件', '新建思维导图');
+
+    // 文件真的建出来了，而且建出来的是**能解析的导图**，不是一个空壳
+    const parsed = parseMindmap(mounted.store.getSnapshot().doc?.text ?? '');
+    expect(mounted.workspace.getSnapshot().tabs.map((tab) => tab.path)).toContain('C:\\out\\会议.mindmap');
+    expect(parsed.issues).toEqual([]);
+    // 中心主题取的是用户自己刚起的文件名，不是「未命名」
+    expect(parsed.document?.root.topic).toBe('会议');
+
+    // 「看得见」的关键一段：打开就是导图画布，不是代码内核、不是一段 JSON
+    expect(kernelOf(mounted.container)).toBe('思维导图');
+    expect(mounted.container.querySelector('.qm-mindmap')).not.toBeNull();
+    expect(mounted.container.querySelector('.qm-code')).toBeNull();
+  });
+
+  it('同名文件已经在了：不覆盖、不新建，只说一句话', async () => {
+    mounted = await mount((p) => {
+      p.savePathTarget = 'C:\\out\\会议.mindmap';
+      p.put('C:\\out\\会议.mindmap', '{ 这不是导图，是我自己的东西');
+    });
+
+    await mounted.clickMenuItem('文件', '新建思维导图');
+
+    // 绝不覆盖别人的文件 —— 这是硬约束 2，不是「先写着再说」
+    expect(mounted.provider.writes).toHaveLength(0);
+    expect(mounted.provider.notices.join('\n')).toContain('没有新建');
+    // 也没顺手打开它：这条命令的语义是「**新建**」，已存在就该由用户自己决定要不要打开。
+    // 偷偷打开会让用户以为是「新建了一份」，那是一句谎。
+    expect(mounted.workspace.getSnapshot().tabs).toHaveLength(0);
   });
 });
 
