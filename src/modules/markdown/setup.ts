@@ -86,6 +86,7 @@ import type {
   EditorTable,
   ImageInfo,
   ImagePasteRequest,
+  LinkActivation,
   SelectionSnapshot,
   SlashState,
   TableAlign,
@@ -126,6 +127,7 @@ import {
 } from './plugin.js';
 import type { ComposeMode } from './plugin.js';
 import { activeLinkHref, describeSlash, resolveBlock } from './selection.js';
+import { findAnchorPos, linkClickPlugin } from './link.js';
 
 /**
  * 编辑器与导出共用的版式类名。
@@ -202,6 +204,12 @@ export interface CreateMarkdownEditorOptions {
    */
   onDiagramOpen?: (diagram: DiagramView) => void;
   /**
+   * 用户**激活**了一个链接（`Ctrl` / `Cmd` + 左键）。
+   *
+   * 不实现时链接照常可编辑，但点击不会打开任何东西。
+   */
+  onLinkClick?: (link: LinkActivation) => void;
+  /**
    * 鼠标停在哪一块上（块手柄）。
    *
    * 参数为 `null` 表示「指针不在编辑器里、或不在任何一块上」。
@@ -248,6 +256,11 @@ export interface MarkdownEditorInstance {
   redo(): void;
   /** 大纲跳转：定位到指定层级的指定标题。 */
   goToHeading(level: number, text: string): boolean;
+  /**
+   * 定位到本文档里某个**锚点**（`id` 属性等于指定字符串的那个节点）。
+   * 与这一类边界问题的说明见 `modules/markdown/link.ts` 的 `findAnchorPos`。
+   */
+  goToAnchor(anchor: string): boolean;
   /**
    * 切换专注 / 打字机（视图偏好实时生效）。一次只发一个只改插件状态的事务：
    * 不改文档（不会变脏）、不进撤销栈。
@@ -1667,6 +1680,7 @@ export async function createMarkdownEditor(
     .use(slashReporterPlugin(() => options.onSlashChange))
     .use(tableReporterPlugin(() => options.onTableChange))
     .use(blockHoverPlugin(() => options.onBlockHandleChange, blockTarget))
+    .use(linkClickPlugin(() => options.onLinkClick))
     .use($prose(() => composePlugin(() => options.root, options.compose ?? { focus: false, typewriter: false })))
     .use($prose(() => placeholderPlugin(options.placeholder ?? '')))
     .use(
@@ -1905,6 +1919,20 @@ export async function createMarkdownEditor(
         if (found === null) return false;
 
         // +1 进到标题节点内部，避免把光标停在节点边界上
+        const inside = Math.min(found + 1, view.state.doc.content.size);
+        view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(inside))).scrollIntoView());
+        view.focus();
+        return true;
+      }),
+
+    // 锚点跳转。与 goToHeading 只差「那个位置怎么算出来」，后半段完全一致
+    goToAnchor: (anchor) =>
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+
+        const found = findAnchorPos(view.state.doc, anchor);
+        if (found === null) return false;
+
         const inside = Math.min(found + 1, view.state.doc.content.size);
         view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(inside))).scrollIntoView());
         view.focus();

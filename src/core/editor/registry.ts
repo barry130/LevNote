@@ -36,6 +36,30 @@ export function listAdapters(): readonly EditorAdapter[] {
 }
 
 /**
+ * 有没有**专门化**内核认得这个路径（只看 `matches`，不问 `canHandle`）。
+ *
+ * ## 为什么外壳需要问这个
+ *
+ * 文档里的链接指向一个文件时（ADR 0040），外壳要决定「在轻笺里打开」还是
+ * 「交给系统的关联程序」。判据就是这个文件是不是**一等公民**：
+ * 一份 `.md` / `.mindmap` / `.drawio` 交给系统默认程序，用户会看到另一个
+ * 编辑器里的源码；而一张 `.png` 在轻笺里打开，会看到一堆字节被当成文本。
+ *
+ * ## 为什么它在注册表里，而不是让外壳去查扩展名名单
+ *
+ * 那份名单长在各个内核上（`modules/code/index.ts` 的 `CODE_EXTENSIONS` 等），
+ * 外壳不 import 任何具体内核（硬约束 1）。「有没有内核认得它」本来就只有
+ * 注册表回答得了 —— 问注册表而不是抄一份名单，正是为了不让
+ * 「哪几类文件是一等公民」有第二个真相。
+ *
+ * 刻意**不问 `canHandle`**：那一层需要文件内容，而这里在决定
+ * 「要不要先把它读进来」，还没到那一步。
+ */
+export function hasSpecializedAdapter(path: string): boolean {
+  return adapters.some((adapter) => adapter.matches(path));
+}
+
+/**
  * 按路径挑内核。
  *
  * 找不到专门化内核时返回 `fallbackAdapter`（纯文本）——

@@ -162,6 +162,31 @@ export interface EditorHandle {
    */
   goToOutlineItem?(item: { level: number; text: string }): boolean;
   /**
+   * 可选：把光标移到本文档里某个**锚点**处（点 `#标题` 这类链接）。
+   *
+   * ## 为什么不是 `goToOutlineItem` 的第三种参数
+   *
+   * 大纲项来自 `core/outline/outline.ts` —— 那是一个**纯 Markdown 源文本**提取器
+   * （刻意不走内核，这样它对文档摘要、未打开的文件也能用），它手里根本没有
+   * 渲染后的 `id`。而锚点要匹配的正是渲染后的 `id`（Milkdown 的
+   * `syncHeadingIdPlugin` 生成，含去重后缀 `-#2`）。两者的数据来源不同，
+   * 合成一个方法只会让其中一边传假参数 —— 与 `revealSourceLocation`
+   * 拆开的理由是同一条。
+   *
+   * ## 参数
+   *
+   * `anchor` 是**已经百分号解码**的锚点文字（不含前导 `#`）。解码在外壳做
+   * （`core/link.ts` 的 `decodeAnchor`），因为「用户写的是哪种转义」是
+   * Markdown 地址的问题，不是文档模型的问题；浏览器匹配 `id` 之前也是先解码的，
+   * 所以这样对齐能保证同一份文档在编辑器与导出页里跳向同一个地方。
+   *
+   * ## 返回 false 的含义
+   *
+   * 「本文档里没有这个 `id`」或「这个内核不支持锚点」。外壳据此如实报一句
+   * 找不到（硬约束 2），而不是让点击悄无声息。
+   */
+  goToAnchor?(anchor: string): boolean;
+  /**
    * 可选：把光标移到**源文档**的某一行某一列（工作区检索的跳转）。
    *
    * ## 为什么它与 `goToOutlineItem` 是两个方法
@@ -700,6 +725,21 @@ export interface DiagramView {
 }
 
 /**
+ * 用户**激活**了一个链接（`Ctrl` / `Cmd` + 左键，见 `onLinkClick`）。
+ *
+ * 交出去的是文档里的**原始 `href` 与链接文字**，不是解析结果：
+ * 「这是锚点 / 文件 / 外部地址」以及「相对谁」都要文档路径与工作区知识，
+ * 那是外壳的领域（内核连自己正在编辑哪个文件都不该知道）。
+ * 分类的纯函数在 `core/link.ts`。
+ */
+export interface LinkActivation {
+  /** 文档里的原始地址，未 trim、未解码、未解析。 */
+  readonly href: string;
+  /** 链接上显示的文字。图片链接没有文字，所以可能是空串。 */
+  readonly text: string;
+}
+
+/**
  * 一份 doc-block 引用的**结构摘要**（P6 第 28 项 L2，ADR 0036）。
  *
  * 判别联合：内核按 `kind` 决定画什么，各变体的字段就是它要画的全部数据。
@@ -918,6 +958,33 @@ export interface EditorMountProps {
    * 摘要**不缓存**：展开即读，笔记场景的文件都很小，缓存只会带来过期风险。
    */
   resolveDocBlockPreview?: (ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>;
+  /**
+   * 用户**激活**了一个链接（`Ctrl` / `Cmd` + 左键点击）。
+   *
+   * ## 为什么是「按住修饰键」才算激活
+   *
+   * 编辑器里的普通左键点击是**移动光标**，不是导航 —— 想点进链接中间改一个字
+   * 是最正常的操作，不该被劫持成「打开网页」。这与 VSCode / Typora 的手势一致。
+   *
+   * ## 内核**无论如何**都要 `preventDefault`
+   *
+   * WebView 里点一个 `<a href="https://…">`，默认行为是**整个应用导航走** ——
+   * 界面变成一个网页，回不来。所以内核必须在链接上的 `click` 里无条件
+   * `preventDefault()`，只在按住修饰键时才上报。这一条与「上不上报」无关，
+   * 它是安全网。
+   *
+   * ## 为什么手势判定在内核、动作在外壳
+   *
+   * 「用户按着 Ctrl 点了链接」这个事实只有**看着那个事件的内核**知道；
+   * 而「这个地址指向什么、该打开哪个文件」需要文档路径与工作区知识。
+   * 分工与 `onImageClick` 同款：内核只报它唯一能报的那部分。
+   *
+   * ## 不实现时
+   *
+   * 链接**照常可以编辑**，但点了不会打开任何东西 —— 与今天的行为一致。
+   * 外壳不做任何「假装支持」的补偿。
+   */
+  onLinkClick?: (link: LinkActivation) => void;
   /**
    * 光标或滚动位置变了（位置记忆）。
    *

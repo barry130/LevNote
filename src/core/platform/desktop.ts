@@ -270,6 +270,32 @@ export async function printHtmlDesktop(html: string, title: string): Promise<voi
   await invoke('print_html', { html, title });
 }
 
+// --------------------------------------------------------- 打开外部链接 / 文件
+
+/**
+ * 用**系统默认程序**打开一个 URL 或文件路径（ADR 0040）。
+ *
+ * 网页 → 默认浏览器；`.md` / 图片 / 别的文档 → 各自的关联程序。
+ * 失败时 reject，由调用方如实告知用户 —— 这是硬约束 2 在「打开链接」
+ * 这条路上的落点：没有任何一种失败可以变成「点了没反应」。
+ *
+ * 走 `tauri-plugin-opener` 而不是自己 fork `cmd /c start`：见 `Cargo.toml`
+ * 里那条依赖的理由。与 `@tauri-apps/api/window` 同一条纪律 —— 只有这个文件
+ * 可以 import `@tauri-apps/*`（硬约束 1）。
+ */
+export async function openExternalDesktop(target: string): Promise<void> {
+  const { openUrl, openPath } = await import('@tauri-apps/plugin-opener');
+  // 传给 opener 的就是用户文档里写的那个字符串（`<a href>` 语义）：
+  // 带协议的按 URL 打开，其余按文件系统路径。自己猜「这个字符串是不是 URL」
+  // 等于在做第二次定性，而定性已经在 `classifyLink` 里做过了 ——
+  // 所以这里只按 classifyLink 已经给出的结论选 API。
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(target)) {
+    await openUrl(target);
+  } else {
+    await openPath(target);
+  }
+}
+
 // --------------------------------------------------------------------- 全屏
 
 /**

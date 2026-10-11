@@ -14,6 +14,9 @@ pub mod watch;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // 打开外部链接 / 文件（ADR 0040）：网页交给默认浏览器，文件交给它的关联
+        // 程序。理由见 Cargo.toml 里那条依赖的注释。
+        .plugin(tauri_plugin_opener::init())
         // 打印 / 导出 PDF 的内容通道（P3 第 16 项，ADR 0030）：打印窗口按
         // 会话 id 从内存表里取 HTML。必须在这里注册 —— 自定义协议是
         // 进程级的，晚于窗口创建就接不上了。

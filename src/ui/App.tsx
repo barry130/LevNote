@@ -25,6 +25,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, use
 import type { DocumentProvider } from '../core/document/types.js';
 import { buildDocBlockPreview } from '../core/document/block-preview.js';
 import { registerBuiltInCommands } from '../core/commands/definitions.js';
+import { hasSpecializedAdapter } from '../core/editor/registry.js';
+import { classifyLink } from '../core/link.js';
 import { detectPlatform, isEditableTarget, type Platform } from '../core/commands/keybinding.js';
 import { CommandRegistry } from '../core/commands/registry.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
@@ -32,7 +34,15 @@ import type { DocBlockPreview, EditorHandle, EditorPosition } from '../core/edit
 import type { OutlineItem } from '../core/outline/outline.js';
 import { basename, isMarkdownPath, resolveRelative } from '../core/path.js';
 import type { DocumentStore } from '../core/document/store.js';
-import { askConfirm, createWorkspaceSearcher, isDesktop, onFilesChanged, toggleFullscreen, watchFiles } from '../core/platform/index.js';
+import {
+  askConfirm,
+  createWorkspaceSearcher,
+  isDesktop,
+  onFilesChanged,
+  openExternal,
+  toggleFullscreen,
+  watchFiles,
+} from '../core/platform/index.js';
 import { encodingSlug } from '../core/encodings.js';
 import { isInside } from '../core/path.js';
 import { EMPTY_POSITIONS, loadPositions, rememberPosition, savePositions, type PositionMap } from '../core/positions.js';
@@ -161,6 +171,7 @@ interface PaneSlotProps {
   onRevealResult: (tick: number, applied: boolean) => void;
   onDocBlockOpen: (ref: { src: string; kind: string; title: string | null }) => void;
   onDocBlockEditInPlace: (ref: { src: string; kind: string; title: string | null }) => void;
+  onLinkClick: (link: { href: string; text: string }) => void;
   resolveDocBlockPreview: (ref: { src: string; kind: string }) => Promise<DocBlockPreview | null>;
   reportHandle: (paneId: number, handle: EditorHandle | null) => void;
   reportViewInfo: (paneId: number, info: PaneViewInfo | null) => void;
@@ -183,6 +194,7 @@ function PaneSlot({
   onRevealResult,
   onDocBlockOpen,
   onDocBlockEditInPlace,
+  onLinkClick,
   resolveDocBlockPreview,
   reportHandle,
   reportViewInfo,
@@ -217,6 +229,7 @@ function PaneSlot({
         onRevealResult={onRevealResult}
         onDocBlockOpen={onDocBlockOpen}
         onDocBlockEditInPlace={onDocBlockEditInPlace}
+        onLinkClick={onLinkClick}
         resolveDocBlockPreview={resolveDocBlockPreview}
       />
     </div>
@@ -577,6 +590,100 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       void workspace.openInPlace(fromId, absolute);
     },
     [resolveDocBlockSrc, workspace],
+  );
+
+  /**
+   * 用户激活了一个文档里的链接（`Ctrl` / `Cmd` + 左键，ADR 0040）。
+   *
+   * ## 五类分支都不是「静默失败」
+   *
+   * | 分类 | 动作 | 失败怎么说 |
+   * |---|---|---|
+   * | 本文档锚点 | 交给内核跳 | 「这份文档里没有名为 X 的锚点」 |
+   * | 文件 | 相对当前文档解析后打开 | 「无法确定位置」（没目录信息） |
+   * | 外部地址 | 交系统默认程序 | 「打不开 X」（含原因） |
+   * | 空地址 | 什么都不做 | 一句话说明它还没有目标 |
+   * | 不支持的协议 | 什么都不做 | 「这个链接用的是 X 协议」 |
+   *
+   * 最后两类**照常是看得见的**：因为「点了没反应」在编辑器里等于
+   * 「功能坏了」，用户会反复点。这也是为什么 `classifyLink` 要把
+   * 「不支持的协议」与「空」分成两种 —— 它们的成因完全不同，
+   * 混在一起说就只能给出一句两头都不准的废话。
+   *
+   * ## 为什么在这里而不是注册表或命令
+   *
+   * 它是**文档内的就地动作**（与点击一张图片开灯箱同一类），既没有命令 id，
+   * 也不该被键盘触发 —— 快捷键表与命令面板里都不该出现它。
+   */
+  const openLink = useCallback(
+    ({ href }: { href: string }) => {
+      const target = classifyLink(href);
+
+      switch (target.kind) {
+        case 'empty':
+          void provider.notify(t('ui.app.linkEmpty'), t('ui.app.linkOpenTitle'));
+          return;
+
+        case 'unsupported': {
+          const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(target.href.trim())?.[1] ?? target.href;
+          void provider.notify(
+            t('ui.app.linkUnsupported', { scheme }),
+            t('ui.app.linkOpenTitle'),
+          );
+          return;
+        }
+
+        case 'anchor': {
+          const handle = handleRef.current;
+          // 内核不支持锚点（比如源码视图）时**不要**开另一个标签页：
+          // 用户点的是「跳到这一节」，不是「打开另一个文件」
+          if (handle?.goToAnchor?.(target.anchor) === true) return;
+          void provider.notify(
+            t('ui.app.linkAnchorMissing', { anchor: target.anchor }),
+            t('ui.app.linkOpenTitle'),
+          );
+          return;
+        }
+
+        case 'file': {
+          const docPath = workspace.activeStore?.getSnapshot().doc?.path ?? null;
+          // `absolute` 为 true 时 `target.path` 本身就是绝对路径 —— 再走
+          // `resolveRelative` 会剥掉它开头的分隔符（盘符 / UNC / POSIX 根）
+          const absolute = target.absolute ? target.path : resolveRelative(docPath ?? '', target.path);
+          if (absolute === null || docPath === null) {
+            void provider.notify(t('ui.app.linkNoBase', { href }), t('ui.app.linkOpenTitle'));
+            return;
+          }
+          // 轻笺自己认得的那几类在工作区里打开（它们是一等公民，交给系统默认
+          // 程序只会得到另一个编辑器里的源码）；其余（png / pdf / xlsx …）交给
+          // 系统的关联程序 —— 在纯文本内核里显示一张 png 的字节不是「打开」。
+          // 两种走法失败都要说出来：`workspace.open` 返回 false、openExternal reject。
+          // 判据问的是注册表（`hasSpecializedAdapter`）—— 它异步填充，启动极早期
+          // 的一次点击会落到「交给系统」那一支；那时内核自己也还没就绪，可接受。
+          void (hasSpecializedAdapter(absolute)
+            ? workspace.open(absolute)
+            : openExternal(absolute).then(
+                () => true,
+                () => false,
+              )
+          ).then((ok) => {
+            if (!ok) {
+              void provider.notify(t('ui.app.linkOpenFailed', { href }), t('ui.app.linkOpenTitle'));
+            }
+          });
+          return;
+        }
+
+        case 'external':
+          void openExternal(target.href).catch(() => {
+            void provider.notify(t('ui.app.linkOpenFailed', { href }), t('ui.app.linkOpenTitle'));
+          });
+          return;
+      }
+    },
+    // 依赖里没有 `handleRef`：它是 ref，读的是「点击那一刻」的句柄。
+    // 进依赖就得每次换句柄都重造回调，而面板是按引用收它的（面板常驻，P3 第 19 项）。
+    [provider, workspace],
   );
 
   /**
@@ -1617,6 +1724,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
                 onRevealResult={handleRevealResult}
                 onDocBlockOpen={openDocBlockReference}
                 onDocBlockEditInPlace={editDocBlockInPlace}
+                onLinkClick={openLink}
                 resolveDocBlockPreview={resolveDocBlockPreview}
                 reportHandle={reportHandle}
                 reportViewInfo={reportViewInfo}

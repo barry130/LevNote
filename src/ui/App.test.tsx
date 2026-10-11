@@ -3791,5 +3791,154 @@ describe('快照型文案第二批：窗口标题 / 状态栏 notice / 查找栏
   });
 });
 
+// ---------------------------------------------------------------------------
+// 链接激活（ADR 0040）
+// ---------------------------------------------------------------------------
 
+/**
+ * 找 activePane 里链接文字等于 `text` 的那个 `<a>`。
+ *
+ * 为什么按文字找而不是按 `href`：浏览器链路的第二段依赖 Milkdown 把
+ * `href` 写成什么（`javascript:` 会被白名单蒸成空串），而链接文字是
+ * **用户在屏幕上看到并点下去的那个东西** —— 断言应该落在它身上。
+ */
+function anchorIn(container: HTMLElement, text: string): HTMLAnchorElement {
+  const anchors = [...(activePane(container) ?? container).querySelectorAll<HTMLAnchorElement>('a')];
+  const found = anchors.find((item) => item.textContent?.trim() === text);
+  if (found === undefined) throw new Error(`活动面板里没有「${text}」这个链接 —— 渲染出来了吗？`);
+  return found;
+}
 
+/**
+ * 在链接上派发一次真实的 click（带激活修饰键），把事件交回来给用例断言
+ * `defaultPrevented` —— 「编辑器里不允许 WebView 抢走这次导航」是内核侧的
+ * 保证，只有拿到事件对象才验得到。
+ */
+async function clickAnchor(el: HTMLElement, modifiers: { ctrlKey?: boolean } = {}): Promise<MouseEvent> {
+  let event: MouseEvent | null = null;
+  await act(async () => {
+    event = new MouseEvent('click', { bubbles: true, cancelable: true, ...modifiers });
+    el.dispatchEvent(event);
+  });
+  await settle();
+  if (event === null) throw new Error('click 没有派发出去');
+  return event;
+}
+
+function noticesOf(m: Mounted): string {
+  return m.provider.notices.join(' | ');
+}
+
+describe('链接激活（ADR 0040）', () => {
+  it('★ Ctrl+click 另一个 .md：在工作区里打开它，而不是悄悄什么都不做', async () => {
+    mounted = await mount((p) => {
+      p.put('notes\\main.md', '正文 [去细节](./detail.md)\n');
+      p.put('notes\\detail.md', '# 细节\n');
+    });
+    const m = mounted;
+    await m.open('notes\\main.md');
+
+    const event = await clickAnchor(anchorIn(m.container, '去细节'), { ctrlKey: true });
+    await settle(6);
+
+    // 内核无条件掐掉默认导航：链接编辑区里任何一次点击都不该把 WebView 带走
+    expect(event.defaultPrevented).toBe(true);
+    const snapshot = m.workspace.getSnapshot();
+    const active = snapshot.tabs.find((tab) => tab.id === snapshot.activeId);
+    expect(active?.path).toBe('notes\\detail.md');
+    // 成功的那支不能顺带说一句废话
+    expect(noticesOf(m)).toBe('');
+  });
+
+  it('★ 点本文档里的锚点：跳到那一节（状态栏光标跟着变），不新开标签页', async () => {
+    mounted = await mount((p) =>
+      p.put('note.md', '# 第一节\n\n正文甲\n\n# 第二节\n\n正文乙\n\n[跳过去](#第二节)\n'),
+    );
+    const m = mounted;
+    await m.open('note.md');
+
+    const before = cursorOf(m.container);
+    await clickAnchor(anchorIn(m.container, '跳过去'), { ctrlKey: true });
+    await settle(6);
+
+    const after = cursorOf(m.container);
+    expect(after).not.toBe(before);
+    // **刻意不断言行号**：ProseMirror 的位置里没有「空行」（段落之间不占节点），
+    // 所以它的行号与 Markdown 源码的行号本来就不是同一个刻度 —— 钉行号等于
+    // 把一番实现的内部细节写成契约。落点看 DOM 选区在哪个标题里，那是用户所见
+    expect(window.getSelection()?.anchorNode?.parentElement?.textContent ?? '').toBe('第二节');
+    // 锚点落在本文档内：既没有新标签，也没有任何打扰的话
+    expect(m.workspace.getSnapshot().tabs).toHaveLength(1);
+    expect(noticesOf(m)).toBe('');
+  });
+
+  it('★ 锚点不存在：说清楚是哪一个不存在，而不是「点了没反应」', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 第一节\n\n[跳过去](#没有这一节)\n'));
+    const m = mounted;
+    await m.open('note.md');
+
+    await clickAnchor(anchorIn(m.container, '跳过去'), { ctrlKey: true });
+
+    expect(noticesOf(m)).toContain('没有这一节');
+    expect(m.workspace.getSnapshot().tabs).toHaveLength(1);
+  });
+
+  it('★ 只有一个 # 的占位链接：说它是空地址', async () => {
+    mounted = await mount((p) => p.put('note.md', '[占位](#)\n'));
+    const m = mounted;
+    await m.open('note.md');
+
+    await clickAnchor(anchorIn(m.container, '占位'), { ctrlKey: true });
+
+    expect(noticesOf(m)).toContain('地址是空的');
+  });
+
+  it('★ javascript: 链接：说出它用什么协议，并且不执行它', async () => {
+    mounted = await mount((p) => p.put('note.md', '[危险](javascript:alert(1))\n'));
+    const m = mounted;
+    await m.open('note.md');
+
+    // DOM 上的 href 已被白名单清空，所以我们钉的是「在这条读 DOM 的路上也得到结论」
+    expect(anchorIn(m.container, '危险').getAttribute('href')).toBe('');
+    await clickAnchor(anchorIn(m.container, '危险'), { ctrlKey: true });
+
+    expect(noticesOf(m)).toContain('javascript 协议');
+  });
+
+  it('★ 这份文档没有目录信息：联系它是 relative 的，说出来而不是去猜', async () => {
+    mounted = await mount((p) => p.put('note.md', '[去细节](./detail.md)\n'));
+    const m = mounted;
+    await m.open('note.md');
+
+    await clickAnchor(anchorIn(m.container, '去细节'), { ctrlKey: true });
+
+    expect(noticesOf(m)).toContain('没有可用的目录信息');
+  });
+
+  it('★ 交给外部程序的文件在 jsdom 里打不开：说出来', async () => {
+    mounted = await mount((p) => p.put('C:/w/note.md', '[看图](./shot.png)\n'));
+    const m = mounted;
+    await m.open('C:/w/note.md');
+
+    await clickAnchor(anchorIn(m.container, '看图'), { ctrlKey: true });
+    await settle(6);
+
+    expect(noticesOf(m)).toContain('打不开');
+  });
+
+  it('★ 没有修饰键的普通点击什么都不做 —— 用户要的是把光标放到这里', async () => {
+    mounted = await mount((p) => {
+      p.put('notes\\main.md', '正文 [去细节](./detail.md)\n');
+      p.put('notes\\detail.md', '# 细节\n');
+    });
+    const m = mounted;
+    await m.open('notes\\main.md');
+
+    const event = await clickAnchor(anchorIn(m.container, '去细节'));
+
+    // 导航仍然被掐掉，但「打开」这件事没有发生
+    expect(event.defaultPrevented).toBe(true);
+    expect(m.workspace.getSnapshot().tabs).toHaveLength(1);
+    expect(noticesOf(m)).toBe('');
+  });
+});

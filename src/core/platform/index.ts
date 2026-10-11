@@ -15,6 +15,7 @@ import {
   createDesktopProvider,
   createDesktopSearcher,
   onFilesChangedDesktop,
+  openExternalDesktop,
   printHtmlDesktop,
   toggleFullscreenDesktop,
   watchFilesDesktop,
@@ -86,6 +87,22 @@ export function printHtml(html: string, title: string): Promise<void> {
     return Promise.reject(new Error(t('core.print.desktopOnly')));
   }
   return printHtmlDesktop(html, title);
+}
+
+// ---- 打开外部链接 / 文件（ADR 0040） ----------------------------------------
+//
+// 浏览器预览里「用系统默认程序打开」没有对应物：那里连真实文件系统都没有。
+// 所以给的是**明确拒绝**而不是静默无事 —— 与上面检索 / 打印同一条分工。
+
+/**
+ * 用系统默认程序打开（网页 → 浏览器，文件 → 关联程序）。
+ * 失败时 reject —— 调用方必须把原因说给用户听（硬约束 2）。
+ */
+export function openExternal(target: string): Promise<void> {
+  if (!isDesktop()) {
+    return Promise.reject(new Error(t('core.openExternal.desktopOnly')));
+  }
+  return openExternalDesktop(target);
 }
 
 // ---- 全屏 ------------------------------------------------------------------

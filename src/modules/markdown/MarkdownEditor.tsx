@@ -30,6 +30,7 @@ function MarkdownEditor({
   onDocBlockOpen,
   onDocBlockEditInPlace,
   resolveDocBlockPreview,
+  onLinkClick,
   onError,
   readOnly,
   placeholder,
@@ -73,6 +74,8 @@ function MarkdownEditor({
   onDocBlockEditInPlaceRef.current = onDocBlockEditInPlace;
   const resolveDocBlockPreviewRef = useRef(resolveDocBlockPreview);
   resolveDocBlockPreviewRef.current = resolveDocBlockPreview;
+  const onLinkClickRef = useRef(onLinkClick);
+  onLinkClickRef.current = onLinkClick;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
@@ -138,6 +141,9 @@ function MarkdownEditor({
           // 不经 ref 的话重渲染产生的新函数永远进不了内核
           onDocBlockEditInPlace: (ref) => onDocBlockEditInPlaceRef.current?.(ref),
           resolveDocBlockPreview: async (ref) => (await resolveDocBlockPreviewRef.current?.(ref)) ?? null,
+          // 「内核只在创建时把这个属性捕获下来」的那类回调：不经 ref 的话
+          // 切标签页之后 Ctrl+点击打开的是旧文档的链接
+          onLinkClick: (link) => onLinkClickRef.current?.(link),
         });
 
         // 内核是异步创建的：还没创建完就卸载了（切文件、StrictMode 双调用），
@@ -167,6 +173,7 @@ function MarkdownEditor({
           undo: () => created.undo(),
           redo: () => created.redo(),
           goToOutlineItem: ({ level, text }) => created.goToHeading(level, text),
+          goToAnchor: (anchor) => created.goToAnchor(anchor),
           getPosition: () => created.getPosition(),
           setPosition: (position) => created.setPosition(position),
         };

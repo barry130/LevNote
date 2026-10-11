@@ -34,6 +34,29 @@ indexmap = { version = "1.9", features = ["std"] }
 notify = "8"
 notify-debouncer-mini = "0.7"
 
+# 打开外部链接 / 文件（ADR 0040：Markdown 链接的激活）。
+# 用系统默认程序打开：网页 -> 默认浏览器，文件 -> 它的关联程序。
+#
+# 为什么不自己 fork `cmd /c start` / `xdg-open`：
+#   1) 那条路上唯一的报错出口是进程退出码，而 Windows 上 `start` 的参数走的是
+#      shell 的转义规则 —— 路径里的空格、引号、`&` 都得按 cmd 的规矩拼好；
+#      拼错的后果可能是打开另一个地方，而我们要的是「要么打开正确的地方、
+#      要么如实报错」。
+#   2) macOS 上没有 `cmd`，Linux 各家桌面的 `xdg-open` 行为也不一致 ——
+#      自己写等于把三份平台差异养在 `src-tauri/src` 里。
+#
+# 为什么不用 `tauri-plugin-shell`：它给的是「执行任意命令」的能力，面太宽。
+# 本项目每个 Rust 依赖都只为一种能力存在（见上面几条注释），
+# `tauri-plugin-opener` 只做「按 URL / 路径打开」这一件事。
+#
+# 重审条件：这个插件停止维护，或我们需要它之外的执行能力。
+#   删除后跑 `cargo check --all-targets` 与 `pnpm exec tsc --noEmit`。
+#
+# 版本与 npm 侧的 `@tauri-apps/plugin-opener`（package.json）**写同一串数字**，
+# 升一个就一起升：两边是同一个插件的两半，IPC 的参数形状由它们共同决定，
+# 差一个小版本时谁都不报错，错的是运行时的那次调用。
+tauri-plugin-opener = "2.7.0"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 # 见文件底部「indexmap 为什么出现在这里」。

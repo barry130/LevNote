@@ -194,6 +194,14 @@ export interface DocumentPaneProps {
    */
   onDocBlockEditInPlace?: (ref: { src: string; kind: string; title: string | null }) => void;
   /**
+   * 用户激活了一个文档里的链接（ADR 0040）。
+   *
+   * 与前两条同一条纪律：内核上报（监听挂在内核自己画的 `<a>` 上，硬约束 11），
+   * 面板原样转发。「这个地址意味着什么、相对谁」都在外壳 ——
+   * 内核连自己正在编辑哪个文件都不该知道。
+   */
+  onLinkClick?: (link: { href: string; text: string }) => void;
+  /**
    * 卡片「预览」展开要的结构摘要。摘要的计算在 App（读文件归外壳），
    * 面板只转发。不传时内核不画预览按钮。
    */
@@ -243,6 +251,7 @@ export function DocumentPane({
   onRevealResult,
   onDocBlockOpen,
   onDocBlockEditInPlace,
+  onLinkClick,
   resolveDocBlockPreview,
 }: DocumentPaneProps) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -954,6 +963,7 @@ export function DocumentPane({
         onDiagramOpen={setDiagram}
         onDocBlockOpen={onDocBlockOpen}
         onDocBlockEditInPlace={onDocBlockEditInPlace}
+        onLinkClick={onLinkClick}
         resolveDocBlockPreview={resolveDocBlockPreview}
         onError={handleEditorError}
       />
