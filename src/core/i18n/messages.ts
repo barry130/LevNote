@@ -694,6 +694,23 @@ export const zhCN = {
   'ui.drawio.missingLibs': '未内置的形状库：{libs} —— 相关形状已按矩形显示。',
   'ui.drawio.libJoin': '、',
 
+  // 思维导图内核（mind-elixir）自己画的界面：右键菜单 11 条 + 新节点的占位文字。
+  // 内核在**构造那一刻**就把这些字烤进 DOM（`MindElixir.js:1394` 的 innerHTML），
+  // 所以语言一变必须重建内核 —— 理由与做法见 `modules/mindmap/MindmapEditor.tsx` 的文件头。
+  'ui.mindmap.addChild': '插入子主题',
+  'ui.mindmap.addParent': '插入父主题',
+  'ui.mindmap.addSibling': '插入同级主题',
+  'ui.mindmap.removeNode': '删除主题',
+  'ui.mindmap.focus': '专注模式',
+  'ui.mindmap.cancelFocus': '退出专注模式',
+  'ui.mindmap.moveUp': '上移',
+  'ui.mindmap.moveDown': '下移',
+  'ui.mindmap.link': '连接',
+  'ui.mindmap.linkBidirectional': '双向连接',
+  'ui.mindmap.clickTips': '请点击目标主题',
+  'ui.mindmap.summary': '概要',
+  'ui.mindmap.newTopicName': '新主题',
+
   // .mindmap 解析 / 序列化的提示与错误（绝不静默：每一条都说清降级了什么）
   'core.mm.descArray': '数组（{n} 项）',
   'core.mm.descString': '字符串 {value}',
@@ -1438,6 +1455,20 @@ export const en: Record<MessageKey, string> = {
   'ui.drawio.emptyHint': 'This diagram is still empty. Switch to the source view (Ctrl+2) and write some XML — it will be drawn.',
   'ui.drawio.missingLibs': 'Shape libraries that are not bundled: {libs} — the affected shapes are shown as plain rectangles.',
   'ui.drawio.libJoin': ', ',
+
+  'ui.mindmap.addChild': 'Add child',
+  'ui.mindmap.addParent': 'Add parent',
+  'ui.mindmap.addSibling': 'Add sibling',
+  'ui.mindmap.removeNode': 'Remove node',
+  'ui.mindmap.focus': 'Focus Mode',
+  'ui.mindmap.cancelFocus': 'Cancel Focus Mode',
+  'ui.mindmap.moveUp': 'Move up',
+  'ui.mindmap.moveDown': 'Move down',
+  'ui.mindmap.link': 'Link',
+  'ui.mindmap.linkBidirectional': 'Bidirectional Link',
+  'ui.mindmap.clickTips': 'Please click the target node',
+  'ui.mindmap.summary': 'Summary',
+  'ui.mindmap.newTopicName': 'New Node',
 
   'core.mm.descArray': 'an array ({n} items)',
   'core.mm.descString': 'the string {value}',

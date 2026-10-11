@@ -117,6 +117,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`t()` 的结果会跨渲染存活的地方** | `core/i18n/index.ts` 的 `LocalizedText{key, params}` + `msg()` / `textOf()`（`core/health.ts` 的 `HealthLine` 是它的别名）。**判据不是「这个文件属于 core 还是 ui」，是「`t()` 的结果有没有进 state / store 字段 / 会被存起来的返回值」** —— 进了就等于把语言烤死在调用那一刻。已收干净的四处：`TreeState.error`（`TreeProblem`，不带恒定的 `code`，`detail` 是抛物原话**不许翻**）与 `validateEntryName()` 的八条规则、`ReplaceReport`（片段数组 + 问题行，**句子只在 `renderReplaceReport()` 里拼，连逗号都是一个 key**）、`SettingsDialog.error`、`PasteImageFail.reason`（这一处一交 key，`DocumentStore` 的 `legacyText()` 品牌门就整个删掉了 —— **没有门后的门比没有门更糟**）。**抛物原话当 `params` 走，绝不当句子翻**（翻一句 `EACCES` 得到的是听起来像回事的谎）。**别再把 `t()` 的结果塞进任何活过渲染的结构**（ADR 0047） |
 | **新文件该写什么内容 / 新建入口** | `core/new-file-content.ts` 是**唯一的出口**，判据只用 `core/path.ts` 的 `is*Path`，**不许 import 任何 `modules/`**（硬约束 1）。模板**生成**而不是抄字面量（抄的那份会在格式演进时先掉队）：`core/mindmap/template.ts` 的 `emptyMindmapText()`、`core/drawio.ts` 的 `drawioTemplateXml()`（doc-block 的起始内容也复用它 —— **起始内容只有一份**）。用**各自的判据**验，不照抄字面量：`.mindmap` 看 `parseMindmap(...).canonical`（打开→保存无 diff），`.drawio` 看 `missingStencilLibs` 恒为空（随包只内置 bpmn/flowchart，新文件一打开就顶一条缺库警告不是迎接用户的方式）。`core/commands/definitions.ts` 的 `writeNewFileThenOpen` 是**三个新建入口**（`file.new` / `file.newMindmap` / 示例文档）共用的编排，差异只留数据。**加一种有格式的文件类型时三件事都要做**：判据加一条、模板加一份、命令加一个 —— 漏掉的那一处是**静默**给用户一个空文件（ADR 0048） |
 | **`.mindmap` / `.drawio` 各自的独立内核** | `modules/mindmap/index.ts`（`canHandle` + `canHandleReason` + `sourceView: codeAdapter`，ADR 0007 / 0025 / 0043）与 `modules/drawio/index.ts`（**刻意不实现 `canHandle`** —— 查看器自己会把「这不是合法的 XML」写进元素里，`renderDrawio` 读出来当 `DrawioRenderFail.message` 比适配层再判一遍**更准**，还省掉 ADR 0043 那张 kind 表的一个上限）。注册顺序 markdown → mindmap → **drawio** → code。三条纪律：① **`CODE_EXTENSIONS` 里 `.drawio` 与 `.mindmap` 必须留着** —— 它们是这两个内核的 `sourceView`，也就是它们的编辑入口兼内核被否决时的备胎；② **只读内核从不调用 `onChange`** —— 不能改文档就没有「改了什么」可报，报了就会把没变的文件标脏并重写一遍；③ **能力缺失写在面板上**，不靠「没那个按钮」让用户自己发现（硬约束 2），且要给出可走的下一步（图纸 → Ctrl+2 源码视图）。`.drawio` 的文档内容就是那段 XML，`onChange` 一接上就是可编辑，**内核契约一个字都不用改**（ADR 0048） |
+| **内核自己画的界面文案** | `modules/mindmap/lang-pack.ts` 的 `mindmapLangPack()` 十二键加 `newTopicName`，**现查现变**（模块级常量会在模块被求值那一刻烤死语言，ADR 0031 的坑）。内核在**安装那一刻**把右键菜单十一条烤成 DOM（`MindElixir.js:1394` 的 `innerHTML`）—— 所以 `contextMenu` 传 `true` 只能拿到它硬编码的英文包，**要传对象**才带得上我们的语言包。语言一变只能**重建内核**：`useSyncExternalStore(subscribeLocale, getLocale)` 把 `locale` 放进主 effect 的依赖数组（全项目第一处真的订阅语言变化的消费方）。重建的三条命门，缺一条就是一次静默的坏：① 种子取 `latestRef`（「此刻 Ctrl+S 会写出的那份文本」，拿 `initialValue` 重新解析会让用户的修改**静默回滚**）；② `getValue()` 里记进 `latestRef` 的是**交出去的那个值**不是 `lastText` —— 记错的话下一次保存把用户文件**重排版**，「打开 → 保存逐字节一致」当场破掉；③ 缩放用公开的 `scaleVal` / `scale()` 还原，而选中项 / 专注模式 / 平移**不保**（都不是公开 API，别去撬内部状态，升级即烂）（ADR 0049） |
 | **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
 | **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
 | 大纲提取 | `core/outline/outline.ts` |
@@ -886,6 +887,26 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 ④ **注册顺序变成 markdown → mindmap → drawio → code**（硬约束 4）。
 **登记不做**：`modules/markdown/code-block-view.ts` 里 6 处硬编码中文文案
 属 ADR 0047 的漏网；侧栏新建不落模板（Rust 那条不改，命令面板那条落模板）。
+
+**内核自己画的字也得跟着语言变（2026-10-14，ADR 0049）**：ADR 0047 管的是
+**我们自己的**文案，「切语言后那一句还是旧的」还有另一半 —— **内核自己画的那部分**。
+思维导图的右键菜单十一条与新节点占位文字全是英文，来源只有两处，都在
+`mind-elixir` 的构造参数里（`contextMenu.locale` / `newTopicName`），都有配置的口子。
+三条要记住的：
+① **菜单是内核在安装那一刻烤进 DOM 的**（`MindElixir.js:1394` 的 `innerHTML`）——
+换语言包对象不会更新已经建好的菜单，**唯一的办法是重建内核**。所以
+`contextMenu` 传 `true` 只能拿到它硬编码的英文包，**要传对象**才带得上我们的语言包。
+② **重建不能丢内容**：种子取 `latestRef`（「此刻 Ctrl+S 会写出的那份文本」），
+拿 `initialValue` 重新解析等于把用户的修改**静默回滚**；`getValue()` 里记进
+`latestRef` 的必须是**交出去的那个值**而不是 `lastText` —— 记错的话下一次保存
+把用户文件**重排版**，「打开 → 保存逐字节一致」当场破掉。cleanup 里还要结掉
+兜底通道那个 300ms 定时器，否则拖完立刻切语言会把那一次改动**丢掉**。
+③ **重建会交出一个新句柄**：外壳的 `handleEditorReady` → `reportHandle` → `setHandle(next)`
+这条链本来就在跑，所以查找栏会自己重跑，**不用你再接线一次**。
+**别用「重注册一遍界面」那种刷新**（ADR 0031 复评记录三已经吃过一次亏）。
+视图状态里**只有缩放**用公开 API 还原（`scaleVal` / `scale()`），选中项 / 专注模式 /
+平移位置都不是公开 API，**别去撬内部状态** —— 升级即烂，而且撬出来的形状
+会静默地丢内容。想要更多的视图状态，得先给内核加公开 API。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、

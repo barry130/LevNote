@@ -21,6 +21,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { EditorHandle, EditorMountProps } from '../../core/editor/types.js';
+import { setLocale } from '../../core/i18n/index.js';
 import { DEFAULT_FIND_OPTIONS } from '../../core/search/find.js';
 import { MINDMAP_FORMAT, MINDMAP_VERSION } from '../../core/mindmap/types.js';
 import MindmapEditor from './MindmapEditor.js';
@@ -67,8 +68,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // 顺序有讲究：先卸内核再改语言。反过来的话 `setLocale` 会先把内核重建一遍、
+  // 紧接着又被卸载，白白建一个出来（还让 act 的时序变得难读）。
   act(() => root.unmount());
   container.remove();
+  setLocale('zh-CN');
 });
 
 interface Mounted {
@@ -76,6 +80,13 @@ interface Mounted {
   handle: EditorHandle | null;
   changes: string[];
   errors: Error[];
+  /**
+   * 此刻内核交出的那个 handle。
+   *
+   * 不能只靠 `mounted.handle`：切语言会重建内核并**再交一次** `onReady`，
+   * 于是挂载时拿到的那个句柄已经指向一个销毁了的实例。
+   */
+  currentHandle: () => EditorHandle | null;
 }
 
 async function mount(over: Partial<EditorMountProps> = {}): Promise<Mounted> {
@@ -98,7 +109,7 @@ async function mount(over: Partial<EditorMountProps> = {}): Promise<Mounted> {
     root.render(<MindmapEditor {...props} />);
   });
 
-  return { handle: captured.handle, changes, errors };
+  return { handle: captured.handle, changes, errors, currentHandle: () => captured.handle };
 }
 
 /** 绝大多数用例要的形态：必须拿到 handle，否则直接失败并带上 `onError` 说了什么。 */
@@ -245,5 +256,102 @@ describe('可选能力', () => {
     const { handle, errors } = await mountReady({ readOnly: true });
     expect(errors).toEqual([]);
     expect(handle.getValue()).toBe(CANONICAL);
+  });
+});
+
+/**
+ * 内核**自己**画的那些字：右键菜单十一条 + 新节点的占位文字。
+ *
+ * 单独一个 describe 的理由：这一族要么整体成立要么整体不成立（内核在安装那一刻
+ * 一次建好十一个 `<li>`，少一条就是「半中半英」），拆开测没有意义。
+ */
+describe('内核自己画的界面（ADR 0049）', () => {
+  /** 右键菜单的文字。菜单是 `hidden` 的，但文字照样在 DOM 里，测的就是它。 */
+  const menuText = (): string => container.querySelector('.context-menu')?.textContent ?? '';
+
+  /** 用户改过的一份文件（规范形式，所以「改过的根主题」能原样断言）。 */
+  const EDITED = `${JSON.stringify(
+    {
+      format: MINDMAP_FORMAT,
+      version: MINDMAP_VERSION,
+      layout: 'logicalStructure',
+      root: { id: 'n1', topic: '改过的根主题', children: [] },
+    },
+    null,
+    2,
+  )}\n`;
+
+  it('右键菜单是中文的 —— 不是内核硬编码的那份英文', async () => {
+    await mountReady();
+    const menu = menuText();
+    expect(menu).toContain('插入子主题');
+    expect(menu).toContain('删除主题');
+    expect(menu).toContain('专注模式');
+    // 连「连接」那两条都在（传的是对象，`focus` / `link` 两组都要显式打开）
+    expect(menu).toContain('双向连接');
+    expect(menu).not.toContain('Add child');
+  });
+
+  it('切语言之后菜单当场变英文 —— 不必关掉重开文件', async () => {
+    await mountReady();
+    const before = menuText();
+    await act(async () => {
+      setLocale('en');
+    });
+    const after = menuText();
+    expect(after).not.toBe(before);
+    expect(after).toContain('Add child');
+    expect(after).toContain('Remove node');
+    expect(after).not.toContain('插入子主题');
+  });
+
+  it('切语言不丢内容：用户改过的图重建后还在，保存写出去的也是那一份', async () => {
+    const { handle, currentHandle, errors } = await mountReady();
+    await act(async () => {
+      handle.setValue(EDITED);
+    });
+    await act(async () => {
+      setLocale('en');
+    });
+
+    const next = currentHandle();
+    expect(errors).toEqual([]);
+    // 重建交的是**新**句柄：挂载时拿到的那个已经指向一个销毁了的实例
+    expect(next).not.toBeNull();
+    expect(next).not.toBe(handle);
+
+    const saved = next?.getValue() ?? '';
+    expect(saved).toContain('改过的根主题');
+    // 种子取的是 `latestRef` 而不是 `initialValue` —— 换了的话这里会回到打开时的样子
+    expect(saved).not.toContain('分支甲');
+    expect(container.querySelector('.map-container')?.textContent).toContain('改过的根主题');
+  });
+
+  it('切语言不把没改过的文件变成改过的 —— 逐字节一致那条不能因为重建破掉', async () => {
+    const { currentHandle, changes } = await mountReady();
+    await act(async () => {
+      setLocale('en');
+    });
+    // 重建本身不是一次编辑：外壳不该因此收到任何 onChange
+    expect(changes).toEqual([]);
+    expect(currentHandle()?.getValue()).toBe(CANONICAL);
+  });
+
+  it('保存过一次再切语言，文件仍然逐字节一致 —— 种子不能被规范形式污染', async () => {
+    // COMPACT 不是我们写出来的样子：它的规范形式与它自己不是同一串字节
+    const { handle, currentHandle } = await mountReady({ initialValue: COMPACT });
+    expect(handle.getValue()).toBe(COMPACT);
+
+    await act(async () => {
+      setLocale('en');
+    });
+    // `getValue()` 记进 `latestRef` 的必须是**交出去的那个值**。记成 `lastText`
+    // （规范形式）的话，下一次保存就会把用户的文件重排版，而界面上看不出任何异常。
+    expect(currentHandle()?.getValue()).toBe(COMPACT);
+  });
+
+  it('只读时根本没有右键菜单 —— 换成对象传参之后这条不能松', async () => {
+    await mountReady({ readOnly: true });
+    expect(menuText()).toBe('');
   });
 });

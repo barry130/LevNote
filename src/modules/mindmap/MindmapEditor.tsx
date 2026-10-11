@@ -25,19 +25,42 @@
  * 见 `getValue` 里的注释 —— 那是 §7.2 第 4 条（`.drawio` 往返不篡改）对
  * `.mindmap` 的同一条要求：**没改过的文件，写回去必须逐字节一致**。
  * JSON 往返做不到这件事（键顺序、缩进、空格都会变），所以用「没改就交回原文」来保证。
+ *
+ * ## 切语言要重建内核（ADR 0049）
+ *
+ * 内核把右键菜单在**安装那一刻**就建成了 DOM：`dist/MindElixir.js:1394` 是
+ * `E.innerHTML = \`<span>${文案}</span>\``，文案在那一刻就烤死了。
+ * 所以「换了语言包对象」对已经建好的菜单**毫无作用** —— 只能重建内核。
+ *
+ * 于是 `locale` 进了下面那个 effect 的依赖数组。三件事得同时守住，重建才是划算的：
+ *
+ * 1. **不丢内容**（`latestRef`）。种子取「此刻保存会写出的那份文本」而不是
+ *    `initialValue` —— 后者会让用户在这份文件上已经做的修改**静默回滚**：
+ *    界面还画着改过的图，一保存就弹回打开时的样子。
+ * 2. **不弄脏文件**（`getValue` 里写的是**交出去的那个值**）。种子一旦被
+ *    规范形式污染，「打开 → 保存逐字节一致」这条当场破掉。
+ * 3. **不让人以为图变了**（`scaleRef`）。不还原缩放的话，切一次语言视口就跳一下。
+ *
+ * 重建换来的好处是：这里可以放心用 `t()` 而**不必** `msg()` + `textOf()`。
+ * ADR 0047 的判据是「这句译文会不会跨过下一次 `setLocale`」——在这里**不会**，
+ * 因为跨过去之前内核已经重建了。重建是那条判据的兑现，不是它的副作用。
+ * 没保住的三样如实写在这儿：**选中项、专注模式、平移位置**都不是公开 API，
+ * 重建后回到初始状态（缩放与折叠状态是保住的）。
  */
 
 import MindElixir, { type MindElixirInstance, type Operation } from 'mind-elixir';
 import 'mind-elixir/style';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 import type { EditorHandle, EditorMountProps, EditorSearch } from '../../core/editor/types.js';
+import { getLocale, subscribeLocale, t } from '../../core/i18n/index.js';
 import { parseMindmap } from '../../core/mindmap/parse.js';
 import { serializeMindmap } from '../../core/mindmap/serialize.js';
 import { emptyMindmapDocument } from '../../core/mindmap/template.js';
 import { type LineEnding, type MindmapDocument, type MindmapNode } from '../../core/mindmap/types.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions } from '../../core/search/find.js';
 import { directionOf, fromKernelData, toKernelData } from './adapter.js';
+import { mindmapLangPack } from './lang-pack.js';
 import './mindmap.css';
 
 /**
@@ -157,17 +180,53 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
   const initialValueRef = useRef(initialValue);
   const readOnlyRef = useRef(readOnly);
 
+  /**
+   * 语言。订阅在组件里，而不是等外壳那一圈 `localeTick` 顺带把内核刷一遍：
+   * 内核不受 `memo` 保护，也不该依赖父组件有没有重渲染（那是一条看不见的耦合）。
+   *
+   * 这是全项目**第一处**真的订阅语言变化的消费方 —— 在此之前每个界面都在
+   * 渲染那一刻现取 `t()`，所以切语言不需要谁通知它们。
+   */
+  const locale = useSyncExternalStore(subscribeLocale, getLocale);
+
+  /**
+   * 「此刻保存会写出的那份文本」，**跨重建**活着。
+   *
+   * 重建时不能拿 `initialValue` 重新解析：那样用户在这份文件上已经做的修改
+   * 会被**静默回滚** —— 界面还画着改过的图，一保存就弹回打开时的样子。
+   * 约定只有一条：**任何时刻它都等于「此刻 Ctrl+S 会写出的内容」**，
+   * 所以 `emit` / `setValue` / `getValue` 三处都维护它，而重建直接拿它当种子。
+   *
+   * 头一次挂载时是 `null`，那时 `initialValue` 就是种子（用户还没机会改）。
+   */
+  const latestRef = useRef<string | null>(null);
+
+  /**
+   * 上一个内核的缩放，重建后还回去。
+   *
+   * `init()` 收尾会 `toCenter()`，不还原的话「切一次语言视口就跳一下」。
+   * `scaleVal` 与 `scale()` 都是内核的公开 API（`dist/types/index.d.ts:68`、
+   * `dist/types/methods.d.ts`），不是撬出来的内部状态。
+   */
+  const scaleRef = useRef(1);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
+    /**
+     * 种子：第一次挂载是文件原文，之后每一次重建都是「此刻保存会写出的那份文本」
+     * （见 `latestRef`）。走后者是切语言不丢内容的那一半。
+     */
+    const seed = latestRef.current ?? initialValueRef.current;
+
     // 空内容给一份默认文档；其余情况读不出来就是真读不出来 ——
     // 那条路 `canHandle` 已经拦掉了，走到这里说明有个我们没预料到的洞，
     // 如实报错好过白屏（「打开文件不能失败」这条承诺在注册表那一层兑现）。
-    const empty = initialValueRef.current.trim() === '';
+    const empty = seed.trim() === '';
     const parsed = empty
       ? { document: createEmptyDocument(), lineEnding: '\n' as LineEnding }
-      : parseMindmap(initialValueRef.current);
+      : parseMindmap(seed);
     const first = parsed.document;
     if (first === null) {
       onErrorRef.current?.(new Error('这不是一份能读的 .mindmap（缺少 root 或不是合法 JSON）'));
@@ -181,7 +240,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
      * 而用户眼前明明有一张带中心主题的图。交回空串等于「打开一份空白文件、
      * 看到一张图、保存后图没了」—— 一次静默丢内容。
      */
-    const originalText = empty ? null : initialValueRef.current;
+    const originalText = empty ? null : seed;
     const lineEnding = parsed.lineEnding;
 
     let document = first;
@@ -196,8 +255,13 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
         // （`editTopic` 本身不检查 `editable`，是调用它的地方检查的），
         // 所以这三个必须成套关 —— 少关一个就能改到内容。
         editable: !readOnlyRef.current,
-        contextMenu: !readOnlyRef.current,
+        // 右键菜单：只读时整个关掉；能编辑时传**对象**而不是 `true`——
+        // 传 `true` 用的是内核硬编码的英文包（`MindElixir.js:1379` 的 `Yn`）。
+        // 传对象才能带上我们的语言包（ADR 0049）。
+        contextMenu: readOnlyRef.current ? false : { focus: true, link: true, locale: mindmapLangPack() },
         keypress: !readOnlyRef.current,
+        // 新建节点时的占位文字，同属内核那套界面文案（默认是 `"New Node"`）。
+        newTopicName: t('ui.mindmap.newTopicName'),
         // 内核自己的撤销栈：导图的编辑动作（新建 / 删除 / 拖动 / 改文字）都在内核里，
         // 外壳的撤销栈够不着它们，所以交给内核自己管。
         allowUndo: true,
@@ -206,6 +270,9 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
         theme: LEVNOTE_THEME,
       });
       mind.init(toKernelData(document));
+      // 把上一个内核的缩放还回去（`init()` 收尾会 `toCenter()`）。
+      // 头一次挂载时 `scaleRef` 是 1，这句不动它，所以第一次的视口仍是内核自己算的。
+      if (scaleRef.current !== 1) mind.scale(scaleRef.current);
     } catch (thrown) {
       onErrorRef.current?.(thrown instanceof Error ? thrown : new Error(String(thrown)));
       return;
@@ -243,6 +310,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
       if (text === lastText) return;
       document = next;
       lastText = text;
+      latestRef.current = text;
       onChangeRef.current(text);
     };
 
@@ -292,7 +360,13 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
         // 用户没动过 → 交回**原始文本**，让「打开 → 保存」逐字节一致。
         // 判据用的是「与内核稳定之后那份文档等价」而不是「文本相同」：
         // 用户改了又改回来，同样应该交回原文（内容确实没变）。
-        return originalText !== null && lastText === canonicalOriginal ? originalText : lastText;
+        const result = originalText !== null && lastText === canonicalOriginal ? originalText : lastText;
+        // 记的是**交出去的那个值**，不是 `lastText`。
+        // 两者可能不是同一串字节：对一份非规范形式的文件，`lastText` 是规范形式。
+        // 种子要是被规范形式污染了，下一次保存就会把用户的文件重排版 ——
+        // 「打开 → 保存逐字节一致」当场破掉，而界面上看不出任何异常。
+        latestRef.current = result;
+        return result;
       },
 
       setValue: (text) => {
@@ -303,6 +377,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
         mind.direction = directionOf(document.layout);
         mind.refresh(toKernelData(document));
         lastText = serializeMindmap(document, { lineEnding: next.lineEnding });
+        latestRef.current = lastText;
       },
 
       focus: () => host.focus(),
@@ -324,15 +399,27 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
     onReadyRef.current(handle);
 
     return () => {
-      if (verifyTimer !== null) clearTimeout(verifyTimer);
+      // 兜底通道还挂着一个待办的比对（用户拖完 300ms 内就切了语言）：
+      // 那份改动还没进 `latestRef`。重建前先把它结掉，否则「拖一下、切语言」
+      // 会丢掉那一下 —— 界面还画着动过的图，一保存就弹回去。
+      // 用 `emit()` 而不是 `getValue()`：前者是每次用户操作都在跑的同一段纯数据代码，
+      // 后者要在 cleanup 里包 try/catch 兜异常，那等于开一个静默吞错的洞（硬约束 2）。
+      if (verifyTimer !== null) {
+        clearTimeout(verifyTimer);
+        verifyTimer = null;
+        emit();
+      }
+      // 缩放留给下一个内核（见 `scaleRef`）。
+      scaleRef.current = mind.scaleVal;
       mind.bus.removeListener('operation', onOperation);
       mind.bus.removeListener('expandNode', emit);
       mind.bus.removeListener('changeDirection', emit);
       mind.bus.removeListener('linkDiv', scheduleVerify);
       mind.destroy();
     };
-    // 空依赖：内核只在挂载时创建一次，外部内容变更一律走 handle.setValue
-  }, []);
+    // 依赖 `locale`：语言变了要重建（内核在安装那一刻就把菜单文案烤死了，见文件头）。
+    // 除此之外内核只活一次 —— 外部内容变更一律走 handle.setValue，不该在这里重建。
+  }, [locale]);
 
   return <div ref={hostRef} className="qm-mindmap" tabIndex={-1} />;
 }
