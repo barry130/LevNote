@@ -5,7 +5,7 @@
  * 换内核（比如将来换成自研的）只需要换掉 `Component`。
  */
 
-import type { EditorAdapter } from '../../core/editor/types.js';
+import type { EditorAdapter, KernelRejectReason } from '../../core/editor/types.js';
 import { isMarkdownPath } from '../../core/path.js';
 import { codeAdapter } from '../code/index.js';
 import { hasFrontMatter } from './frontmatter.js';
@@ -19,6 +19,14 @@ export const markdownAdapter: EditorAdapter = {
   matches: isMarkdownPath,
   // 扩展名对得上，但内容是 front matter 文档 —— 交给纯文本内核，别毁人家元数据
   canHandle: (_path, text) => !hasFrontMatter(text),
+  /**
+   * 否决的理由只有一种（ADR 0043）：开头是 YAML front matter。
+   *
+   * 外壳对这一种给了整整三行解释（「保存会毁掉元数据」），
+   * 因为它值得说透 —— 其余降级原因走通用句。
+   */
+  canHandleReason: (_path, text): KernelRejectReason | null =>
+    hasFrontMatter(text) ? { kind: 'front-matter' } : null,
   /**
    * 源码视图就是代码内核。
    *

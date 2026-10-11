@@ -128,3 +128,44 @@ describe('导图的备胎链', () => {
     expect(mindmapAdapter.matches('笔记.md')).toBe(false);
   });
 });
+
+describe('降级要说得出理由（ADR 0043）', () => {
+  const node = (id: string, topic: string): Record<string, unknown> => ({ id, topic, children: [] });
+
+  /**
+   * 这一组钉的是「判定的结果」与「说出来的理由」**是同一件事**。
+   *
+   * 分开实现这两个方法迟早会让它们分叉，而分叉的表现最坏：
+   * 横幅上写着一份与眼前文件毫无关系的解释，用户拿它去改文件 ——
+   * 那比「什么都不说」更糟。所以这里把两者对同一批文本各自问一遍。
+   */
+  const one = (over: Record<string, unknown> = {}): string =>
+    JSON.stringify({ format: 'levnote.mindmap', version: 1, root: { id: 'n1', topic: '根', children: [] }, ...over });
+
+  const route = (text: string): string => resolveAdapter('图.mindmap', EDITOR_FALLBACK, text).id;
+
+  const texts: Array<[string, string]> = [
+    ['正常的 .mindmap', one()],
+    ['空文件', ''],
+    ['坏 JSON', '{ 这不是 JSON'],
+    ['缺 root', JSON.stringify({ format: 'levnote.mindmap', version: 1 })],
+    ['id 带引号', one({ root: { id: 'a"b', topic: '根', children: [] } })],
+    ['id 重复', one({ root: { id: 'n1', topic: '根', children: [node('same', '甲'), node('same', '乙')] } })],
+  ];
+
+  it('canHandle 与 canHandleReason 对每一份文件的结论一致', () => {
+    for (const [label, text] of texts) {
+      const accepted = mindmapAdapter.canHandle?.('图.mindmap', text) ?? true;
+      const reason = mindmapAdapter.canHandleReason?.('图.mindmap', text) ?? null;
+      expect(accepted, label).toBe(reason === null);
+    }
+  });
+
+  it('被导图内核否决的文件，确实没落到导图内核上', () => {
+    for (const [label, text] of texts) {
+      const reason = mindmapAdapter.canHandleReason?.('图.mindmap', text) ?? null;
+      const picked = route(text);
+      expect(picked === 'mindmap', `${label} → ${picked}`).toBe(reason === null);
+    }
+  });
+});

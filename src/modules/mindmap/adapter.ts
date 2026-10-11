@@ -35,6 +35,8 @@
 
 import type { MindElixirData, NodeObj } from 'mind-elixir';
 
+import type { KernelRejectReason } from '../../core/editor/types.js';
+import { parseMindmap } from '../../core/mindmap/parse.js';
 import { MINDMAP_DEFAULT_LAYOUT, type MindmapDocument, type MindmapNode } from '../../core/mindmap/types.js';
 
 /**
@@ -223,7 +225,16 @@ export function fromKernelData(previous: MindmapDocument, data: MindElixirData):
 // 「这份文件能不能安全地交给内核」
 // ---------------------------------------------------------------------------
 
-export type KernelSafety = { ok: true } | { ok: false; reason: string };
+/**
+ * 这棵树交给内核会不会出问题，以及**不会的话是因为什么**（ADR 0043）。
+ *
+ * `reason` 从前的类型是 `string`（一串写好的中文）。改成 `KernelRejectReason`
+ * 之后它变成了**数据**：id 以字段的形式留着，话由外壳在渲染的那一刻才翻。
+ * 两条理由：① 那串中文原本就没活着出去过 —— `canRenderInKernel` 只取 `.ok`，
+ * 它一直是被扔掉的；② 一旦它变成契约上的字符串，语言就被钉死在解析那一刻，
+ * 而解析可能发生在用户切语言之前。
+ */
+export type KernelSafety = { ok: true } | { ok: false; reason: KernelRejectReason };
 
 /**
  * 节点 id 里不允许出现的字符。
@@ -256,12 +267,12 @@ const UNSAFE_ID_CHARS = /["\\]/;
 export function checkKernelSafety(document: MindmapDocument): KernelSafety {
   const seen = new Set<string>();
 
-  const walk = (node: MindmapNode): string | null => {
+  const walk = (node: MindmapNode): KernelRejectReason | null => {
     if (UNSAFE_ID_CHARS.test(node.id)) {
-      return `节点 id ${JSON.stringify(node.id)} 里有引号或反斜杠，内核的查找会失败`;
+      return { kind: 'mindmap-unsafe-id', id: node.id };
     }
     if (seen.has(node.id)) {
-      return `节点 id ${JSON.stringify(node.id)} 在文件里出现了不止一次，拖动会作用到另一个节点上`;
+      return { kind: 'mindmap-duplicate-id', id: node.id };
     }
     seen.add(node.id);
     for (const child of node.children) {
@@ -275,9 +286,37 @@ export function checkKernelSafety(document: MindmapDocument): KernelSafety {
   return reason === null ? { ok: true } : { ok: false, reason };
 }
 
-/** 给 `canHandle` 用的窄化包装：只关心「能不能」。 */
+/**
+ * 给 `canHandle` 用的窄化包装：只关心「能不能」。
+ *
+ * 注意它**丢掉了理由** —— 所以 `canHandleReason` 那条路不要走这里，
+ * 走 `checkKernelSafety` 拿完整的 `KernelSafety`。
+ */
 export function canRenderInKernel(document: MindmapDocument): boolean {
   return checkKernelSafety(document).ok;
+}
+
+/**
+ * 「这份 `.mindmap` 为什么不能交给导图内核」—— 返回 `null` 表示能。
+ *
+ * ## 为什么判定与理由必须是同一个函数
+ *
+ * `canHandle` 与 `canHandleReason` 是契约上的两个方法，外壳会分别调用它们。
+ * 若各自实现一遍，它们迟早会漂移到「一个说不行、另一个说不出为什么」——
+ * 而那正是 ADR 0043 要消灭的形态（横幅说的与实际不符）。
+ * 所以这里是**唯一**的判定入口：`index.ts` 的两个方法各自从它的返回值取一半。
+ *
+ * 代价是 `canHandleReason` 被调用时会**再解析一次** JSON。
+ * 那是刻意的：解析是纯函数，重算的结果必然一致；而缓存一份解析结果
+ * 要引入「按什么键缓存、什么时候失效」这套状态，得不偿失。
+ */
+export function describeMindmapVeto(text: string): KernelRejectReason | null {
+  // 新建的空文件不是「坏文件」，是「还没开始写」—— 与 `canHandle` 的口径一致
+  if (text.trim() === '') return null;
+  const parsed = parseMindmap(text);
+  if (parsed.document === null) return { kind: 'mindmap-invalid' };
+  const safety = checkKernelSafety(parsed.document);
+  return safety.ok ? null : safety.reason;
 }
 
 /** 供测试与组件复用：布局 → 内核方向。 */

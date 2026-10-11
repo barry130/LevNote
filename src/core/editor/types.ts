@@ -1046,6 +1046,38 @@ export interface EditorMountProps {
 
 export type EditorComponent = ComponentType<EditorMountProps>;
 
+/**
+ * 一个内核**为什么**否决了这份文件（ADR 0043）。
+ *
+ * ## 为什么它是判别联合而不是一串翻译好的话
+ *
+ * 第一版草案（`checkKernelSafety` 的旧形状）返回的是中文字符串：
+ * 「节点 id `a"b` 里有引号或反斜杠，内核的查找会失败」。照搬那个形状上契约，
+ * 会把语言钉死在**内核算出理由的那一刻** —— 与「组件里的静态清单只存 key、
+ * 渲染时才 `t()`」是同一个坑（ADR 0031 复评记录二）。
+ *
+ * 所以这里跑的是**带参数的数据**：内核知道「哪个 id 重复了」，
+ * 外壳知道「现在该说中文还是英文」。带 `id` 的那两种也因此能把 id 点名出来 ——
+ * 用户要修的是那一个节点，横幅上必须能看出是哪一个。
+ *
+ * ## 为什么 kind 里出现 mindmap 专属的名字不算违反硬约束 1
+ *
+ * 契约认识的是**一类降级原因**，不是 mind-elixir 的任何东西 ——
+ * 与 `LinkTarget` 认识 `anchor` / `file` / `external` 是同一种写法。
+ * 换掉导图内核，这几个 kind 一个都不用改。
+ *
+ * 加 kind 的重审条件（五个以上就搬成一张表）写在 ADR 0043 的「重审条件」里。
+ */
+export type KernelRejectReason =
+  /** Markdown 富文本内核：文件开头是 YAML front matter，保存会毁掉元数据。 */
+  | { kind: 'front-matter' }
+  /** `.mindmap` 不是合法 JSON / 缺 `root` / `format` 不对。 */
+  | { kind: 'mindmap-invalid' }
+  /** `.mindmap` 里有节点的 id 带引号或反斜杠 —— 内核的 `findEle` 选择器会炸。 */
+  | { kind: 'mindmap-unsafe-id'; id: string }
+  /** `.mindmap` 里有重复的节点 id —— `querySelector` 只返回第一个，拖错节点。 */
+  | { kind: 'mindmap-duplicate-id'; id: string };
+
 export interface EditorAdapter {
   readonly id: EditorModuleId;
   /** 状态栏里显示的名字，如「Markdown」。 */
@@ -1067,6 +1099,29 @@ export interface EditorAdapter {
    * 判断必须是纯函数、不能有副作用：它可能对同一个文件被调用多次。
    */
   canHandle?(path: string, text: string): boolean;
+  /**
+   * 可选：`canHandle` 返回 false 时的**理由**（ADR 0043）。
+   *
+   * 「降级」与「降级且说不出理由」是两件事。硬约束 2 要的是「任何降级都要在 UI 上
+   * 说清楚」，而一个 `boolean` 里没有地方放那句话 —— 于是外壳只能写死一种原因，
+   * 说给所有文件听。那比沉默更糟：**用户拿一个与眼前文件无关的理由去改文件**。
+   *
+   * 返回 `null` = 「我接得住」（与 `canHandle` 返回 true 对应）。
+   *
+   * ## 为什么它不并入 `canHandle`（`canHandle` 不返回 `{ok, reason}`）
+   *
+   * 判据与理由必须是**同一次计算的两半**，否则「说出来的理由」迟早会与
+   * 「实际走过的分支」不一致 —— 而 mindmap 那次要解析整篇 JSON，
+   * 算两遍不只是浪费，是给了两条路径各自漂移的机会。
+   * 所以内核侧的写法是：一个 `describe…` 纯函数一次算完，
+   * 两个契约方法各自从同一个结果里取值（见 `modules/mindmap/index.ts`）。
+   *
+   * ## 抛错怎么办
+   *
+   * 由调用方按「没有理由」处理 —— **绝不因为取不到理由就不打开文件**。
+   * 与注册表里 `canHandle` 抛错的取舍一致。
+   */
+  canHandleReason?(path: string, text: string): KernelRejectReason | null;
   /**
    * 可选：本内核的「**源码视图**」用哪个内核渲染。
    *

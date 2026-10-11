@@ -656,6 +656,46 @@ describe('内核选择', () => {
     expect(content?.textContent).toContain('# 正文');
   });
 
+  it('坏掉的 .mindmap 落到代码内核，并且说出「是哪里坏」—— 不是 front matter 那句', async () => {
+    // ADR 0043：降级横幅从前写死了 front matter 这一种原因。
+    // 于是「id 重复的导图被退到代码内核」时，用户读到的是一句
+    // 与眼前文件毫无关系的解释 —— 那比沉默更糟，他会拿它去改文件。
+    const duplicated = JSON.stringify({
+      format: 'levnote.mindmap',
+      version: 1,
+      root: {
+        id: 'n1',
+        topic: '根',
+        children: [
+          { id: 'same', topic: '甲', children: [] },
+          { id: 'same', topic: '乙', children: [] },
+        ],
+      },
+    });
+    mounted = await mount((p) => p.put('图.mindmap', duplicated));
+    await mounted.open('图.mindmap');
+
+    expect(kernelOf(mounted.container)).toBe('代码 / 文本');
+    const banner = mounted.container.querySelector('.banner.info');
+    expect(banner).not.toBeNull();
+    const said = banner?.textContent ?? '';
+    // 说的是这一份文件的理由，且点名了那个 id —— 用户要修的是它
+    expect(said).toContain('same');
+    expect(said).toContain('不止一次');
+    // 旧行为留下的那句与这份文件无关的话，不能再出现
+    expect(said).not.toContain('front matter');
+  });
+
+  it('读不出来的 .mindmap 说出「它不是一份读得出的 .mindmap」', async () => {
+    mounted = await mount((p) => p.put('图.mindmap', '{ 这不是 JSON'));
+    await mounted.open('图.mindmap');
+
+    expect(kernelOf(mounted.container)).toBe('代码 / 文本');
+    const said = mounted.container.querySelector('.banner.info')?.textContent ?? '';
+    expect(said).toContain('不是一份读得出的');
+    expect(said).not.toContain('front matter');
+  });
+
   it('不认识的扩展名落到纯文本兜底 —— 任何文件都必须打得开', async () => {
     mounted = await mount((p) => p.put('blob.weird', '随便什么内容\n'));
     await mounted.open('blob.weird');

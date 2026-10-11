@@ -13,11 +13,10 @@
  * 最差也是「一份能看能改的 JSON 源码」。
  */
 
-import type { EditorAdapter } from '../../core/editor/types.js';
-import { parseMindmap } from '../../core/mindmap/parse.js';
+import type { EditorAdapter, KernelRejectReason } from '../../core/editor/types.js';
 import { isMindmapPath } from '../../core/path.js';
 import { codeAdapter } from '../code/index.js';
-import { canRenderInKernel } from './adapter.js';
+import { describeMindmapVeto } from './adapter.js';
 import MindmapEditor from './MindmapEditor.js';
 
 export const mindmapAdapter: EditorAdapter = {
@@ -41,15 +40,20 @@ export const mindmapAdapter: EditorAdapter = {
    *
    * 三条都属于「宁可降级，不可静默出错」：降级是用户看得见的（源码视图），
    * 而出错是看不见的。
+   *
+   * **理由由下面那个 `canHandleReason` 说出来**（ADR 0043）。两者都走
+   * `describeMindmapVeto`，所以「判定的结果」与「说出来的理由」不可能分叉。
    */
-  canHandle: (_path, text) => {
-    // 新建的空文件不是「坏文件」，是「还没开始写」。
-    // 放行它，组件那边会造一份带中心主题的默认文档（见 `createEmptyDocument`）。
-    if (text.trim() === '') return true;
-    const parsed = parseMindmap(text);
-    if (parsed.document === null) return false;
-    return canRenderInKernel(parsed.document);
-  },
+  canHandle: (_path, text) => describeMindmapVeto(text) === null,
+
+  /**
+   * 否决时到底是因为哪一条（ADR 0043）。
+   *
+   * 没有它，外壳只能对**所有**降级说同一句话 —— 而写死的那句是 front matter 的，
+   * 于是「id 重复的 `.mindmap` 被退到代码内核」时，横幅上会出现一句
+   * 与眼前文件毫无关系的解释。那比沉默更糟：用户会拿它去改文件。
+   */
+  canHandleReason: (_path, text): KernelRejectReason | null => describeMindmapVeto(text),
 
   /**
    * 源码视图 = 代码内核。

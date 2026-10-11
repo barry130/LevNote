@@ -142,6 +142,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
 | **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
+| **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
 | **依赖许可证清单** | `pnpm run licenses`（`scripts/gen-license-report.mjs`）→ `docs/dependency-licenses.md`。**生成物不要手改**：升级依赖后重跑，严格条款自动复核（双许可可选宽松支不列）。npm 侧只统计生产依赖 |
 | **发版前人工冒烟** | `docs/release-smoke.md`。单测测不了的都点名在这：滚动 / 渲染 / 打印（C1）/ 原生对话框与文件监听 / 键盘输入法。每条都写了「为什么只能人工测」—— 没有理由的条目不许加进去 |
@@ -739,6 +740,30 @@ DOM 上的 `href`** —— 渲染白名单会把不安全协议蒸成空串，DO
 设置都变、把整张命令表一起重建。
 `AppProps` 新增 `storage?: StorageLike | null`（**只有测试用**，`main.tsx` 未动）——
 jsdom 的 localStorage 永远写得进去，没有注入点这条出口就一条用例都碰不到。
+
+**降级要说出理由（2026-10-11，ADR 0043）**：0041 清命令、0042 清持久化，
+这一轮清的是**降级** —— `EditorAdapter.canHandle` 的返回类型是 `boolean`，
+于是「内核为什么不要这份文件」在注册表边界上**被丢掉了**。最要紧的一处证据是
+`modules/mindmap/adapter.ts` 的 `checkKernelSafety` **本来就带着理由**
+（一句写好的中文），而 `canRenderInKernel` 只取 `.ok` —— 那句话从来没活着出去过。
+于是降级横幅只能写死一种原因（`ui.pane.frontMatterWhy1/2/3`），
+打开一份 **id 重复**的 `.mindmap` 时，用户读到的是「这个文件的开头是 YAML front
+matter……」：一句与眼前文件**毫无关系**的话。**这比沉默更糟** —— 横幅明明在说，
+说的是别人的理由，而用户会拿它去改文件。
+现在契约多一条 `canHandleReason?(path, text) → KernelRejectReason | null`，
+`KernelRejectReason` 是**判别联合而不是翻译好的字符串**（`{ kind: 'front-matter' }` /
+`{ kind: 'mindmap-invalid' }` / `{ kind: 'mindmap-unsafe-id', id }` /
+`{ kind: 'mindmap-duplicate-id', id }`）—— 字符串会把语言钉死在内核算出理由的
+那一刻（与「静态清单只存 key、渲染时才 `t()`」同一个坑），而带 `id` 的那两种
+要能在横幅上**点名那一个节点**，用户才知道去改哪里。
+两条纪律：**判定与理由必须同源**（mindmap 侧两个方法都读同一个
+`describeMindmapVeto(text)`；分开实现会漂移到「一个说不行、另一个说不出为什么」，
+`modules/wiring.test.ts` 逐份文本比对齐它们）；
+**`resolveAdapter` 的行为一个字节不改**（否决 → 下一个候选 → 兜底；
+`canHandleReason` 抛错按「没有理由」处理，绝不因此不开文件）。
+front matter 那一种**保留原来三行** —— 它讲的是「一保存元数据就没了」，值得说透；
+其余走一句通用句（`ui.pane.downgradeWhy` + `why*`），内核不说话时退回
+`whyUnknown` 而不是让横幅消失（降级是确定的事实）。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、

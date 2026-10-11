@@ -35,6 +35,7 @@ import type {
   EditorPosition,
   EditorTable,
   ImageInfo,
+  KernelRejectReason,
   ImagePasteRequest,
   SelectionSnapshot,
   SlashState,
@@ -92,6 +93,42 @@ const STATUS_TEXT: Record<DocumentStatus, MessageKey> = {
  * 只有人眼能判断好坏。
  */
 const PREVIEW_SYNC_DELAY_MS = 160;
+
+/**
+ * 问一个内核「你为什么不要这份文件」（ADR 0043）。
+ *
+ * 拿不到理由（没实现 `canHandleReason`、或者它抛错了）时**返回通用句的那一种**，
+ * 而不是 `null`：横幅已经在渲染了（降级是确定的事实），此时少一句理由
+ * 好过整条横幅消失 —— 用户至少知道「这份文件没用它该用的内核打开」。
+ *
+ * 抛错那条与注册表里 `canHandle` 抛错是同一个取舍：
+ * 一个内核的判定逻辑写挂了，不该让用户的界面少一块、更不该开不了文件。
+ */
+function reasonOf(adapter: EditorAdapter, path: string, text: string): KernelRejectReason | 'unknown' {
+  if (adapter.canHandleReason === undefined) return 'unknown';
+  try {
+    return adapter.canHandleReason(path, text) ?? 'unknown';
+  } catch (thrown) {
+    console.warn(`内核 ${adapter.id} 的 canHandleReason 抛错，按「没有理由」处理`, thrown);
+    return 'unknown';
+  }
+}
+
+/** 降级理由 → 一句话。`'unknown'` 表示内核没说（见 `reasonOf`）。 */
+function whyText(reason: KernelRejectReason | 'unknown'): string {
+  if (reason === 'unknown') return t('ui.pane.whyUnknown');
+  switch (reason.kind) {
+    case 'front-matter':
+      // 走不到这里：front matter 有自己的三行专用文案（见下方 `downgraded` 那一段）
+      return t('ui.pane.whyUnknown');
+    case 'mindmap-invalid':
+      return t('ui.pane.whyInvalidMindmap');
+    case 'mindmap-unsafe-id':
+      return t('ui.pane.whyUnsafeId', { id: reason.id });
+    case 'mindmap-duplicate-id':
+      return t('ui.pane.whyDuplicateId', { id: reason.id });
+  }
+}
 
 /**
  * 面板向上汇报的「视图信息」。
@@ -476,13 +513,22 @@ export function DocumentPane({
    * 之所以把「首选内核」单独算出来而不是直接算「用哪个」：外壳需要首选内核
    * 才能回答「能不能切源码」，而切过去之后当前内核已经不是它了。
    */
-  const { primary, downgraded } = useMemo(() => {
+  const { primary, declined, downgraded, reason } = useMemo(() => {
     const current = store.getSnapshot().doc;
-    if (!current) return { primary: null, downgraded: false };
+    if (!current) return { primary: null, declined: null, downgraded: false, reason: null };
     const byContent = resolveAdapter(current.path, EDITOR_FALLBACK, current.text);
     const byName = resolveAdapter(current.path, EDITOR_FALLBACK);
     // 扩展名认得、内容却让首选内核退位 —— 这是一次有理由的降级，必须告诉用户
-    return { primary: byContent, downgraded: byContent.id !== byName.id };
+    if (byContent.id === byName.id) {
+      return { primary: byContent, declined: null, downgraded: false, reason: null };
+    }
+    // 退位的那个内核（按扩展名本该是它）才是「为什么说不行」的唯一消息来源
+    return {
+      primary: byContent,
+      declined: byName,
+      downgraded: true,
+      reason: reasonOf(byName, current.path, current.text),
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, store]);
 
@@ -1029,11 +1075,23 @@ export function DocumentPane({
       {downgraded && (
         <div className="banner info">
           <span className="grow">
-            {t('ui.pane.frontMatterWhy1')}
-            <code>---</code>
-            {t('ui.pane.frontMatterWhy2')}
-            <code>{t('ui.pane.frontMatterKv')}</code>
-            {t('ui.pane.frontMatterWhy3')}
+            {reason !== null && reason !== 'unknown' && reason.kind === 'front-matter' ? (
+              // front matter 值得说透（「一保存元数据就没了」），所以它有自己三行
+              <>
+                {t('ui.pane.frontMatterWhy1')}
+                <code>---</code>
+                {t('ui.pane.frontMatterWhy2')}
+                <code>{t('ui.pane.frontMatterKv')}</code>
+                {t('ui.pane.frontMatterWhy3')}
+              </>
+            ) : (
+              <>
+                {t('ui.pane.downgradeWhy', {
+                  label: declined?.label ?? t('ui.pane.plainText'),
+                  why: reason === null ? t('ui.pane.whyUnknown') : whyText(reason),
+                })}{' '}
+              </>
+            )}
             <strong>{t('ui.pane.openedAs', { label: primary?.label ?? t('ui.pane.plainText') })}</strong>
             {t('ui.pane.openedAsTail')}
           </span>

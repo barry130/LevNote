@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { parseMindmap } from '../../core/mindmap/parse.js';
 import { serializeMindmap } from '../../core/mindmap/serialize.js';
 import { MINDMAP_DEFAULT_LAYOUT, MINDMAP_FORMAT, MINDMAP_LAYOUTS, MINDMAP_VERSION, type MindmapDocument } from '../../core/mindmap/types.js';
-import { checkKernelSafety, directionOf, fromKernelData, toKernelData } from './adapter.js';
+import { checkKernelSafety, describeMindmapVeto, directionOf, fromKernelData, toKernelData } from './adapter.js';
 
 // ---------------------------------------------------------------------------
 // 夹具
@@ -300,6 +300,28 @@ describe('交给内核前的安全检查', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('id 有问题的那个 id 会被点名带出来 —— 横幅上要能看出改哪一个', () => {
+    // ADR 0043：理由必须是**数据**而不是翻译好的一句话，外壳要拿这个 id 去插值。
+    // 只断言 `.ok === false` 的话，「横幅上写的是不是这个 id」这条链路上没有任何测试。
+    const unsafe = checkKernelSafety(doc({ root: { id: 'a"b', topic: '根', children: [], extra: {} } }));
+    expect(unsafe).toEqual({ ok: false, reason: { kind: 'mindmap-unsafe-id', id: 'a"b' } });
+
+    const duplicated = checkKernelSafety(
+      doc({
+        root: {
+          id: 'n1',
+          topic: '根',
+          children: [
+            { id: 'same', topic: '甲', children: [], extra: {} },
+            { id: 'same', topic: '乙', children: [], extra: {} },
+          ],
+          extra: {},
+        },
+      }),
+    );
+    expect(duplicated).toEqual({ ok: false, reason: { kind: 'mindmap-duplicate-id', id: 'same' } });
+  });
+
   it('深层节点里的问题也能查出来', () => {
     const result = checkKernelSafety(
       doc({
@@ -331,5 +353,61 @@ describe('交给内核前的安全检查', () => {
       }),
     );
     expect(bad.ok).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 否决的**理由**（ADR 0043）
+// ---------------------------------------------------------------------------
+
+describe('describeMindmapVeto —— 判定与理由同源', () => {
+  const body = (over: Record<string, unknown> = {}): string =>
+    JSON.stringify({ format: 'levnote.mindmap', version: 1, root: { id: 'n1', topic: '根', children: [] }, ...over });
+
+  const node = (id: string, topic: string): Record<string, unknown> => ({ id, topic, children: [] });
+
+  it('能画的文件没有理由', () => {
+    expect(describeMindmapVeto(body())).toBeNull();
+    // 空文件不是坏文件，是「还没开始写」
+    expect(describeMindmapVeto('')).toBeNull();
+    expect(describeMindmapVeto('\n  \n')).toBeNull();
+  });
+
+  it('读不出来的文件给出 mindmap-invalid', () => {
+    expect(describeMindmapVeto('{ 这不是 JSON')).toEqual({ kind: 'mindmap-invalid' });
+    expect(describeMindmapVeto(JSON.stringify({ format: '别的格式', version: 1, root: {} }))).toEqual({
+      kind: 'mindmap-invalid',
+    });
+  });
+
+  it('id 带引号 / 反斜杠给出 mindmap-unsafe-id，并带上那个 id', () => {
+    const text = body({ root: { id: 'a\\b', topic: '根', children: [] } });
+    expect(describeMindmapVeto(text)).toEqual({ kind: 'mindmap-unsafe-id', id: 'a\\b' });
+  });
+
+  it('id 重复给出 mindmap-duplicate-id', () => {
+    const text = body({ root: { id: 'n1', topic: '根', children: [node('same', '甲'), node('same', '乙')] } });
+    expect(describeMindmapVeto(text)).toEqual({ kind: 'mindmap-duplicate-id', id: 'same' });
+  });
+
+  /**
+   * 这条是 ADR 0043 里「为什么不并入 canHandle」那条取舍的守卫。
+   *
+   * `canHandle` 与 `canHandleReason` 是契约上两个方法，外壳分别调用它们。
+   * 只要它们各自实现一遍，就会漂移到「一个说不行、另一个说不出为什么」——
+   * 表现正是横幅上写着与文件无关的话。两个方法都读同一个 `describeMindmapVeto`，
+   * 这条断言就是那件事的钉子（放在 `wiring.test.ts` 里更合适，
+   * 但源头在这里，就近钉住）。
+   */
+  it('能画的文件没有理由，且被判定的三种都各自对得上 kind', () => {
+    // 三种否决各来一份，确认「为什么」与「哪一个」都没串味
+    expect(describeMindmapVeto('{ 这不是 JSON')?.kind).toBe('mindmap-invalid');
+    expect(describeMindmapVeto(body({ root: { id: 'a"b', topic: '根', children: [] } }))?.kind).toBe(
+      'mindmap-unsafe-id',
+    );
+    expect(
+      describeMindmapVeto(body({ root: { id: 'n1', topic: '根', children: [node('same', '甲'), node('same', '乙')] } }))
+        ?.kind,
+    ).toBe('mindmap-duplicate-id');
   });
 });

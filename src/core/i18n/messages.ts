@@ -243,6 +243,12 @@ export const zhCN = {
   'ui.pane.frontMatterWhy3': ' 当成正文，保存时元数据就没了。所以这个文件',
   'ui.pane.openedAs': '以「{label}」打开',
   'ui.pane.openedAsTail': '，内容不会有任何改动。',
+  // 降级理由（ADR 0043）：`{why}` 的位置由下面四种填，front matter 那一种走上面三行专用的
+  'ui.pane.downgradeWhy': '这份文件不能用「{label}」打开：{why}。',
+  'ui.pane.whyUnknown': '内核没有说原因',
+  'ui.pane.whyInvalidMindmap': '它不是一份读得出的 .mindmap —— JSON 坏了，或者缺 root、format 不对',
+  'ui.pane.whyUnsafeId': '节点 id {id} 里有引号或反斜杠，内核按 id 查找节点会失败',
+  'ui.pane.whyDuplicateId': '节点 id {id} 在文件里出现了不止一次，拖动会作用到另一个节点上',
   'ui.pane.plainText': '纯文本',
   'ui.pane.kernelFallback': '（已退回纯文本内核，内容不会丢）',
   'ui.pane.kernelFailTitle': '编辑器内核没能启动。',
@@ -939,6 +945,13 @@ export const en: Record<MessageKey, string> = {
   'ui.pane.frontMatterWhy3': ' as body text, losing the metadata on save. So this file opens ',
   'ui.pane.openedAs': 'as “{label}”',
   'ui.pane.openedAsTail': ' — the content is untouched.',
+  // Degradation reasons (ADR 0043): `{why}` is filled by one of the four below;
+  // front matter has its own dedicated three lines above.
+  'ui.pane.downgradeWhy': 'This file cannot be opened with “{label}”: {why}.',
+  'ui.pane.whyUnknown': 'the kernel did not say why',
+  'ui.pane.whyInvalidMindmap': 'it is not a readable .mindmap — the JSON is broken, or root / format is missing',
+  'ui.pane.whyUnsafeId': 'node id {id} contains a quote or a backslash, which breaks the kernel’s lookup by id',
+  'ui.pane.whyDuplicateId': 'node id {id} occurs more than once in the file, so dragging would move a different node',
   'ui.pane.plainText': 'Plain text',
   'ui.pane.kernelFallback': ' (fell back to the plain-text kernel; nothing is lost)',
   'ui.pane.kernelFailTitle': 'The editor kernel failed to start.',

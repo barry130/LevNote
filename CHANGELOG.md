@@ -9,8 +9,22 @@
 
 ## [未发布]
 
-### 新增
+### 修复
 
+- **一份文件没用它该用的内核打开时，现在说的是这一份文件的理由。**
+  降级横幅此前只有一种文案，讲的是 YAML front matter —— 于是打开一份
+  **节点 id 重复**的 `.mindmap` 被退到代码内核时，横幅上写的是「这个文件的
+  开头是 YAML front matter……」：一句与眼前文件**毫无关系**的话，而用户会
+  拿它去改文件。那比沉默更糟，因为横幅明明在说，说的是别人的理由。
+  现在理由由内核以**数据**的形式交出来（「哪一个 id 重复了」），外壳在
+  渲染的那一刻才翻成句子 —— 所以它也跟着语言走。三种情况各有各的说法：
+  「节点 id `same` 在文件里出现了不止一次，拖动会作用到另一个节点上」、
+  「节点 id `a"b` 里有引号或反斜杠，内核按 id 查找节点会失败」、
+  「它不是一份读得出的 .mindmap」。front matter 那一种**保留原来那三行**
+  —— 它讲的是「一保存元数据就没了」，值得说透。**内核不说理由时退回一句
+  通用句，而不是让横幅消失**：降级是确定的事实，不该因为少一句理由就
+  什么都不讲。**哪几个文件用什么内核打开，一个字节都没变** —— 变的只是
+  那句话。取舍见 ADR 0043。
 - **Markdown 文档里的链接终于可以点了：Ctrl（macOS 上是 Cmd）+ 点击即打开。**
   轻笺自己认得的那几类地址（**.md / .mindmap / 代码后缀**）在工作区里开成一个
   新的标签页；其余文件（图片 / PDF / 表格…）与网页地址交给系统默认的程序。
@@ -25,8 +39,6 @@
   基准目录时说清缺的是目录信息，交给系统程序的那一支失败时就说「打不开」。
   成功的两支刻意一句话都不说 —— 一边干活一边表功，是另一种吵。取舍见
   ADR 0040。
-
-### 修复
 
 - **命令执行失败时会说一句话了，不再只有控制台里的一行。**
   命令有四个入口（菜单 / 活动栏 / 快捷键 / 命令面板），这四个入口此前都把失败
@@ -120,6 +132,19 @@
 - `AppProps` 新增 `storage?: StorageLike | null`（**只有测试用**，
   `main.tsx` 未动）：jsdom 的 localStorage 永远写得进去，没有注入点，
   「写不进去」这条出口就没有一条用例能碰到它。
+- **契约加了一条 `EditorAdapter.canHandleReason`（ADR 0043）**，与 `canHandle`
+  并列：前者回答「能不能」，后者回答「不能的话是因为什么」。返回类型是判别联合
+  `KernelRejectReason`（`{ kind: 'front-matter' }` / `{ kind: 'mindmap-invalid' }`
+  / `{ kind: 'mindmap-unsafe-id', id }` / `{ kind: 'mindmap-duplicate-id', id }`），
+  **刻意不是翻译好的一句话** —— 字符串会把语言钉死在内核算出理由的那一刻。
+  两个方法在 mindmap 侧都读同一个 `describeMindmapVeto(text)`，
+  `modules/wiring.test.ts` 有一条用例逐份文本比对齐它们 —— 分开实现迟早会漂移到
+  「一个说不行、另一个说不出为什么」。**`resolveAdapter` 的行为一个字节没改**
+  （否决 → 下一个候选 → 兜底；`canHandle` 抛错仍按否决处理）。
+  `checkKernelSafety` 的 `reason` 字段因此从 `string` 变成 `KernelRejectReason`；
+  那两句中文原本就被 `canRenderInKernel` 的 `.ok` 滤掉了，**从来没有活着出去过**。
+  `ui.pane.downgradeWhy` / `whyInvalidMindmap` / `whyUnsafeId` / `whyDuplicateId` /
+  `whyUnknown` 五个 key 是它的 UI 侧（zh + en 同批）。
 
 - **命令的失败出口收成一处**：新增 `core/commands/runner.ts` 的
   `runCommandSafely(command, ctx)`，四个入口（菜单 / 活动栏 / 快捷键 /
