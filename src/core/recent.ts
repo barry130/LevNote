@@ -11,7 +11,8 @@
  * store 不需要知道这件事。
  */
 
-import type { StorageLike } from './settings.js';
+import { PERSISTED, persistFailed } from './settings.js';
+import type { PersistOutcome, StorageLike } from './settings.js';
 
 export const RECENT_FILES_KEY = 'levnote.recentFiles';
 
@@ -21,9 +22,20 @@ export const RECENT_FILES_MAX = 15;
 /**
  * 读出最近打开列表。损坏的存储按「没有记录」处理 ——
  * 这份数据随时可以重建，不值得为它报错。没有存储（`null`，隐私模式等）同理。
+ *
+ * `getItem` 自己也包了 try/catch：`localStorage` 在某些环境下**读**都会抛
+ * （隐私模式 / 企业策略）。不包的话，这次抛会从 `App` 的 `useState` 初始化器
+ * 里一路穿出来 —— 那就是**启动即白屏**，比「记不住」严重得多（ADR 0042）。
+ * 读失败有默认值可依（`[]`：这份数据随时能重建），所以这里安静回落，
+ * 与写失败要出声是两回事。
  */
 export function loadRecentFiles(storage: StorageLike | null): readonly string[] {
-  const raw = storage?.getItem(RECENT_FILES_KEY) ?? null;
+  let raw: string | null;
+  try {
+    raw = storage?.getItem(RECENT_FILES_KEY) ?? null;
+  } catch {
+    return [];
+  }
   if (raw === null) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -34,9 +46,20 @@ export function loadRecentFiles(storage: StorageLike | null): readonly string[] 
   }
 }
 
-/** 把列表写回存储。没有存储时安静跳过 —— 记不住，但不是错误。 */
-export function saveRecentFiles(storage: StorageLike | null, paths: readonly string[]): void {
-  storage?.setItem(RECENT_FILES_KEY, JSON.stringify([...paths]));
+/**
+ * 把列表写回存储。不抛：写不进去返回 `ok: false`（ADR 0042）。
+ *
+ * 与 `saveSettings` / `savePositions` 同一条纪律。记不住最近打开**不值得打断**
+ * 用户，但也不是「没有错误」—— 菜单里的「最近打开下一次空了」应当有解释。
+ */
+export function saveRecentFiles(storage: StorageLike | null, paths: readonly string[]): PersistOutcome {
+  if (!storage) return persistFailed('no-storage');
+  try {
+    storage.setItem(RECENT_FILES_KEY, JSON.stringify([...paths]));
+    return PERSISTED;
+  } catch {
+    return persistFailed('write-failed');
+  }
 }
 
 /**
@@ -49,7 +72,19 @@ export function recordRecentList(paths: readonly string[], path: string): readon
   return next[0] === paths[0] && next.length === paths.length ? paths : next;
 }
 
-/** 清空（设置或菜单的「清空最近打开」）。 */
-export function clearRecentFiles(storage: StorageLike | null): void {
-  storage?.setItem(RECENT_FILES_KEY, '[]');
+/**
+ * 清空（设置或菜单的「清空最近打开」）。
+ *
+ * 它是一次**用户动作**，不是后台记账，所以写不进去必须让用户知道 ——
+ * 点了「清空」而菜单里那几条还在，那是「点了没反应」。返回 `PersistOutcome`
+ * 让调用方决定怎么说（ADR 0042）。
+ */
+export function clearRecentFiles(storage: StorageLike | null): PersistOutcome {
+  if (!storage) return persistFailed('no-storage');
+  try {
+    storage.setItem(RECENT_FILES_KEY, '[]');
+    return PERSISTED;
+  } catch {
+    return persistFailed('write-failed');
+  }
 }

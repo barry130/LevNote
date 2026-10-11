@@ -175,4 +175,25 @@ describe('saveSettings', () => {
     saveSettings(storage, settings);
     expect(loadSettings(storage)).toEqual(settings);
   });
+
+  it('写成功时返回 ok —— 成功永远安静，调用方不该说话', () => {
+    expect(saveSettings(memoryStorage(), DEFAULT_SETTINGS)).toEqual({ ok: true });
+  });
+
+  it('写被拒时返回 write-failed 而不是静默吞掉（ADR 0042）', () => {
+    // 之前这一条只断言「不抛」，返回值被丢掉 —— 那正是外壳无从开口的原因
+    const hostile: StorageLike = {
+      getItem: () => null,
+      setItem() {
+        throw new Error('QuotaExceededError');
+      },
+    };
+    expect(saveSettings(hostile, DEFAULT_SETTINGS)).toEqual({ ok: false, reason: 'write-failed' });
+  });
+
+  it('没有存储时返回 no-storage —— 这是预期内的降级，不该说话', () => {
+    // 与 write-failed 必须是两个值：浏览器预览 / 隐私模式本来就不打算持久化，
+    // 为它弹一句「没能记住」是纯粹的噪音（每改一次设置弹一次）。
+    expect(saveSettings(null, DEFAULT_SETTINGS)).toEqual({ ok: false, reason: 'no-storage' });
+  });
 });

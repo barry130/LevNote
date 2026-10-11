@@ -110,6 +110,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 查找替换的匹配语义 | `core/search/find.ts`（三个内核共用） |
 | **往返保真自检**（保存会改写什么） | `core/fidelity.ts`（行级比对，纯函数）+ `EditorHandle.roundTrip`（内核实现，见 ADR 0033） |
 | **视图偏好（主题 / 侧栏 / 行号 / 位置记忆开关）** | `core/settings.ts`（`localStorage`，逐字段校验）。**设置页只是它的一个界面** —— 加偏好项改这里，别在 `SettingsDialog.tsx` 里另起一份 |
+| **偏好 / 位置 / 最近打开写不进去时怎么说** | `core/settings.ts` 的 `PersistOutcome`（`{ ok: true }` \| `{ ok: false, reason: 'no-storage' \| 'write-failed' }`）+ `ui/App.tsx` 的 `reportPersistFailure(outcome)`。**四处写偏好（设置 / 位置 / 位置清空 / 最近打开）全部走它**，翻会话横幅那一枚 `writeFailed`，不许各弹各的。`no-storage`（浏览器预览 / 隐私模式）**刻意不说话** —— 那是预期内的降级；只有 `write-failed`（配额 / 策略）才说。判据同样是「会失败的能力类型不许是 `void`」（ADR 0042） |
 | **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
 | **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
 | 大纲提取 | `core/outline/outline.ts` |
@@ -540,7 +541,7 @@ M10 的图标也是手写的十来个 path（`ui/icons.tsx`）。
 后两项（KaTeX、Mermaid）破了这条：`katex` + `remark-math`、`mermaid`，
 两者都走动态加载、不进主包（ADR 0019 / 0020）。
 
-测试：**1,467 条前端 + 66 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
+测试：**1,577 条前端 + 66 条 Rust**，`tsc` / `lint` / `vite build` / `cargo test` 全绿。
 主包 382.99 kB（gzip 120.26 kB）—— 第 18 项主包拆分已落地（ADR 0028）：
 三个内核与 hljs 拆成独立 chunk，首帧前并行加载；导出按需加载。
 打包产物里另有 mermaid 的懒加载 chunk 3.4 MB（ADR 0020）与 draw.io 查看器
@@ -716,6 +717,28 @@ DOM 上的 `href`** —— 渲染白名单会把不安全协议蒸成空串，DO
 与 ADR 0040 同一取舍。
 刻意排除的三类在 ADR 0041 的背景里写了理由：后台监听失败（会自动重试）、无效
 快捷键写法（是用户数据写错，该由设置页的冲突提示去说）、消息框自身失败（已无处可去）。
+
+**偏好写不进去也要有出口（2026-10-11，ADR 0042）**：0041 清的是**命令**这条线，
+这一轮清的是**持久化** —— 全仓库只有四个模块碰存储（`settings` / `positions` /
+`recent` / `session`），会话那份 0023 已经做对（`SaveOutcome`），剩下三份**全是静默的**，
+静默的理由是同一句注释「配额用尽 / 被禁用：静默放弃。偏好没存上不是需要打断用户的事」。
+**这句话对「打断」是对的，对「不说话」是错的**：界面立刻变成改好的样子，真相是
+**只在内存里改好了**，下次启动回到默认值而用户无从把两件事联系起来。
+现在写入一律返回 `PersistOutcome`（`{ ok: true }` | `{ ok: false, reason: 'no-storage' |
+'write-failed' }`，定义在 `core/settings.ts`），**两个失败值刻意分开**：
+`no-storage`（浏览器预览 / 隐私模式）是**预期内的降级、刻意不说话** ——
+为它弹一句等于每改一次设置弹一次，那样的横幅三次之后就没人看了；
+只有 `write-failed`（配额 / 策略）才翻横幅。
+四处写偏好（设置 / 位置 / 位置清空 / 最近打开）全部汇进 `ui/App.tsx` 的
+`reportPersistFailure(outcome)`，**翻会话横幅那一枚 `writeFailed`，不另开一条** ——
+它们说的是同一件事，分成四条提示等于让用户自己拼出「哦，是存储坏了」；
+翻标记**必须幂等**（位置记忆每 600ms 写一次，配额满了次次失败，不幂等就是
+每 600ms 重渲染一次整个外壳）。
+顺带把副作用从 `setSettings` 的 updater 里搬了出来（StrictMode 会跑两遍 updater、
+且吞掉返回值）；`settingsRef` 存当前一份**不进依赖表**，否则 `update` 的身份每次改
+设置都变、把整张命令表一起重建。
+`AppProps` 新增 `storage?: StorageLike | null`（**只有测试用**，`main.tsx` 未动）——
+jsdom 的 localStorage 永远写得进去，没有注入点这条出口就一条用例都碰不到。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、

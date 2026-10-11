@@ -65,6 +65,8 @@ import {
 import {
   defaultStorage,
   loadSettings,
+  type PersistOutcome,
+  type StorageLike,
   saveSettings,
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
@@ -139,6 +141,14 @@ export interface AppProps {
    * 属于同一类东西。默认值只是给嵌入场景留的便利。
    */
   searcher?: WorkspaceSearcher;
+  /**
+   * 偏好 / 位置 / 最近打开写在哪个存储上。不传则由 `defaultStorage()` 取。
+   *
+   * 只有测试需要它：外壳已经把「写不进去」当成一件要说出来的事了（ADR 0042），
+   * 而 jsdom 的 localStorage 永远写得进去 —— 没有这个注入点，
+   * 那条出口就没有任何一条用例能走到。
+   */
+  storage?: StorageLike | null;
 }
 
 /**
@@ -238,12 +248,12 @@ function PaneSlot({
   );
 }
 
-export function App({ workspace, provider, initialSettings, searcher: injectedSearcher }: AppProps) {
+export function App({ workspace, provider, initialSettings, searcher: injectedSearcher, storage: initialStorage }: AppProps) {
   const state = useSyncExternalStore(workspace.subscribe, workspace.getSnapshot);
   const { tabs, activeId, tree, openError } = state;
 
   const platform = useMemo<Platform>(() => detectPlatform(), []);
-  const storage = useMemo(() => defaultStorage(), []);
+  const storage = useMemo(() => (initialStorage === undefined ? defaultStorage() : initialStorage), [initialStorage]);
   const [settings, setSettings] = useState<ViewSettings>(() => initialSettings ?? loadSettings(storage));
   /** 最近打开的文件（A5）：菜单的「文件」区与持久化共用这一份。 */
   const [recentPaths, setRecentPaths] = useState<readonly string[]>(() => loadRecentFiles(storage));
@@ -781,13 +791,34 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
   const rememberPositions = settings.rememberPositions;
 
+  /**
+   * 「偏好没能记住」的出口（ADR 0042）。
+   *
+   * 写偏好的四处（设置 / 位置 / 位置清空 / 最近打开）**都汇到这一句话**，
+   * 而不是各弹各的：它们说的是同一件事 —— **刚才那个改动下次启动就没了**，
+   * 用户不需要知道四份数据里没写进去的是哪一份。
+   *
+   * 复用会话横幅那一枚 `writeFailed`，不另开一条横幅：两条横幅并排讲同一句
+   * 「存储坏了」，只会让人以为坏的是两处。
+   *
+   * `no-storage` 在这里**不说**：没有存储可用是**预期内**的降级（浏览器预览、
+   * 隐私模式本来就不打算持久化），为它弹一句「没能记住」是纯粹的噪音。
+   * 只有 `write-failed`（有存储、但写被拒了）才是真的坏了。
+   */
+  const reportPersistFailure = useCallback((outcome: PersistOutcome) => {
+    if (outcome.ok || outcome.reason === 'no-storage') return;
+    // 同一枚标记只翻一次：位置记忆每 600ms 写一次，配额满了会**每一次都失败**，
+    // 反复 setState 就是每 600ms 重渲染一次整个外壳，而横幅一字不变。
+    setSessionWarning((warn) => (warn.writeFailed ? warn : { ...warn, writeFailed: true }));
+  }, []);
+
   const flushPositions = useCallback(() => {
     if (positionsTimerRef.current !== null) {
       clearTimeout(positionsTimerRef.current);
       positionsTimerRef.current = null;
     }
-    savePositions(storage, positionsRef.current ?? EMPTY_POSITIONS);
-  }, [storage]);
+    reportPersistFailure(savePositions(storage, positionsRef.current ?? EMPTY_POSITIONS));
+  }, [reportPersistFailure, storage]);
 
   /**
    * 把一份位置记到**指定的路径**上。
@@ -806,10 +837,10 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       if (positionsTimerRef.current !== null) clearTimeout(positionsTimerRef.current);
       positionsTimerRef.current = setTimeout(() => {
         positionsTimerRef.current = null;
-        savePositions(storage, positionsRef.current ?? EMPTY_POSITIONS);
+        reportPersistFailure(savePositions(storage, positionsRef.current ?? EMPTY_POSITIONS));
       }, POSITION_FLUSH_DELAY_MS);
     },
-    [rememberPositions, storage],
+    [rememberPositions, reportPersistFailure, storage],
   );
 
   /**
@@ -849,8 +880,10 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
   const clearPositions = useCallback(() => {
     positionsRef.current = EMPTY_POSITIONS;
-    savePositions(storage, EMPTY_POSITIONS);
-  }, [storage]);
+    // 同样接上出口：点了「清空位置记忆」但清不掉，菜单里那几条还在
+    // —— 那就是「点了没反应」，必须说出来。
+    reportPersistFailure(savePositions(storage, EMPTY_POSITIONS));
+  }, [reportPersistFailure, storage]);
 
   // ---- 会话（上次开着什么 + 未保存的草稿） ------------------------------
 
@@ -1027,15 +1060,25 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
   // ---- 偏好 ------------------------------------------------------------
 
+  /**
+   * 偏好要在 `update` 里被读（算 next 需要「当前这一份」），
+   * 但不能因此让 `update` 依赖 `settings` —— 那会每次改设置都换掉 `update`
+   * 的身份，把下面整张命令表（:1116 起）与面板槽位一起重建。
+   */
+  const settingsRef = useRef<ViewSettings>(settings);
+  settingsRef.current = settings;
+
   const update = useCallback(
     (patch: Partial<ViewSettings>) => {
-      setSettings((previous) => {
-        const next = { ...previous, ...patch };
-        saveSettings(storage, next);
-        return next;
-      });
+      const next = { ...settingsRef.current, ...patch };
+      settingsRef.current = next;
+      setSettings(next);
+      // 副作用**不在** updater 里（ADR 0042）：updater 在 StrictMode 下会跑两次，
+      // 写盘也跟着写两次；更要紧的是「写失败」的返回值会被 updater 吞掉 ——
+      // 而这一轮要的正是那个返回值。
+      reportPersistFailure(saveSettings(storage, next));
     },
-    [storage],
+    [reportPersistFailure, storage],
   );
 
   useEffect(() => {
@@ -1198,9 +1241,11 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     if (activePath === null) return;
     const next = recordRecentList(recentPaths, activePath);
     if (next === recentPaths) return;
-    saveRecentFiles(storage, next);
+    // 记不下来**要说**（ADR 0042）：沉默的结果就是「下次启动菜单里没有它」，
+    // 而用户完全无法把这件事和当前这个「什么都正常」的界面联系起来。
+    reportPersistFailure(saveRecentFiles(storage, next));
     setRecentPaths(next);
-  }, [activePath, recentPaths, storage]);
+  }, [activePath, recentPaths, reportPersistFailure, storage]);
 
   /**
    * 注册动态命令。`register` 对同 id 是**原位覆盖**，槽位号保证列表顺序变化

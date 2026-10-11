@@ -216,6 +216,54 @@ const STORAGE_KEY = 'levnote.settings.v1';
 /** 只接受 `Storage` 形状，方便测试传入一个内存实现。 */
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
 
+/**
+ * 一次「写到偏好存储」的结果。
+ *
+ * ## 为什么不返回 `void`
+ *
+ * `localStorage` 在三种情况下会**直接抛**：隐私模式、配额用尽、企业策略禁用。
+ * 第一版的 `saveSettings` / `savePositions` 把这三种都当成「静默放弃」——
+ * 注释写的是「偏好没存上不是需要打断用户的事」。那句话对**打断**是对的
+ * （不该弹模态框拦住用户），对**不说话**是错的：用户改了主题、关掉应用、再打开，
+ * 主题回到了默认值，而全程没有任何一个字告诉他「上次那个改动没记住」。
+ * 硬约束 2 说的正是这一类：不静默降级。
+ *
+ * 所以返回值里带一个 `ok`。**调用方**拿着它决定怎么说 ——
+ * 存储层自己不知道该弹横幅还是该进 notice（它连 UI 都没有）。
+ *
+ * ## 为什么 `ok: false` 也分「没有存储」与「写失败」两种
+ *
+ * 见 `PersistFailure`：两者对用户意味着完全不同的事。
+ * `null` 存储是**已知且无害**的（浏览器预览、隐私模式，本来就没打算持久化），
+ * 为它弹一句「没能记住」是纯粹的噪音；写失败才是真的坏了。
+ *
+ * 与 `core/session.ts` 的 `SaveOutcome` 是同一条纪律的两个实例 ——
+ * 那份先做到，这份是照着它推广过来的（ADR 0042）。
+ */
+export type PersistOutcome =
+  /** 写进去了（或本来就无事可做）。 */
+  | { readonly ok: true }
+  /** 没能写进去。 */
+  | { readonly ok: false; readonly reason: PersistFailure };
+
+/**
+ * 写不进去的两种成因。
+ *
+ * - `'no-storage'`：根本没有存储可用（隐私模式、`defaultStorage()` 给了 null）。
+ *   这是**预期内**的降级，应用在浏览器预览里就是这么跑的 —— 不说。
+ * - `'write-failed'`：有存储，但 `setItem` 抛了（配额用尽 / 被禁用）。
+ *   这是**降级**，要说。
+ */
+export type PersistFailure = 'no-storage' | 'write-failed';
+
+/** 成功的那一份。用常量避免每次返回都造一个新对象。 */
+export const PERSISTED: PersistOutcome = { ok: true };
+
+/** 写失败的那一份。同理，常量。 */
+export function persistFailed(reason: PersistFailure): PersistOutcome {
+  return reason === 'no-storage' ? { ok: false, reason: 'no-storage' } : { ok: false, reason: 'write-failed' };
+}
+
 function clampSidebar(width: unknown): number {
   if (typeof width !== 'number' || !Number.isFinite(width)) return DEFAULT_SETTINGS.sidebarWidth;
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(width)));
@@ -293,12 +341,21 @@ function asKeybindingOverrides(value: unknown): Readonly<Record<string, string>>
   return out;
 }
 
-export function saveSettings(storage: StorageLike | null, settings: ViewSettings): void {
-  if (!storage) return;
+/**
+ * 把偏好写回存储。
+ *
+ * 不抛。写不进去时返回 `ok: false`（ADR 0042）—— 偏好没存上**不该打断用户**
+ * （不弹模态框、不拦住他下一步操作），但也不能装作存上了：
+ * 用户在设置页里改了主题，下次启动回到默认值，那是一次**静默降级**。
+ * 说什么、怎么说由调用方决定（见 `PersistOutcome` 的注释）。
+ */
+export function saveSettings(storage: StorageLike | null, settings: ViewSettings): PersistOutcome {
+  if (!storage) return persistFailed('no-storage');
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    return PERSISTED;
   } catch {
-    // 配额用尽 / 被禁用：静默放弃。偏好没存上不是需要打断用户的事。
+    return persistFailed('write-failed');
   }
 }
 

@@ -26,7 +26,8 @@
  */
 
 import type { EditorPosition } from './editor/types.js';
-import type { StorageLike } from './settings.js';
+import { PERSISTED, persistFailed } from './settings.js';
+import type { PersistOutcome, StorageLike } from './settings.js';
 
 /**
  * 一条位置记录。
@@ -126,12 +127,21 @@ export function loadPositions(storage: StorageLike | null): PositionMap {
   return out;
 }
 
-export function savePositions(storage: StorageLike | null, positions: PositionMap): void {
-  if (!storage) return;
+/**
+ * 把整张位置表写回存储。
+ *
+ * 不抛：写不进去返回 `ok: false`，由调用方决定怎么说（ADR 0042）。
+ * 与 `settings.ts` 的 `saveSettings` 是同一条纪律 —— 位置没存上确实不值得
+ * **打断**用户（不该弹模态框），但不该**不说**：下次打开文档回到开头，
+ * 而用户全程不知道「上次读到哪儿」是被丢掉的而不是他记错了。
+ */
+export function savePositions(storage: StorageLike | null, positions: PositionMap): PersistOutcome {
+  if (!storage) return persistFailed('no-storage');
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(positions));
+    return PERSISTED;
   } catch {
-    // 配额用尽 / 被禁用：静默放弃。位置没存上不是需要打断用户的事。
+    return persistFailed('write-failed');
   }
 }
 

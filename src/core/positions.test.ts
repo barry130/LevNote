@@ -106,6 +106,18 @@ describe('savePositions', () => {
     expect(() => savePositions(hostileStorage, EMPTY_POSITIONS)).not.toThrow();
   });
 
+  it('写被拒时返回 write-failed —— 位置是每 600ms 写一次的，静默就等于一直失败没人知道（ADR 0042）', () => {
+    expect(savePositions(hostileStorage, EMPTY_POSITIONS)).toEqual({ ok: false, reason: 'write-failed' });
+  });
+
+  it('没有存储时返回 no-storage：那是预期内的降级，不该说话', () => {
+    expect(savePositions(null, EMPTY_POSITIONS)).toEqual({ ok: false, reason: 'no-storage' });
+  });
+
+  it('写成功时返回 ok', () => {
+    expect(savePositions(memoryStorage(), EMPTY_POSITIONS)).toEqual({ ok: true });
+  });
+
   it('写进的是自己的键，不碰设置那个键', () => {
     // 两者生命周期不同：位置每次光标停顿都写，设置只在用户改的时候写
     const keys: string[] = [];

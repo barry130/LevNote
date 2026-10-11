@@ -66,4 +66,36 @@ describe('loadRecentFiles / saveRecentFiles', () => {
     clearRecentFiles(storage);
     expect([...loadRecentFiles(storage)]).toEqual([]);
   });
+
+  it('写成功时返回 ok', () => {
+    expect(saveRecentFiles(memoryStorage(), ['a.md'])).toEqual({ ok: true });
+    expect(clearRecentFiles(memoryStorage())).toEqual({ ok: true });
+  });
+
+  it('写被拒时返回 write-failed —— 「下次启动菜单里没有它」必须有个来源（ADR 0042）', () => {
+    // 之前 `clearRecentFiles` 连 try/catch 都没有：点了清空而菜单里几条还在
+    const hostile: StorageLike = {
+      getItem: () => null,
+      setItem() {
+        throw new Error('QuotaExceededError');
+      },
+    };
+    expect(saveRecentFiles(hostile, ['a.md'])).toEqual({ ok: false, reason: 'write-failed' });
+    expect(clearRecentFiles(hostile)).toEqual({ ok: false, reason: 'write-failed' });
+  });
+
+  it('没有存储时返回 no-storage：那是预期内的降级，不该说话', () => {
+    expect(saveRecentFiles(null, ['a.md'])).toEqual({ ok: false, reason: 'no-storage' });
+    expect(clearRecentFiles(null)).toEqual({ ok: false, reason: 'no-storage' });
+  });
+
+  it('读抛错时回落到「没有记录」—— 不加这一层，读抛会从 App.tsx 的 useState 初始化器穿出（启动白屏）', () => {
+    const hostile: StorageLike = {
+      getItem() {
+        throw new Error('SecurityError');
+      },
+      setItem: () => undefined,
+    };
+    expect([...loadRecentFiles(hostile)]).toEqual([]);
+  });
 });

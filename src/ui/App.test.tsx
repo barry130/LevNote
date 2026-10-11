@@ -22,7 +22,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { DocumentStore } from '../core/document/store.js';
-import { DEFAULT_SETTINGS, type ViewSettings } from '../core/settings.js';
+import { DEFAULT_SETTINGS, type StorageLike, type ViewSettings } from '../core/settings.js';
 import type {
   WorkspaceBatch,
   WorkspaceFileMatches,
@@ -238,6 +238,13 @@ async function mount(
     settings?: Partial<ViewSettings>;
     /** 工作区检索的执行者。不给则用平台默认（jsdom 里是「明确拒绝」那个）。 */
     searcher?: WorkspaceSearcher;
+    /**
+     * 偏好 / 位置 / 最近打开写在哪个存储上。给 null = 「没有存储可用」。
+     *
+     * 不给则用 App 自己的 `defaultStorage()`（jsdom 里就是 localStorage，
+     * 它永远写得进去）。要打「写不进去」那条路径必须从这里注入。
+     */
+    storage?: StorageLike | null;
   } = {},
 ): Promise<Mounted> {
   const provider = new FakeProvider();
@@ -255,6 +262,7 @@ async function mount(
       provider={provider}
       initialSettings={settings}
       {...(options.searcher === undefined ? {} : { searcher: options.searcher })}
+      {...(options.storage === undefined ? {} : { storage: options.storage })}
     />
   );
   await act(async () => {
@@ -4058,5 +4066,155 @@ describe('命令失败与拖放的出口（ADR 0041）', () => {
       expect(noticesOf(m)).toContain('这 2 个都没能打开');
       expect(noticesOf(m)).toContain('gone.md、lost.md');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 偏好写不进去（ADR 0042）
+// ---------------------------------------------------------------------------
+
+describe('偏好写不进去（ADR 0042）', () => {
+  /** 一份「读得到、写不进」的存储：配额用尽 / 企业策略禁用就是这副样子。 */
+  function unwritable(): StorageLike {
+    return {
+      getItem: () => null,
+      setItem() {
+        throw new Error('QuotaExceededError');
+      },
+    };
+  }
+
+  /** 横幅里那一句。横幅是 `sessionWarning` 那一族，写失败时挂的是 `.banner.error`。 */
+  function bannerText(m: Mounted): string {
+    return m.container.querySelector('.banner')?.textContent ?? '';
+  }
+
+  it('★ 改设置写不进去：横幅说出来，而不是「改了、界面也变了、下次启动又回到默认」', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n\n正文\n'), { storage: unwritable() });
+    const m = mounted;
+    await m.open('note.md');
+
+    // 打开文件自己就会记一笔「最近打开」，那一条已经把横幅挂上了（另有用例）。
+    // 这里要单独验**设置**这条支路，所以先把那条横幅关掉。
+    await m.click('知道了');
+    expect(bannerText(m)).toBe('');
+
+    // 走真实链路：视图菜单里的开关 → update → saveSettings → 出口
+    await m.clickMenuItem('视图', '专注模式');
+
+    expect(bannerText(m)).toContain('偏好和会话都没能记住');
+  });
+
+  it('★ 开了文档但「最近打开」写不进去：一样要说', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), { storage: unwritable() });
+    const m = mounted;
+
+    await m.open('note.md');
+
+    expect(bannerText(m)).toContain('偏好和会话都没能记住');
+  });
+
+  it('没有存储可用（storage: null）：不弹 —— 那是预期内的降级，不是坏了', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), { storage: null });
+    const m = mounted;
+
+    await m.open('note.md');
+
+    // 浏览器预览 / 隐私模式本来就不打算持久化。为它弹一句「没能记住」，
+    // 等于每改一次设置弹一次 —— 那样的横幅没人会看。
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('写得进去时一句都不说 —— 成功永远安静', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), { storage: { getItem: () => null, setItem: () => undefined } });
+    const m = mounted;
+
+    await m.open('note.md');
+
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('★ 反复写失败只出一条横幅 —— 位置记忆每 600ms 写一次，不能每次都重渲染', async () => {
+    let writes = 0;
+    mounted = await mount(
+      (p) => p.put('note.md', '# 标题\n\n正文\n'),
+      {
+        storage: {
+          getItem: () => null,
+          setItem() {
+            writes += 1;
+            throw new Error('QuotaExceededError');
+          },
+        },
+      },
+    );
+    const m = mounted;
+    await m.open('note.md');
+
+    const before = writes;
+    expect(before).toBeGreaterThan(0);
+    expect(m.container.querySelectorAll('.banner')).toHaveLength(1);
+
+    // 再改十次设置：写盘次数一路涨，横幅仍然只有一条
+    for (let i = 0; i < 10; i += 1) {
+      await m.clickMenuItem('视图', '专注模式');
+    }
+    expect(writes).toBeGreaterThan(before);
+    expect(m.container.querySelectorAll('.banner')).toHaveLength(1);
+  });
+
+  it('★ 横幅可以被关掉，而不是钉在屏幕上', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), { storage: unwritable() });
+    const m = mounted;
+
+    await m.open('note.md');
+    expect(bannerText(m)).toContain('偏好和会话都没能记住');
+
+    await m.click('知道了');
+
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('★ 设置页里改一项：改完立刻落盘，落不上就说话（另一条真实链路）', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), { storage: unwritable() });
+    const m = mounted;
+
+    await m.click('知道了'); // 关掉「最近打开」那条
+    await m.click('设置');
+
+    // 「外观」区有两个 select（语言 / 主题），按有没有 `ink` 这个选项挑主题那个，
+    // 而不是取第一个 —— 免得加一行设置就把这条测试带歪
+    const selects = [...m.container.querySelectorAll<HTMLSelectElement>('.settings select')];
+    const select = selects.find((el) => [...el.options].some((option) => option.value === 'ink'));
+    if (select === undefined) throw new Error('设置页里没有主题下拉框');
+    await act(async () => {
+      select.value = 'ink';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await settle();
+
+    // 主题照样切了（偏好在内存里生效），但「留不下来」被说出来
+    expect(document.documentElement.dataset['theme']).toBe('dark');
+    expect(bannerText(m)).toContain('偏好和会话都没能记住');
+  });
+
+  it('★ StrictMode 下改一次设置只写一次盘 —— 副作用从 updater 里搬出来了', async () => {
+    // 副作用留在 `setSettings` 的 updater 里时，updater 被 StrictMode 跑两次、
+    // 写盘也跟着跑两次。搬出来之后，`setSettings` 的 updater 是纯的，
+    // 写盘只发生在 `update` 的调用里 —— 也就是一次。
+    const keys: string[] = [];
+    const storage: StorageLike = {
+      getItem: () => null,
+      setItem(key) {
+        keys.push(key);
+      },
+    };
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), { storage });
+    const m = mounted;
+
+    await m.clickMenuItem('视图', '专注模式');
+
+    // 只数偏好那一个键：位置记忆另有一个键、且它有自己的防抖节奏
+    expect(keys.filter((key) => key === 'levnote.settings.v1')).toHaveLength(1);
   });
 });
