@@ -36,27 +36,40 @@ const hostileStorage: StorageLike = {
 const SAMPLE = { offset: 120, textLength: 4000, scrollRatio: 0.25 };
 
 describe('loadPositions', () => {
-  it('没有存储 / 空存储都给空表', () => {
-    expect(loadPositions(null)).toEqual(EMPTY_POSITIONS);
-    expect(loadPositions(memoryStorage())).toEqual(EMPTY_POSITIONS);
-    expect(loadPositions(memoryStorage(''))).toEqual(EMPTY_POSITIONS);
+  it('没有存储 / 空存储都给空表，且分得清是「没有」还是「坏了」', () => {
+    // 没有存储：环境不给读，不是内容坏了 —— 外壳不该为此说话
+    const noStorage = loadPositions(null);
+    expect(noStorage.value).toEqual(EMPTY_POSITIONS);
+    expect(noStorage.outcome).toEqual({ ok: false, reason: 'no-storage', lostKeys: [], lostCount: 0 });
+    // 空存储：还没记住过任何位置，第一次打开就是空的
+    for (const storage of [memoryStorage(), memoryStorage('')]) {
+      const read = loadPositions(storage);
+      expect(read.value).toEqual(EMPTY_POSITIONS);
+      expect(read.outcome).toEqual({ ok: true });
+    }
   });
 
-  it('存储抛错时不炸 —— 位置记不住不该让应用起不来', () => {
-    expect(loadPositions(hostileStorage)).toEqual(EMPTY_POSITIONS);
+  it('存储抛错时不炸 —— 位置记不住不该让应用起不来，但要说出「读不到」', () => {
+    const read = loadPositions(hostileStorage);
+    expect(read.value).toEqual(EMPTY_POSITIONS);
+    expect(read.outcome).toEqual({ ok: false, reason: 'read-failed', lostKeys: [], lostCount: 1 });
   });
 
-  it('内容不是 JSON 时回落到空表', () => {
-    expect(loadPositions(memoryStorage('{不是 json'))).toEqual(EMPTY_POSITIONS);
+  it('内容不是 JSON 时回落到空表，并如实报整份报废', () => {
+    const read = loadPositions(memoryStorage('{不是 json'));
+    expect(read.value).toEqual(EMPTY_POSITIONS);
+    expect(read.outcome).toEqual({ ok: false, reason: 'corrupt', lostKeys: [], lostCount: 1 });
   });
 
-  it('顶层不是对象时回落到空表', () => {
-    expect(loadPositions(memoryStorage('[1,2,3]'))).toEqual(EMPTY_POSITIONS);
-    expect(loadPositions(memoryStorage('"abc"'))).toEqual(EMPTY_POSITIONS);
-    expect(loadPositions(memoryStorage('null'))).toEqual(EMPTY_POSITIONS);
+  it('顶层不是对象时回落到空表，同样报整份报废', () => {
+    for (const raw of ['[1,2,3]', '"abc"', 'null']) {
+      const read = loadPositions(memoryStorage(raw));
+      expect(read.value).toEqual(EMPTY_POSITIONS);
+      expect(read.outcome).toEqual({ ok: false, reason: 'corrupt', lostKeys: [], lostCount: 1 });
+    }
   });
 
-  it('坏条目整条丢掉，好条目保留', () => {
+  it('坏条目整条丢掉，好条目保留，并点名丢掉的是哪几条', () => {
     // 与 settings 的逐字段回落刻意相反：拿一个 offset:0 配上正确的 textLength
     // 去恢复，等于把光标悄悄移到文档开头，用户会以为文件被改了
     const storage = memoryStorage(
@@ -67,30 +80,47 @@ describe('loadPositions', () => {
         'F:/d.md': { offset: 1, textLength: 10, scrollRatio: 0, at: 5 },
       }),
     );
-    expect(Object.keys(loadPositions(storage)).sort()).toEqual(['F:/a.md', 'F:/d.md']);
+    const read = loadPositions(storage);
+    expect(Object.keys(read.value).sort()).toEqual(['F:/a.md', 'F:/d.md']);
+    // 路径是人能读懂的东西，所以这里能点名 —— 外壳拿它去写「涉及：a.md、b.md」
+    expect(read.outcome).toEqual({
+      ok: false,
+      reason: 'corrupt',
+      lostKeys: ['F:/b.md', 'F:/c.md'],
+      lostCount: 2,
+    });
   });
 
   it('负数偏移 / 负数长度算坏条目', () => {
     const storage = memoryStorage(
       JSON.stringify({ 'F:/a.md': { offset: -1, textLength: 10, scrollRatio: 0 } }),
     );
-    expect(loadPositions(storage)).toEqual(EMPTY_POSITIONS);
+    const read = loadPositions(storage);
+    expect(read.value).toEqual(EMPTY_POSITIONS);
+    expect(read.outcome).toEqual({ ok: false, reason: 'corrupt', lostKeys: ['F:/a.md'], lostCount: 1 });
   });
 
-  it('比例越界时被夹住而不是丢掉整条', () => {
+  it('比例越界时被夹住而不是丢掉整条 —— 夹取不报', () => {
     // 比例只影响滚动，夹一下仍然可用；丢掉整条就白丢了光标位置
     const storage = memoryStorage(JSON.stringify({ 'F:/a.md': { offset: 1, textLength: 10, scrollRatio: 9 } }));
-    expect(loadPositions(storage)['F:/a.md']?.scrollRatio).toBe(1);
+    const read = loadPositions(storage);
+    expect(read.value['F:/a.md']?.scrollRatio).toBe(1);
+    expect(read.outcome).toEqual({ ok: true });
   });
 
   it('缺少 at 的旧记录当作 0（最旧），不丢', () => {
     const storage = memoryStorage(JSON.stringify({ 'F:/a.md': { offset: 1, textLength: 10, scrollRatio: 0 } }));
-    expect(loadPositions(storage)['F:/a.md']?.at).toBe(0);
+    const read = loadPositions(storage);
+    expect(read.value['F:/a.md']?.at).toBe(0);
+    expect(read.outcome).toEqual({ ok: true });
   });
 
-  it('空路径的条目被忽略', () => {
+  it('空路径的条目被忽略 —— 报数，但点不出名', () => {
     const storage = memoryStorage(JSON.stringify({ '': SAMPLE }));
-    expect(loadPositions(storage)).toEqual(EMPTY_POSITIONS);
+    const read = loadPositions(storage);
+    expect(read.value).toEqual(EMPTY_POSITIONS);
+    // 键是空串，没有任何东西可以告诉用户「是哪条」；只报数，总数绝不能是 0
+    expect(read.outcome).toEqual({ ok: false, reason: 'corrupt', lostKeys: [], lostCount: 1 });
   });
 });
 
@@ -99,7 +129,10 @@ describe('savePositions', () => {
     const storage = memoryStorage();
     const positions = rememberPosition(EMPTY_POSITIONS, 'F:/a.md', SAMPLE, 1000);
     savePositions(storage, positions);
-    expect(loadPositions(storage)).toEqual(positions);
+    const read = loadPositions(storage);
+    expect(read.value).toEqual(positions);
+    // 自己写进去的位置自己读得回来 —— 若这里报了丢失，告警系统本身就是坏的
+    expect(read.outcome).toEqual({ ok: true });
   });
 
   it('存储抛错时不抛出来', () => {

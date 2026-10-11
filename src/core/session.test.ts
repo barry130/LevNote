@@ -45,20 +45,31 @@ function session(tabs: SessionTab[], extra: Partial<SessionState> = {}): Session
 }
 
 describe('loadSession · 读不出来时的回落', () => {
-  it('没有存储、没有键、空串都回落到空会话', () => {
-    expect(loadSession(null)).toEqual(EMPTY_SESSION);
-    expect(loadSession(memoryStorage())).toEqual(EMPTY_SESSION);
-    expect(loadSession(memoryStorage({ [KEY]: '' }))).toEqual(EMPTY_SESSION);
+  it('没有存储、没有键、空串都回落到空会话，且分得清是「没有」还是「坏了」', () => {
+    const noStorage = loadSession(null);
+    expect(noStorage.value).toEqual(EMPTY_SESSION);
+    expect(noStorage.outcome).toEqual({ ok: false, reason: 'no-storage', lostKeys: [], lostCount: 0 });
+    // 从没开过文档是常态，不是故障
+    for (const storage of [memoryStorage(), memoryStorage({ [KEY]: '' })]) {
+      const read = loadSession(storage);
+      expect(read.value).toEqual(EMPTY_SESSION);
+      expect(read.outcome).toEqual({ ok: true });
+    }
   });
 
-  it('不是 JSON、不是对象、tabs 不是数组都回落到空会话', () => {
-    expect(loadSession(memoryStorage({ [KEY]: '{ 坏的' }))).toEqual(EMPTY_SESSION);
-    expect(loadSession(memoryStorage({ [KEY]: '"字符串"' }))).toEqual(EMPTY_SESSION);
-    expect(loadSession(memoryStorage({ [KEY]: '{"tabs":42}' }))).toEqual(EMPTY_SESSION);
+  it('不是 JSON、不是对象、tabs 不是数组都回落到空会话，**并如实报整份报废**', () => {
+    // 会话是四份存储里最贵的一份：整份报废 = 上次所有标签页连同未保存的草稿一起没了
+    for (const raw of ['{ 坏的', '"字符串"', '42', 'null', '{"tabs":42}', '[1,2]']) {
+      const read = loadSession(memoryStorage({ [KEY]: raw }));
+      expect(read.value).toEqual(EMPTY_SESSION);
+      expect(read.outcome).toEqual({ ok: false, reason: 'corrupt', lostKeys: [], lostCount: 1 });
+    }
   });
 
-  it('存储直接抛错（隐私模式 / 企业策略）也不炸', () => {
-    expect(loadSession(blocked)).toEqual(EMPTY_SESSION);
+  it('存储直接抛错（隐私模式 / 企业策略）也不炸，且说的是「读不到」', () => {
+    const read = loadSession(blocked);
+    expect(read.value).toEqual(EMPTY_SESSION);
+    expect(read.outcome).toEqual({ ok: false, reason: 'read-failed', lostKeys: [], lostCount: 1 });
   });
 
   it('坏内容**不清空** —— 下一次写自然会覆盖，清空反而多一次失败机会', () => {
@@ -75,9 +86,11 @@ describe('loadSession · 逐条校验', () => {
     saveSession(storage, state);
 
     const back = loadSession(storage);
-    expect(back.tabs).toEqual([tab('a.md', '草稿', 100)]);
-    expect(back.activePath).toBe('a.md');
-    expect(back.root).toBe('C:/ws');
+    expect(back.value.tabs).toEqual([tab('a.md', '草稿', 100)]);
+    expect(back.value.activePath).toBe('a.md');
+    expect(back.value.root).toBe('C:/ws');
+    // 自己写进去的会话自己读得回来 —— 若这里报了丢失，告警系统本身就是坏的
+    expect(back.outcome).toEqual({ ok: true });
   });
 
   it('路径不合法的**整条丢掉**，但其余条目照常活着', () => {
@@ -87,9 +100,9 @@ describe('loadSession · 逐条校验', () => {
       }),
     });
     const back = loadSession(storage);
-    expect(back.tabs).toEqual([tab('ok.md', '留着', 1)]);
+    expect(back.value.tabs).toEqual([tab('ok.md', '留着', 1)]);
     // 这种是存储被手改坏的异常情形，路径都没了，告诉用户也做不了任何事
-    expect(back.droppedDrafts).toBe(0);
+    expect(back.value.droppedDrafts).toBe(0);
   });
 
   it('草稿不是字符串时**只丢草稿、保住路径**，并计入 droppedDrafts', () => {
@@ -97,34 +110,37 @@ describe('loadSession · 逐条校验', () => {
       [KEY]: JSON.stringify({ tabs: [{ path: 'a.md', draft: 42, at: 1 }, { path: 'b.md', draft: '好' }] }),
     });
     const back = loadSession(storage);
-    expect(back.tabs).toEqual([tab('a.md', null, 1), tab('b.md', '好', 0)]);
-    expect(back.droppedDrafts).toBe(1);
+    expect(back.value.tabs).toEqual([tab('a.md', null, 1), tab('b.md', '好', 0)]);
+    expect(back.value.droppedDrafts).toBe(1);
+    // 逐条丢弃**有自己的声音**（`droppedDrafts` 会变成启动横幅），这里不重复报
+    expect(back.outcome).toEqual({ ok: true });
   });
 
   it('draft 是 null 是合法值（表示没有未保存改动），不算坏', () => {
     const storage = memoryStorage({ [KEY]: JSON.stringify({ tabs: [{ path: 'a.md', draft: null }] }) });
     const back = loadSession(storage);
-    expect(back.tabs).toEqual([tab('a.md', null, 0)]);
-    expect(back.droppedDrafts).toBe(0);
+    expect(back.value.tabs).toEqual([tab('a.md', null, 0)]);
+    expect(back.value.droppedDrafts).toBe(0);
+    expect(back.outcome).toEqual({ ok: true });
   });
 
   it('同一个路径出现两次只留第一个 —— 两处各改一半会让保存时的乐观锁冲突变得无法理解', () => {
     const storage = memoryStorage({
       [KEY]: JSON.stringify({ tabs: [{ path: 'a.md', draft: '先' }, { path: 'a.md', draft: '后' }] }),
     });
-    expect(loadSession(storage).tabs).toEqual([tab('a.md', '先', 0)]);
+    expect(loadSession(storage).value.tabs).toEqual([tab('a.md', '先', 0)]);
   });
 
   it('activePath 不在 tabs 里时忽略它（指向一个不存在的标签页没有意义）', () => {
     const storage = memoryStorage({
       [KEY]: JSON.stringify({ tabs: [{ path: 'a.md' }], activePath: 'ghost.md' }),
     });
-    expect(loadSession(storage).activePath).toBeNull();
+    expect(loadSession(storage).value.activePath).toBeNull();
   });
 
   it('root 是空串时当作没打开文件夹', () => {
     const storage = memoryStorage({ [KEY]: JSON.stringify({ tabs: [], root: '' }) });
-    expect(loadSession(storage).root).toBeNull();
+    expect(loadSession(storage).value.root).toBeNull();
   });
 
   it('存储里记着「上次丢过 N 条」时累加进来 —— 用户还没被告知过', () => {
@@ -132,7 +148,7 @@ describe('loadSession · 逐条校验', () => {
       [KEY]: JSON.stringify({ tabs: [{ path: 'a.md', draft: 42 }], droppedDrafts: 3 }),
     });
     // 1 条草稿不合法 + 存储里记着的 3 条
-    expect(loadSession(storage).droppedDrafts).toBe(4);
+    expect(loadSession(storage).value.droppedDrafts).toBe(4);
   });
 });
 
@@ -196,7 +212,7 @@ describe('saveSession · 写盘与失败', () => {
     const storage = memoryStorage();
     const outcome = saveSession(storage, session([tab('a.md', '草稿', 1)]));
     expect(outcome.ok).toBe(true);
-    expect(loadSession(storage).tabs).toEqual([tab('a.md', '草稿', 1)]);
+    expect(loadSession(storage).value.tabs).toEqual([tab('a.md', '草稿', 1)]);
   });
 
   it('内部先裁剪，所以调用方给什么都装得下', () => {
@@ -207,13 +223,13 @@ describe('saveSession · 写盘与失败', () => {
     expect(outcome.ok).toBe(true);
     expect(outcome.state.tabs[0]?.draft).toBeNull();
     expect(outcome.state.droppedDrafts).toBe(1);
-    expect(loadSession(storage).droppedDrafts).toBe(1);
+    expect(loadSession(storage).value.droppedDrafts).toBe(1);
   });
 
   it('返回的是**实际写下去的那一份** —— 否则下一轮比较会认为又有变化，反复重写', () => {
     const storage = memoryStorage();
     const outcome = saveSession(storage, session([tab('a.md', 'x')]));
-    expect(loadSession(storage)).toEqual(outcome.state);
+    expect(loadSession(storage).value).toEqual(outcome.state);
   });
 
   it('droppedDrafts 是**累加**不是覆盖 —— 否则「先丢 2 条、再丢 3 条」最后只提示 3 条', () => {
@@ -283,7 +299,7 @@ describe('clearSession', () => {
     const storage = memoryStorage();
     saveSession(storage, session([tab('a.md', '草稿', 1)], { activePath: 'a.md' }));
     clearSession(storage);
-    expect(loadSession(storage)).toEqual(EMPTY_SESSION);
+    expect(loadSession(storage).value).toEqual(EMPTY_SESSION);
   });
 
   it('存储抛错时不炸', () => {

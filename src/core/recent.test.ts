@@ -50,21 +50,42 @@ describe('loadRecentFiles / saveRecentFiles', () => {
   it('往返一致', () => {
     const storage = memoryStorage();
     saveRecentFiles(storage, ['C:\\w\\a.md', 'C:\\w\\b.md']);
-    expect([...loadRecentFiles(storage)]).toEqual(['C:\\w\\a.md', 'C:\\w\\b.md']);
+    const read = loadRecentFiles(storage);
+    expect([...read.value]).toEqual(['C:\\w\\a.md', 'C:\\w\\b.md']);
+    // 自己写进去的最近列表自己读得回来 —— 若这里报了丢失，告警系统本身就是坏的
+    expect(read.outcome).toEqual({ ok: true });
   });
 
-  it('没有记录、坏 JSON、非字符串数组：都按「没有记录」处理', () => {
-    expect([...loadRecentFiles(memoryStorage())]).toEqual([]);
-    expect([...loadRecentFiles(memoryStorage('{oops'))]).toEqual([]);
-    expect([...loadRecentFiles(memoryStorage('{"a":1}'))]).toEqual([]);
-    expect([...loadRecentFiles(memoryStorage('[1,"a",null,""]'))]).toEqual(['a']);
+  it('没有记录时给空列表，且什么都不报', () => {
+    // 从没打开过文档是常态，不是故障
+    const read = loadRecentFiles(memoryStorage());
+    expect([...read.value]).toEqual([]);
+    expect(read.outcome).toEqual({ ok: true });
+  });
+
+  it('坏 JSON / 非数组：值仍按「没有记录」给，但要说出来', () => {
+    for (const raw of ['{oops', '{"a":1}', '"a"', '42']) {
+      const read = loadRecentFiles(memoryStorage(raw));
+      expect([...read.value]).toEqual([]);
+      expect(read.outcome).toEqual({ ok: false, reason: 'corrupt', lostKeys: [], lostCount: 1 });
+    }
+  });
+
+  it('数组里的非字符串逐条丢掉，好条目保留，只报总数', () => {
+    const read = loadRecentFiles(memoryStorage('[1,"a",null,""]'));
+    expect([...read.value]).toEqual(['a']);
+    // 这几项本身没有可读的名字（是数字不是路径），点不出名 —— 只报数，总数不是 0
+    expect(read.outcome).toEqual({ ok: false, reason: 'corrupt', lostKeys: [], lostCount: 3 });
   });
 
   it('清空', () => {
     const storage = memoryStorage();
     saveRecentFiles(storage, ['a.md']);
     clearRecentFiles(storage);
-    expect([...loadRecentFiles(storage)]).toEqual([]);
+    const read = loadRecentFiles(storage);
+    expect([...read.value]).toEqual([]);
+    // 清空是我们自己写的空列表，不是丢东西
+    expect(read.outcome).toEqual({ ok: true });
   });
 
   it('写成功时返回 ok', () => {
@@ -89,13 +110,21 @@ describe('loadRecentFiles / saveRecentFiles', () => {
     expect(clearRecentFiles(null)).toEqual({ ok: false, reason: 'no-storage' });
   });
 
-  it('读抛错时回落到「没有记录」—— 不加这一层，读抛会从 App.tsx 的 useState 初始化器穿出（启动白屏）', () => {
+  it('读抛错时回落到「没有记录」，并说出「读不到」—— 不加回落层，读抛会从 App.tsx 的 useState 初始化器穿出（启动白屏）', () => {
     const hostile: StorageLike = {
       getItem() {
         throw new Error('SecurityError');
       },
       setItem: () => undefined,
     };
-    expect([...loadRecentFiles(hostile)]).toEqual([]);
+    const read = loadRecentFiles(hostile);
+    expect([...read.value]).toEqual([]);
+    expect(read.outcome).toEqual({ ok: false, reason: 'read-failed', lostKeys: [], lostCount: 1 });
+  });
+
+  it('没有存储时读侧也给 no-storage —— 与写侧同一套话术', () => {
+    const read = loadRecentFiles(null);
+    expect([...read.value]).toEqual([]);
+    expect(read.outcome).toEqual({ ok: false, reason: 'no-storage', lostKeys: [], lostCount: 0 });
   });
 });

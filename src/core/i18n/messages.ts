@@ -467,6 +467,18 @@ export const zhCN = {
   'ui.app.draftsLostBody': '（会话记录超出了容量上限）。如果那正是你在写的东西，请在退出前手动保存。',
   'ui.app.storageBrokenTitle': '偏好和会话都没能记住',
   'ui.app.storageBrokenBody': '（存储被禁用或已写满）。刚才改的设置、最近打开的文件、以及未保存的草稿，下次启动都不会在 —— 请先手动保存正在编辑的内容。',
+  // 读侧（ADR 0044）：**键名是人能读懂的路径 → 点名；键名是内部标识（sidebarWidth
+  // 之类）→ 只报数**。一条规则决定说多少，不靠临场发挥。
+  'ui.app.readLostSettingsTitle': '有 {n} 项偏好没读回来',
+  'ui.app.readLostSettingsBody': '（存储里那几项这次用不了，已经先回到默认值）。界面上的主题、字号等会是你上次设置之前的样子。',
+  'ui.app.readLostPositionsTitle': '有 {n} 份文档的「上次读到哪儿」没读回来',
+  'ui.app.readLostPositionsBody': '（存储里那几条位置记录这次用不了），打开它们会回到文档开头。',
+  'ui.app.readLostPositionNames': '涉及：{names}。',
+  'ui.app.readLostMore': '等 {n} 份',
+  'ui.app.readLostRecentTitle': '最近打开的 {n} 条没读回来',
+  'ui.app.readLostRecentBody': '（存储里那一段这次用不了）。重新打开过的文件会重新出现在菜单里。',
+  'ui.app.readLostSessionTitle': '上次的会话没读回来',
+  'ui.app.readLostSessionBody': '（存储里那一段这次用不了）。上次开着的标签页、当时的路径、以及其中未保存的草稿都没了 —— 如果那段内容是在存储坏掉之前写的，已经找不回来了。',
   'ui.app.kernelFailTitle': '有 {n} 个编辑内核没能加载',
   'ui.app.kernelFailBody': '相关文档会以纯文本打开 —— 其余功能不受影响。重启应用通常会解决。',
   'ui.app.restoringTitle': '正在恢复上次的标签页…',
@@ -1169,6 +1181,19 @@ export const en: Record<MessageKey, string> = {
   'ui.app.draftsLostBody': ' (the session record exceeded its capacity). If that was what you were writing, save manually before quitting.',
   'ui.app.storageBrokenTitle': 'Your changes could not be remembered',
   'ui.app.storageBrokenBody': ' (storage is disabled or full). The settings you just changed, the recently opened files, and unsaved drafts will all be gone next launch — save what you are editing manually first.',
+  // Read side (ADR 0044): **keys that are paths get named; keys that are internal
+  // identifiers (sidebarWidth and friends) only get counted.** One rule decides
+  // how much to say.
+  'ui.app.readLostSettingsTitle': '{n} preference(s) did not come back',
+  'ui.app.readLostSettingsBody': ' (those entries in storage could not be used, so they fell back to their defaults). Theme, font size and the like are as they were before you last changed them.',
+  'ui.app.readLostPositionsTitle': '“Where you left off” was lost for {n} document(s)',
+  'ui.app.readLostPositionsBody': ' (those position records could not be used), so they will open at the top.',
+  'ui.app.readLostPositionNames': 'Affected: {names}.',
+  'ui.app.readLostMore': 'and {n} more',
+  'ui.app.readLostRecentTitle': '{n} recently opened file(s) did not come back',
+  'ui.app.readLostRecentBody': ' (that part of storage could not be used). Files you open again will reappear in the menu.',
+  'ui.app.readLostSessionTitle': 'The last session did not come back',
+  'ui.app.readLostSessionBody': ' (that part of storage could not be used). The tabs you had open, their paths, and any unsaved drafts in them are gone — anything typed before that part of storage broke cannot be recovered.',
   'ui.app.kernelFailTitle': '{n} editor kernel(s) failed to load',
   'ui.app.kernelFailBody': 'Affected documents open as plain text — everything else works. Restarting the app usually fixes this.',
   'ui.app.restoringTitle': 'Restoring the last session…',

@@ -264,18 +264,159 @@ export function persistFailed(reason: PersistFailure): PersistOutcome {
   return reason === 'no-storage' ? { ok: false, reason: 'no-storage' } : { ok: false, reason: 'write-failed' };
 }
 
-function clampSidebar(width: unknown): number {
-  if (typeof width !== 'number' || !Number.isFinite(width)) return DEFAULT_SETTINGS.sidebarWidth;
+// ---------------------------------------------------------------------------
+// 读侧：一次「从存储里读」的结论（ADR 0044）
+// ---------------------------------------------------------------------------
+
+/**
+ * 读不出来的成因。**分法与 `PersistFailure` 是同一条**：`no-storage` 预期内、其余是坏了。
+ *
+ * - `'read-failed'`：有存储，`getItem` 自己抛了（隐私模式 / 企业策略禁读）。
+ * - `'corrupt'`：读出来了，但**内容**与预期对不上 —— 不是 JSON、不是对象，
+ *   或者里面的某几项用不了（那一档看 `lostCount` 就知道丢了没有）。
+ */
+export type LoadFailure = 'no-storage' | 'read-failed' | 'corrupt';
+
+/**
+ * 一次读取的结论。`PersistOutcome` 的**读侧对偶**。
+ *
+ * ## 为什么读侧也要有一枚 `ok`
+ *
+ * 0042 把写侧做到了，理由是「用户改了主题、界面立刻变了、于是他相信改成了，
+ * 而下次启动回到默认值，全程没有一个字告诉他」。读侧是同一句话的另一半，
+ * 而且丢得更彻底：写失败丢的是**一个改动**，读失败丢的是**整份上次的状态** ——
+ * 主题、侧栏宽度、快捷键、上次开着的文件、**未保存的草稿**一起回到默认。
+ *
+ * 区别只有一处，而那一处很吃重：**读有默认值可依**（回落到默认，应用照常起来），
+ * 所以这里仍然不抛、不白屏 —— 但「能起来」与「该说话」从来不是一件事。
+ *
+ * ## `lostKeys` 与 `lostCount` 为什么是两个字段
+ *
+ * `lostKeys` 是**点得出名**的那些键（设置的字段名、位置与最近打开的路径）。
+ * 最近打开那一列是数组，被滤掉的垃圾点不出名（「第 3 项」对用户没有意义），
+ * 所以那一部分只进 `lostCount`。两者分开，调用方才不会在「要报几个」上猜。
+ */
+export type LoadOutcome =
+  /** 什么也没丢（含「存储里本来就是空的」—— 首次启动不是丢失）。 */
+  | { readonly ok: true }
+  | {
+      readonly ok: false;
+      readonly reason: LoadFailure;
+      readonly lostKeys: readonly string[];
+      readonly lostCount: number;
+    };
+
+/** 什么都没丢的那一份。常量，避免每次返回都造一个新对象（与 `PERSISTED` 对称）。 */
+export const LOADED: LoadOutcome = { ok: true };
+
+/** 一次读取的产物与它的结论。 */
+export interface LoadResult<T> {
+  /** 回落之后的那一份 —— 应用照它起来，绝不因为读失败而白屏。 */
+  readonly value: T;
+  readonly outcome: LoadOutcome;
+}
+
+/** 什么都没丢：`value` 就是读出来的那一份。 */
+export function loaded<T>(value: T): LoadResult<T> {
+  return { value, outcome: LOADED };
+}
+
+/**
+ * 丢了东西的那一份。
+ *
+ * `lostCount` 默认等于 `lostKeys.length`，点不出名的那几类（最近打开里被滤掉的
+ * 数组元素）显式传一个数进去即可。
+ *
+ * **整份读不出来时必须显式传一个非零的数**（各调用点一律传 1）：
+ * 「原来有几条」已经无从得知，但「报 0」在用户那里读作「什么都没丢」——
+ * 那等于把一次丢失又藏了回去。传 1 是在说「**至少有一份没了**」。
+ */
+export function loadLost<T>(
+  value: T,
+  reason: LoadFailure,
+  lostKeys: readonly string[] = [],
+  lostCount: number = lostKeys.length,
+): LoadResult<T> {
+  return { value, outcome: { ok: false, reason, lostKeys, lostCount } };
+}
+
+/** 「是一个有限数值」这一关单独拆出来，好让读侧能分辨「值不对」与「根本不是值」。 */
+function finiteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+// 下面这组 `parse…` 统一返回 `T | null`，**`null` = 这一项用不了**。
+// 与写侧那三个 `clamp…` 的区别只有返回值：写侧拿到的是「已经确认是数」的输入，
+// 读侧必须先自己确认一遍，确认不了就只能承认「这一项没了」（见 `pickField`）。
+
+function parseTheme(value: unknown): ThemePreference | null {
+  return isThemePreference(value) ? value : null;
+}
+
+function parseSidebarWidth(value: unknown): number | null {
+  const width = finiteNumber(value);
+  if (width === null) return null;
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(width)));
 }
 
-function asBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === 'boolean' ? value : fallback;
+function parseBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
 }
 
-function clampSplitRatio(value: unknown): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_SETTINGS.splitRatio;
-  return Math.min(SPLIT_RATIO_MAX, Math.max(SPLIT_RATIO_MIN, value));
+function parseSidebarView(value: unknown): SidebarView | null {
+  return isSidebarView(value) ? value : null;
+}
+
+function parseSplitRatio(value: unknown): number | null {
+  const ratio = finiteNumber(value);
+  if (ratio === null) return null;
+  return Math.min(SPLIT_RATIO_MAX, Math.max(SPLIT_RATIO_MIN, ratio));
+}
+
+function parseEditorFontSize(value: unknown): number | null {
+  const size = finiteNumber(value);
+  return size === null ? null : clampEditorFontSize(size);
+}
+
+function parseEditorLineHeight(value: unknown): number | null {
+  const height = finiteNumber(value);
+  return height === null ? null : clampEditorLineHeight(height);
+}
+
+function parseEditorFontFamily(value: unknown): string | null {
+  // **净化不算「用不了」**：剥掉声明语法字符之后，那份字体意图照样生效了
+  return typeof value === 'string' ? sanitizeEditorFontFamily(value) : null;
+}
+
+/**
+ * 取一个字段，并把「键在、值用不了」记进 `lost`（ADR 0044）。
+ *
+ * ## 为什么要分「键不在」与「键在但坏了」
+ *
+ * 版本升级会新增字段，老数据里**必然**没有它 —— 那是正常回落，不是丢失。
+ * 反过来，键在、值却不认识（手改坏、类型变了、别的工具写进来的脏数据）才是真的丢了：
+ * 用户明明设过，这一次没生效，而界面不会告诉他「上次那个设置没读出来」。
+ *
+ * ## 为什么夹取不算丢
+ *
+ * 越界的值被夹回合法区间之后，**那份意图仍然生效了一部分** —— 用户调的「更宽一点」
+ * 确实更宽了，只是被上限挡住。这与「整个值用不了」是两回事，
+ * 按后者去报，等于每次都因为「把 9999 记成 480」提醒用户一次。
+ */
+function pickField<T>(
+  key: string,
+  raw: unknown,
+  parse: (value: unknown, lostKeys: string[]) => T | null,
+  fallback: T,
+  lost: string[],
+): T {
+  if (raw === undefined) return fallback;
+  const parsed = parse(raw, lost);
+  if (parsed === null) {
+    lost.push(key);
+    return fallback;
+  }
+  return parsed;
 }
 
 /**
@@ -283,47 +424,74 @@ function clampSplitRatio(value: unknown): number {
  *
  * 逐字段校验而不是整体信任：版本升级后旧数据里可能缺少新字段、
  * 或者某个字段的类型变了。逐字段回落能让「新增一个偏好项」不影响老用户的其他设置。
+ *
+ * ## 为什么不只交回一个 `ViewSettings`（ADR 0044）
+ *
+ * 回落**必须有**：`localStorage` 在某些环境下连读都会抛，不包的话这次抛会从
+ * `App` 的 `useState` 初始化器一路穿出去 —— 那是**启动白屏**（0042 顺手补的那处 try）。
+ *
+ * 但「回落到默认值」本身是一次**静默降级**：用户设过主题，下次启动界面是另一个主题，
+ * 全程没有一个字告诉他。0042 把**写侧**做到了（`PersistOutcome`），
+ * 这一份是它的读侧对偶 —— 而且丢得更狠：写失败丢一个改动，读失败丢**整份上次的状态**。
+ *
+ * 所以这里把**值**与**这次读丢了什么**一起交出去。说什么、怎么说不是这一层能决定的
+ * （它连 UI 都没有），那是**外壳**的事（ADR 0043：内核交数据、外壳才翻成话）。
  */
-export function loadSettings(storage: StorageLike | null): ViewSettings {
-  if (!storage) return DEFAULT_SETTINGS;
+export function loadSettings(storage: StorageLike | null): LoadResult<ViewSettings> {
+  if (!storage) return loadLost(DEFAULT_SETTINGS, 'no-storage');
 
   let raw: string | null;
   try {
     raw = storage.getItem(STORAGE_KEY);
   } catch {
-    return DEFAULT_SETTINGS;
+    // 有存储却读不出来 = 之前存过的东西这一次全读不到了 = 至少丢了一份
+    return loadLost(DEFAULT_SETTINGS, 'read-failed', [], 1);
   }
-  if (raw === null || raw === '') return DEFAULT_SETTINGS;
+  // 首次启动 / 用户清过存储：**一个键都没有**不是「丢了什么」。安静回落。
+  if (raw === null || raw === '') return loaded(DEFAULT_SETTINGS);
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // 存储里的内容坏了：回落到默认值，不抛错也不清空（用户可能只是手改错了）
-    return DEFAULT_SETTINGS;
+    // 内容坏了：回落到默认值，不抛错也不清空（用户可能只是手改错了）。
+    // 整份都用不了 = **至少丢了一份**（见 `loadLost` 为什么要显式传 1）。
+    return loadLost(DEFAULT_SETTINGS, 'corrupt', [], 1);
   }
-  if (typeof parsed !== 'object' || parsed === null) return DEFAULT_SETTINGS;
+  // 数组也是「键全都不在」—— 逐字段回落会把它当成一份全新的空偏好，安静得连自己都骗得过
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return loadLost(DEFAULT_SETTINGS, 'corrupt', [], 1);
+  }
 
   const record = parsed as Record<string, unknown>;
-  return {
-    theme: isThemePreference(record['theme']) ? record['theme'] : DEFAULT_SETTINGS.theme,
-    sidebarWidth: clampSidebar(record['sidebarWidth']),
-    sidebarVisible: asBoolean(record['sidebarVisible'], DEFAULT_SETTINGS.sidebarVisible),
-    sidebarView: isSidebarView(record['sidebarView']) ? record['sidebarView'] : DEFAULT_SETTINGS.sidebarView,
-    outlineVisible: asBoolean(record['outlineVisible'], DEFAULT_SETTINGS.outlineVisible),
-    wordWrap: asBoolean(record['wordWrap'], DEFAULT_SETTINGS.wordWrap),
-    codeLineNumbers: asBoolean(record['codeLineNumbers'], DEFAULT_SETTINGS.codeLineNumbers),
-    rememberPositions: asBoolean(record['rememberPositions'], DEFAULT_SETTINGS.rememberPositions),
-    splitRatio: clampSplitRatio(record['splitRatio']),
-    restoreSession: asBoolean(record['restoreSession'], DEFAULT_SETTINGS.restoreSession),
-    keybindings: asKeybindingOverrides(record['keybindings']),
-    editorFontSize: clampEditorFontSize(record['editorFontSize']),
-    editorFontFamily: sanitizeEditorFontFamily(record['editorFontFamily']),
-    editorLineHeight: clampEditorLineHeight(record['editorLineHeight']),
-    locale: isSupportedLocale(record['locale']) ? record['locale'] : DEFAULT_SETTINGS.locale,
-    focusMode: asBoolean(record['focusMode'], DEFAULT_SETTINGS.focusMode),
-    typewriterMode: asBoolean(record['typewriterMode'], DEFAULT_SETTINGS.typewriterMode),
+  /** 「键在、值用不了」的字段名。一次读只收集一次（见 `pickField`）。 */
+  const lost: string[] = [];
+  const pick = <K extends keyof ViewSettings>(
+    key: K,
+    parse: (value: unknown, lostKeys: string[]) => ViewSettings[K] | null,
+  ): ViewSettings[K] => pickField(key, record[key], parse, DEFAULT_SETTINGS[key], lost);
+
+  const value: ViewSettings = {
+    theme: pick('theme', parseTheme),
+    sidebarWidth: pick('sidebarWidth', parseSidebarWidth),
+    sidebarVisible: pick('sidebarVisible', parseBoolean),
+    sidebarView: pick('sidebarView', parseSidebarView),
+    outlineVisible: pick('outlineVisible', parseBoolean),
+    wordWrap: pick('wordWrap', parseBoolean),
+    codeLineNumbers: pick('codeLineNumbers', parseBoolean),
+    rememberPositions: pick('rememberPositions', parseBoolean),
+    splitRatio: pick('splitRatio', parseSplitRatio),
+    restoreSession: pick('restoreSession', parseBoolean),
+    keybindings: pick('keybindings', parseKeybindings),
+    editorFontSize: pick('editorFontSize', parseEditorFontSize),
+    editorFontFamily: pick('editorFontFamily', parseEditorFontFamily),
+    editorLineHeight: pick('editorLineHeight', parseEditorLineHeight),
+    locale: pick('locale', parseLocale),
+    focusMode: pick('focusMode', parseBoolean),
+    typewriterMode: pick('typewriterMode', parseBoolean),
   };
+
+  return lost.length === 0 ? loaded(value) : loadLost(value, 'corrupt', lost);
 }
 
 /** 语言字段的逐项校验：不在清单里的一律回落 zh-CN（与主题同一个写法）。 */
@@ -331,12 +499,23 @@ function isSupportedLocale(value: unknown): value is SupportedLocale {
   return typeof value === 'string' && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
-/** 快捷键覆盖的逐项校验：只要「对象且值全是字符串」，其余整个回落为空。 */
-function asKeybindingOverrides(value: unknown): Readonly<Record<string, string>> {
-  if (typeof value !== 'object' || value === null) return DEFAULT_SETTINGS.keybindings;
+function parseLocale(value: unknown): SupportedLocale | null {
+  return isSupportedLocale(value) ? value : null;
+}
+
+/**
+ * 快捷键覆盖的逐项校验。
+ *
+ * 值根本不是对象 → 整项用不了（记一条）。是对象但个别命令的值不是字符串 →
+ * **只丢那几条**，其余键位继续生效（与位置的「整条丢」刻意相反：
+ * 一个键位坏了不该让用户其余的键位一起失效 —— 那比坏掉本身更让人火大）。
+ */
+function parseKeybindings(value: unknown, lost: string[]): Readonly<Record<string, string>> | null {
+  if (typeof value !== 'object' || value === null) return null;
   const out: Record<string, string> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (typeof entry === 'string') out[key] = entry;
+  for (const [command, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof entry === 'string') out[command] = entry;
+    else lost.push(`keybindings.${command}`);
   }
   return out;
 }

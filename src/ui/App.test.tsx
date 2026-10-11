@@ -236,6 +236,13 @@ async function mount(
   options: {
     strict?: boolean;
     settings?: Partial<ViewSettings>;
+    /**
+     * **不注入** `initialSettings`，于是 App 走 `loadSettings(storage)` 那条真实链路。
+     *
+     * 默认注入是有道理的：测试不该被一份共享的 localStorage 串味。但读侧那一族
+     * （ADR 0044）要验的恰恰是「从存储读出来的偏好」，注入了就永远读不到。
+     */
+    readSettingsFromStorage?: boolean;
     /** 工作区检索的执行者。不给则用平台默认（jsdom 里是「明确拒绝」那个）。 */
     searcher?: WorkspaceSearcher;
     /**
@@ -260,7 +267,7 @@ async function mount(
     <App
       workspace={workspace}
       provider={provider}
-      initialSettings={settings}
+      {...(options.readSettingsFromStorage === true ? {} : { initialSettings: settings })}
       {...(options.searcher === undefined ? {} : { searcher: options.searcher })}
       {...(options.storage === undefined ? {} : { storage: options.storage })}
     />
@@ -4256,5 +4263,240 @@ describe('偏好写不进去（ADR 0042）', () => {
 
     // 只数偏好那一个键：位置记忆另有一个键、且它有自己的防抖节奏
     expect(keys.filter((key) => key === 'levnote.settings.v1')).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 存储里的东西读不出来（ADR 0044）
+// ---------------------------------------------------------------------------
+
+describe('存储里的东西读不出来（ADR 0044）', () => {
+  /**
+   * 一份**读得到、但某些键的内容坏了**的存储。
+   *
+   * 与 ADR 0042 的 `unwritable()` 是两副样子：那边是「写得进、读不到」
+   * （配额 / 企业策略），这边是「读得到、读到的是坏的」。后者在真机上更常见 ——
+   * 存储写到一半被打断、手改坏、换版本改了结构。
+   */
+  function corruptIn(seed: Record<string, string>): StorageLike {
+    return {
+      getItem: (key) => seed[key] ?? null,
+      setItem: () => undefined,
+    };
+  }
+
+  /** 读侧横幅的文字。它是**独立的第二个** `.banner`，所以按序号取。 */
+  function bannerText(m: Mounted): string {
+    const banners = [...m.container.querySelectorAll('.banner')];
+    return banners.map((item) => item.textContent ?? '').join('\n');
+  }
+
+  it('★ 偏好里有坏字段：说出来是「有几项没读回来」，而不是默默回到默认', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: corruptIn({
+        'levnote.settings.v1': JSON.stringify({ theme: 'ink', sidebarWidth: '很宽', focusMode: 'yes' }),
+      }),
+    });
+    const m = mounted;
+
+    // 好字段照样生效 —— 说「丢了」不等于什么都丢
+    expect(document.documentElement.dataset['theme']).toBe('dark');
+
+    expect(bannerText(m)).toContain('有 2 项偏好没读回来');
+  });
+
+  it('★ 会话存储坏了：横幅挂在**最前面**、且是 error 级（未保存的草稿一起没了）', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({ 'levnote.session.v1': '{ 坏了' }),
+    });
+    const m = mounted;
+
+    const banners = [...m.container.querySelectorAll('.banner')];
+    expect(banners).toHaveLength(1);
+    // 会话是四份里最贵的一份，所以连配色都要比「偏好丢了」重
+    expect(banners[0]?.className).toContain('error');
+    expect(bannerText(m)).toContain('上次的会话没读回来');
+  });
+
+  it('★ 位置记录里有坏条目：点名到文档，而不是只给一个数', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({
+        'levnote.positions.v1': JSON.stringify({
+          'F:/ws/alpha.md': { offset: 'x', textLength: 10, scrollRatio: 0 },
+          'F:/ws/beta.md': { offset: -1, textLength: 10, scrollRatio: 0 },
+        }),
+      }),
+    });
+    const m = mounted;
+
+    expect(bannerText(m)).toContain('有 2 份文档');
+    // 点名封顶 3 条：全列出来就是一面墙，墙和沉默在效果上一样
+    expect(bannerText(m)).toContain('涉及：alpha.md、beta.md。');
+  });
+
+  it('★ 位置坏了但一份都点不出名时：只报数，不说「涉及：」后面空着', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({ 'levnote.positions.v1': '{ 整份坏了' }),
+    });
+    const m = mounted;
+
+    expect(bannerText(m)).toContain('有 1 份文档');
+    expect(bannerText(m)).not.toContain('涉及：');
+  });
+
+  it('★ 四份都坏：一条横幅里按**丢失的代价**排，会话在最前', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: corruptIn({
+        'levnote.settings.v1': JSON.stringify({ theme: 42 }),
+        'levnote.positions.v1': '{ 坏了',
+        'levnote.recentFiles': '{ 坏了',
+        'levnote.session.v1': '{ 坏了',
+      }),
+    });
+    const m = mounted;
+
+    const text = bannerText(m);
+    expect(text).toContain('有 1 项偏好没读回来');
+    expect(text).toContain('有 1 份文档');
+    expect(text).toContain('最近打开的 1 条没读回来');
+    // 合成一条横幅而不是四条：四件都是「存储坏了」的同一个后果
+    expect(m.container.querySelectorAll('.banner')).toHaveLength(1);
+    expect(text.indexOf('上次的会话没读回来')).toBeLessThan(text.indexOf('有 1 份文档'));
+  });
+
+  it('★ 存储抛错（隐私模式 / 企业策略）：读不出来要说，与「存的是坏的」分开讲', async () => {
+    const readBlocked: StorageLike = {
+      getItem() {
+        throw new Error('SecurityError');
+      },
+      setItem: () => undefined,
+    };
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: readBlocked,
+    });
+    const m = mounted;
+
+    // 应用照样起来了 —— 不能因为读不到存储就白屏
+    expect(m.container.querySelector('.banner')).not.toBeNull();
+    expect(bannerText(m)).toContain('上次的会话没读回来');
+  });
+
+  it('★ 没有存储可用（storage: null）：一句都不说 —— 那是预期内的降级', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: null,
+    });
+    const m = mounted;
+
+    await m.open('note.md');
+
+    // 浏览器预览 / 隐私模式本来就不打算持久化。为它弹一句「没读回来」，
+    // 等于每开一次就是一条 —— 那样的横幅没人会看（与 ADR 0042 同一条理由）。
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('★ 第一次打开（存储是空的）：一句都不说 —— 默认值不是「丢了」', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: { getItem: () => null, setItem: () => undefined },
+    });
+    const m = mounted;
+
+    await m.open('note.md');
+
+    // 这是本条 ADR 最容易做错的一半：把「本来就没有」当成「丢了」，
+    // 每装一次就先看一条红字，用三次就把横幅学会忽略了。
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('★ 老版本存的偏好（缺新字段）：不报 —— 版本升级不是丢失', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: corruptIn({ 'levnote.settings.v1': JSON.stringify({ theme: 'ink' }) }),
+    });
+    const m = mounted;
+
+    await m.open('note.md');
+
+    // 缺的字段是**从来没存过**，不是「存了没读回来」。若这里报，
+    // 以后每加一个偏好项就得给全体用户推一次告警。
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('★ 存的值被夹住（越界的字号 / 比例）：不报 —— 意图已部分兑现', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: corruptIn({
+        'levnote.settings.v1': JSON.stringify({ editorFontSize: 999, splitRatio: 9, sidebarWidth: 10 }),
+      }),
+    });
+    const m = mounted;
+
+    await m.open('note.md');
+
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('★ 读侧的坏消息与写侧的坏消息**分两条横幅**，不混成一句', async () => {
+    // 存储写得进、但会话那份读出来是坏的
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: {
+        getItem: (key) => (key === 'levnote.session.v1' ? '{ 坏了' : null),
+        setItem() {
+          throw new Error('QuotaExceededError');
+        },
+      },
+    });
+    const m = mounted;
+    await m.open('note.md');
+
+    const banners = [...m.container.querySelectorAll('.banner')];
+    expect(banners).toHaveLength(2);
+    // 「上次丢的没恢复」和「存不下」是两件事：合并会逼用户在
+    // 「该保存草稿」与「该检查存储」之间猜是哪一件。
+    const text = bannerText(m);
+    expect(text).toContain('上次的会话没读回来');
+    expect(text).toContain('偏好和会话都没能记住');
+  });
+
+  it('★ 读侧横幅可以被关掉，而不是钉在屏幕上', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({ 'levnote.session.v1': '{ 坏了' }),
+    });
+    const m = mounted;
+    expect(bannerText(m)).toContain('上次的会话没读回来');
+
+    await m.click('知道了');
+
+    expect(bannerText(m)).toBe('');
+  });
+
+  it('★ StrictMode 双渲染不会把「丢了几份」翻倍 —— 读是幂等的', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      readSettingsFromStorage: true,
+      storage: corruptIn({
+        'levnote.settings.v1': JSON.stringify({ theme: 42, focusMode: 'yes' }),
+        'levnote.positions.v1': JSON.stringify({
+          'F:/ws/a.md': { offset: 'x', textLength: 1, scrollRatio: 0 },
+        }),
+      }),
+    });
+    const m = mounted;
+
+    // 数字不是 4 —— 双渲染各读一次，若折成累加就会变成 2+2
+    expect(bannerText(m)).toContain('有 2 项偏好没读回来');
+    expect(bannerText(m)).toContain('有 1 份文档');
+  });
+
+  it('★ 读侧横幅对「最近打开」那条独立生效：菜单里那条掉了就说', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({ 'levnote.recentFiles': '[1,"a.md",null,""]' }),
+    });
+    const m = mounted;
+
+    expect(bannerText(m)).toContain('最近打开的 3 条没读回来');
   });
 });

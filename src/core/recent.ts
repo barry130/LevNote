@@ -11,8 +11,8 @@
  * store 不需要知道这件事。
  */
 
-import { PERSISTED, persistFailed } from './settings.js';
-import type { PersistOutcome, StorageLike } from './settings.js';
+import { PERSISTED, loadLost, loaded, persistFailed } from './settings.js';
+import type { LoadResult, PersistOutcome, StorageLike } from './settings.js';
 
 export const RECENT_FILES_KEY = 'levnote.recentFiles';
 
@@ -20,30 +20,44 @@ export const RECENT_FILES_KEY = 'levnote.recentFiles';
 export const RECENT_FILES_MAX = 15;
 
 /**
- * 读出最近打开列表。损坏的存储按「没有记录」处理 ——
- * 这份数据随时可以重建，不值得为它报错。没有存储（`null`，隐私模式等）同理。
+ * 读出最近打开列表。
  *
- * `getItem` 自己也包了 try/catch：`localStorage` 在某些环境下**读**都会抛
- * （隐私模式 / 企业策略）。不包的话，这次抛会从 `App` 的 `useState` 初始化器
- * 里一路穿出来 —— 那就是**启动即白屏**，比「记不住」严重得多（ADR 0042）。
- * 读失败有默认值可依（`[]`：这份数据随时能重建），所以这里安静回落，
- * 与写失败要出声是两回事。
+ * ## 读失败要出声，读不出更要说（ADR 0044）
+ *
+ * 0042 的注释里写过一句「这份数据随时可以重建，不值得为它报错」。**那句话说的是
+ * 「不值得打断」**，不是「不值得告知」—— 0044 把两者拆开了：
+ *
+ * - 回落照旧：`[]`，不抛、不白屏（`getItem` 自己在隐私模式 / 企业策略下都会抛，
+ *   不包的话这次抛会从 `App` 的 `useState` 初始化器一路穿出去 —— 那是**启动即白屏**）。
+ * - 但「回落了」这件事随 `LoadResult.outcome` 一起交出去。菜单里「最近打开」空了，
+ *   而用户三天前刚打开过那几份 —— 那是「我的记录没了」，值得一个横幅。
+ *
+ * 数组里的脏元素（「第 3 项」对用户没有意义）点不出名，只进 `lostCount`；
+ * 非数组的整份数据点不出名，也只进计数。
  */
-export function loadRecentFiles(storage: StorageLike | null): readonly string[] {
+export function loadRecentFiles(storage: StorageLike | null): LoadResult<readonly string[]> {
+  if (!storage) return loadLost<readonly string[]>([], 'no-storage');
+
   let raw: string | null;
   try {
-    raw = storage?.getItem(RECENT_FILES_KEY) ?? null;
+    raw = storage.getItem(RECENT_FILES_KEY);
   } catch {
-    return [];
+    // 有存储却读不出来 = 之前记过的那几条这一次全读不到了（见 `loadLost`）
+    return loadLost<readonly string[]>([], 'read-failed', [], 1);
   }
-  if (raw === null) return [];
+  if (raw === null) return loaded<readonly string[]>([]);
+
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is string => typeof item === 'string' && item !== '');
+    parsed = JSON.parse(raw);
   } catch {
-    return [];
+    return loadLost<readonly string[]>([], 'corrupt', [], 1);
   }
+  if (!Array.isArray(parsed)) return loadLost<readonly string[]>([], 'corrupt', [], 1);
+
+  const paths = parsed.filter((item): item is string => typeof item === 'string' && item !== '');
+  const lostCount = parsed.length - paths.length;
+  return lostCount === 0 ? loaded(paths) : loadLost(paths, 'corrupt', [], lostCount);
 }
 
 /**

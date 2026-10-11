@@ -65,6 +65,7 @@ import {
 import {
   defaultStorage,
   loadSettings,
+  type LoadOutcome,
   type PersistOutcome,
   type StorageLike,
   saveSettings,
@@ -127,6 +128,86 @@ interface SessionWarning {
 }
 
 const NO_SESSION_WARNING: SessionWarning = { droppedDrafts: 0, failed: [], writeFailed: false };
+
+/**
+ * 读侧丢了什么（ADR 0044）。
+ *
+ * 四个槽各记一份存储，缺项 / 零 = 那一份**什么都没丢**。四份分开记而不是合成一个
+ * 「有东西丢了」，是因为它们**该说的不是同一句话**：偏好说「回到默认值了」，
+ * 位置说「这几份文档会回到开头」，最近打开说「菜单里要先重新打开才会出现」，
+ * 会话说「上次开着的标签页和没保存的草稿都没了」。
+ *
+ * ## 为什么有的点名、有的只报数
+ *
+ * 一条规则，不靠临场发挥：**键名是人能读懂的路径 → 点名；键名是内部标识
+ * （`sidebarWidth` 之类）→ 只报数**。用户看到 `keybindings.toggleSidebar` 只会更困惑；
+ * 而看到 `笔记.md` 他立刻知道是哪一份。位置能报到 200 条，所以另外封一个
+ * `READ_LOSS_NAMES_MAX` —— 全列出来就是一面墙，墙和「没说话」在效果上一样。
+ */
+interface ReadLoss {
+  /** 偏好里丢了几个字段。字段名是内部标识，所以只给数。 */
+  readonly settings: number;
+  /** 位置里丢了多少份文档（路径点得出名，所以另存一份名字）。 */
+  readonly positions: number;
+  readonly positionNames: readonly string[];
+  /** 最近打开里丢了几条。条目本身没有名字（「第 3 项」对用户没有意义）。 */
+  readonly recent: number;
+  /** 会话整份读不出来 —— 最贵的一次：未保存的草稿一起没了。 */
+  readonly session: boolean;
+}
+
+const NO_READ_LOSS: ReadLoss = { settings: 0, positions: 0, positionNames: [], recent: 0, session: false };
+
+/** 一次读最多点名几份文档。剩下的只进计数（见 `ReadLoss` 上面的理由）。 */
+const READ_LOSS_NAMES_MAX = 3;
+
+/** 哪一份存储。四份各写各的槽 —— 读写都按这份分，报告也按这份分。 */
+type ReadArea = 'settings' | 'positions' | 'recent' | 'session';
+
+/**
+ * 把一份存储的读结论折进「丢了什么」。
+ *
+ * `no-storage` 折成「没丢」：压根没有存储 = 从来没存过东西 = 没有东西可丢。
+ * 这与 ADR 0042 把 `no-storage` 当成「预期内、安静」是同一条。
+ */
+function foldReadLoss(current: ReadLoss, area: ReadArea, outcome: LoadOutcome): ReadLoss {
+  if (outcome.ok || outcome.reason === 'no-storage') return current;
+  switch (area) {
+    case 'session':
+      // 整份不可用就是整份不可用，不按条目报（逐条的那部分有 `droppedDrafts` 在说）
+      return { ...current, session: true };
+    case 'positions':
+      return {
+        ...current,
+        positions: outcome.lostCount,
+        positionNames: outcome.lostKeys.slice(0, READ_LOSS_NAMES_MAX).map((path) => basename(path)),
+      };
+    case 'settings':
+      return { ...current, settings: outcome.lostCount };
+    case 'recent':
+      return { ...current, recent: outcome.lostCount };
+  }
+}
+
+/** 「这次启动有没有东西是读丢了才没有的」。 */
+function hasReadLoss(loss: ReadLoss): boolean {
+  return loss.session || loss.positions > 0 || loss.settings > 0 || loss.recent > 0;
+}
+
+/**
+ * 位置那一条点名到哪几个，剩下多少个。**点不出名时返回空串** ——
+ * 整份位置读不出来（隐私模式 / 手改坏）时一条名字都没有，
+ * 那时只说「有 N 份」，硬凑一个「等 1 份」反而是在假装知道是哪一份。
+ *
+ * 点名封顶 `READ_LOSS_NAMES_MAX` 就是这里：位置能积到 200 份，全列出来是一面墙，
+ * 而墙和沉默在效果上是一回事 —— 用户会以为应用在刷屏，于是学会不看横幅。
+ */
+function describePositionNames(loss: ReadLoss): string {
+  if (loss.positionNames.length === 0) return '';
+  const rest = loss.positions - loss.positionNames.length;
+  const suffix = rest > 0 ? t('ui.app.readLostMore', { n: rest }) : '';
+  return `${loss.positionNames.join('、')}${suffix}`;
+}
 
 export interface AppProps {
   workspace: WorkspaceStore;
@@ -254,9 +335,33 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
   const platform = useMemo<Platform>(() => detectPlatform(), []);
   const storage = useMemo(() => (initialStorage === undefined ? defaultStorage() : initialStorage), [initialStorage]);
-  const [settings, setSettings] = useState<ViewSettings>(() => initialSettings ?? loadSettings(storage));
+
+  /**
+   * 读侧丢了什么（ADR 0044）。
+   *
+   * 用 ref 而不是 state：四份存储都是在**这一次渲染里**读完的（偏好与最近打开
+   * 在 `useState` 初始化器里、会话在 `sessionRef ??=`、位置在下面的
+   * `positionsRef ??=`），把它们折进 `sessionWarning` 就得等下一次渲染才拿得到 ——
+   * 而横幅恰恰要**第一次**就在，否则它会先不出现、再冒出来，像一次闪烁。
+   *
+   * 折算发生在渲染期间，所以必须**幂等**：`foldReadLoss` 是赋值不是累加，
+   * StrictMode 的双渲染折出同一份结果，不会把计数翻倍。
+   */
+  const readLossRef = useRef<ReadLoss>(NO_READ_LOSS);
+
+  const [settings, setSettings] = useState<ViewSettings>(() => {
+    // 注入了初始偏好的场景（测试 / 嵌入）压根不读存储，也就没什么可丢的
+    if (initialSettings !== undefined) return initialSettings;
+    const read = loadSettings(storage);
+    readLossRef.current = foldReadLoss(readLossRef.current, 'settings', read.outcome);
+    return read.value;
+  });
   /** 最近打开的文件（A5）：菜单的「文件」区与持久化共用这一份。 */
-  const [recentPaths, setRecentPaths] = useState<readonly string[]>(() => loadRecentFiles(storage));
+  const [recentPaths, setRecentPaths] = useState<readonly string[]>(() => {
+    const read = loadRecentFiles(storage);
+    readLossRef.current = foldReadLoss(readLossRef.current, 'recent', read.outcome);
+    return read.value;
+  });
   const [systemDark, setSystemDark] = useState(() => systemPrefersDark());
 
   // ---- 会话恢复 ---------------------------------------------------------
@@ -269,7 +374,11 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
    * `??=` 也是同一条：`useRef(x)` 的参数每次渲染都会求值。
    */
   const sessionRef = useRef<SessionState | null>(null);
-  sessionRef.current ??= loadSession(storage);
+  if (sessionRef.current === null) {
+    const read = loadSession(storage);
+    readLossRef.current = foldReadLoss(readLossRef.current, 'session', read.outcome);
+    sessionRef.current = read.value;
+  }
   const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
@@ -295,6 +404,14 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     ...NO_SESSION_WARNING,
     droppedDrafts: settings.restoreSession ? (sessionRef.current?.droppedDrafts ?? 0) : 0,
   }));
+  /**
+   * 读侧的坏消息已经被「知道了」按掉了没有。
+   *
+   * 单独一个布尔而不是塞进 `sessionWarning`：读侧的结论住在 `readLossRef` 里
+   * （它得在渲染期间就折好，横幅才会在**第一次**渲染就出现），把「按掉了」
+   * 一起塞进 state 就等于逼它多等一次渲染。真正的取值在位置记忆那一段之后。
+   */
+  const [readLossDismissed, setReadLossDismissed] = useState(false);
   const sessionWarningVisible =
     sessionWarning.droppedDrafts > 0 || sessionWarning.failed.length > 0 || sessionWarning.writeFailed;
 
@@ -786,8 +903,23 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
    * 那会变成每帧一次同步的 localStorage 读取。
    */
   const positionsRef = useRef<PositionMap | null>(null);
-  positionsRef.current ??= loadPositions(storage);
+  if (positionsRef.current === null) {
+    const read = loadPositions(storage);
+    readLossRef.current = foldReadLoss(readLossRef.current, 'positions', read.outcome);
+    positionsRef.current = read.value;
+  }
   const positionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * 读侧丢了什么 —— 放在**四份存储都读完之后**再取。
+   *
+   * 位置是最后一份（它在上面那一段里才读），所以这个值不能提前到
+   * `sessionWarning` 旁边算：提前算就少了「哪几份文档的位置没读回来」。
+   */
+  const readLoss = readLossRef.current;
+  const readLossVisible = !readLossDismissed && hasReadLoss(readLoss);
+  /** 位置那一条的点名（含「等 N 份」）。空串 = 点不出名，那就不说。 */
+  const readLossPositionNames = describePositionNames(readLoss);
 
   const rememberPositions = settings.rememberPositions;
 
@@ -1702,6 +1834,49 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
             )}
           </span>
           <button type="button" onClick={() => setSessionWarning(NO_SESSION_WARNING)}>
+            {t('ui.app.dismiss')}
+          </button>
+        </div>
+      )}
+
+      {/*
+        读侧的坏消息（ADR 0044）。**与上面那条分开**，因为它们是两件事：
+        上面那条说「上次丢掉的东西这次也没恢复」，这条说「存储里的东西这次读不出来」。
+        合成一条会逼用户在「该保存草稿」与「该检查存储」之间猜是哪一件。
+
+        顺序按**丢失的代价**排：会话（含未保存的草稿）→ 位置 → 偏好 → 最近打开。
+        越靠上越贵，用户从上往下读，代价最高的先读到。
+      */}
+      {readLossVisible && (
+        <div className={`banner ${readLoss.session ? 'error' : 'warn'}`}>
+          <span className="grow">
+            {readLoss.session && (
+              <>
+                <strong>{t('ui.app.readLostSessionTitle')}</strong>
+                {t('ui.app.readLostSessionBody')}
+              </>
+            )}
+            {readLoss.positions > 0 && (
+              <>
+                <strong>{t('ui.app.readLostPositionsTitle', { n: readLoss.positions })}</strong>
+                {t('ui.app.readLostPositionsBody')}
+                {readLossPositionNames !== '' && t('ui.app.readLostPositionNames', { names: readLossPositionNames })}
+              </>
+            )}
+            {readLoss.settings > 0 && (
+              <>
+                <strong>{t('ui.app.readLostSettingsTitle', { n: readLoss.settings })}</strong>
+                {t('ui.app.readLostSettingsBody')}
+              </>
+            )}
+            {readLoss.recent > 0 && (
+              <>
+                <strong>{t('ui.app.readLostRecentTitle', { n: readLoss.recent })}</strong>
+                {t('ui.app.readLostRecentBody')}
+              </>
+            )}
+          </span>
+          <button type="button" onClick={() => setReadLossDismissed(true)}>
             {t('ui.app.dismiss')}
           </button>
         </div>

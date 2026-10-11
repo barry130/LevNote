@@ -111,6 +111,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **往返保真自检**（保存会改写什么） | `core/fidelity.ts`（行级比对，纯函数）+ `EditorHandle.roundTrip`（内核实现，见 ADR 0033） |
 | **视图偏好（主题 / 侧栏 / 行号 / 位置记忆开关）** | `core/settings.ts`（`localStorage`，逐字段校验）。**设置页只是它的一个界面** —— 加偏好项改这里，别在 `SettingsDialog.tsx` 里另起一份 |
 | **偏好 / 位置 / 最近打开写不进去时怎么说** | `core/settings.ts` 的 `PersistOutcome`（`{ ok: true }` \| `{ ok: false, reason: 'no-storage' \| 'write-failed' }`）+ `ui/App.tsx` 的 `reportPersistFailure(outcome)`。**四处写偏好（设置 / 位置 / 位置清空 / 最近打开）全部走它**，翻会话横幅那一枚 `writeFailed`，不许各弹各的。`no-storage`（浏览器预览 / 隐私模式）**刻意不说话** —— 那是预期内的降级；只有 `write-failed`（配额 / 策略）才说。判据同样是「会失败的能力类型不许是 `void`」（ADR 0042） |
+| **存储里的东西读不出来时怎么说** | `core/settings.ts` 的 `LoadOutcome` + `LoadResult<T>`（**ADR 0042 的对偶**）。`loadSettings` / `loadPositions` / `loadRecentFiles` / `loadSession` **四个一律返回 `{ value, outcome }`**，值照样回落（白屏比丢失更糟），但回落**不等于沉默**。三档 reason：`no-storage` 折成「没丢」（预期内降级）、`read-failed`（`getItem` 抛）、`corrupt`（内容用不了）。**判据只有一条：键在、值用不了才算丢失** —— 键不在是版本升级的新字段、夹取是意图已兑现、字体族消毒，都**不报**（实现见 `core/settings.ts` 的 `pickField`：`raw === undefined` 走安静那条）。点名 vs 只报数由**键名**决定：路径能点名（`ui/App.tsx` 的 `READ_LOSS_NAMES_MAX = 3`，全列出来就是一面墙），`sidebarWidth` 这种内部标识只报数；**整份报废时 `lostCount` 一律写死 1**，写 0 等于把一次丢失又藏了回去。`loadSession` **只报整份报废**，逐条丢弃继续走 `droppedDrafts`，同一件事不说两遍。读侧横幅与写侧横幅**分两条**（ADR 0044） |
 | **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
 | **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
 | 大纲提取 | `core/outline/outline.ts` |
@@ -764,6 +765,30 @@ matter……」：一句与眼前文件**毫无关系**的话。**这比沉默�
 front matter 那一种**保留原来三行** —— 它讲的是「一保存元数据就没了」，值得说透；
 其余走一句通用句（`ui.pane.downgradeWhy` + `why*`），内核不说话时退回
 `whyUnknown` 而不是让横幅消失（降级是确定的事实）。
+
+**读侧也要有出口（2026-10-12，ADR 0044）**：0042 只清了写侧，并**明确排除了**
+读侧的沉默，理由是「读有默认值可依，写没有」。这条理由本身没错，
+**结论却下反了**：默认值兜的是「这次没有」，而「上次存的那份这次读不出来」丢的是
+**上一次的全部状态** —— 四处存储里最贵的是会话（`levnote.session.v1` 一坏，
+**没保存的草稿跟着没**，而 `droppedDrafts` 连这件事都数不出来，它只数逐条丢弃）。
+所以 `loadSettings` / `loadPositions` / `loadRecentFiles` / `loadSession`
+**四个一律返回 `{ value, outcome }`**（`LoadResult<T>`，`core/settings.ts` 里
+与 `PersistOutcome` 并排定义的那个 `LoadOutcome`）：**值照样回落**
+（回落是止血，白屏比丢失更糟），但回落**不等于沉默**。
+判断的**只有一条**：**键在、值用不了**，才算丢失。由此推出三处刻意的**不报** ——
+**键不在**是版本升级新加的字段（老用户的存储里根本没有，报一次等于对着空气说话）；
+**夹取**（`sidebarWidth: 9999` → 夹回上限）是意图已兑现，报「没读回来」是撒谎；
+**字体族消毒**同理。实现就落在这条判据上：`core/settings.ts` 的 `pickField`
+里 `raw === undefined` 走安静那条，`parse` 返回 `null` 才记进 `lostKeys`。
+两条纪律：**整份报废时 `lostCount` 一律写死 1**（写 0 的话用户读到的是
+「什么都没丢」，那等于把一次丢失又藏了回去）；**点名还是只报数，由键名决定** ——
+路径能点名（`READ_LOSS_NAMES_MAX = 3`，全列出来就是一面墙），
+`sidebarWidth` 这种内部标识只报数。`loadSession` **只报整份报废**，
+逐条丢弃继续走 `droppedDrafts`，同一件事不说两遍。
+读侧横幅与写侧横幅**分两条**：处置完全不一样（一个「读的是别人写的那份」、
+一个「我写的那份没存上」），合并会让用户猜是哪一边。
+测试里补了 `mount` 的 `readSettingsFromStorage` 开关 —— 默认注入是有道理的，
+但读侧那一族要验的恰恰是「**从存储读出来的偏好**」，注入了就永远读不到。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、

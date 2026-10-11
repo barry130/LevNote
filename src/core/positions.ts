@@ -26,8 +26,8 @@
  */
 
 import type { EditorPosition } from './editor/types.js';
-import { PERSISTED, persistFailed } from './settings.js';
-import type { PersistOutcome, StorageLike } from './settings.js';
+import { PERSISTED, loadLost, loaded, persistFailed } from './settings.js';
+import type { LoadResult, PersistOutcome, StorageLike } from './settings.js';
 
 /**
  * 一条位置记录。
@@ -96,17 +96,33 @@ function parseEntry(value: unknown): StoredPosition | null {
   };
 }
 
-/** 从存储里读全部位置。任何异常（读不出、不是 JSON、形状不对）都回落到空表。 */
-export function loadPositions(storage: StorageLike | null): PositionMap {
-  if (!storage) return EMPTY_POSITIONS;
+/**
+ * 从存储里读全部位置。
+ *
+ * 形状不对、JSON 坏了、某几条记录不对 —— **一律回落到剩下的那些**，
+ * 应用照常起来（ADR 0042：读有默认值可依，绝不白屏）。
+ *
+ * ## 但「回落了」这件事本身要说出去（ADR 0044）
+ *
+ * 位置丢了的代价比看起来大：文档打开后回到顶部，用户以为**文件被改了**
+ * （第 71–77 行的 `parseEntry` 宁可整条丢也不给半条，就是怕这个）。
+ * 而「我明明读到第三章中间」这句话，从此没有出处。
+ *
+ * 逐条点名比报一个总数有用 —— 丢的是**哪一份文档**的位置，用户是知道的。
+ * 空键名（`''`）点不出名，只进计数。
+ */
+export function loadPositions(storage: StorageLike | null): LoadResult<PositionMap> {
+  if (!storage) return loadLost(EMPTY_POSITIONS, 'no-storage');
 
   let raw: string | null;
   try {
     raw = storage.getItem(STORAGE_KEY);
   } catch {
-    return EMPTY_POSITIONS;
+    // 有存储却读不出来 = 之前记过的那 200 条这一次全读不到了（见 `loadLost`）
+    return loadLost(EMPTY_POSITIONS, 'read-failed', [], 1);
   }
-  if (raw === null || raw === '') return EMPTY_POSITIONS;
+  // 从没记过位置（首次启动 / 关掉了「记住位置」）不是丢失。安静回落。
+  if (raw === null || raw === '') return loaded(EMPTY_POSITIONS);
 
   let parsed: unknown;
   try {
@@ -114,17 +130,30 @@ export function loadPositions(storage: StorageLike | null): PositionMap {
   } catch {
     // 内容坏了：当成没有记忆，**不清空**（用户可能只是手改错了，
     // 下一次写就会覆盖掉）。清空反而多一次写操作、多一次失败机会。
-    return EMPTY_POSITIONS;
+    return loadLost(EMPTY_POSITIONS, 'corrupt', [], 1);
   }
-  if (typeof parsed !== 'object' || parsed === null) return EMPTY_POSITIONS;
+  // 数组会把下标当成路径键（'0'、'1'……），报出来的是没人看得懂的名字 —— 当整份报废算
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return loadLost(EMPTY_POSITIONS, 'corrupt', [], 1);
+  }
 
   const out: Record<string, StoredPosition> = {};
+  const lostKeys: string[] = [];
+  let lostCount = 0;
   for (const [path, value] of Object.entries(parsed as Record<string, unknown>)) {
-    if (path === '') continue;
+    if (path === '') {
+      // 键本身是空的：点不出名，只记个数。
+      lostCount += 1;
+      continue;
+    }
     const entry = parseEntry(value);
     if (entry !== null) out[path] = entry;
+    else {
+      lostKeys.push(path);
+      lostCount += 1;
+    }
   }
-  return out;
+  return lostCount === 0 ? loaded(out) : loadLost(out, 'corrupt', lostKeys, lostCount);
 }
 
 /**

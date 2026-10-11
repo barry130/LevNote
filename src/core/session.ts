@@ -40,7 +40,8 @@
  * 也不要冒一次静默转码的风险。
  */
 
-import type { StorageLike } from './settings.js';
+import { loadLost, loaded } from './settings.js';
+import type { LoadResult, StorageLike } from './settings.js';
 
 /** 一个标签页的会话记录。 */
 export interface SessionTab {
@@ -126,17 +127,38 @@ function parseTab(value: unknown): { tab: SessionTab; droppedDraft: boolean } | 
   return { tab: { path, draft, at: isFiniteNumber(at) ? at : 0 }, droppedDraft };
 }
 
-/** 从存储里读会话。任何异常（读不出、不是 JSON、形状不对）都回落到空会话。 */
-export function loadSession(storage: StorageLike | null): SessionState {
-  if (!storage) return EMPTY_SESSION;
+/**
+ * 从存储里读会话。
+ *
+ * ## 回落照旧，声音是新加的（ADR 0044）
+ *
+ * 整份读不出来时回落到空会话 —— 不抛、不白屏，理由与 `settings.ts` 同一条：
+ * `getItem` 自己在隐私模式 / 企业策略下都会抛，不包的话这次抛会从启动路径穿出去。
+ *
+ * 但这一份是**应用里最贵的一次静默回落**：回落到空会话意味着
+ * 上次开着的标签页没了、**未保存的草稿没了**。用户重启之后看到的是
+ * 「我昨天写的东西呢」，而全屏没有一句话提到过这件事。
+ * 「能起来」与「该说话」从来不是一件事。
+ *
+ * ## 只报整份的丢失，条与条的不重复报
+ *
+ * 逐条丢弃（草稿坏了→保路径丢草稿）早就有声音了：它们累计在
+ * `droppedDrafts` 里，由外壳如实告知。**同一件事不报两遍** ——
+ * 这里只在「整份不可用」时才把 `outcome` 标成失败。
+ */
+export function loadSession(storage: StorageLike | null): LoadResult<SessionState> {
+  if (!storage) return loadLost(EMPTY_SESSION, 'no-storage');
 
   let raw: string | null;
   try {
     raw = storage.getItem(STORAGE_KEY);
   } catch {
-    return EMPTY_SESSION;
+    // 有存储却读不出来 = **上次开着的标签页与未保存的草稿全读不到了**。
+    // 这一份是最贵的一次回落，所以即便值仍是空会话也要说出来。
+    return loadLost(EMPTY_SESSION, 'read-failed', [], 1);
   }
-  if (raw === null || raw === '') return EMPTY_SESSION;
+  // 从没存过会话（首次启动 / 关掉了「恢复上次会话」）不是丢失。安静回落。
+  if (raw === null || raw === '') return loaded(EMPTY_SESSION);
 
   let parsed: unknown;
   try {
@@ -144,13 +166,14 @@ export function loadSession(storage: StorageLike | null): SessionState {
   } catch {
     // 内容坏了：当成没有会话，**不清空**（用户可能只是手改错了，
     // 下一次写就会覆盖掉）。清空反而多一次写操作、多一次失败机会。
-    return EMPTY_SESSION;
+    return loadLost(EMPTY_SESSION, 'corrupt', [], 1);
   }
-  if (typeof parsed !== 'object' || parsed === null) return EMPTY_SESSION;
+  if (typeof parsed !== 'object' || parsed === null) return loadLost(EMPTY_SESSION, 'corrupt', [], 1);
 
   const record = parsed as Record<string, unknown>;
   const rawTabs = record['tabs'];
-  if (!Array.isArray(rawTabs)) return EMPTY_SESSION;
+  // `tabs` 坏了 = 整份不可用：没有标签页就没有会话可言
+  if (!Array.isArray(rawTabs)) return loadLost(EMPTY_SESSION, 'corrupt', [], 1);
 
   const tabs: SessionTab[] = [];
   const seen = new Set<string>();
@@ -181,7 +204,9 @@ export function loadSession(storage: StorageLike | null): SessionState {
   const storedDropped = record['droppedDrafts'];
   if (isFiniteNumber(storedDropped) && storedDropped > 0) droppedDrafts += storedDropped;
 
-  return { tabs, activePath, root, droppedDrafts };
+  const state: SessionState = { tabs, activePath, root, droppedDrafts };
+  // 逐条丢弃有自己的声音（`droppedDrafts`），这里不重复报。
+  return loaded(state);
 }
 
 /**

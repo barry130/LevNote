@@ -49,6 +49,7 @@
 | [0041](./0041-command-and-drop-failure-exits.md) | 失败要有出口：命令的意外 throw 由 `runCommandSafely` 兜底成一句话（不再是 `console.warn`），会失败的异步能力类型不许是 `void`；拖入多文件全部打开、只汇报没打开的那几个，成功时安静 | 已采纳 |
 | [0042](./0042-preference-write-failure-exit.md) | 偏好写不进去：写入一律返回 `PersistOutcome`（`no-storage` 静默 / `write-failed` 说话）；四处写偏好汇成一句横幅，不各弹各的；副作用搬出 `setSettings` 的 updater | 已采纳 |
 | [0043](./0043-degradation-must-say-why.md) | 降级要说出理由：`canHandle` 之外加 `canHandleReason`（`KernelRejectReason` 是**数据**不是翻译好的话）；判定与理由走同一个 `describe…` 纯函数；`resolveAdapter` 行为不变 | 已采纳 |
+| [0044](./0044-stored-data-read-failure-exit.md) | 存储里的东西读不出来：四个 `load*` 返回 `LoadResult<T>`（ADR 0042 的对偶），`no-storage` 静默 / `read-failed` / `corrupt` 说话；**只有「键在、值用不了」才算丢失**（缺键=版本升级、夹取=意图已兑现，都不报）；键名是人能读懂的路径才点名，位置封顶 3 条；与写侧横幅分两条，按丢失代价排序 | 已采纳 |
 
 ## 与其他文档的关系
 
