@@ -29,6 +29,7 @@ import { hasSpecializedAdapter } from '../core/editor/registry.js';
 import { classifyLink } from '../core/link.js';
 import { detectPlatform, isEditableTarget, type Platform } from '../core/commands/keybinding.js';
 import { CommandRegistry } from '../core/commands/registry.js';
+import { runCommandSafely } from '../core/commands/runner.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { DocBlockPreview, EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
@@ -70,6 +71,7 @@ import {
   type ViewSettings,
 } from '../core/settings.js';
 import { applyTheme, cycleTheme, resolveTheme, systemPrefersDark, type ThemePreference } from '../core/theme/theme.js';
+import { describeDropOutcome, openDroppedPaths } from '../core/workspace/drop.js';
 import type { TabSummary, WorkspaceStore } from '../core/workspace/store.js';
 import {
   editorRegistrationFailures,
@@ -1120,11 +1122,11 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       toggleCodeLineNumbers: () => update({ codeLineNumbers: !settings.codeLineNumbers }),
       toggleFocusMode: () => update({ focusMode: !settings.focusMode }),
       toggleTypewriterMode: () => update({ typewriterMode: !settings.typewriterMode }),
-      // 全屏是平台桥的动作（桌面 = Tauri 窗口级，浏览器 = Fullscreen API），
-      // 失败就让它 reject 落进未处理 Promise —— 两端实现都不该在正常路径上失败
-      toggleFullscreen: () => {
-        void toggleFullscreen();
-      },
+      // 全屏是平台桥的动作（桌面 = Tauri 窗口级，浏览器 = Fullscreen API）。
+      // 它**会**失败（浏览器端的 Fullscreen API 在没有用户手势时会 reject），
+      // 所以这里不再吞掉：抛出去由 `runCommandSafely` 的兜底层说一句
+      // （ADR 0041）—— 点了「全屏」没反应，用户得知道是为什么。
+      toggleFullscreen: () => toggleFullscreen(),
       // 与状态栏下拉同一个动作：只改元数据，保存时才按新编码写盘
       setEncoding: (encoding, bom) => workspace.activeStore?.setFormat(encoding, bom),
       editor: () => handleRef.current,
@@ -1261,9 +1263,9 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       const command = registry.find(id);
       if (!command) return;
       if (command.enabled && !command.enabled(context)) return;
-      void Promise.resolve(command.run(context)).catch((thrown: unknown) => {
-        console.warn(`命令 ${id} 执行失败`, thrown);
-      });
+      // 意外的失败交给兜底层：命令自己没接住的 throw 必须变成一句用户看得到的话
+      // （ADR 0041）。成功的那些命令不产生任何提示。
+      runCommandSafely(command, context);
     },
     [registry, context],
   );
@@ -1351,9 +1353,9 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       // 不能只在命令面板里生效，否则「保存」在只读文件上仍会被 Ctrl+S 触发
       if (command.enabled && !command.enabled(context)) return;
       event.preventDefault();
-      void Promise.resolve(command.run(context)).catch((thrown: unknown) => {
-        console.warn(`命令 ${command.id} 执行失败`, thrown);
-      });
+      // 与 `runCommand` 同一条兜底：快捷键是命令的第二个入口，
+      // 「按了键什么都没发生」是最难自查的一种静默
+      runCommandSafely(command, context);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -1447,8 +1449,17 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
             setDragging(true);
           } else if (event.payload.type === 'drop') {
             setDragging(false);
-            const first = event.payload.paths?.[0];
-            if (first) void workspace.open(first);
+            const paths = event.payload.paths ?? [];
+            // 拖进来几个就开几个（ADR 0041）：原先只取第一个，
+            // 其余的连「没开成」这句话都没有 —— 那等于静默丢掉用户的选择。
+            // 全部成功时一句话都不说（新标签页自己会说话）。
+            if (paths.length > 0) {
+              void openDroppedPaths(paths, workspace).then((outcome) => {
+                const message = describeDropOutcome(outcome);
+                if (message === null) return;
+                void provider.notify(message.body, message.title);
+              });
+            }
           } else {
             setDragging(false);
           }
@@ -1473,7 +1484,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       disposed = true;
       for (const cleanup of cleanups) cleanup();
     };
-  }, [workspace]);
+    // `provider` 也在依赖里：拖放汇总的提示走它（`openDroppedPaths` 只收 workspace）
+  }, [provider, workspace]);
 
   // ---- 窗口标题 ---------------------------------------------------------
 

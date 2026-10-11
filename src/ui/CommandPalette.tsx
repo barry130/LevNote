@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatKeybinding, type Platform } from '../core/commands/keybinding.js';
 import { rankCommands } from '../core/commands/fuzzy.js';
 import type { CommandRegistry } from '../core/commands/registry.js';
+import { runCommandSafely } from '../core/commands/runner.js';
 import type { Command, CommandContext } from '../core/commands/types.js';
 import { t } from '../core/i18n/index.js';
 
@@ -87,9 +88,9 @@ export function CommandPalette({ registry, context, platform, onClose }: Command
     onClose();
     // 关闭面板之后再执行：命令可能会打开另一个浮层（查找栏），
     // 先执行会让那个浮层在面板关闭前被渲染出来，视觉上闪一下
-    void Promise.resolve(row.command.run(context)).catch((thrown: unknown) => {
-      console.warn(`命令 ${row.command.id} 执行失败`, thrown);
-    });
+    // 与外壳那两个入口同一条兜底（ADR 0041）：面板里执行的命令失败了，
+    // 也要说一句 —— 否则「选中回车、面板关了、什么都没发生」
+    runCommandSafely(row.command, context);
   };
 
   return (

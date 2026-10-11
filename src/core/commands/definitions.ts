@@ -728,9 +728,9 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // F11 是全屏的通用键位；功能键在输入框里不产生文本，isAllowedInEditable 放行
     keybinding: 'F11',
     keywords: ['fullscreen', 'quanping', '全屏'],
-    run: (ctx) => {
-      void ctx.ui.toggleFullscreen();
-    },
+    // 把 Promise 交出去，不 `void` 掉：失败的出口是 `runCommandSafely`
+    // 的兜底层（ADR 0041），自己 void 掉就等于把这次失败变成静默
+    run: (ctx) => ctx.ui.toggleFullscreen(),
   }),
 
   // ---- 导航 -------------------------------------------------------------

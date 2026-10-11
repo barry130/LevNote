@@ -46,6 +46,7 @@
 | [0038](./0038-rename-to-levnote.md) | 项目改名 轻墨 qingmo → 轻笺 LevNote：发版前一次改到底（含 localStorage 键、`.mindmap` 的 `format`、包名/标识符），不留兼容层 —— 此刻没有用户，兼容包袱留到有真实用户再评估 | 已采纳 |
 | [0039](./0039-focus-and-typewriter-modes.md) | 专注 / 打字机模式：两个视图偏好**共用一个插件状态对象**；切换走只改插件状态的事务（`addToHistory: false`）**不重建内核**；装饰每次现算不走增量；打字机只写 `scrollTop` 绝不 dispatch；滚动算术只有一份；浓淡归内核样式表 | 已采纳 |
 | [0040](./0040-link-activation.md) | 链接激活：`preventDefault` 无条件（编辑器里绝不放行导航），打开要 Ctrl/Cmd（保住「光标能进链接里改字」）；地址分类是 `core/` 里的纯函数（盘符先于协议、走浏览器同款归一化探测）；锚点新增可选契约 `goToAnchor`；五类去向各自一句话，成功的两支安静 | 已采纳 |
+| [0041](./0041-command-and-drop-failure-exits.md) | 失败要有出口：命令的意外 throw 由 `runCommandSafely` 兜底成一句话（不再是 `console.warn`），会失败的异步能力类型不许是 `void`；拖入多文件全部打开、只汇报没打开的那几个，成功时安静 | 已采纳 |
 
 ## 与其他文档的关系
 

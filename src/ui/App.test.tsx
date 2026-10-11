@@ -3942,3 +3942,121 @@ describe('链接激活（ADR 0040）', () => {
     expect(noticesOf(m)).toBe('');
   });
 });
+
+// ---------------------------------------------------------------------------
+// ADR 0041：失败要有一个出口
+// ---------------------------------------------------------------------------
+
+/**
+ * 装成桌面环境跑一段用例（`@tauri-apps/api/mocks`）。
+ *
+ * 收尾**不能只 `clearMocks()`**：它只删对象**里面的字段**，
+ * `window.__TAURI_INTERNALS__` 这个空壳会留下，而 `isDesktop()` 判的是
+ * `'__TAURI_INTERNALS__' in window` —— 不把键整个拿掉，后面每个用例都会被当成
+ * 桌面环境（一堆 effect 在没有后端的情况下跑起来，表现为一片 unhandled
+ * rejection，而且错算在别的用例头上）。
+ */
+async function withDesktop<T>(run: () => Promise<T>): Promise<T> {
+  const { mockIPC, mockWindows, clearMocks } = await import('@tauri-apps/api/mocks');
+  mockWindows('main');
+  // 文件监听那条 effect 会 `listen('fs://changed')`，事件插件也得接住
+  mockIPC((cmd) => (cmd === 'watch_replace' ? [] : undefined), { shouldMockEvents: true });
+  try {
+    return await run();
+  } finally {
+    /**
+     * **先卸载再清 mock**：卸载会走 effect 的 cleanup，那里面要 `unlisten()`，
+     * 而它读 `window.__TAURI_EVENT_PLUGIN_INTERNALS__.unregisterListener` ——
+     * `clearMocks()` 已经把那个字段删了，晚一步卸载就是一片
+     * "Cannot read properties of undefined (reading 'unregisterListener')"。
+     */
+    await mounted?.unmount().catch(() => undefined);
+    mounted = null;
+    clearMocks();
+    Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
+    Reflect.deleteProperty(window, '__TAURI_EVENT_PLUGIN_INTERNALS__');
+  }
+}
+
+/**
+ * 派发一次真实的拖入事件。
+ *
+ * 事件名与载荷形状都照 `Webview.onDragDropEvent` 的约定：`payload` 里**必须带
+ * `position`**，它的处理器会用 `new PhysicalPosition(payload.position)` 重建事件，
+ * 少了这一次解引用就炸在事件管道里、看起来像拖放通道坏了。
+ */
+async function dropPaths(paths: string[]): Promise<void> {
+  const { emit } = await import('@tauri-apps/api/event');
+  // 拖放 effect 是动态 import 之后才注册的，先多让几轮宏任务
+  await settle(2);
+  await act(async () => {
+    await emit('tauri://drag-drop', { type: 'drop', paths, position: { x: 0, y: 0 } });
+  });
+  await settle(6);
+}
+
+describe('命令失败与拖放的出口（ADR 0041）', () => {
+  it('★ F11 切全屏失败：说一句「执行时出错」，而不是按了没反应', async () => {
+    mounted = await mount(() => undefined);
+    const m = mounted;
+
+    // jsdom 没有 Fullscreen API（`requestFullscreen` 是 undefined），所以这条命令
+    // 在测试里**真的会失败** —— 这正是要的入口：它检验的是「失败有没有出口」，
+    // 而不是「全屏能不能开」。
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F11', bubbles: true, cancelable: true }));
+    });
+    await settle();
+
+    // 命令名与「出错」都进提示：只说「失败了」等于什么都没说
+    expect(noticesOf(m)).toContain('切换全屏');
+    expect(noticesOf(m)).toContain('执行时出错');
+  });
+
+  it('★ 一次拖进来三个文件：三个都打开，成功的那支一句话都不说', async () => {
+    await withDesktop(async () => {
+      mounted = await mount((p) => {
+        p.put('C:\\w\\a.md', '# 甲\n');
+        p.put('C:\\w\\b.md', '# 乙\n');
+        p.put('C:\\w\\c.md', '# 丙\n');
+      });
+      const m = mounted;
+
+      await dropPaths(['C:\\w\\a.md', 'C:\\w\\b.md', 'C:\\w\\c.md']);
+
+      // 原先只有第一个会被打开，其余两个连「没开成」这句话都没有
+      expect(m.workspace.getSnapshot().tabs).toHaveLength(3);
+      // 成功时保持安静：新标签页自己就能看见，再补一句是噪音
+      expect(noticesOf(m)).toBe('');
+    });
+  });
+
+  it('★ 拖进来三个、有一个打不开：说出打不开的那个名字，另外两个照常打开', async () => {
+    await withDesktop(async () => {
+      mounted = await mount((p) => {
+        p.put('C:\\w\\a.md', '# 甲\n');
+        p.put('C:\\w\\b.md', '# 乙\n');
+      });
+      const m = mounted;
+
+      await dropPaths(['C:\\w\\a.md', 'C:\\w\\gone.md', 'C:\\w\\b.md']);
+
+      // 坏的那一个**不连累**其余的（顺序打开，失败只记账）
+      expect(m.workspace.getSnapshot().tabs).toHaveLength(2);
+      expect(noticesOf(m)).toBe('这 1 个没能打开：gone.md');
+    });
+  });
+
+  it('★ 拖进来两个都打不开：说「都没能打开」，并把两个名字都列出来', async () => {
+    await withDesktop(async () => {
+      mounted = await mount((p) => p.put('C:\\w\\a.md', '# 甲\n'));
+      const m = mounted;
+
+      await dropPaths(['C:\\w\\gone.md', 'C:\\w\\lost.md']);
+
+      expect(m.workspace.getSnapshot().tabs).toHaveLength(0);
+      expect(noticesOf(m)).toContain('这 2 个都没能打开');
+      expect(noticesOf(m)).toContain('gone.md、lost.md');
+    });
+  });
+});

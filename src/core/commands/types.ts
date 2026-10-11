@@ -58,8 +58,15 @@ export interface UiActions {
   toggleFocusMode(): void;
   /** 切换打字机模式（同上）。 */
   toggleTypewriterMode(): void;
-  /** 切换窗口全屏（平台桥决定用 Tauri 的窗口 API 还是 Fullscreen API）。 */
-  toggleFullscreen(): void;
+  /**
+   * 切换窗口全屏（平台桥决定用 Tauri 的窗口 API 还是 Fullscreen API）。
+   *
+   * 返回 Promise 而不是 void：**它会失败**（浏览器端的 Fullscreen API 在没有
+   * 用户手势时 reject）。命令把 Promise 交回去（而不是 `void` 掉）才能让
+   * `runCommandSafely` 的兜底层接住并说一句 —— 换成 void 就等于把失败
+   * 扔进未处理 Promise，用户看到的是「点了全屏没反应」（ADR 0041）。
+   */
+  toggleFullscreen(): Promise<void>;
   /**
    * 换当前文档的保存编码（菜单「编码」的入口；与状态栏下拉同一个动作）。
    *

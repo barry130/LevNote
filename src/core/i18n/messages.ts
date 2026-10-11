@@ -667,6 +667,14 @@ export const zhCN = {
   'core.cmd.aboutBody': '轻笺 {version}',
   'core.cmd.sampleCreateFailed': '示例文档没能创建：{reason}',
   'core.cmd.sampleTitle': '示例文档',
+  // 命令执行失败的兜底提示（ADR 0041）：命令自己没接住的意外 throw 落到这里。
+  // 标题固定、正文带 {title} 与 {reason}，因为只说「失败了」等于什么都没说
+  'core.cmd.commandFailedTitle': '命令没能执行完',
+  'core.cmd.commandFailedBody': '「{title}」执行时出错：{reason}',
+  // 一次拖入好几个文件时，只说「哪几个没打开」—— 打开成功的那些不占提示
+  'core.cmd.dropSomeFailed': '这 {n} 个没能打开：{names}',
+  'core.cmd.dropAllFailed': '这 {n} 个都没能打开：{names}',
+  'core.cmd.dropTitle': '打开文件',
 
   // 编码清单里唯一需要翻译的条目（其余是纯技术名）
   'core.encoding.utf8Bom': 'UTF-8（含 BOM）',
@@ -1348,6 +1356,11 @@ export const en: Record<MessageKey, string> = {
   'core.cmd.aboutBody': 'LevNote {version}',
   'core.cmd.sampleCreateFailed': 'Failed to create the sample document: {reason}',
   'core.cmd.sampleTitle': 'Sample document',
+  'core.cmd.commandFailedTitle': 'Command did not finish',
+  'core.cmd.commandFailedBody': '“{title}” hit an error while running: {reason}',
+  'core.cmd.dropSomeFailed': 'These {n} could not be opened: {names}',
+  'core.cmd.dropAllFailed': 'None of these {n} could be opened: {names}',
+  'core.cmd.dropTitle': 'Open files',
 
   'core.encoding.utf8Bom': 'UTF-8 (with BOM)',
 
