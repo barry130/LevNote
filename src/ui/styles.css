@@ -1267,6 +1267,56 @@ body {
   background: rgba(128, 128, 128, 0.14);
 }
 
+/* -------------------------------------------------------------- 问题清单 */
+
+/*
+ * 记录卡唯一的「颜色语义」在左边框上：还没恢复的是实线，已经恢复的淡下去。
+ * **刻意不给整段文字上色** —— 一屏几十行红字只会让人不想读下去，而这一页
+ * 要解决的正是「回头看清楚」，不是「再被吓一次」。
+ */
+.health-record {
+  border-left: 2px solid var(--line);
+  padding: 6px 0 6px 10px;
+  margin: 8px 0 0;
+}
+
+.health-record.error {
+  border-left-color: var(--danger);
+}
+
+.health-record.warn {
+  border-left-color: var(--bamboo);
+}
+
+/* 已经恢复的记录**留在页面上**，只是退到背景里 —— 删掉等于让它消失第二次 */
+.health-record.resolved {
+  opacity: 0.55;
+}
+
+.health-record-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.health-record .settings-hint {
+  margin: 2px 0 0;
+}
+
+.health-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  color: var(--chrome-muted);
+}
+
+.health-empty {
+  margin: 0;
+  font-size: 13px;
+}
+
 /* ---------------------------------------------------------------- 状态栏 */
 
 /*

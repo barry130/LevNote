@@ -791,6 +791,24 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     },
     run: runRoundTripCheck,
   }),
+
+  /**
+   * 打开「本次运行的问题」清单（ADR 0046）。
+   *
+   * 刻意**不给快捷键**：它不是一个高频动作，而「键在哪」本身就是入口的一部分
+   * （和专注 / 打字机模式同一条理由）。放在「帮助」菜单里 —— 「哪里出问题了」
+   * 与「这是什么程序」是同一类问题，用户找得到。
+   *
+   * `enabled` 永远为真，哪怕清单是空的：空清单也是一个答案
+   *（「我担心的那件事没有发生」），把入口藏起来就答不了这个问。
+   */
+  builtInCommand({
+    id: 'diagnostics.issues',
+    titleKey: 'command.diagnostics.issues.title',
+    categoryKey: 'command.category.diagnostics',
+    keywords: ['issue', 'problems', 'degrade', 'watch', 'problem', 'wenti', 'guanxi'],
+    run: (ctx) => ctx.ui.openHealth(),
+  }),
   // ---- 格式 ---------------------------------------------------------------
   // 四条都只是 `formatting` 契约的薄封装：能不能用问内核（Markdown 实现了它，
   // 导图/代码内核没有），格式切换本身由内核完成（含 USER_EDIT_META，与

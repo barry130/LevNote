@@ -48,6 +48,14 @@ export interface UiActions {
   closeSearchFolder(): void;
   openSettings(): void;
   closeSettings(): void;
+  /**
+   * 打开「本次运行的问题」清单（ADR 0046）。
+   *
+   * 与设置页分开的理由：设置页是**去改**，这一页是**去查**。它回答的是
+   * 「这次运行里发生过什么没能按预期的事」，而那些横幅只说「此刻」。
+   */
+  openHealth(): void;
+  closeHealth(): void;
   setTheme(preference: ThemePreference): void;
   cycleTheme(): void;
   /** 切换代码内核的自动换行偏好（设置层，与设置页同一个字段）。 */

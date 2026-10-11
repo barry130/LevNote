@@ -97,6 +97,9 @@ export const zhCN = {
 
   // ---- 诊断 ---------------------------------------------------------------
   'command.diagnostics.roundTrip.title': '往返保真自检（保存会改写什么）',
+  // 与「往返保真自检」同属诊断分组，但盯的是另一头：那次查「保存会改写什么」，
+  // 这一条查「这次运行里有没有什么东西没能按预期工作」。
+  'command.diagnostics.issues.title': '本次运行的问题',
   'command.edit.extractReference.title': '提取为引用',
   'command.edit.inlineReference.title': '拉平引用',
   'command.edit.undo.title': '撤销',
@@ -489,6 +492,26 @@ export const zhCN = {
   // 用重话说就成了虚惊 —— 而虚惊多了，用户会开始忽略这一类横幅。
   'ui.app.watchPartialTitle': '有 {n} 条路径没在监视',
   'ui.app.watchPartialBody': '（多半已经被删掉或移动了）。这些路径上的外部改动不会再自动发现；如果里面有你还开着的文档，保存前请自己看一眼磁盘上的版本。',
+
+  // ---- 问题清单（ADR 0046）------------------------------------------------
+  // 「说过一次」只解决了一半：横幅要人**恰好在看**。这一组是留给「回头查」的 ——
+  // 横幅被按掉、应用被关掉之后，还留得下来的地方。
+  'ui.health.title': '本次运行的问题',
+  'ui.health.intro': '应用遇到没能按预期处理的情况时，会当场弹一条横幅；这里留的是同一批事的记录，方便回头查。关掉应用就清空。',
+  'ui.health.empty': '这次运行没有出现过降级。',
+  'ui.health.occurrences': '发生过 {n} 次',
+  'ui.health.active': '还没恢复',
+  'ui.health.resolved': '已经恢复',
+  'ui.health.activeCount': '现在还有 {n} 条没恢复。',
+  'ui.health.copyAll': '复制全部',
+  'ui.health.copied': '已复制到剪贴板。',
+  'ui.health.copyFailed': '复制失败（剪贴板不可用）。记录还在，手动选中复制也行。',
+  'ui.health.clear': '清空',
+  'ui.health.area.storage': '存储',
+  'ui.health.area.session': '会话与文档',
+  'ui.health.area.watch': '文件监听',
+  'ui.health.area.kernel': '编辑内核',
+  'ui.health.kernelEntry': '{id}：{reason}',
   'ui.app.kernelFailTitle': '有 {n} 个编辑内核没能加载',
   'ui.app.kernelFailBody': '相关文档会以纯文本打开 —— 其余功能不受影响。重启应用通常会解决。',
   'ui.app.restoringTitle': '正在恢复上次的标签页…',
@@ -821,6 +844,7 @@ export const en: Record<MessageKey, string> = {
 
   // ---- 诊断 ---------------------------------------------------------------
   'command.diagnostics.roundTrip.title': 'Round-trip Fidelity Check (What Saving Would Rewrite)',
+  'command.diagnostics.issues.title': 'Issues This Run',
   'command.edit.extractReference.title': 'Extract as Reference',
   'command.edit.inlineReference.title': 'Flatten Reference',
   'command.edit.undo.title': 'Undo',
@@ -1210,6 +1234,23 @@ export const en: Record<MessageKey, string> = {
   'ui.app.watchLostPaths': 'Also, {n} path(s) could not be watched (they were probably deleted or moved).',
   'ui.app.watchPartialTitle': '{n} path(s) are not being watched',
   'ui.app.watchPartialBody': ' (they were probably deleted or moved). External changes on those paths will no longer be noticed; if one of them is a document you have open, check the on-disk version yourself before saving.',
+
+  'ui.health.title': 'Issues This Run',
+  'ui.health.intro': 'When something does not work as intended, the app says so on the spot with a banner. What is kept here is a record of the same things, so you can look it up later. Closing the app clears it.',
+  'ui.health.empty': 'Nothing degraded during this run.',
+  'ui.health.occurrences': 'happened {n} time(s)',
+  'ui.health.active': 'not resolved yet',
+  'ui.health.resolved': 'resolved since',
+  'ui.health.activeCount': '{n} of them not resolved yet.',
+  'ui.health.copyAll': 'Copy all',
+  'ui.health.copied': 'Copied to the clipboard.',
+  'ui.health.copyFailed': 'Copy failed (the clipboard is unavailable). The records are still here — select and copy them by hand.',
+  'ui.health.clear': 'Clear',
+  'ui.health.area.storage': 'Storage',
+  'ui.health.area.session': 'Session & documents',
+  'ui.health.area.watch': 'File watching',
+  'ui.health.area.kernel': 'Editor kernels',
+  'ui.health.kernelEntry': '{id}: {reason}',
   'ui.app.kernelFailTitle': '{n} editor kernel(s) failed to load',
   'ui.app.kernelFailBody': 'Affected documents open as plain text — everything else works. Restarting the app usually fixes this.',
   'ui.app.restoringTitle': 'Restoring the last session…',

@@ -51,6 +51,7 @@
 | [0043](./0043-degradation-must-say-why.md) | 降级要说出理由：`canHandle` 之外加 `canHandleReason`（`KernelRejectReason` 是**数据**不是翻译好的话）；判定与理由走同一个 `describe…` 纯函数；`resolveAdapter` 行为不变 | 已采纳 |
 | [0044](./0044-stored-data-read-failure-exit.md) | 存储里的东西读不出来：四个 `load*` 返回 `LoadResult<T>`（ADR 0042 的对偶），`no-storage` 静默 / `read-failed` / `corrupt` 说话；**只有「键在、值用不了」才算丢失**（缺键=版本升级、夹取=意图已兑现，都不报）；键名是人能读懂的路径才点名，位置封顶 3 条；与写侧横幅分两条，按丢失代价排序 | 已采纳 |
 | [0045](./0045-watcher-silence-has-no-recovery.md) | 监听没起来要说出来：`WatchIssue{reason, failedPaths}` 两个槽**整份替换**（不累加、因此能自愈）；`reason` 三态（`null` 没问题 / `''` 有问题但说不出原因 / 原文）；两档措辞（整条链可能断 vs 只是几条路径没监视上）；按掉存**指纹**不存布尔；丢的是「早点知道的机会」而不是数据 —— 这类故障**不会自愈** | 已采纳 |
+| [0046](./0046-issues-this-run.md) | 本次运行的问题：0042–0045 那一族当场说的话在这里**留得住**（纯函数记录本 `core/health.ts`，**只活一次运行、不落盘**）；存 key+values 不存句子（否则语言被烤在记账那一刻）；恢复显式且**永不删除**；横幅族走 `syncFamily`（有的记上、消失的标成已恢复）、一次性事件直接 `recordIssue`；内容没变就什么都不做（双挂不是又出一次问题）；写失败要加闩（位置记忆每 600ms 落一次盘）；按族分组、「发生过 n 次」只在 n>1 时出现；**复制全部**是纯本地应用唯一一条把状态交给别人的路 | 已采纳 |
 
 ## 与其他文档的关系
 

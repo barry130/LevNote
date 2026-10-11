@@ -4689,3 +4689,142 @@ describe('监听没起来（ADR 0045）', () => {
     );
   });
 });
+
+describe('本次运行的问题（ADR 0046）', () => {
+  /** 一份「读得到、但内容坏了」的存储。 */
+  function corruptIn(seed: Record<string, string>): StorageLike {
+    return { getItem: (key) => seed[key] ?? null, setItem: () => undefined };
+  }
+
+  /** 一份「读得到、写不进」的存储。 */
+  function unwritable(): StorageLike {
+    return {
+      getItem: () => null,
+      setItem() {
+        throw new Error('QuotaExceededError');
+      },
+    };
+  }
+
+  /** 打开「本次运行的问题」。走真实链路：帮助菜单 → 那一条命令。 */
+  async function openHealth(m: Mounted): Promise<void> {
+    await m.clickMenuItem('帮助', '本次运行的问题');
+  }
+
+  /** 清单页的全文。 */
+  function healthText(m: Mounted): string {
+    return m.container.querySelector('[role="dialog"]')?.textContent ?? '';
+  }
+
+  function recordText(m: Mounted, id: string): string {
+    const record = m.container.querySelector(`[data-testid="health-record-${id}"]`);
+    if (record === null) throw new Error(`清单里没有 ${id} 这一条`);
+    return record.textContent ?? '';
+  }
+
+  it('★ 会话读不出来：横幅说过一次的事，清单里留得住', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({ 'levnote.session.v1': '{ 坏了' }),
+    });
+    const m = mounted;
+
+    await openHealth(m);
+
+    expect(healthText(m)).toContain('上次的会话没读回来');
+    expect(recordText(m, 'read.session')).toContain('还没恢复');
+    expect(healthText(m)).toContain('现在还有 1 条没恢复。');
+  });
+
+  it('★ 按掉横幅**不等于**抹掉记录：按掉的动机正是「我不想现在看」', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({ 'levnote.session.v1': '{ 坏了' }),
+    });
+    const m = mounted;
+
+    await m.click('知道了');
+    expect(m.container.querySelectorAll('.banner')).toHaveLength(0);
+
+    await openHealth(m);
+    expect(healthText(m)).toContain('上次的会话没读回来');
+  });
+
+  it('★ 一切正常时清单是空的 —— 空列表本身就是一个答案', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'));
+    const m = mounted;
+
+    await m.open('note.md');
+    await openHealth(m);
+
+    expect(healthText(m)).toContain('这次运行没有出现过降级。');
+  });
+
+  it('★ 写不进去：进清单，而且反复写不进去也只记一次（不是每 600ms 一次）', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), { storage: unwritable() });
+    const m = mounted;
+
+    await m.open('note.md');
+    await m.clickMenuItem('视图', '专注模式');
+    await m.clickMenuItem('视图', '专注模式');
+
+    await openHealth(m);
+    expect(recordText(m, 'storage.write')).toContain('偏好和会话都没能记住');
+    // 位置记忆每 600ms 落一次盘。不加闩的话「发生过 47 次」就是这么来的 ——
+    // 那不是 47 次问题，是同一个问题的第 47 次提醒。
+    expect(recordText(m, 'storage.write')).not.toContain('发生过');
+  });
+
+  it('★ 监听出问题又自己好了：清单里留着，并标上「已经恢复」', async () => {
+    const { mockIPC, mockWindows, clearMocks } = await import('@tauri-apps/api/mocks');
+    mockWindows('main');
+    mockIPC((cmd: string) => (cmd === 'watch_replace' ? [] : undefined), { shouldMockEvents: true });
+    let m: Mounted | null = null;
+    try {
+      m = await mount((p) => p.put('note.md', '# 标题\n'));
+      const handle = m;
+      const { emit } = await import('@tauri-apps/api/event');
+      await act(async () => {
+        await emit('fs://changed', { paths: [], error: '目录被删掉了' });
+      });
+      await settle();
+      // 又来了一批正常的：问题没了
+      await act(async () => {
+        await emit('fs://changed', { paths: ['F:/ws/note.md'] });
+      });
+      await settle();
+
+      await handle.clickMenuItem('帮助', '本次运行的问题');
+      expect(recordText(handle, 'watch.reason')).toContain('已经恢复');
+      expect(healthText(handle)).toContain('现在还有 0 条没恢复。');
+    } finally {
+      await m?.unmount().catch(() => undefined);
+      mounted = null;
+      clearMocks();
+      Reflect.deleteProperty(window, '__TAURI_INTERNALS__');
+      Reflect.deleteProperty(window, '__TAURI_EVENT_PLUGIN_INTERNALS__');
+    }
+  });
+
+  it('★ 清空之后回到「没发生过」—— 用户有权决定这份记录留不留', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'), {
+      storage: corruptIn({ 'levnote.session.v1': '{ 坏了' }),
+    });
+    const m = mounted;
+
+    await openHealth(m);
+    await m.click('清空');
+
+    expect(healthText(m)).toContain('这次运行没有出现过降级。');
+  });
+
+  it('★ 两个对话框互斥：开着清单去开设置，清单收掉（不留两层）', async () => {
+    mounted = await mount((p) => p.put('note.md', '# 标题\n'));
+    const m = mounted;
+
+    await openHealth(m);
+    expect(m.container.querySelector('[aria-label="本次运行的问题"]')).not.toBeNull();
+
+    await m.clickMenuItem('文件', '设置');
+    expect(m.container.querySelector('[aria-label="本次运行的问题"]')).toBeNull();
+    expect(m.container.querySelector('[aria-label="设置"]')).not.toBeNull();
+  });
+});

@@ -74,6 +74,14 @@ import {
   type ViewSettings,
 } from '../core/settings.js';
 import { applyTheme, cycleTheme, resolveTheme, systemPrefersDark, type ThemePreference } from '../core/theme/theme.js';
+import {
+  clearHealth,
+  EMPTY_HEALTH,
+  recordIssue,
+  syncFamily,
+  type HealthNote,
+  type HealthRecord,
+} from '../core/health.js';
 import { describeDropOutcome, openDroppedPaths } from '../core/workspace/drop.js';
 import type { TabSummary, WorkspaceStore } from '../core/workspace/store.js';
 import {
@@ -86,6 +94,7 @@ import { Mark } from './brand.js';
 import { CommandPalette } from './CommandPalette.js';
 import { DocumentPane, type PaneRevealRequest, type PaneViewInfo } from './DocumentPane.js';
 import { FindBar } from './FindBar.js';
+import { HealthDialog } from './HealthDialog.js';
 import { MenuBar, MENUS, type MenuDef } from './MenuBar.js';
 import { OutlinePanel } from './OutlinePanel.js';
 import { SearchPanel } from './SearchPanel.js';
@@ -295,6 +304,111 @@ function watchReasonOf(thrown: unknown): string {
   return typeof thrown === 'string' ? thrown : '';
 }
 
+/**
+ * 记进「问题清单」的 id 只有两份清单 —— 每族一份，**不含任何时刻与随机数**。
+ *
+ * 它们同时是 `syncFamily` 的「这一族有哪些 id」：不在 notes 里出现的
+ * 会被标成已恢复，所以两份必须**列全**，漏一个就等于让那一类永远挂着。
+ */
+const READ_LOSS_IDS = ['read.settings', 'read.positions', 'read.recent', 'read.session'] as const;
+const WATCH_IDS = ['watch.reason', 'watch.paths'] as const;
+
+/**
+ * 读侧那条横幅，此刻翻译成记录本的几条（ADR 0046）。
+ *
+ * **文案一次都不重写**：横幅用的就是这些 key，清单里也是 ——
+ * 两处各写一份的话，改了横幅忘了清单，用户就在清单里读到上一版的说法。
+ * 排序与横幅一致（贵的先说），只是清单不分「要不要显示」，全列。
+ */
+function readLossNotes(loss: ReadLoss): readonly HealthNote[] {
+  const notes: HealthNote[] = [];
+  if (loss.session) {
+    notes.push({
+      id: 'read.session',
+      area: 'session',
+      severity: 'error',
+      lines: [
+        { key: 'ui.app.readLostSessionTitle', values: {} },
+        { key: 'ui.app.readLostSessionBody', values: {} },
+      ],
+    });
+  }
+  if (loss.positions > 0) {
+    const names = describePositionNames(loss);
+    notes.push({
+      id: 'read.positions',
+      area: 'storage',
+      severity: 'warning',
+      lines: [
+        { key: 'ui.app.readLostPositionsTitle', values: { n: loss.positions } },
+        { key: 'ui.app.readLostPositionsBody', values: {} },
+        ...(names === '' ? [] : [{ key: 'ui.app.readLostPositionNames' as const, values: { names } }]),
+      ],
+    });
+  }
+  if (loss.settings > 0) {
+    notes.push({
+      id: 'read.settings',
+      area: 'storage',
+      severity: 'warning',
+      lines: [
+        { key: 'ui.app.readLostSettingsTitle', values: { n: loss.settings } },
+        { key: 'ui.app.readLostSettingsBody', values: {} },
+      ],
+    });
+  }
+  if (loss.recent > 0) {
+    notes.push({
+      id: 'read.recent',
+      area: 'storage',
+      severity: 'warning',
+      lines: [
+        { key: 'ui.app.readLostRecentTitle', values: { n: loss.recent } },
+        { key: 'ui.app.readLostRecentBody', values: {} },
+      ],
+    });
+  }
+  return notes;
+}
+
+/**
+ * 监听那条横幅，翻译成记录本的一两条。
+ *
+ * 分成两条而不是一条：后端报错了（整条链可能断了）和有几条路径没监视上
+ * 是两件不同的事，**恢复的方式也不同** —— 前者要靠一次正常的 `watch_replace`，
+ * 后者要靠下一次整表替换覆盖掉那批路径。合成一条的话，
+ * 「有一条路径补上了」会被当成整条链恢复。
+ */
+function watchNotes(issue: WatchIssue): readonly HealthNote[] {
+  const notes: HealthNote[] = [];
+  if (issue.reason !== null) {
+    notes.push({
+      id: 'watch.reason',
+      area: 'watch',
+      severity: 'error',
+      lines: [
+        { key: 'ui.app.watchLostTitle', values: {} },
+        {
+          key: issue.reason === '' ? 'ui.app.watchLostBodyNoReason' : 'ui.app.watchLostBody',
+          values: { reason: issue.reason },
+        },
+      ],
+    });
+  }
+  if (issue.failedPaths.length > 0) {
+    notes.push({
+      id: 'watch.paths',
+      area: 'watch',
+      severity: 'warning',
+      lines: [
+        { key: 'ui.app.watchPartialTitle', values: { n: issue.failedPaths.length } },
+        { key: 'ui.app.watchPartialBody', values: {} },
+      ],
+    });
+  }
+  return notes;
+}
+
 export interface AppProps {
   workspace: WorkspaceStore;
   provider: DocumentProvider;
@@ -486,10 +600,14 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
    * 而那一次写盘的见证者只有存储里那个数字 —— 读出来之后马上就会
    * 被下一次写盘清零（见 `sameSession` 为什么把 `droppedDrafts` 算进比较）。
    */
-  const [sessionWarning, setSessionWarning] = useState<SessionWarning>(() => ({
-    ...NO_SESSION_WARNING,
-    droppedDrafts: settings.restoreSession ? (sessionRef.current?.droppedDrafts ?? 0) : 0,
-  }));
+  const startupDraftsRef = useRef(0);
+  const [sessionWarning, setSessionWarning] = useState<SessionWarning>(() => {
+    const dropped = settings.restoreSession ? (sessionRef.current?.droppedDrafts ?? 0) : 0;
+    // 记一份在 ref 里：横幅那份是**会被按掉的**（`NO_SESSION_WARNING`），
+    // 而「上一次丢了几个草稿」是既成事实，按掉横幅不该把它也按没了。
+    startupDraftsRef.current = dropped;
+    return { ...NO_SESSION_WARNING, droppedDrafts: dropped };
+  });
   /**
    * 读侧的坏消息已经被「知道了」按掉了没有。
    *
@@ -512,6 +630,50 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
    */
   const [watchIssue, setWatchIssue] = useState<WatchIssue>(NO_WATCH_ISSUE);
   const [dismissedWatchIssue, setDismissedWatchIssue] = useState<string | null>(null);
+
+  /**
+   * 「本次运行的问题」记录本（ADR 0046）。
+   *
+   * 横幅管「此刻」，这一份管「发生过」—— 用户整段会话都在别的窗口里时，
+   * 横幅一句都没进过他的视野。**刻意不落盘**：跨运行保留是另一种产品决定，
+   * 真要做，它该走的正是 ADR 0044 建好的 `LoadOutcome` 那条路。
+   */
+  const [healthLog, setHealthLog] = useState<readonly HealthRecord[]>(EMPTY_HEALTH);
+  const [healthOpen, setHealthOpen] = useState(false);
+
+  /**
+   * 记一条**一次性**的问题（内核没加载起来、一次写盘被拒、丢了几个草稿）。
+   *
+   * 走 setState 的 updater 而不是直接改 ref：updater 必须是纯函数，
+   * 这里恰好是 —— 时刻在外面取好传进去，函数体内只动入参。
+   * 同一件事被上报两次（StrictMode 会把 effect 重跑一遍）由 `recordIssue`
+   * 按内容去重，不会让「发生过 n 次」翻倍。
+   */
+  const noteHealth = useCallback((note: HealthNote) => {
+    const at = Date.now();
+    setHealthLog((log) => recordIssue(log, note, at));
+  }, []);
+
+  /**
+   * 上一次会话丢了几个草稿 —— 横幅那条被按掉了，这一页还要留着。
+   *
+   * 在这里补记而不是在 `sessionWarning` 的初始化函数里：`useState` 的初始化
+   * 是在**渲染**中跑的，在里面 setState 会撞上 React 的「渲染中更新另一个组件」。
+   * 初始化函数只把数字存进 ref，记账交给这次 effect。
+   */
+  useEffect(() => {
+    if (startupDraftsRef.current > 0) {
+      noteHealth({
+        id: 'session.drafts',
+        area: 'session',
+        severity: 'error',
+        lines: [
+          { key: 'ui.app.draftsLostTitle', values: { n: startupDraftsRef.current } },
+          { key: 'ui.app.draftsLostBody', values: {} },
+        ],
+      });
+    }
+  }, [noteHealth]);
 
   const [handle, setHandle] = useState<EditorHandle | null>(null);
   const handleRef = useRef<EditorHandle | null>(null);
@@ -643,8 +805,18 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
     void registerBuiltInEditors().then(() => {
       const failed = editorRegistrationFailures();
       if (failed.length > 0) setKernelFailures(failed);
+      // 记本里**一个内核一条**：合并成「有 n 个没加载」会丢掉「是哪一个」，
+      // 而那份 id 与原因正是用户回头要查的东西（横幅上也是这么写的）。
+      for (const failure of failed) {
+        noteHealth({
+          id: `kernel.${failure.id}`,
+          area: 'kernel',
+          severity: 'error',
+          lines: [{ key: 'ui.health.kernelEntry', values: { id: failure.id, reason: failure.reason } }],
+        });
+      }
     });
-  }, []);
+  }, [noteHealth]);
 
   /**
    * 待定位的检索结果，连同它的编号。
@@ -1029,6 +1201,27 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
    */
   const watchIssueVisible = hasWatchIssue(watchIssue) && watchIssueSignature(watchIssue) !== dismissedWatchIssue;
 
+  /**
+   * 横幅里那两族「此刻的状态」**同步**进记录本（ADR 0046）。
+   *
+   * 它们与「记一次就完了」的几条不同：横幅状态本身回答的就是
+   * 「此刻还有什么问题」，所以**有的记上、消失的标成已恢复**两件事都归这里。
+   * 监听的恢复尤其只能靠它 —— 用户在界面上看到横幅消失的那一刻，
+   * 清单里就该同时出现「已经恢复」的时刻，否则那一格永远是红的。
+   *
+   * 依赖是**对象本身**：折函数只在真的变了的时候才交出新对象，
+   * 所以「这一帧什么都没变」时 effect 压根不会跑（不会每秒空转）。
+   */
+  useEffect(() => {
+    const at = Date.now();
+    setHealthLog((log) => syncFamily(log, readLossNotes(readLoss), READ_LOSS_IDS, at));
+  }, [readLoss]);
+
+  useEffect(() => {
+    const at = Date.now();
+    setHealthLog((log) => syncFamily(log, watchNotes(watchIssue), WATCH_IDS, at));
+  }, [watchIssue]);
+
   const rememberPositions = settings.rememberPositions;
 
   /**
@@ -1045,12 +1238,31 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
    * 隐私模式本来就不打算持久化），为它弹一句「没能记住」是纯粹的噪音。
    * 只有 `write-failed`（有存储、但写被拒了）才是真的坏了。
    */
-  const reportPersistFailure = useCallback((outcome: PersistOutcome) => {
-    if (outcome.ok || outcome.reason === 'no-storage') return;
-    // 同一枚标记只翻一次：位置记忆每 600ms 写一次，配额满了会**每一次都失败**，
-    // 反复 setState 就是每 600ms 重渲染一次整个外壳，而横幅一字不变。
-    setSessionWarning((warn) => (warn.writeFailed ? warn : { ...warn, writeFailed: true }));
-  }, []);
+  const writeFailureNotedRef = useRef(false);
+  const reportPersistFailure = useCallback(
+    (outcome: PersistOutcome) => {
+      if (outcome.ok || outcome.reason === 'no-storage') return;
+      // 同一枚标记只翻一次：位置记忆每 600ms 写一次，配额满了会**每一次都失败**，
+      // 反复 setState 就是每 600ms 重渲染一次整个外壳，而横幅一字不变。
+      setSessionWarning((warn) => (warn.writeFailed ? warn : { ...warn, writeFailed: true }));
+      // 记录本那一份**同样只记一次**：这条通路一秒能走好几次（位置记忆每 600ms
+      // 一次），每次都 `setHealthLog` 就是每隔 600ms 重渲染一次整个外壳，
+      // 而清单上内容一个字符都不会变。用 ref 闩住，不从 state 反推 ——
+      // 横幅那个闩会被「知道了」复位，从它反推等于让按掉横幅顺带把记录也抹了。
+      if (writeFailureNotedRef.current) return;
+      writeFailureNotedRef.current = true;
+      noteHealth({
+        id: 'storage.write',
+        area: 'storage',
+        severity: 'error',
+        lines: [
+          { key: 'ui.app.storageBrokenTitle', values: {} },
+          { key: 'ui.app.storageBrokenBody', values: {} },
+        ],
+      });
+    },
+    [noteHealth],
+  );
 
   const flushPositions = useCallback(() => {
     if (positionsTimerRef.current !== null) {
@@ -1226,7 +1438,20 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         // 顺序反过来的话根目录还没加载，展开会落空
         if (session.root !== null) await workspace.openFolder(session.root);
         const result = await workspace.restoreTabs(session.tabs, session.activePath);
-        if (result.failed.length > 0) setSessionWarning((warn) => ({ ...warn, failed: result.failed }));
+        if (result.failed.length > 0) {
+          setSessionWarning((warn) => ({ ...warn, failed: result.failed }));
+          // 路径能点名，所以这一条**照抄横幅那句话**（含同样的点名方式）——
+          // 两处各写一份的话，改了一处另一处就在说上一版的话。
+          noteHealth({
+            id: 'session.files',
+            area: 'session',
+            severity: 'warning',
+            lines: [
+              { key: 'ui.app.sessionFailedTitle', values: { n: result.failed.length } },
+              { key: 'ui.app.sessionFailedBody', values: { names: result.failed.map((path) => basename(path)).join('、') } },
+            ],
+          });
+        }
       } finally {
         setRestoring(false);
         // 闸门打开，然后**立刻**写一次：把 `droppedDrafts` 那笔旧账清掉，
@@ -1235,7 +1460,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         flushSessionRef.current();
       }
     })();
-  }, [settings.restoreSession, workspace]);
+  }, [settings.restoreSession, workspace, noteHealth]);
 
   /**
    * 结构变化（开 / 关 / 切 / 拖标签页、脏标记翻转）→ 排一次落盘。
@@ -1395,8 +1620,18 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
       closePalette: () => setPaletteOpen(false),
       openFind: () => setFindOpen(true),
       closeFind: () => setFindOpen(false),
-      openSettings: () => setSettingsOpen(true),
+      // 两个对话框互斥：开一个先把另一个收起来。理由和命令面板一样 ——
+      // 叠着的两层对话框，用户关掉上层之后常常不记得下面还有一层。
+      openSettings: () => {
+        setHealthOpen(false);
+        setSettingsOpen(true);
+      },
       closeSettings: () => setSettingsOpen(false),
+      openHealth: () => {
+        setSettingsOpen(false);
+        setHealthOpen(true);
+      },
+      closeHealth: () => setHealthOpen(false),
       setTheme: (preference: ThemePreference) => update({ theme: preference }),
       cycleTheme: () => update({ theme: cycleTheme(settings.theme) }),
       // 这两个「开关」改的是设置层字段（与设置页同一个真相），不是临时视图状态；
@@ -2205,6 +2440,17 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           platform={platform}
           onClearPositions={clearPositions}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {/* 问题清单（ADR 0046）。与设置页同层、排在它之后；两者互斥，
+          「打开」的那一边已经在 UiActions 里先把另一边收起来了。
+          它**不参与 Esc 竞争**：两个对话框不会同时开着（见上面那段注释）。 */}
+      {healthOpen && (
+        <HealthDialog
+          log={healthLog}
+          onClear={() => setHealthLog((log) => clearHealth(log))}
+          onClose={() => setHealthOpen(false)}
         />
       )}
 

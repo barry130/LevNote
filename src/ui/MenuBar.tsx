@@ -162,7 +162,14 @@ export const MENUS: readonly MenuDef[] = [
   {
     id: 'help',
     accel: 'H',
-    items: ['help.sampleDocument', 'separator', 'diagnostics.roundTrip', 'separator', 'app.about'],
+    items: [
+      'help.sampleDocument',
+      'separator',
+      'diagnostics.issues',
+      'diagnostics.roundTrip',
+      'separator',
+      'app.about',
+    ],
   },
 ];
 
