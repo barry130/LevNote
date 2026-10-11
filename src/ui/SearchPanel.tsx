@@ -37,6 +37,7 @@ import {
   type WorkspaceSearchStore,
 } from '../core/search/workspace.js';
 import { basename } from '../core/path.js';
+import { renderReplaceReport, type ReplaceReport } from '../core/search/replace.js';
 import { t } from '../core/i18n/index.js';
 
 export interface SearchPanelProps {
@@ -48,10 +49,11 @@ export interface SearchPanelProps {
   readonly onOpenMatch: (path: string, match: WorkspaceMatch) => void;
   readonly onClose: () => void;
   /**
-   * 对给定文件做「全部替换」。返回给用户看的一句话（null = 用户取消了确认框）。
+   * 对给定文件做「全部替换」。返回**汇报的结构**（null = 用户取消了确认框）——
+   * 句子由本组件在渲染的那一刻翻出来（ADR 0047）。
    * 编排在 App：那里有确认对话框与打开标签页的脏清单。
    */
-  readonly onReplaceAll: (paths: readonly string[], replacement: string) => Promise<string | null>;
+  readonly onReplaceAll: (paths: readonly string[], replacement: string) => Promise<ReplaceReport | null>;
 }
 
 export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onReplaceAll }: SearchPanelProps) {
@@ -59,7 +61,9 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [replacement, setReplacement] = useState('');
   const [replacing, setReplacing] = useState(false);
-  const [replaceMessage, setReplaceMessage] = useState<string | null>(null);
+  // 存的是**汇报的结构**，不是句子（ADR 0047）：翻译留到渲染那一刻，
+  // 所以切语言之后这行字会跟着变，而不是留在旧语言里。
+  const [replaceReport, setReplaceReport] = useState<ReplaceReport | null>(null);
 
   // 打开面板就把焦点给输入框：这是用户打开它的唯一理由
   useEffect(() => {
@@ -75,10 +79,10 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
   const handleReplace = (): void => {
     if (!canReplace) return;
     setReplacing(true);
-    setReplaceMessage(null);
-    void onReplaceAll(resultPaths, replacement).then((message) => {
+    setReplaceReport(null);
+    void onReplaceAll(resultPaths, replacement).then((report) => {
       setReplacing(false);
-      setReplaceMessage(message ?? null);
+      setReplaceReport(report ?? null);
     });
   };
 
@@ -181,7 +185,7 @@ export function SearchPanel({ store, root, canSearch, onOpenMatch, onClose, onRe
             </button>
           </div>
         )}
-        {replaceMessage !== null && <p className="search-hint">{replaceMessage}</p>}
+        {replaceReport !== null && <p className="search-hint">{renderReplaceReport(replaceReport)}</p>}
       </div>
 
       {!canSearch && (

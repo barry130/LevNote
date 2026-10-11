@@ -22,10 +22,20 @@
  * 读不到 / 写不进（只读、权限）的文件逐个记进 `failed`。全部如实回给调用方
  * （硬约束 2）—— 「替换了 7 处」后面必须跟着「3 个文件跳过了」，
  * 否则用户分不清「没替换」和「替换了但看不见」。
+ *
+ * ## 原因交出去的时候**不翻**（ADR 0047）
+ *
+ * `skipped` / `failed` 里的 `reason` 是 `LocalizedText`，不是句子 ——
+ * 抛物自带的 message 当**参数**走（那是系统的原话，翻了就是撒谎），
+ * 而「读不到 / 写不进」这个上下文是我们的，才进 catalog。
+ * 这一层拼好的句子会被 `SearchPanel` 存进 state 并活过很多次渲染，
+ * 切语言时它不会跟着翻 —— 与其每处记得清一遍，不如交出去的时候就不翻。
+ * 翻的动作只有一处：`renderReplaceReport()`。
  */
 
 import { replaceInText, type FindOptions } from './find.js';
-import { t } from '../i18n/index.js';
+import { msg, t, textOf, type LocalizedText } from '../i18n/index.js';
+import { basename } from '../path.js';
 import type { TextFile, WriteRequest } from '../document/types.js';
 
 /** 替换需要的最小 IO 面。传入 provider 的两个方法即可（结构化类型，直接兼容）。 */
@@ -37,7 +47,28 @@ export interface ReplaceIo {
 
 export interface ReplaceSkip {
   readonly path: string;
-  readonly reason: string;
+  /** 还没翻的理由（ADR 0047）：catalog 里那一条 + 它的参数，翻译留给渲染那一刻。 */
+  readonly reason: LocalizedText;
+}
+
+/** 一个文件的问题行：跳过与失败用的是同一张形状。 */
+export interface ReplaceProblem {
+  readonly path: string;
+  readonly reason: LocalizedText;
+}
+
+/**
+ * 一次跨文件替换的**结构化**汇报（ADR 0047）。
+ *
+ * 之前这里直接返回一句拼好的中文句子，它被 `SearchPanel` 存进 state
+ * 就再也不翻了 —— 切到英文时那行还是中文。现在交出来的全是「要查哪一条」，
+ * `renderReplaceReport()` 才是唯一把它翻成句子的地方。
+ */
+export interface ReplaceReport {
+  /** 首行的片段：做了什么 + 跳过了几个 + 失败了几个。分隔符也来自 catalog。 */
+  readonly headline: readonly LocalizedText[];
+  /** 逐个文件的问题行，按文件名列出来。 */
+  readonly problems: readonly ReplaceProblem[];
 }
 
 export interface ReplaceOutcome {
@@ -82,7 +113,7 @@ export async function replaceAcrossFiles(
 
   for (const path of paths) {
     if (dirtyPaths.has(path)) {
-      skipped.push({ path, reason: t('core.replace.skipDirty') });
+      skipped.push({ path, reason: msg('core.replace.skipDirty') });
       continue;
     }
 
@@ -90,7 +121,10 @@ export async function replaceAcrossFiles(
     try {
       file = await io.readTextFile(path);
     } catch (thrown) {
-      failed.push({ path, reason: thrown instanceof Error ? thrown.message : t('core.replace.unreadable') });
+      // 抛物自带的 message 是**原文**，不是译文 —— 它当参数走，不当文案翻。
+      // 而「读不出来」这个上下文是我们知道的，所以一定要说：只给一句
+      // `EACCES: permission denied` 用户得自己猜是哪一步坏了。
+      failed.push({ path, reason: msg('core.replace.readFailed', { detail: describeThrown(thrown) }) });
       continue;
     }
 
@@ -98,7 +132,7 @@ export async function replaceAcrossFiles(
     if (count === 0) {
       // 检索结果已过期（文件被改过 / 换了工作区）：没有命中就没有写入，
       // 如实记一笔跳过，不冒充成功
-      skipped.push({ path, reason: t('core.replace.skipStale') });
+      skipped.push({ path, reason: msg('core.replace.skipStale') });
       continue;
     }
 
@@ -112,8 +146,7 @@ export async function replaceAcrossFiles(
         create: true,
       });
     } catch (thrown) {
-      const reason = thrown instanceof Error ? thrown.message : t('core.replace.unwritable');
-      failed.push({ path, reason });
+      failed.push({ path, reason: msg('core.replace.writeFailed', { detail: describeThrown(thrown) }) });
       continue;
     }
 
@@ -124,14 +157,45 @@ export async function replaceAcrossFiles(
   return { filesReplaced, matchesReplaced, skipped, failed };
 }
 
-/** 把结果收敛成一句给用户看的话。跳过与失败必须说出来。 */
-export function describeReplaceOutcome(outcome: ReplaceOutcome): string {
-  const parts: string[] = [];
+/**
+ * 把结果收敛成**结构化**的汇报：做了什么、跳过了几个、失败了哪些文件。
+ *
+ * 「没有需要替换的内容」是一个整体句子而不是片段 —— 它独占一行，
+ * 混进逗号串里会读成「，没有需要替换的内容」。
+ */
+export function describeReplaceOutcome(outcome: ReplaceOutcome): ReplaceReport {
   if (outcome.filesReplaced === 0 && outcome.skipped.length === 0 && outcome.failed.length === 0) {
-    return t('core.replace.nothingToDo');
+    return { headline: [msg('core.replace.nothingToDo')], problems: [] };
   }
-  parts.push(t('core.replace.doneSummary', { matches: outcome.matchesReplaced, files: outcome.filesReplaced }));
-  if (outcome.skipped.length > 0) parts.push(t('core.replace.skippedN', { n: outcome.skipped.length }));
-  if (outcome.failed.length > 0) parts.push(t('core.replace.failedN', { n: outcome.failed.length }));
-  return parts.join('，');
+  const headline: LocalizedText[] = [
+    msg('core.replace.doneSummary', { matches: outcome.matchesReplaced, files: outcome.filesReplaced }),
+  ];
+  if (outcome.skipped.length > 0) headline.push(msg('core.replace.skippedN', { n: outcome.skipped.length }));
+  if (outcome.failed.length > 0) headline.push(msg('core.replace.failedN', { n: outcome.failed.length }));
+  return { headline, problems: [...outcome.failed, ...outcome.skipped] };
+}
+
+/**
+ * 唯一一处把汇报翻成句子的地方 —— **在渲染的那一刻调**（ADR 0047）。
+ *
+ * 连分隔符和「- 文件名：原因」的冒号都来自 catalog：中文用「，」，
+ * 英文用 ", "；漏掉这一步就等于在英文界面里画一个中文逗号。
+ */
+export function renderReplaceReport(report: ReplaceReport): string {
+  const headline = report.headline.map(textOf).join(t('core.replace.join'));
+  if (report.problems.length === 0) return headline;
+  const problems = report.problems.map((problem) =>
+    t('core.replace.problemLine', { name: basename(problem.path), reason: textOf(problem.reason) }),
+  );
+  return `${headline}\n${problems.join('\n')}`;
+}
+
+/**
+ * 把抛出来的东西压成一句**原文**。
+ *
+ * 它来自文件系统 / 内核，是系统自己的话；当成译文去「翻译」就是撒谎，
+ * 所以只当参数插进我们 catalog 里那一句的 `{detail}`。
+ */
+function describeThrown(thrown: unknown): string {
+  return thrown instanceof Error ? thrown.message : String(thrown);
 }

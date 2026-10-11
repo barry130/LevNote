@@ -21,7 +21,7 @@
  */
 
 import { bytesToDataUrl, imageExtensionFor, sniffImageMime } from '../image.js';
-import { t } from '../i18n/index.js';
+import { msg, t, type LocalizedText } from '../i18n/index.js';
 import { joinPath } from '../path.js';
 import { assetsDirFor, assetsDirNameFor, imageFileName, imageMarkdownSrc, resolveImagePath } from './assets.js';
 import { asAppError, type DocumentProvider } from './types.js';
@@ -77,12 +77,13 @@ export interface PasteImageOk {
 }
 
 /**
- * 落盘失败。`reason` 是**给用户看的一句话**，不是错误码 ——
- * 调用方应当原样呈现它（状态栏 / 横幅），不要吞掉。
+ * 落盘失败。`reason` 是**还没翻的理由**，不是错误码，也不是一句拼好的话 ——
+ * 调用方应当把它原样交给界面（状态栏 / 横幅），由渲染那一刻翻成句子（ADR 0047）。
+ * 这里的 `reason` 字段名保留：它本来就是「原因」，只是现在带上了「查哪一条」。
  */
 export interface PasteImageFail {
   readonly ok: false;
-  readonly reason: string;
+  readonly reason: LocalizedText;
 }
 
 export type PasteImageResult = PasteImageOk | PasteImageFail;
@@ -142,7 +143,7 @@ export async function writePastedImage(
   // 发给别人就打不开，而那时已经无从追查
   if (imageExtensionFor(options.mimeType) === null) {
     const shown = options.mimeType.trim() === '' ? t('core.images.unknownType') : options.mimeType;
-    return { ok: false, reason: t('core.images.unknownTypeDetail', { shown }) };
+    return { ok: false, reason: msg('core.images.unknownTypeDetail', { shown }) };
   }
 
   const directory = assetsDirFor(documentPath);
@@ -150,7 +151,7 @@ export async function writePastedImage(
     // 没有目录信息 = 这份文档还没保存过（浏览器预览虚拟盘、新建未保存的文档）
     return {
       ok: false,
-      reason: t('core.images.noLocation'),
+      reason: msg('core.images.noLocation'),
     };
   }
 
@@ -161,10 +162,10 @@ export async function writePastedImage(
     const fileName = imageFileName({ mimeType: options.mimeType, at: options.at, salt: options.salt() });
     // 上面已经确认过 MIME 认得，所以这里拿不到扩展名是不可能的；
     // 真拿到了就如实失败，而不是编一个后缀
-    if (fileName === null) return { ok: false, reason: t('core.images.nameFailed') };
+    if (fileName === null) return { ok: false, reason: msg('core.images.nameFailed') };
 
     const target = joinPath(directory, fileName);
-    if (target === null) return { ok: false, reason: t('core.images.targetFailed') };
+    if (target === null) return { ok: false, reason: msg('core.images.targetFailed') };
 
     try {
       const outcome = await provider.writeBinaryFile(target, options.bytes);
@@ -176,7 +177,7 @@ export async function writePastedImage(
       if (outcome.size !== options.bytes.byteLength) {
         return {
           ok: false,
-          reason: t('core.images.partialWrite', { size: outcome.size, total: options.bytes.byteLength, path: outcome.path }),
+          reason: msg('core.images.partialWrite', { size: outcome.size, total: options.bytes.byteLength, path: outcome.path }),
         };
       }
 
@@ -191,5 +192,5 @@ export async function writePastedImage(
     }
   }
 
-  return { ok: false, reason: t('core.images.writeFailed', { reason: lastReason }) };
+  return { ok: false, reason: msg('core.images.writeFailed', { reason: lastReason }) };
 }

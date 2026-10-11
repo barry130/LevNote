@@ -19,7 +19,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import type { LineEndingName } from '../core/document/types.js';
-import { renderNotice } from '../core/document/store.js';
 import type { ConflictChoice, DocumentStore, ViewMode } from '../core/document/store.js';
 import type {
   BlockHandleState,
@@ -47,7 +46,7 @@ import { ENCODINGS, encodingKey as encodingKeyCore, encodingLabel } from '../cor
 import { SPLIT_RATIO_MAX, SPLIT_RATIO_MIN } from '../core/settings.js';
 import { analyze, formatStatistics } from '../core/statistics.js';
 import { EDITOR_FALLBACK } from '../modules/index.js';
-import { t, type MessageKey } from '../core/i18n/index.js';
+import { t, textOf, type MessageKey } from '../core/i18n/index.js';
 import { BlockHandle } from './BlockHandle.js';
 import { CodeBlockPicker } from './CodeBlockPicker.js';
 import { DiagramViewer } from './DiagramViewer.js';
@@ -1314,7 +1313,7 @@ export function DocumentPane({
         )}
 
         <span className="grow" />
-        {notice !== null && <span className="hint">{renderNotice(notice)}</span>}
+        {notice !== null && <span className="hint">{textOf(notice)}</span>}
         <span className="sep">│</span>
         <span className="hint">{t('ui.pane.shortcutHint')}</span>
         {/* 视图三档放在最右：VSCode 的状态栏最右侧就是「这份文档是什么、

@@ -31,7 +31,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { basename } from '../core/path.js';
-import { t } from '../core/i18n/index.js';
+import { t, textOf } from '../core/i18n/index.js';
 import { flattenTree, type TreeRow } from '../core/workspace/tree.js';
 import type { TreeState } from '../core/workspace/store.js';
 
@@ -137,7 +137,9 @@ export function Sidebar({
         </button>
       </header>
 
-      {tree.error && <div className="sidebar-error">{tree.error.message}</div>}
+      {/* 树那一栏的错误翻译在**渲染这一刻**发生（ADR 0047）：`tree.error.message`
+          是「还没翻的话」，store 字段跨渲染活下来，翻译早了就停在旧语言上。 */}
+      {tree.error && <div className="sidebar-error">{textOf(tree.error.message)}</div>}
 
       {tree.root === null ? (
         <div className="sidebar-empty">

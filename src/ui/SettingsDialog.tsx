@@ -39,7 +39,7 @@ import {
 } from '../core/settings.js';
 import { THEME_ORDER, themeLabel } from '../core/theme/theme.js';
 import { SUPPORTED_LOCALES } from '../core/i18n/messages.js';
-import { t } from '../core/i18n/index.js';
+import { t, msg, textOf, type LocalizedText } from '../core/i18n/index.js';
 
 export interface SettingsDialogProps {
   settings: ViewSettings;
@@ -96,7 +96,9 @@ export function SettingsDialog({
   // 快捷键录制（P6 第 31 项）：正在改哪条命令、已经录到的写法、录制期错误
   const [editingId, setEditingId] = useState<string | null>(null);
   const [recorded, setRecorded] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // 存的是**还没翻的理由**（ADR 0047），不是句子：这段 state 活得比一次渲染久，
+  // 提前 `t()` 的话切语言之后这行字还留在旧语言里。翻译在 `textOf` 那一步。
+  const [error, setError] = useState<LocalizedText | null>(null);
 
   useEffect(() => {
     dialogRef.current?.focus();
@@ -153,7 +155,7 @@ export function SettingsDialog({
       setRecorded(spec);
       // 单字母 / 数字键在输入框里会被打字占用（见 isAllowedInEditable 的
       // 白名单理由），录进来就是「设置完打不了字」—— 当场说明，不让保存
-      setError(isSafeGlobalSpec(spec, platform) ? null : t('ui.settings.keyUnsafe'));
+      setError(isSafeGlobalSpec(spec, platform) ? null : msg('ui.settings.keyUnsafe'));
     };
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
@@ -419,7 +421,7 @@ export function SettingsDialog({
               </div>
             ))}
             {editingId !== null && error !== null && (
-              <p className="settings-hint settings-keys-conflict">{error}</p>
+              <p className="settings-hint settings-keys-conflict">{textOf(error)}</p>
             )}
             {editingId !== null && error === null && conflictOwner !== null && (
               <p className="settings-hint settings-keys-conflict">

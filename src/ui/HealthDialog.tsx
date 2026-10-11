@@ -25,7 +25,7 @@ import {
   type HealthArea,
   type HealthRecord,
 } from '../core/health.js';
-import { t } from '../core/i18n/index.js';
+import { t, textOf } from '../core/i18n/index.js';
 import type { MessageKey } from '../core/i18n/messages.js';
 
 /** 分组顺序按「数据先于界面」排：丢东西的两族在最上面，看不见的两族在下面。 */
@@ -60,7 +60,7 @@ function reportText(log: readonly HealthRecord[]): string {
       `【${t(AREA_LABEL_KEYS[area])}】`,
       ...records.map((record) => {
         const [first, ...rest] = record.lines;
-        const lines = (first === undefined ? [] : [t(first.key, first.values), ...rest.map((line) => `  ${t(line.key, line.values)}`)]);
+        const lines = (first === undefined ? [] : [textOf(first), ...rest.map((line) => `  ${textOf(line)}`)]);
         const meta = [
           clockOf(record.lastSeenAt),
           // 「发生过 n 次」只在 n > 1 时出现：一条永远为真的信息就是噪音，
@@ -160,10 +160,10 @@ export function HealthDialog({ log, onClear, onClose }: HealthDialogProps) {
                       className={`health-record ${record.severity === 'error' ? 'error' : 'warn'} ${record.resolvedAt === null ? '' : 'resolved'}`}
                       data-testid={`health-record-${record.id}`}
                     >
-                      <h4 className="health-record-title">{first === undefined ? record.id : t(first.key, first.values)}</h4>
+                      <h4 className="health-record-title">{first === undefined ? record.id : textOf(first)}</h4>
                       {rest.map((line, index) => (
                         <p className="settings-hint" key={`${line.key}-${index}`}>
-                          {t(line.key, line.values)}
+                          {textOf(line)}
                         </p>
                       ))}
                       <p className="health-meta">

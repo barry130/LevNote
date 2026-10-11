@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { CommandRegistry } from '../core/commands/registry.js';
 import type { Command } from '../core/commands/types.js';
+import { setLocale } from '../core/i18n/index.js';
 import type { ViewSettings } from '../core/settings.js';
 import { DEFAULT_SETTINGS } from '../core/settings.js';
 import { SettingsDialog } from './SettingsDialog.js';
@@ -50,6 +51,8 @@ describe('SettingsDialog 快捷键录制', () => {
   });
 
   afterEach(() => {
+    // 切语言的用例会把全局 locale 带走 —— 每个用例都得从中文开始
+    setLocale('zh-CN');
     act(() => {
       root.unmount();
     });
@@ -164,5 +167,34 @@ describe('SettingsDialog 快捷键录制', () => {
     });
 
     expect(onChangeCalls).toEqual([{ keybindings: {} }]);
+  });
+
+  /**
+   * `error` 活在 state 里 —— **活过渲染** —— 所以往里存句子等于把中文焊死：
+   * 换语言之后那句错话还是中文（ADR 0047）。
+   *
+   * 这里钉住的就是「重画一次就换了」。存 key 的话重画时查表，
+   * 存句子的话重画多少次都是那句中文。
+   */
+  it('错误提示跟着语言变 —— state 里存的是 key，不是那句话（ADR 0047）', () => {
+    render();
+    const row = rowOf('命令甲');
+    act(() => {
+      buttonIn(row, '改').click();
+    });
+
+    // 单个字母在全局监听里会被输入框抢走 → 明确拒绝
+    pressKey({ key: 'j' });
+    expect(container.textContent).toContain('单个字母或数字键会被输入占用');
+
+    // 只切语言、只重画：没重新打开设置页，也没重录
+    setLocale('en');
+    render();
+    expect(container.textContent).toContain('A single letter or digit key would be taken by typing');
+    expect(container.textContent).not.toContain('单个字母');
+
+    setLocale('zh-CN');
+    render();
+    expect(container.textContent).toContain('单个字母或数字键会被输入占用');
   });
 });

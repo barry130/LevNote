@@ -51,7 +51,7 @@ import { loadRecentFiles, recordRecentList, saveRecentFiles } from '../core/rece
 import { setLocale, t } from '../core/i18n/index.js';
 import { buildRecentFileCommands, RECENT_MENU_SLOTS } from '../core/commands/definitions.js';
 import { WorkspaceSearchStore, totalMatchesOf, type WorkspaceMatch, type WorkspaceSearcher } from '../core/search/workspace.js';
-import { replaceAcrossFiles, describeReplaceOutcome } from '../core/search/replace.js';
+import { replaceAcrossFiles, describeReplaceOutcome, type ReplaceReport } from '../core/search/replace.js';
 import type { FindOptions } from '../core/search/find.js';
 import {
   clearSession,
@@ -328,8 +328,8 @@ function readLossNotes(loss: ReadLoss): readonly HealthNote[] {
       area: 'session',
       severity: 'error',
       lines: [
-        { key: 'ui.app.readLostSessionTitle', values: {} },
-        { key: 'ui.app.readLostSessionBody', values: {} },
+        { key: 'ui.app.readLostSessionTitle', params: {} },
+        { key: 'ui.app.readLostSessionBody', params: {} },
       ],
     });
   }
@@ -340,9 +340,9 @@ function readLossNotes(loss: ReadLoss): readonly HealthNote[] {
       area: 'storage',
       severity: 'warning',
       lines: [
-        { key: 'ui.app.readLostPositionsTitle', values: { n: loss.positions } },
-        { key: 'ui.app.readLostPositionsBody', values: {} },
-        ...(names === '' ? [] : [{ key: 'ui.app.readLostPositionNames' as const, values: { names } }]),
+        { key: 'ui.app.readLostPositionsTitle', params: { n: loss.positions } },
+        { key: 'ui.app.readLostPositionsBody', params: {} },
+        ...(names === '' ? [] : [{ key: 'ui.app.readLostPositionNames' as const, params: { names } }]),
       ],
     });
   }
@@ -352,8 +352,8 @@ function readLossNotes(loss: ReadLoss): readonly HealthNote[] {
       area: 'storage',
       severity: 'warning',
       lines: [
-        { key: 'ui.app.readLostSettingsTitle', values: { n: loss.settings } },
-        { key: 'ui.app.readLostSettingsBody', values: {} },
+        { key: 'ui.app.readLostSettingsTitle', params: { n: loss.settings } },
+        { key: 'ui.app.readLostSettingsBody', params: {} },
       ],
     });
   }
@@ -363,8 +363,8 @@ function readLossNotes(loss: ReadLoss): readonly HealthNote[] {
       area: 'storage',
       severity: 'warning',
       lines: [
-        { key: 'ui.app.readLostRecentTitle', values: { n: loss.recent } },
-        { key: 'ui.app.readLostRecentBody', values: {} },
+        { key: 'ui.app.readLostRecentTitle', params: { n: loss.recent } },
+        { key: 'ui.app.readLostRecentBody', params: {} },
       ],
     });
   }
@@ -387,10 +387,10 @@ function watchNotes(issue: WatchIssue): readonly HealthNote[] {
       area: 'watch',
       severity: 'error',
       lines: [
-        { key: 'ui.app.watchLostTitle', values: {} },
+        { key: 'ui.app.watchLostTitle', params: {} },
         {
           key: issue.reason === '' ? 'ui.app.watchLostBodyNoReason' : 'ui.app.watchLostBody',
-          values: { reason: issue.reason },
+          params: { reason: issue.reason },
         },
       ],
     });
@@ -401,8 +401,8 @@ function watchNotes(issue: WatchIssue): readonly HealthNote[] {
       area: 'watch',
       severity: 'warning',
       lines: [
-        { key: 'ui.app.watchPartialTitle', values: { n: issue.failedPaths.length } },
-        { key: 'ui.app.watchPartialBody', values: {} },
+        { key: 'ui.app.watchPartialTitle', params: { n: issue.failedPaths.length } },
+        { key: 'ui.app.watchPartialBody', params: {} },
       ],
     });
   }
@@ -668,8 +668,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         area: 'session',
         severity: 'error',
         lines: [
-          { key: 'ui.app.draftsLostTitle', values: { n: startupDraftsRef.current } },
-          { key: 'ui.app.draftsLostBody', values: {} },
+          { key: 'ui.app.draftsLostTitle', params: { n: startupDraftsRef.current } },
+          { key: 'ui.app.draftsLostBody', params: {} },
         ],
       });
     }
@@ -812,7 +812,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
           id: `kernel.${failure.id}`,
           area: 'kernel',
           severity: 'error',
-          lines: [{ key: 'ui.health.kernelEntry', values: { id: failure.id, reason: failure.reason } }],
+          lines: [{ key: 'ui.health.kernelEntry', params: { id: failure.id, reason: failure.reason } }],
         });
       }
     });
@@ -902,7 +902,7 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
    * 替换完成后重查一遍：结果列表反映的是替换之后的工作区。
    */
   const handleReplaceAll = useCallback(
-    async (paths: readonly string[], replacement: string): Promise<string | null> => {
+    async (paths: readonly string[], replacement: string): Promise<ReplaceReport | null> => {
       const snapshot = searchStore.getSnapshot();
       const options: FindOptions = {
         query: snapshot.query,
@@ -932,11 +932,9 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
 
       searchStore.searchNow();
 
-      const problems = [...outcome.failed, ...outcome.skipped]
-        .map((item) => `- ${basename(item.path)}：${item.reason}`)
-        .join('\n');
-      const headline = describeReplaceOutcome(outcome);
-      return problems === '' ? headline : `${headline}\n${problems}`;
+      // 交出去的是**结构**（ADR 0047）而不是拼好的句子：SearchPanel 会把它
+      // 存进 state，那行字要活得比一次渲染久 —— 提前翻就再也翻不动了。
+      return describeReplaceOutcome(outcome);
     },
     [searchStore, provider, tabs],
   );
@@ -1256,8 +1254,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
         area: 'storage',
         severity: 'error',
         lines: [
-          { key: 'ui.app.storageBrokenTitle', values: {} },
-          { key: 'ui.app.storageBrokenBody', values: {} },
+          { key: 'ui.app.storageBrokenTitle', params: {} },
+          { key: 'ui.app.storageBrokenBody', params: {} },
         ],
       });
     },
@@ -1447,8 +1445,8 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
             area: 'session',
             severity: 'warning',
             lines: [
-              { key: 'ui.app.sessionFailedTitle', values: { n: result.failed.length } },
-              { key: 'ui.app.sessionFailedBody', values: { names: result.failed.map((path) => basename(path)).join('、') } },
+              { key: 'ui.app.sessionFailedTitle', params: { n: result.failed.length } },
+              { key: 'ui.app.sessionFailedBody', params: { names: result.failed.map((path) => basename(path)).join('、') } },
             ],
           });
         }

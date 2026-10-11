@@ -25,7 +25,7 @@ function note(id: string, overrides: Partial<HealthNote> = {}): HealthNote {
     id,
     area: 'storage',
     severity: 'warning',
-    lines: [{ key: 'ui.app.storageBrokenTitle', values: {} }],
+    lines: [{ key: 'ui.app.storageBrokenTitle', params: {} }],
     ...overrides,
   };
 }

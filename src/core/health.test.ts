@@ -16,7 +16,7 @@ function note(id: string, overrides: Partial<HealthNote> = {}): HealthNote {
     id,
     area: 'storage',
     severity: 'warning',
-    lines: [{ key: 'ui.health.empty', values: {} }],
+    lines: [{ key: 'ui.health.empty', params: {} }],
     ...overrides,
   };
 }
@@ -40,16 +40,16 @@ describe('recordIssue', () => {
   it('又发生了，刷新文案：丢的可能是另一批文档', () => {
     const first = recordIssue(
       EMPTY_HEALTH,
-      note('positions', { lines: [{ key: 'ui.app.readLostPositionNames', values: { names: 'a.md' } }] }),
+      note('positions', { lines: [{ key: 'ui.app.readLostPositionNames', params: { names: 'a.md' } }] }),
       100,
     );
     const second = recordIssue(
       first,
-      note('positions', { lines: [{ key: 'ui.app.readLostPositionNames', values: { names: 'b.md' } }] }),
+      note('positions', { lines: [{ key: 'ui.app.readLostPositionNames', params: { names: 'b.md' } }] }),
       200,
     );
 
-    expect(second[0]?.lines).toEqual([{ key: 'ui.app.readLostPositionNames', values: { names: 'b.md' } }]);
+    expect(second[0]?.lines).toEqual([{ key: 'ui.app.readLostPositionNames', params: { names: 'b.md' } }]);
   });
 
   it('已恢复的那条又发生时，恢复标记要清回去', () => {
@@ -137,23 +137,23 @@ describe('syncFamily', () => {
 
   it('内容变了才算又发生一次（文案不同 = 另一件事）', () => {
     const first = syncFamily(EMPTY_HEALTH, [note('watch.reason')], IDS, 100);
-    const changed = note('watch.reason', { lines: [{ key: 'ui.app.watchLostBody', values: { reason: 'x' } }] });
+    const changed = note('watch.reason', { lines: [{ key: 'ui.app.watchLostBody', params: { reason: 'x' } }] });
     const second = syncFamily(first, [changed], IDS, 200);
 
     expect(second[0]).toMatchObject({ count: 2, lastSeenAt: 200 });
-    expect(second[0]?.lines).toEqual([{ key: 'ui.app.watchLostBody', values: { reason: 'x' } }]);
+    expect(second[0]?.lines).toEqual([{ key: 'ui.app.watchLostBody', params: { reason: 'x' } }]);
   });
 
   it('同一句话里参数的键序不影响判重（数据不是结构）', () => {
     const first = syncFamily(
       EMPTY_HEALTH,
-      [note('a', { lines: [{ key: 'ui.app.watchLostBody', values: { reason: 'x', n: 1 } }] })],
+      [note('a', { lines: [{ key: 'ui.app.watchLostBody', params: { reason: 'x', n: 1 } }] })],
       ['a'],
       100,
     );
     const shuffled = syncFamily(
       first,
-      [note('a', { lines: [{ key: 'ui.app.watchLostBody', values: { n: 1, reason: 'x' } }] })],
+      [note('a', { lines: [{ key: 'ui.app.watchLostBody', params: { n: 1, reason: 'x' } }] })],
       ['a'],
       200,
     );
@@ -162,10 +162,10 @@ describe('syncFamily', () => {
   });
 
   it('文案行数变了就是另一件事', () => {
-    const first = syncFamily(EMPTY_HEALTH, [note('a', { lines: [{ key: 'ui.health.empty', values: {} }] })], ['a'], 100);
+    const first = syncFamily(EMPTY_HEALTH, [note('a', { lines: [{ key: 'ui.health.empty', params: {} }] })], ['a'], 100);
     const longer = syncFamily(
       first,
-      [note('a', { lines: [{ key: 'ui.health.empty', values: {} }, { key: 'ui.health.intro', values: {} }] })],
+      [note('a', { lines: [{ key: 'ui.health.empty', params: {} }, { key: 'ui.health.intro', params: {} }] })],
       ['a'],
       200,
     );

@@ -16,6 +16,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { TreeState } from '../core/workspace/store.js';
+import { msg, setLocale } from '../core/i18n/index.js';
 import { Sidebar } from './Sidebar.js';
 
 declare global {
@@ -69,6 +70,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  // 切语言的用例会把全局 locale 带走 —— 每个用例都得从中文开始
+  setLocale('zh-CN');
   for (const root of roots) {
     await act(async () => {
       root.unmount();
@@ -340,5 +343,42 @@ describe('Sidebar 文件管理（A2）', () => {
     ]);
     expect(mounted.calls.opened).toEqual([]);
     expect(mounted.calls.toggled).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------- 横幅与语言
+
+/**
+ * 树顶横幅存的是**还没翻的 key + 参数**，翻发生在 `Sidebar` 渲染的那一刻
+ * （ADR 0047：文案快照那一族的文件树部分）。
+ *
+ * 钉的是这件事：**同一份 `TreeState`，不重新打开目录、不重新 mount，
+ * 切语言后横幅上的字真的换了**。修好之前这里存的是一句烤死的中文，
+ * 画几次都是那句中文。
+ */
+describe('Sidebar 树顶横幅（ADR 0047）', () => {
+  it('切语言后横幅跟着变 —— 存的是 key，不是那句中文', async () => {
+    const tree: TreeState = {
+      ...TREE,
+      error: { message: msg('core.ws.cannotReadDir', { name: 'src' }), detail: 'EACCES' },
+    };
+    const mounted = await mountSidebar({ tree });
+    const banner = (): string | null => mounted.container.querySelector('.sidebar-error')?.textContent ?? null;
+
+    expect(banner()).toBe('读不出目录 src');
+
+    // 只切语言、只重画：没换 tree 对象，也没让 store 再动一次
+    setLocale('en');
+    await mounted.setProps({});
+    expect(banner()).toBe('Cannot read directory src');
+
+    setLocale('zh-CN');
+    await mounted.setProps({});
+    expect(banner()).toBe('读不出目录 src');
+  });
+
+  it('没有错误时横幅整体不画 —— 不画一条空白的错误', async () => {
+    const mounted = await mountSidebar();
+    expect(mounted.container.querySelector('.sidebar-error')).toBeNull();
   });
 });

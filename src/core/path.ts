@@ -10,7 +10,7 @@
  * 路径规范化属于写入层（Rust 侧的原子写入会处理），这里只负责显示与拼接。
  */
 
-import { t } from './i18n/index.js';
+import { msg, type LocalizedText } from './i18n/index.js';
 
 /** 路径分隔符：出现反斜杠就按 Windows 风格处理，否则按 POSIX。 */
 export function separatorOf(path: string): '\\' | '/' {
@@ -217,7 +217,7 @@ const RESERVED_STEMS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * 校验「新建 / 重命名」里用户输入的名字。合法返回 null，否则返回**给用户看的一句话**。
+ * 校验「新建 / 重命名」里用户输入的名字。合法返回 null，否则返回**一句还没翻的话**。
  *
  * 规则对齐 Windows 资源管理器（本项目是 Windows 优先的桌面应用），且**宁严勿松**：
  * 这里放过去一个名字，磁盘层（Rust 命令）多半也会接受，但产出的文件在资源管理器里
@@ -226,19 +226,26 @@ const RESERVED_STEMS: ReadonlySet<string> = new Set([
  * 为什么在 `core` 而不是 UI：store 的编排层（`WorkspaceStore.createEntry` /
  * `renameEntry`）要在**碰磁盘之前**用同一份规则拦一道，测试也要钉同一份规则 ——
  * 放在组件里，「新建」与「重命名」迟早各写一份。
+ *
+ * ## 为什么返回 `LocalizedText` 而不是句子（ADR 0047）
+ *
+ * 它的返回值会**进 `tree.error` 那个 store 字段**，而 store 字段跨渲染活下来 ——
+ * 返回句子的话，切语言时「这个名字非法」那句话会停在旧语言上
+ * （和 ADR 0031 的 `BUILT_IN_COMMANDS`、ADR 0046 的记录本同一族）。
+ * 所以交出去的是 `msg(...)`，翻译推迟到 Sidebar 渲染那一刻（`textOf`）。
  */
-export function validateEntryName(rawName: string): string | null {
+export function validateEntryName(rawName: string): LocalizedText | null {
   const name = rawName.trim();
-  if (name === '') return t('core.path.empty');
-  if (name === '.' || name === '..') return t('core.path.dotNames');
-  if (/[\\/:*?"<>|]/.test(name)) return t('core.path.invalidChars');
+  if (name === '') return msg('core.path.empty');
+  if (name === '.' || name === '..') return msg('core.path.dotNames');
+  if (/[\\/:*?"<>|]/.test(name)) return msg('core.path.invalidChars');
   for (const ch of name) {
-    if (ch.charCodeAt(0) < 32) return t('core.path.controlChars');
+    if (ch.charCodeAt(0) < 32) return msg('core.path.controlChars');
   }
-  if (name.endsWith('.') || name.endsWith(' ')) return t('core.path.trailingDotSpace');
-  if (name.length > 200) return t('core.path.tooLong');
+  if (name.endsWith('.') || name.endsWith(' ')) return msg('core.path.trailingDotSpace');
+  if (name.length > 200) return msg('core.path.tooLong');
   const stem = (name.split('.')[0] ?? '').toUpperCase();
-  if (RESERVED_STEMS.has(stem)) return t('core.path.reservedStem', { stem });
+  if (RESERVED_STEMS.has(stem)) return msg('core.path.reservedStem', { stem });
   return null;
 }
 

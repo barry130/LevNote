@@ -17,6 +17,11 @@
  * 运行中切语言时老记录就永远停在启动那一刻的语言上（同一类毛病，`definitions.ts`
  * 的命令标题踩过一次）。存 key + 参数，文案永远由渲染那一刻的 `t()` 现查。
  *
+ * `HealthLine` 就是 `LocalizedText`（ADR 0047 把这一族的形状抽到了
+ * `core/i18n/index.ts`）—— **不许在这里再定义一份 `{ key, 参数 }`**：
+ * 两条同族的东西长得不一样，下一步就会有人以为「记录本用 values、
+ * 界面用 params」是有意的差别。
+ *
  * ## 三个刻意的选择
  *
  * 1. **只认 id，不认内容**。同一个 `id` 再次发生是**累加次数**而不是新增一条 ——
@@ -30,7 +35,7 @@
  * 真要做，它该走的正是 ADR 0044 建好的 `LoadOutcome` 那条路。
  */
 
-import type { MessageKey } from './i18n/messages.js';
+import type { LocalizedText } from './i18n/index.js';
 
 /**
  * 问题属于哪一族。清单里按这个分组，顺序也是它决定的 ——
@@ -46,11 +51,8 @@ export type HealthArea = 'storage' | 'session' | 'watch' | 'kernel';
  */
 export type HealthSeverity = 'warning' | 'error';
 
-/** 一行文案：key + 参数，现查现翻。 */
-export interface HealthLine {
-  readonly key: MessageKey;
-  readonly values: Readonly<Record<string, string | number>>;
-}
+/** 一行文案：key + 参数，现查现翻。**就是 `LocalizedText`**（ADR 0047）。 */
+export type HealthLine = LocalizedText;
 
 /** 一条问题。同一个 id 永远只有一条，重复发生累加在 `count` 上。 */
 export interface HealthRecord {
@@ -160,7 +162,7 @@ export function activeHealthCount(log: readonly HealthRecord[]): number {
 /**
  * 两组文案是不是同一组。
  *
- * `values` 的键按字母序比一遍：`HealthNote` 是数据不是结构，
+ * `params` 的键按字母序比一遍：`HealthNote` 是数据不是结构，
  * 两个参数对象里键的插入顺序不同不该让同一件事被认成两件。
  */
 function sameLines(a: readonly HealthLine[], b: readonly HealthLine[]): boolean {
@@ -169,13 +171,13 @@ function sameLines(a: readonly HealthLine[], b: readonly HealthLine[]): boolean 
     const left = a[i] as HealthLine;
     const right = b[i] as HealthLine;
     if (left.key !== right.key) return false;
-    const leftKeys = Object.keys(left.values).sort();
-    const rightKeys = Object.keys(right.values).sort();
+    const leftKeys = Object.keys(left.params).sort();
+    const rightKeys = Object.keys(right.params).sort();
     if (leftKeys.length !== rightKeys.length) return false;
     for (let j = 0; j < leftKeys.length; j += 1) {
       const name = leftKeys[j] as string;
       if (name !== rightKeys[j]) return false;
-      if (left.values[name] !== right.values[name]) return false;
+      if (left.params[name] !== right.params[name]) return false;
     }
   }
   return true;

@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
-import { replaceAcrossFiles, describeReplaceOutcome, type ReplaceIo } from './replace.js';
+import {
+  replaceAcrossFiles,
+  describeReplaceOutcome,
+  renderReplaceReport,
+  type ReplaceIo,
+} from './replace.js';
+import { msg, setLocale } from '../i18n/index.js';
 import type { TextFile, WriteRequest } from '../document/types.js';
 
 /** 假 IO：文本盘 + 记录每一次写请求（编码 / BOM 是否回传是重点断言）。 */
@@ -90,7 +96,8 @@ describe('replaceAcrossFiles（A3 跨文件替换）', () => {
       io,
     );
 
-    expect(outcome.skipped).toEqual([{ path: 'C:\\w\\dirty.md', reason: '在打开的标签页里有未保存的改动' }]);
+    // 原因是 key 不是句子 —— 换语言时它跟着变（ADR 0047）
+    expect(outcome.skipped).toEqual([{ path: 'C:\\w\\dirty.md', reason: msg('core.replace.skipDirty') }]);
     expect(outcome.filesReplaced).toBe(1);
     expect(io.writes.map((request) => request.path)).toEqual(['C:\\w\\clean.md']);
   });
@@ -150,10 +157,52 @@ describe('replaceAcrossFiles（A3 跨文件替换）', () => {
     expect(io.files.get('C:\\w\\case.md')?.text).toBe('Foo bar Foobar');
   });
 
-  it('结果描述把跳过与失败说出来', () => {
-    expect(describeReplaceOutcome({ filesReplaced: 2, matchesReplaced: 5, skipped: [{ path: 'a', reason: 'x' }], failed: [{ path: 'b', reason: 'y' }] })).toBe(
-      '替换了 5 处（2 个文件），跳过 1 个，失败 1 个',
+  /**
+   * 汇报交出去的是**结构**（ADR 0047），句子由 `renderReplaceReport` 在渲染的
+   * 那一刻翻出来。下面两个用例钉住两件事：跳过与失败都要说出来，
+   * 以及**同一份结构**在两种语言下渲染出不同的句子。
+   */
+  const mixed = describeReplaceOutcome({
+    filesReplaced: 2,
+    matchesReplaced: 5,
+    skipped: [{ path: 'a', reason: msg('core.replace.skipDirty') }],
+    failed: [{ path: 'b', reason: msg('core.replace.readFailed', { detail: 'EACCES' }) }],
+  });
+
+  it('结果描述把跳过与失败说出来（交出去的是结构，不是拼好的句子）', () => {
+    expect(mixed.headline.map((line) => line.key)).toEqual([
+      'core.replace.doneSummary',
+      'core.replace.skippedN',
+      'core.replace.failedN',
+    ]);
+    // 问题行**先失败后跳过** —— 失败比跳过更需要被看见
+    expect(mixed.problems.map((problem) => problem.path)).toEqual(['b', 'a']);
+
+    setLocale('zh-CN');
+    expect(renderReplaceReport(mixed)).toBe(
+      '替换了 5 处（2 个文件），跳过 1 个，失败 1 个\n- b：读不到这个文件（EACCES）\n- a：在打开的标签页里有未保存的改动',
     );
-    expect(describeReplaceOutcome({ filesReplaced: 0, matchesReplaced: 0, skipped: [], failed: [] })).toBe('没有需要替换的内容。');
+  });
+
+  it('切语言后同一份汇报渲染出另一种语言 —— 不重建、不重新查（ADR 0047）', () => {
+    setLocale('zh-CN');
+    const zh = renderReplaceReport(mixed);
+    setLocale('en');
+    const en = renderReplaceReport(mixed);
+    setLocale('zh-CN');
+
+    expect(en).not.toBe(zh);
+    // 抛物的原话当参数走，不翻译 —— 翻了就成撒谎
+    expect(en).toContain("Couldn't read this file (EACCES)");
+    // 连分隔符都来自 catalog：英文界面里不该画出一个中文逗号
+    expect(en).toContain(', ');
+    expect(en).not.toContain('，');
+    expect(en).toContain('- b: ');
+  });
+
+  it('无事可做时是一整句，不混进逗号串', () => {
+    const idle = describeReplaceOutcome({ filesReplaced: 0, matchesReplaced: 0, skipped: [], failed: [] });
+    setLocale('zh-CN');
+    expect(renderReplaceReport(idle)).toBe('没有需要替换的内容。');
   });
 });

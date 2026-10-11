@@ -22,6 +22,26 @@
  * 在此之前这里挂着一个反例 —— 注释说「App 收到通知后要重新注册一遍内置命令」，
  * 而命令对象是模块级常量、`title` 早被 `t()` 烤死，重注册从未生效过
  * （#TASK-I18N-CMD-LIVE-01）。
+ *
+ * ## 一条「还没翻的文案」：ADR 0047
+ *
+ * `LocalizedText` / `msg()` / `textOf()` 是 ADR 0047 的全部内容，理由是
+ * **这一族残留的病根只有一个形状**：`t()` 的返回值被烤进某个字符串，
+ * 而那个字符串会**跨一次渲染活下来**（进 state、存进 store 字段、传进回调）——
+ * 于是切语言时它在原语言里不动。
+ *
+ * 与 ADR 0031 复评记录三的命令面（读的时候才查表的 getter）、`Notice`
+ * 族的结构化联合、`localizedError` 的 getter 是**同一族修法的三种落法**，
+ * 差别只在「消费方要不要改字段类型」。ADR 0047 把这一族挑明并钉住形状：
+ *
+ * - `msg(key, params)` 造的**不是句子**，是「**将来要翻哪一条**」。
+ *   在造它的那一刻调 `t()` 就等于把语言烤死（ADR 0031 踩过：`BUILT_IN_COMMANDS`）。
+ * - `textOf(line)` **只在渲染的那一刻调**。看到 `textOf` 出现在 `useState`
+ *   的初始值、effect 依赖、事件处理器里，就是同一个 bug 换了个地方。
+ * - 与 `Notice` 的 key 变体**同形**（字段名也用 `params`）——
+ *   `renderNotice` 能直接吃它，于是「`{ text: 已翻好 }`」那道品牌门
+ *   （`core/document/store.ts` 的 `legacyText()`）在 images.ts 改回 key 后
+ *   整个删掉了。
  */
 
 import { en, zhCN, type MessageKey, type SupportedLocale } from './messages.js';
@@ -77,4 +97,41 @@ export function interpolate(template: string, params: Readonly<Record<string, st
 export function t(key: MessageKey, params?: Readonly<Record<string, string | number>>): string {
   const template = CATALOGS[current][key] ?? zhCN[key] ?? key;
   return params === undefined ? template : interpolate(template, params);
+}
+
+/**
+ * 一条**还没翻成句子**的文案（ADR 0047）。
+ *
+ * 与 `Notice` 的 key 变体同形（字段名都是 `params`），所以 `renderNotice`
+ * 与 `msg()` 的结果可以互换 —— 有意如此，两条同族的东西不许长得不一样。
+ * 与 ADR 0046 的 `HealthLine` 同样是 `{ key, params }`，那边已改成这里的别名。
+ *
+ * **什么时候该用它**：你算出来的这句话**不是当场显示的**，它会被存起来
+ * （进 state / 存进 store / 传给回调），而那种字符串会**跨一次渲染活下来**。
+ * 当场显示的一律直接 `t()`。
+ */
+export interface LocalizedText {
+  readonly key: MessageKey;
+  readonly params: Readonly<Record<string, string | number>>;
+}
+
+/**
+ * 造一条「还没翻的文案」。`t()` 的孪生：那个查表，这个只记下**要查哪一条**。
+ *
+ * `params` 留空引用而不是新造一个对象 —— 这条数据会进 state、会触发相等比较，
+ * 而 `{}` 每次都是新引用（`resolveIssue` 对「内容一字未改」就靠引用相等，
+ * 见 ADR 0046）。
+ */
+export function msg(key: MessageKey, params: Readonly<Record<string, string | number>> = {}): LocalizedText {
+  return { key, params };
+}
+
+/**
+ * 把一条「还没翻的文案」翻成句子 —— **只在渲染的那一刻调**。
+ *
+ * 判据只有一句：**这句译文会不会跨过下一次 `setLocale`？**
+ * 会（存进了 state / store）就用 `msg()` + `textOf()`；不会就直接 `t()`。
+ */
+export function textOf(line: LocalizedText): string {
+  return t(line.key, line.params);
 }

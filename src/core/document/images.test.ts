@@ -16,6 +16,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { textOf } from '../i18n/index.js';
 import type {
   BinaryWriteOutcome,
   BomKind,
@@ -28,6 +29,17 @@ import type {
   WriteRequest,
 } from './types.js';
 import { randomSalt, readImageAsUrl, writePastedImage } from './images.js';
+import type { PasteImageResult } from './images.js';
+
+/**
+ * `reason` 现在交出去的是**还没翻的 key + 参数**（ADR 0047：文案快照那一族的
+ * 最后一处 `t()` 结果烤死在了返回值里）。断言那句话之前先翻，
+ * 翻的动作留在用例里 —— 生产代码里翻的地方只有渲染那一刻。
+ */
+function reasonOf(result: PasteImageResult): string {
+  if (result.ok) throw new Error('这个用例期待落盘失败；`ok` 为真说明用例本身写错了');
+  return textOf(result.reason);
+}
 
 /** 一张最小的 PNG 头，足够让 MIME 嗅探认出来。 */
 const PNG_HEAD = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -255,7 +267,7 @@ describe('writePastedImage', () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.reason).toContain('已存在');
+    expect(reasonOf(result)).toContain('已存在');
     // 只试 3 次，不无限重试
     expect(provider.writeCalls).toHaveLength(3);
   });
@@ -272,7 +284,7 @@ describe('writePastedImage', () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.reason).toContain('磁盘满了');
+    expect(reasonOf(result)).toContain('磁盘满了');
     expect(provider.writeCalls).toHaveLength(1);
   });
 
@@ -288,9 +300,9 @@ describe('writePastedImage', () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.reason).toContain('可能已损坏');
+    expect(reasonOf(result)).toContain('可能已损坏');
     // 消息里要带上路径，用户才知道该去删哪个文件
-    expect(result.ok === false && result.reason).toContain('image-20260929-143022-aaaa.png');
+    expect(reasonOf(result)).toContain('image-20260929-143022-aaaa.png');
   });
 
   it('不认识的格式直接拒绝，连写都不写', async () => {
@@ -304,7 +316,7 @@ describe('writePastedImage', () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.reason).toContain('不认识');
+    expect(reasonOf(result)).toContain('不认识');
     expect(provider.writeCalls).toHaveLength(0);
   });
 
@@ -316,7 +328,7 @@ describe('writePastedImage', () => {
       at: AT,
       salt: salts('aaaa'),
     });
-    expect(result.ok === false && result.reason).toContain('未知格式');
+    expect(reasonOf(result)).toContain('未知格式');
   });
 
   it('文档没保存过（没有目录信息）时拒绝，并告诉用户先保存', async () => {
@@ -330,7 +342,7 @@ describe('writePastedImage', () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.reason).toContain('保存');
+    expect(reasonOf(result)).toContain('保存');
     expect(provider.writeCalls).toHaveLength(0);
   });
 

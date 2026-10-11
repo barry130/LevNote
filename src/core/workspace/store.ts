@@ -21,7 +21,7 @@
  */
 
 import type { AppErrorShape, DirEntry, DocumentProvider } from '../document/types.js';
-import { t } from '../i18n/index.js';
+import { msg, type LocalizedText } from '../i18n/index.js';
 import { asAppError } from '../document/types.js';
 import { DocumentStore, isDirty, type DocumentStatus } from '../document/store.js';
 import { basename, dirname, joinPath, validateEntryName } from '../path.js';
@@ -43,6 +43,28 @@ export interface TabSummary {
   readonly drilledFrom: number | null;
 }
 
+/**
+ * 文件树那一栏的错误（ADR 0047）。
+ *
+ * 原来是 `AppErrorShape`（`message` 是 `t()` 烤好的句子）。这么写有两个毛病：
+ *
+ * 1. `t()` 的结果被存进 store 字段，而**字段跨渲染活下来** —— 运行中切语言时，
+ *    「这个名字非法」会停在旧语言上（同 ADR 0031 的 `BUILT_IN_COMMANDS`、
+ *    ADR 0046 的记录本）。所以 `message` 交的是 `LocalizedText`，
+ *    翻译推迟到 `ui/Sidebar.tsx` 渲染那一刻的 `textOf()`。
+ * 2. `AppErrorShape` 的另一半用途是 `openError`（打开失败横幅）——
+ *    **那是另一族、另一份消费方**。共用一个形状会让两族看起来一样，
+ *    而修法不同（`openError` 的消费方要的是能接 `asAppError` 的原样句子）。
+ *
+ * `code` **不在这里**：树这一栏的十一种失败**全是 `IO`**，一个恒定的值不是数据。
+ * `detail` 留着：它是抛物自带的原文（不是译文，**不许翻** —— 翻了就是撒谎），
+ * 与 `ReplaceSkip.reason` 里的那一支同一判据。
+ */
+export interface TreeProblem {
+  readonly message: LocalizedText;
+  readonly detail: string | null;
+}
+
 export interface TreeState {
   /** 工作区根目录。null = 没打开文件夹。 */
   readonly root: string | null;
@@ -52,7 +74,7 @@ export interface TreeState {
   readonly loading: readonly string[];
   /** 是否显示 node_modules / target 这类默认折叠项 */
   readonly showIgnored: boolean;
-  readonly error: AppErrorShape | null;
+  readonly error: TreeProblem | null;
 }
 
 export interface WorkspaceState {
@@ -588,9 +610,10 @@ export class WorkspaceStore {
     } catch (thrown) {
       this.setTree({
         loading: this.tree.loading.filter((item) => item !== path),
+        // 直接写 `error` 而不是走 failTreeAction：那一句要带上目录名，
+        // 而 failTreeAction 只收已经判好的「还没翻的话」。形状是同一份（`TreeProblem`）。
         error: {
-          code: 'IO',
-          message: t('core.ws.cannotReadDir', { name: basename(path) }),
+          message: msg('core.ws.cannotReadDir', { name: basename(path) }),
           detail: thrown instanceof Error ? thrown.message : String(thrown),
         },
       });
@@ -663,14 +686,20 @@ export class WorkspaceStore {
     });
   }
 
-  /** 文件管理动作失败的通报位。侧栏的错误槽位就在树上方，用户一定看得到。 */
-  private failTreeAction(message: string, detail?: string): void {
-    this.setTree({ error: { code: 'IO', message, detail: detail ?? null } });
+  /**
+   * 文件管理动作失败的通报位。侧栏的错误槽位就在树上方，用户一定看得到。
+   *
+   * `message` 是**还没翻的话**（ADR 0047）—— 十一种调用点全都这么传，
+   * 包括 `validateEntryName` 的返回值（它也是 `LocalizedText`）。
+   * 「这个错误是什么」在这里决定，「用哪句话告诉用户」推迟到渲染那一刻。
+   */
+  private failTreeAction(message: LocalizedText, detail?: string): void {
+    this.setTree({ error: { message, detail: detail ?? null } });
   }
 
   private requireFileManager(): WorkspaceFileManager | null {
     if (!this.fileManager.available) {
-      this.failTreeAction(t('core.ws.fsManageUnsupported'));
+      this.failTreeAction(msg('core.ws.fsManageUnsupported'));
       return null;
     }
     return this.fileManager;
@@ -696,7 +725,7 @@ export class WorkspaceStore {
     }
     const target = joinPath(dir, name);
     if (target === null) {
-      this.failTreeAction(t('core.ws.cannotDetermineTarget'));
+      this.failTreeAction(msg('core.ws.cannotDetermineTarget'));
       return null;
     }
 
@@ -705,7 +734,7 @@ export class WorkspaceStore {
       else await fileManager.createDirectory(target);
     } catch (thrown) {
       const error = asAppError(thrown);
-      this.failTreeAction(t('core.ws.createFailed', { reason: error.message }), error.detail ?? undefined);
+      this.failTreeAction(msg('core.ws.createFailed', { reason: error.message }), error.detail ?? undefined);
       return null;
     }
 
@@ -737,12 +766,12 @@ export class WorkspaceStore {
     }
     const parent = dirname(oldPath);
     if (parent === null) {
-      this.failTreeAction(t('core.ws.renameNoDir', { name: basename(oldPath) }));
+      this.failTreeAction(msg('core.ws.renameNoDir', { name: basename(oldPath) }));
       return null;
     }
     const target = joinPath(parent, name);
     if (target === null) {
-      this.failTreeAction(t('core.ws.cannotDetermineTarget'));
+      this.failTreeAction(msg('core.ws.cannotDetermineTarget'));
       return null;
     }
     if (target === oldPath) return target;
@@ -751,7 +780,7 @@ export class WorkspaceStore {
       await fileManager.renamePath(oldPath, target);
     } catch (thrown) {
       const error = asAppError(thrown);
-      this.failTreeAction(t('core.ws.renameFailed', { reason: error.message }), error.detail ?? undefined);
+      this.failTreeAction(msg('core.ws.renameFailed', { reason: error.message }), error.detail ?? undefined);
       return null;
     }
 
@@ -782,7 +811,7 @@ export class WorkspaceStore {
     const dirty = affected.find((tab) => tab.store.getSnapshot().status === 'dirty');
     if (dirty !== undefined) {
       const name = dirty.store.getSnapshot().doc?.displayName ?? basename(path);
-      this.failTreeAction(t('core.ws.deleteDirty', { name }));
+      this.failTreeAction(msg('core.ws.deleteDirty', { name }));
       return false;
     }
 
@@ -790,7 +819,7 @@ export class WorkspaceStore {
       await fileManager.deletePath(path);
     } catch (thrown) {
       const error = asAppError(thrown);
-      this.failTreeAction(t('core.ws.deleteFailed', { reason: error.message }), error.detail ?? undefined);
+      this.failTreeAction(msg('core.ws.deleteFailed', { reason: error.message }), error.detail ?? undefined);
       return false;
     }
 

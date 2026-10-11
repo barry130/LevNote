@@ -20,8 +20,8 @@ import type {
   WriteOutcome,
   WriteRequest,
 } from '../document/types.js';
+import { textOf } from '../i18n/index.js';
 import { WorkspaceStore } from './store.js';
-import { renderNotice } from '../document/store.js';
 import type { WorkspaceFileManager } from './fsmanage.js';
 
 interface FakeFile {
@@ -142,6 +142,17 @@ function dir(name: string, path: string): DirEntry {
 }
 function file(name: string, path: string): DirEntry {
   return { name, path, isDir: false, size: 0, mtimeMs: 0 };
+}
+
+/**
+ * 树顶横幅现在存的是**还没翻的 key + 参数**（ADR 0047：文案快照那一族的
+ * 文件树部分）。断言「横幅说了什么」之前先翻；生产代码里翻的地方
+ * 只有 `Sidebar` 渲染的那一瞬间。
+ */
+function treeErrorOf(workspace: WorkspaceStore): string {
+  const error = workspace.getSnapshot().tree.error;
+  if (error === null) throw new Error('这个用例期待树顶有一条错误；实际一条都没有');
+  return textOf(error.message);
 }
 
 describe('标签页', () => {
@@ -401,7 +412,7 @@ describe('会话恢复', () => {
     // notice 现在存的是 **key + 参数**（#TASK-I18N-SNAPSHOT-01），渲染时才查表 ——
     // 这里断言渲染结果，保持这条用例原本的语义（「那句话是准的」）
     const notice = workspace.activeStore?.getSnapshot().notice ?? null;
-    expect(notice !== null && renderNotice(notice)).toBe('已打开 a.md');
+    expect(notice !== null && textOf(notice)).toBe('已打开 a.md');
   });
 
   it('有草稿时把「已打开 X」清掉 —— 那句话说的是磁盘读取，而屏幕上现在是草稿', async () => {
@@ -560,7 +571,7 @@ describe('文件树', () => {
 
     provider.failListDir = true;
     await workspace.toggleDir('C:\\w\\src');
-    expect(workspace.getSnapshot().tree.error?.message).toContain('读不出目录');
+    expect(treeErrorOf(workspace)).toContain('读不出目录');
     expect(workspace.getSnapshot().tree.loading).toEqual([]);
   });
 
@@ -681,7 +692,7 @@ describe('文件监听推送（P3 第 14 项：handleFsChanges）', () => {
     workspace.handleFsChanges(['C:\\w\\src']);
     await flush();
 
-    expect(workspace.getSnapshot().tree.error?.message).toContain('读不出目录');
+    expect(treeErrorOf(workspace)).toContain('读不出目录');
   });
 });
 
@@ -947,7 +958,7 @@ describe('文件管理（A2：createEntry / renameEntry / deleteEntry）', () =>
 
     manager.failNext = '目标已存在';
     expect(await workspace.createEntry('C:\\w', 'a.md', 'file')).toBeNull();
-    expect(workspace.getSnapshot().tree.error?.message).toContain('目标已存在');
+    expect(treeErrorOf(workspace)).toContain('目标已存在');
   });
 
   it('重命名打开着的脏文件：标签页换路径、脏缓冲保留、保存写到新路径', async () => {
@@ -1011,7 +1022,7 @@ describe('文件管理（A2：createEntry / renameEntry / deleteEntry）', () =>
     expect(manager.deleted).toHaveLength(0);
     expect(provider.files.has('C:\\w\\a.md')).toBe(true);
     expect(workspace.getSnapshot().tabs.find((item) => item.id === tabId)?.path).toBe('C:\\w\\a.md');
-    expect(workspace.getSnapshot().tree.error?.message).toContain('未保存');
+    expect(treeErrorOf(workspace)).toContain('未保存');
   });
 
   it('删除目录连带子树里的打开标签页', async () => {
@@ -1035,6 +1046,6 @@ describe('文件管理（A2：createEntry / renameEntry / deleteEntry）', () =>
     expect(await workspace.createEntry('C:\\w', 'x.md', 'file')).toBeNull();
     expect(await workspace.renameEntry('C:\\w\\a.md', 'y.md')).toBeNull();
     expect(await workspace.deleteEntry('C:\\w\\a.md')).toBe(false);
-    expect(workspace.getSnapshot().tree.error?.message).toContain('不支持');
+    expect(treeErrorOf(workspace)).toContain('不支持');
   });
 });

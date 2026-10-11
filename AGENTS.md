@@ -113,7 +113,8 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **偏好 / 位置 / 最近打开写不进去时怎么说** | `core/settings.ts` 的 `PersistOutcome`（`{ ok: true }` \| `{ ok: false, reason: 'no-storage' \| 'write-failed' }`）+ `ui/App.tsx` 的 `reportPersistFailure(outcome)`。**四处写偏好（设置 / 位置 / 位置清空 / 最近打开）全部走它**，翻会话横幅那一枚 `writeFailed`，不许各弹各的。`no-storage`（浏览器预览 / 隐私模式）**刻意不说话** —— 那是预期内的降级；只有 `write-failed`（配额 / 策略）才说。判据同样是「会失败的能力类型不许是 `void`」（ADR 0042） |
 | **存储里的东西读不出来时怎么说** | `core/settings.ts` 的 `LoadOutcome` + `LoadResult<T>`（**ADR 0042 的对偶**）。`loadSettings` / `loadPositions` / `loadRecentFiles` / `loadSession` **四个一律返回 `{ value, outcome }`**，值照样回落（白屏比丢失更糟），但回落**不等于沉默**。三档 reason：`no-storage` 折成「没丢」（预期内降级）、`read-failed`（`getItem` 抛）、`corrupt`（内容用不了）。**判据只有一条：键在、值用不了才算丢失** —— 键不在是版本升级的新字段、夹取是意图已兑现、字体族消毒，都**不报**（实现见 `core/settings.ts` 的 `pickField`：`raw === undefined` 走安静那条）。点名 vs 只报数由**键名**决定：路径能点名（`ui/App.tsx` 的 `READ_LOSS_NAMES_MAX = 3`，全列出来就是一面墙），`sidebarWidth` 这种内部标识只报数；**整份报废时 `lostCount` 一律写死 1**，写 0 等于把一次丢失又藏了回去。`loadSession` **只报整份报废**，逐条丢弃继续走 `droppedDrafts`，同一件事不说两遍。读侧横幅与写侧横幅**分两条**（ADR 0044） |
 | **文件监听没起来时怎么说** | `ui/App.tsx` 的 `WatchIssue`（`{ reason, failedPaths }`）+ `foldWatchIssue` / `watchIssueSignature` / `watchReasonOf`，第三条横幅。**这一族的判据不一样**：丢的不是数据，是「**早点知道的机会**」—— 监听一停，目录树不刷新、冲突检测不报警，用户可以在毫无察觉的情况下把别人的改动覆盖掉，而兜底那两条路（下一批事件、窗口聚焦的全量比对）都建立在「事件还会来」上。**它不会自愈**（目录被删 / inotify-kqueue 额度耗尽 = 事件永久不再到达），所以不能只 `console.warn`（发布版里没人看）。两路来源（批次里的 `error`、`watch_replace` 返回的失败路径）**各占一个槽、整份替换**——不累加（严格模式双挂不翻倍），也因此能自愈（正常的一批把 `reason` 清回 `null`）。`reason` 是**三态**：`null` 没问题 / `''` 有问题但拿不出原因 / 原文；压成两态会让「说不出原因」整条消失，**报 0 等于把一次故障藏回去**。两档措辞：整条链可能断 →「外部改动可能发现不了」，只是几条路径没监视上 →「有 {n} 条路径没在监视」（多半只是那几条被删/移了，重话说就是虚惊，虚惊多了用户就开始忽略这一类）。按掉存**指纹**不存布尔（关掉 A 不该把后来的 B 一起关掉）。**Rust 侧零改动**：`error: Option<String>` 与失败路径数组本来就是为此留的，只是前端一直没接。**别再把监听的任何失败写成 `console.warn`**，也**别给 `watchFiles` / `onFilesChanged` 的 promise `void` 掉而不接 catch**（ADR 0045） |
-| **说过的话留不留得下来（问题清单）** | `core/health.ts`（纯函数记录本，**只活一次运行、不落盘**）+ `ui/HealthDialog.tsx`（帮助菜单 → 「本次运行的问题」，命令 `diagnostics.issues`，**刻意不给快捷键**）。**这一族回答的是「横幅要求用户正好在看」**：按掉横幅的动机恰恰是「我不想现在处理」，一次运行里先后三四件事横幅一次只占一行，关掉应用就没了。记的是 `HealthLine{key, values}` —— **不是句子**（在记账那一刻 `t()` 会把语言烤死，与 ADR 0031 的 `BUILT_IN_COMMANDS` 同一类错）。两条上报通道分开：**横幅族走 `syncFamily`**（有的记上、消失的**标成已恢复**，`resolvedAt` 不许被覆盖），**一次性事件直接 `recordIssue`**（内核加载、写失败、恢复的草稿与文件失败 —— 它们没有「恢复」这个状态）。三条纪律：① **内容没变就什么都不做**（上报点在渲染里，双挂不是又出一次问题，否则「发生过 2 次」对着只发生过一次的事说话）；② **写失败要加 ref 闩**（位置记忆每 600ms 落一次盘，不加就是「发生过 47 次」；闩只能挂在**上报点**上，不能从横幅的 `writeFailed` 推 —— 那个会被「知道了」清掉）；③ **恢复的记录永不删除**，只打标记（自动收起来是这一族里最难看的一种静默）。「**复制全部**」是纯本地应用唯一一条把状态交给别人的路（ADR 0001：没有账号、没有网络、没有遥测），所以那份文本必须脱离界面也读得懂，剪贴板失败要有一张脸。**加了新的一族要补 `AREA_LABEL_KEYS`**（`satisfies` 钉死，忘写标签名编译期就拦）（ADR 0046） |
+| **说过的话留不留得下来（问题清单）** | `core/health.ts`（纯函数记录本，**只活一次运行、不落盘**）+ `ui/HealthDialog.tsx`（帮助菜单 → 「本次运行的问题」，命令 `diagnostics.issues`，**刻意不给快捷键**）。**这一族回答的是「横幅要求用户正好在看」**：按掉横幅的动机恰恰是「我不想现在处理」，一次运行里先后三四件事横幅一次只占一行，关掉应用就没了。记的是 `HealthLine{key, params}`（= `LocalizedText`）—— **不是句子**（在记账那一刻 `t()` 会把语言烤死，与 ADR 0031 的 `BUILT_IN_COMMANDS` 同一类错）。两条上报通道分开：**横幅族走 `syncFamily`**（有的记上、消失的**标成已恢复**，`resolvedAt` 不许被覆盖），**一次性事件直接 `recordIssue`**（内核加载、写失败、恢复的草稿与文件失败 —— 它们没有「恢复」这个状态）。三条纪律：① **内容没变就什么都不做**（上报点在渲染里，双挂不是又出一次问题，否则「发生过 2 次」对着只发生过一次的事说话）；② **写失败要加 ref 闩**（位置记忆每 600ms 落一次盘，不加就是「发生过 47 次」；闩只能挂在**上报点**上，不能从横幅的 `writeFailed` 推 —— 那个会被「知道了」清掉）；③ **恢复的记录永不删除**，只打标记（自动收起来是这一族里最难看的一种静默）。「**复制全部**」是纯本地应用唯一一条把状态交给别人的路（ADR 0001：没有账号、没有网络、没有遥测），所以那份文本必须脱离界面也读得懂，剪贴板失败要有一张脸。**加了新的一族要补 `AREA_LABEL_KEYS`**（`satisfies` 钉死，忘写标签名编译期就拦）（ADR 0046） |
+| **`t()` 的结果会跨渲染存活的地方** | `core/i18n/index.ts` 的 `LocalizedText{key, params}` + `msg()` / `textOf()`（`core/health.ts` 的 `HealthLine` 是它的别名）。**判据不是「这个文件属于 core 还是 ui」，是「`t()` 的结果有没有进 state / store 字段 / 会被存起来的返回值」** —— 进了就等于把语言烤死在调用那一刻。已收干净的四处：`TreeState.error`（`TreeProblem`，不带恒定的 `code`，`detail` 是抛物原话**不许翻**）与 `validateEntryName()` 的八条规则、`ReplaceReport`（片段数组 + 问题行，**句子只在 `renderReplaceReport()` 里拼，连逗号都是一个 key**）、`SettingsDialog.error`、`PasteImageFail.reason`（这一处一交 key，`DocumentStore` 的 `legacyText()` 品牌门就整个删掉了 —— **没有门后的门比没有门更糟**）。**抛物原话当 `params` 走，绝不当句子翻**（翻一句 `EACCES` 得到的是听起来像回事的谎）。**别再把 `t()` 的结果塞进任何活过渲染的结构**（ADR 0047） |
 | **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
 | **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
 | 大纲提取 | `core/outline/outline.ts` |
@@ -827,7 +828,7 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 **除了一页列表，第二个把内部状态交给别人的办法根本不存在**。
 所以有了 `core/health.ts` + 帮助菜单的「本次运行的问题」
 （命令 `diagnostics.issues`，**刻意不给快捷键**）。五条要记住的：
-① **记的是 `{ key, values }`，不是句子**（记账那一刻调 `t()` 会把语言烤死，
+① **记的是 `{ key, params }`，不是句子**（记账那一刻调 `t()` 会把语言烤死，
 与 ADR 0031 的 `BUILT_IN_COMMANDS` 同一类错）；② **横幅族走 `syncFamily`**、
 **一次性事件走 `recordIssue`**（内核加载 / 写失败 / 恢复丢掉的草稿与文件
 没有「恢复」这个状态）；③ **内容一字未改且未恢复就什么都不做** ——
@@ -838,6 +839,26 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 **刻意不落盘**：跨运行日志会把「上次的记录」混进「本次运行」。
 「**复制全部**」是纯本地应用唯一一条把状态交给别人的路，所以那份文本必须
 脱离界面也读得懂，剪贴板失败要有一张脸。
+
+**说过的话要跟着语言变（2026-10-13，ADR 0047）**：0046 刚把「记的是 key 不是句子」
+这条立起来，紧接着就发现**同一类错还剩四处**—— 文件树顶横幅（`failTreeAction`
+的十处调用 + `validateEntryName()` 的八条规则，两处生产者都扫了才没漏）、
+跨文件替换的汇报（`describeReplaceOutcome` 交出一句拼好的话，
+`SearchPanel` 存进 state）、设置页的 `error`、图片落盘失败的 `reason`。
+**这一族回答的是「用户中途切了语言」**：数据还在，可说的话停在旧语言上，
+界面于是一半中文一半英文。**判据不落在文件归属上，落在「`t()` 的结果有没有
+活过渲染」上** —— 进了 state / store 字段 / 会被存起来的返回值就是这一族；
+白名单是**允许动的边界**，不是「必须改的清单」（`DocumentPane.editorError`
+在白名单里，但它存的是 `thrown.message`，不是 `t()` 的返回值）。
+四条要记住的：① **跨边界的不是句子，是 `{ key, params }`**
+（`LocalizedText`，字段名跟 `t(key, params)` 对齐 —— 同一个想法两种拼法
+就是代码地图禁的那类「抄两份」）；② **抛物的原话当 `params` 走，绝不当句子翻**
+（翻一句 `EACCES` 得到的是听起来像回事的谎）；③ **句子只在渲染那一刻拼**，
+`renderReplaceReport()` 里连那个逗号都是一个 key；④ `images.ts` 一交 key，
+`DocumentStore` 的 `legacyText()` 品牌门就整个删掉 —— **门后的门比没有门更糟**。
+**登记不做**（写进重审条件，别让人重新扫一遍）：`block-preview` 的
+`reason` 与 `snippet`、katex / mermaid / drawio 的 `Render.message` ——
+它们的落点在内核画的那一侧，修它要动 `core/editor/types.ts` 的契约。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、

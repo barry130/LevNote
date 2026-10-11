@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { setLocale } from '../i18n/index.js';
-import { DocumentStore, isDirty, renderNotice } from './store.js';
+import { setLocale, textOf } from '../i18n/index.js';
+import { DocumentStore, isDirty } from './store.js';
 import type {
   BinaryWriteOutcome,
   BomKind,
@@ -580,26 +580,38 @@ describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
 
     // 切语言之前：中文
     setLocale('zh-CN');
-    expect(renderNotice(notice)).toBe('已打开 a.md');
+    expect(textOf(notice)).toBe('已打开 a.md');
 
     // 只切语言，**一个动作都不做** —— 那条已经在 state 里的 notice 自己活过来
     setLocale('en');
-    expect(renderNotice(notice)).toBe('Opened a.md');
+    expect(textOf(notice)).toBe('Opened a.md');
 
     setLocale('zh-CN');
   });
 
-  it('落盘失败时走 text 变体（images.ts 的 reason 已是译文，本轮已知残留），渲染时原样交回', async () => {
+  it('落盘失败时 notice 存的是 key，切语言跟着变（ADR 0047：不再是 text 变体）', async () => {
     provider.put('demo.md', '前文');
     await store.open('demo.md');
 
-    // 虚拟盘路径没有目录信息 —— writePastedImage 会失败并给一句话
+    // 虚拟盘路径没有目录信息 —— writePastedImage 会失败并给一条 LocalizedText
     const result = await store.pasteImage(new ArrayBuffer(4), 'image/png');
     expect(result).toBeNull();
     const notice = store.getSnapshot().notice;
     expect(notice).not.toBeNull();
-    if (notice === null || !('text' in notice)) throw new Error('这条 notice 应当是 text 变体');
-    expect(renderNotice(notice)).toBe(notice.text);
+    if (notice === null) return;
+
+    // 这就是当年那道品牌门（`LegacyTextNotice` + `LEGACY_TEXT`）存在过的原因：
+    // `images.ts` 把 reason 烤成了字符串。现在它交回 key 了，门整个拆掉。
+    expect(notice.key).toBe('core.images.noLocation');
+
+    setLocale('zh-CN');
+    const zh = textOf(notice);
+    setLocale('en');
+    const en = textOf(notice);
+    setLocale('zh-CN');
+
+    expect(zh).not.toBe(en);
+    expect(en).toContain('nowhere');
   });
 
   /**
@@ -704,9 +716,9 @@ describe('notice 存 key 不存译文（#TASK-I18N-SNAPSHOT-01）', () => {
     expect(notice.key).toBe(expectedKey);
 
     setLocale('zh-CN');
-    const zh = renderNotice(notice);
+    const zh = textOf(notice);
     setLocale('en');
-    const en = renderNotice(notice);
+    const en = textOf(notice);
     setLocale('zh-CN');
 
     // 同一条 notice 在两种语言下渲染出**不同**的句子 —— 这就证明它是查表得来的

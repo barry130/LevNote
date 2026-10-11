@@ -37,6 +37,8 @@ import {
   type WorkspaceSearcher,
   type WorkspaceSummary,
 } from '../core/search/workspace.js';
+import { describeReplaceOutcome, type ReplaceReport } from '../core/search/replace.js';
+import { msg, setLocale } from '../core/i18n/index.js';
 import { SearchPanel } from './SearchPanel.js';
 
 declare global {
@@ -122,6 +124,8 @@ function summaryOf(overrides: Partial<WorkspaceSummary> = {}): WorkspaceSummary 
 interface Props {
   root: string | null;
   canSearch: boolean;
+  /** 默认「什么都不做」—— 只有替换汇报那条用例会塞真的进来。 */
+  onReplaceAll?: (paths: readonly string[], replacement: string) => Promise<ReplaceReport | null>;
 }
 
 interface Mounted {
@@ -162,7 +166,7 @@ async function mountPanel(initial: Props = { root: '/root', canSearch: true }): 
           root={props.root}
           canSearch={props.canSearch}
           onOpenMatch={(path, m) => opened.push({ path, match: m })}
-          onReplaceAll={() => Promise.resolve(null)}
+          onReplaceAll={props.onReplaceAll ?? (() => Promise.resolve(null))}
           onClose={() => {
             closes += 1;
           }}
@@ -250,6 +254,28 @@ function inputOf(container: HTMLElement): HTMLInputElement {
   return input;
 }
 
+/** 替换输入框：有结果之后才出现，是第二个 `.search-input`。 */
+function replacementOf(container: HTMLElement): HTMLInputElement {
+  const input = container.querySelectorAll<HTMLInputElement>('.search-input')[1];
+  if (input === undefined) throw new Error('没有替换输入框（面板里还没有结果？）');
+  return input;
+}
+
+/** 那个「对结果里的 N 个文件做全部替换」的按钮 —— 按**当前语言**的文案找，不靠位置。 */
+function replaceButtonOf(container: HTMLElement, label: string): HTMLButtonElement {
+  const found = [...container.querySelectorAll<HTMLButtonElement>('.search-row button')].find((button) =>
+    (button.textContent ?? '').includes(label),
+  );
+  if (found === undefined) throw new Error(`没有「${label}」按钮`);
+  return found;
+}
+
+/** 汇报画在最后一条 `.search-hint` 上（上面那条讲的是 .gitignore 开关）。 */
+function replaceHintOf(container: HTMLElement): string {
+  const hints = [...container.querySelectorAll('.search-hint')];
+  return hints[hints.length - 1]?.textContent ?? '';
+}
+
 function toggleOf(container: HTMLElement, label: string): HTMLButtonElement {
   const found = [...container.querySelectorAll<HTMLButtonElement>('.search-toggle')].find((button) =>
     (button.textContent ?? '').includes(label),
@@ -282,6 +308,8 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  // 切语言的用例会把全局 locale 带走 —— 每个用例都得从中文开始
+  setLocale('zh-CN');
   for (const root of roots) {
     await act(async () => {
       root.unmount();
@@ -591,5 +619,59 @@ describe('SearchPanel · 其它', () => {
     });
 
     expect(inputOf(container).value).toBe('配置');
+  });
+});
+
+/**
+ * 汇报存的是**结构**（`ReplaceReport`），翻译留到渲染那一刻（ADR 0047）。
+ *
+ * 修好之前 `SearchPanel` 的 state 里躺着一句拼好的中文：换了语言，
+ * 面板上那行字还是中文。钉住的就是「重画一次就换了」——
+ * 不重跑替换、不重建 store、不改任何 props 的值，只切语言。
+ */
+describe('SearchPanel · 跨文件替换的汇报（ADR 0047）', () => {
+  it('汇报存的是结构：切语言后那行字跟着变，替换一次都没有重跑', async () => {
+    const calls: Array<{ paths: readonly string[]; replacement: string }> = [];
+    const report = describeReplaceOutcome({
+      filesReplaced: 2,
+      matchesReplaced: 5,
+      skipped: [],
+      failed: [{ path: 'C:\\w\\notes\\b.md', reason: msg('core.replace.readFailed', { detail: 'EACCES' }) }],
+    });
+    const m = await mountPanel({
+      root: '/root',
+      canSearch: true,
+      onReplaceAll: (paths, replacement) => {
+        calls.push({ paths, replacement });
+        return Promise.resolve(report);
+      },
+    });
+
+    await searchFor(m, 'abc');
+    await act(async () => {
+      m.runs[0]?.onBatch(batch([{ path: 'C:\\w\\notes\\a.md', matches: [match()] }]));
+    });
+    await finish(m, 0, { totalMatches: 1, matchedFiles: 1 });
+
+    await type(replacementOf(m.container), 'xyz');
+    await click(replaceButtonOf(m.container, '替换'));
+    await settle();
+
+    expect(calls).toEqual([{ paths: ['C:\\w\\notes\\a.md'], replacement: 'xyz' }]);
+    expect(replaceHintOf(m.container)).toContain('替换了 5 处（2 个文件）');
+    expect(replaceHintOf(m.container)).toContain('- b.md：读不到这个文件（EACCES）');
+
+    setLocale('en');
+    await m.setProps({});
+    expect(replaceHintOf(m.container)).toContain('Replaced 5 occurrence(s) in 2 file(s)');
+    expect(replaceHintOf(m.container)).toContain("- b.md: Couldn't read this file (EACCES)");
+    // 分隔符也来自 catalog：英文界面里不该出现中文逗号
+    expect(replaceHintOf(m.container)).not.toContain('，');
+    // 全程只跑过那一次替换
+    expect(calls).toHaveLength(1);
+
+    setLocale('zh-CN');
+    await m.setProps({});
+    expect(replaceHintOf(m.container)).toContain('替换了 5 处（2 个文件）');
   });
 });

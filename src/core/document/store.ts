@@ -10,7 +10,7 @@
  */
 
 import { randomSalt, readImageAsUrl, writePastedImage } from './images.js';
-import { t, type MessageKey } from '../i18n/index.js';
+import { t, type LocalizedText, type MessageKey } from '../i18n/index.js';
 import { resolveRelative } from '../path.js';
 import {
   asAppError,
@@ -95,141 +95,84 @@ export type ViewMode = 'rich' | 'source' | 'split';
  * 与 ADR 0031 复评记录二为组件立下的「静态清单存 key、渲染时才 `t()`」
  * 是同一条纪律 —— 那时漏掉的正是命令面与这两处快照。
  *
- * ## `text` 变体只服务一个来源，且**有编译期拦截**
+ * ## `text` 变体连同品牌门一起删掉了（ADR 0047）
  *
- * `images.ts` 的 `PasteImageFail.reason` 已经是查好表的一句话，而那个文件
- * **不在本轮改动范围内**（它把 6 条译文烤成了字符串）。所以这一支保留原样。
+ * 曾经 `Notice` 是个**联合**：`{ key, params }` 与「已经查好表的一句话」
+ * `{ text }`。后者带着一个**模块私有**的品牌符号 `[LEGACY_TEXT]` ——
+ * 直接写 `{ text: '硬编码译文' }` 是编译错误（刑部当年实测：没有这道门的
+ * 时候，`tsc` 与全量测试对那句话**全绿**，注释拦不住任何人）。
  *
- * **它曾经「只有注释约束、无编译期拦截」**（门下实测：在白名单文件里插一句
- * `{ text: '硬编码译文' }` → `tsc` / 全量测试**全绿**）—— 注释拦不住任何人。
- * 现在 `text` 变体带一个**品牌符号**（`LegacyTextNotice` 上的
- * `[LEGACY_TEXT]`），且 `LegacyTextNotice` 与 `legacyText()` 都收成
- * **模块私有**：只有本文件能造出它，直接写字面量 `{ text: ... }` 是
- * **编译错误**（缺品牌字段）。与命令面的 `BuiltInCommandSpec` 不接受
- * 字面量 `title` 是同一条纪律 —— 该拦的形状交给类型系统，不靠人记得。
+ * 那道门是为 `core/document/images.ts` 立的：它的 `PasteImageFail.reason`
+ * 当时不在白名单里，把 6 条译文烤成了字符串，所以本文件得有个出口接住它。
+ * 上面写着「**重审条件**：哪天 `images.ts` 交回 key（那时 `text` 变体整个
+ * 删除），品牌符号随之一并删掉」。
  *
- * **重审条件**：哪天 `images.ts` 交回 key（那时 `text` 变体整个删除），
- * 品牌符号随之一并删掉。
+ * **重审条件到期了**：`images.ts` 的 `reason` 现在就是 `LocalizedText`，
+ * 与 `key` 变体同形。`{ text }` 这一支、`LegacyTextNotice`、`LEGACY_TEXT`
+ * 与 `legacyText()` **整个删除** —— 留着它们等于给下一个写
+ * `legacyText(t('…'))` 的人留一扇门，而那道门的存在理由已经没了。
  *
- * ## 本轮的已知残留（不是「唯一」—— 详见 ADR 0031 复评记录四）
+ * 删完之后 `notice` 的类型就是 `LocalizedText`、渲染就是 `textOf()`：
+ * 这一族**只有一种形状、一个翻法**。
  *
- * - `core/document/images.ts` 的 `PasteImageFail.reason`（译文烤成字符串，
- *   本文件**模块私有**的 `legacyText()` 就是给它留的出口）；
- * - `core/search/replace.ts` 的跨文件替换汇总（`describeReplaceOutcome` /
- *   `skipped[].reason` 全是 `t()` 拼好的句子）→ 经 `App.tsx` 的
- *   `handleReplaceAll` 返回值 → `SearchPanel` 的 `setReplaceMessage` 存进 state；
- * - `core/workspace/store.ts` 的 `tree.error` 一族 —— 有**两个**生产者：
- *   ① `failTreeAction` 的 **10 处调用**（其中 **8 处**直传 `t()` 结果：
- *   `fsManageUnsupported` / `cannotDetermineTarget` ×2 / `createFailed` /
- *   `renameNoDir` / `renameFailed` / `deleteDirty` / `deleteFailed`），
- *   以及 `toggleDir` 里直接写 `tree.error` 的 `cannotReadDir` 一处；
- *   ② `core/path.ts` 的 `validateEntryName()` —— 它**逐条 `return t()`**
- *   （`core.path.*` 七条），经 `failTreeAction(problem)` 落到 `tree.error.message`
- *   再上屏，是**同一族的独立生产者**（同一族的两个写入路径各传一个来源）；
- *   扫字段要先扫它**全部**的写入点，只看一个必然漏。
+ * ## 这一族现在的账（ADR 0047 之后）
+ *
+ * 病根只有一个形状：`t()` 的结果被烤进某个字符串，而那个字符串**跨一次
+ * 渲染活下来**（进 state、存进 store 字段、传进回调），于是切语言时它在
+ * 原语言里不动。ADR 0047 把落点定在**我们的界面上**的那四处全改掉了 ——
+ * 一处都不需要动内核契约：
+ *
+ * - `core/document/images.ts` 的 `PasteImageFail.reason` → `LocalizedText`
+ *   （也就是上面那道品牌门拆掉的原因）；
+ * - `core/search/replace.ts` 的跨文件替换（`skipped[].reason` /
+ *   `describeReplaceOutcome`）→ `ReplaceReport`，由 `renderReplaceReport()`
+ *   这**唯一一处**翻成句子 —— 连「，」这个分隔符与「- 文件名：原因」的冒号
+ *   都来自 catalog，否则英文界面里画的是中文逗号；
+ * - `core/workspace/store.ts` 的 `tree.error`（`failTreeAction` 的 10 处 +
+ *   `toggleDir` 直接写的那处）与**同一个字段的独立生产者**
+ *   `core/path.ts` 的 `validateEntryName()`（7 条规则逐条 `return t()`）——
+ *   `TreeState.error` 现在是 `TreeProblem`，`Sidebar` 在渲染时翻。
+ *   **扫字段要先扫它全部的写入点，只看一个必然漏**（同一族的两个写入路径
+ *   各传一个来源，这是这族最常见的漏法）；
+ * - `SettingsDialog.tsx` 的 `error` state（`setError(msg('ui.settings.keyUnsafe'))`）。
+ *
+ * ### 登记不做（连同理由一起钉住，别让人重新扫一遍）
+ *
+ * 下面两处**同样**是「`t()` 的结果跨渲染存活」，但落点在**内核那一侧**，
+ * 单侧改不动，要改就是改 `core/editor/types.ts` 的契约 —— 那是另一个爆炸半径，
+ * 值得单独一轮，不该混在这一轮里悄悄夹带：
+ *
  * - `core/document/block-preview.ts` 交给内核的那条契约出口上**有两个**译文字段
  *   （同文件、同函数族、同机制）—— 扫出口要扫**它全部译文字段**，不是一个：
  *   ① `buildDocBlockPreview()` 里 `reason: t(...)` 三处（`cannotResolve` /
  *   `unreadable` / `badMindmap`，字段是 `DocBlockPreview.reason`）；
  *   ② `firstLines()` 里截断尾 `t('core.bprev.truncatedN')` 拼进 `snippet`
  *   （字段是 `DocBlockPreview.snippet`）—— `>40` 行的 text 引用即走到，
- *   内核 `code-block-view.ts` 把 `snippet` 原样 `textContent` 画，切语言不重问；
- *   两者经契约交给内核画，内核不重问就不会重算；
+ *   内核 `code-block-view.ts` 把 `snippet` 原样 `textContent` 画，切语言不重问。
  * - `core/katex.ts` / `core/mermaid-render.ts` / `core/drawio-render.ts` 的
  *   `Render.message` 一族（**三个渲染出口**）—— 与 `block-preview` 同机制：
  *   `t('core.render.*')` 的结果经返回值交给 NodeView，NodeView 拿到就画
  *   （`paintDiagramNote(result.message)` / `paint('failed', result.message)`），
  *   **不重问语言**。实测切 en 后同一份结果对象仍是中文（`drawioEmpty` /
  *   `mermaidEmpty` 探针）；空图表 / 缺 chunk / 公式语法错时生产可达。
- *   **按「逐个契约出口 × 它的全部译文字段」机械扫出来的，先前从未登记**
- *   （第三轮封驳 P1-1 的机械遍历补齐）。
- * - `SettingsDialog.tsx` 的 `error` state（`setError(t('ui.settings.keyUnsafe'))`）。
  *
- * 上面这几处**都不在本单白名单内**，逐处判据见回奏的 AC6 扫描清单。
+ * ### 两处「看着像、其实不是」，留给下一个来扫的人
+ *
+ * - `App.tsx` 的 `resolveDocBlockPreview` 回调里
+ *   `reason: t('ui.app.refNoBaseReason')`（宿主文档没有路径信息时）——
+ *   与上面同因，但要动契约，**而且该分支生产不可达**：标签页只在
+ *   `store.open()` 成功后入 `tabs`，活动面板的 `doc` 恒非 null，唯一置 null 的
+ *   `close()` 在生产代码里无人调用。
+ * - `DocumentPane.tsx` 的 `editorError` —— 它存的是 `thrown.message`
+ *   （内核抛出的原始错误），**不是 `t()` 的返回值**，因此不属这一族。
+ *   这是扫描时最容易误列的一处，判据要落到**来源**上。
+ *
  * `error` / `conflict` 两个 store 字段与 notice 同型，已在同一批里改齐
  * （见 `localizedError` / `localizedConflict`）。
  *
- * 同一族还有**一处白名单内**的，判的是「不改 + 登记」：
- * `App.tsx` 的 `resolveDocBlockPreview` 回调里
- * `reason: t('ui.app.refNoBaseReason')`（宿主文档没有路径信息时）。它与
- * 同一契约出口上的 `reason` 三条与 `snippet`（见上）同因，单侧改不动：
- * ① 修它要动 `core/editor/types.ts` 的契约（白名单外）；
- * ② 该分支生产不可达 —— 标签页只在 `store.open()`
- * 成功后入 `tabs`，活动面板的 `doc` 恒非 null，唯一置 null 的 `close()`
- * 在生产代码里无人调用。**白名单是「允许动的边界」，不是「必须改的清单」**
- * —— 判据落在「`t()` 结果是否跨渲染存活 + 可达性」上，不落在文件归属上。
- *
- * **注意 `DocumentPane.tsx` 的 `editorError` 不在上面** —— 它存的是
- * `thrown.message`（内核抛出的原始错误），不是 `t()` 的返回值，
- * 因此不属这一族。这是扫描时最容易误列的一处，判据要落到**来源**上。
+ * **白名单是「允许动的边界」，不是「必须改的清单」** —— 判据落在
+ * 「`t()` 结果是否跨渲染存活 + 落点在谁那侧 + 可达性」上，不落在文件归属上。
  */
-
-/** `text` 变体的品牌符号。**只有这个模块能造出带它的对象。** */
-const LEGACY_TEXT: unique symbol = Symbol('levnote.legacyTextNotice');
-
-/**
- * 已经查好表的一句话（**旧形态**）。
- *
- * 带上品牌符号之后，`{ text: '...' }` 这种字面量**不再是** `Notice` ——
- * 编译器会挡住它。**它不对外导出**：想造一个只能在本文件里走 `legacyText()`，
- * 而那个函数的文档字符串里写着「只为 `images.ts` 那一个来源保留」。
- * 收成私有是刻意的 —— 全仓对它的引用**只在 `store.ts` 内部**（写这一句时
- * 已 grep 核实），导出它等于给任何文件留一道绕开门（刑部封驳实测：
- * `export` 状态下 `legacyText('硬编码译文')` 与
- * `{ ...legacyText(''), text: '…' }` 两种写法 `tsc` 都是 rc 0）。
- */
-interface LegacyTextNotice {
-  readonly text: string;
-  readonly [LEGACY_TEXT]: true;
-}
-
-/**
- * 把一句已经查好表的译文包成 `Notice`。**模块私有**（理由见上）。
- *
- * 只为 `core/document/images.ts` 的 `PasteImageFail.reason` 保留（那个文件
- * 不在本单白名单内，把 6 条译文烤成了字符串）。**新写的 notice 一律走 `key`
- * 变体** —— 走这条出口会让那句话停在写入时的语言。
- *
- * **已知边界：品牌门挡的是「字面量」，不是「绕道」。** 先可信地调一次
- * `legacyText('x')`、再 `{ ...legacyText('x'), text: '硬编码译文' }` 仍能
- * 过 `tsc`（实测，仅第 1 行字面量报错）—— 只是那要求调用方**先碰一次**这个
- * 出口，与「随便写个 `{ text: ... }` 就过」不是一回事。
- * **收成模块私有之后，能碰到它的只剩本文件**：将来要破门**必须先在本文件
- * 加一个导出**，那一步一定看得见。所以准确说法是「**可疑动作只能落在本文件
- * 内**」，而不是「`tsc` 挡得住一切绕道」。
- *
- * **门挡在哪一层（#TASK-I18N-SNAPSHOT-01 第三轮封驳 P2-2）**：
- * `LEGACY_TEXT` 与 `legacyText()` 都**没有 `export`** —— 这道门拦的是
- * **模块外**；**本模块内**任何代码仍可直接写 `{ text, [LEGACY_TEXT]: true }`
- * （品牌字段就在手边），不受拦。所以旧措辞「只有 `legacyText()` 一个出口
- * 能造出来」**只在模块外成立**。别把「编译期有能力拦」读成「本层也拦得住」
- * —— 与「判据落在哪一层」是同一条纪律。
- *
- * **本模块内 `legacyText(t(...))` 也照样过 `tsc`**（实测 rc 0，第三轮封驳
- * P2-2 要求补的半句）：`legacyText` 收私有只封住了「别的文件来造」，
- * **封不住「本文件的代码顺手把一段新译文包成快照」** —— 想在本文件里破门
- * 只需一行 `this.commit({ notice: legacyText(t('…')) })`，编译期不拦。
- * 所以这道门的准确强度是**「拦外人、不拦自己人」**，别写成「已被编译期封住」。
- * 兜住它的是**测试**（`store.test.ts` 参数化遍历 8 条写入点）与**评审**，不是类型。
- */
-function legacyText(text: string): LegacyTextNotice {
-  return { text, [LEGACY_TEXT]: true };
-}
-
-export type Notice =
-  | { readonly key: MessageKey; readonly params?: Readonly<Record<string, string | number>> }
-  | LegacyTextNotice;
-
-/**
- * 把 `Notice` 渲染成一句话。
- *
- * 查表只发生在这里（渲染的那一刻）—— 别在写入 state 的地方先 `t()` 一遍，
- * 那正是这份类型要消除的写法。两个消费方（状态栏、查找栏）共用它，
- * 免得各写一份联合类型的分支。
- */
-export function renderNotice(notice: Notice): string {
-  return 'text' in notice ? notice.text : t(notice.key, notice.params);
-}
 
 /**
  * 错误横幅 / 冲突横幅里那句话（同批 · #TASK-I18N-SNAPSHOT-01）。
@@ -254,7 +197,7 @@ export function renderNotice(notice: Notice): string {
  * 是同一条纪律的两种落地。
  *
  * **重审条件**：若哪天 `AppErrorShape` 的消费方都收进了白名单，
- * 可以把它统一成 `Notice` 那样的结构化联合 —— 那时 getter 就该退场。
+ * 可以把它统一成 `LocalizedText` 那样的结构化联合 —— 那时 getter 就该退场。
  */
 function localizedError(
   code: ErrorCode,
@@ -294,8 +237,8 @@ export interface StoreState {
   providerKind: ProviderKind;
   /** 有待进行的磁盘操作 */
   busy: boolean;
-  /** 状态栏的一句话反馈。**存 key 不存译文** —— 见 `Notice`。 */
-  notice: Notice | null;
+  /** 状态栏的一句话反馈。**存 key 不存译文** —— 详见上面的 ADR 0047 一节。 */
+  notice: LocalizedText | null;
   /** 当前看的是渲染后的视图还是源码。见 `ViewMode`。 */
   viewMode: ViewMode;
 }
@@ -465,7 +408,7 @@ export class DocumentStore {
     });
 
     if (!result.ok) {
-      this.commit({ notice: legacyText(result.reason) });
+      this.commit({ notice: result.reason });
       return null;
     }
 
