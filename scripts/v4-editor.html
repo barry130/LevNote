@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>draw.io 编辑器宿主页</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+</style>
+<script>
+/*
+ * 这三条路径与 `core/drawio-render.ts` 的 `installResourcePaths()` 是**同一份清单**。
+ * 在这里内联而不是 import：这是一个不经过 Vite 的独立页面，它只能从
+ * 同目录的相对路径取文件。
+ *
+ * 十条全占住是 ADR 0001「零网络请求」的唯一开关 —— 上游产物里每一条都是
+ * `window.X || "绝对地址"`，漏一条就会在打开一张带 stencil 的图时静默联网。
+ */
+(function () {
+  var BASE = './';
+  window.SHAPES_PATH = BASE + 'shapes';
+  window.STENCIL_PATH = BASE + 'stencils';
+  window.STYLE_PATH = BASE + 'styles';
+  window.PROXY_URL = '';
+  window.DRAW_MATH_URL = '';
+  window.GRAPH_IMAGE_PATH = BASE + 'img';
+  window.RESOURCES_PATH = BASE + 'resources';
+  window.RESOURCE_BASE = BASE + 'resources/grapheditor';
+  window.mxImageBasePath = BASE + 'mxgraph/images';
+  window.mxBasePath = BASE + 'mxgraph';
+  window.DRAWIO_BASE_URL = '';
+  window.DRAWIO_LOG_URL = '';
+  /*
+   * `viewer.min.js` 的末尾会调它：设了就**不做** `GraphViewer.processElements()`
+   *（那会把页面上每个 `.mxgraph` 都当查看器目标处理）。我们要自己控制编辑器。
+   * 必须在脚本**之前**赋值 —— 那一行就跑在文件末尾。
+   */
+  window.onDrawioViewerLoad = function () {};
+})();
+</script>
+</head>
+<body>
+<script src="viewer.min.js"></script>
+<script>
+/*
+ * `viewer.min.js` 里装的是**完整的 draw.io 应用**，不只是查看器：
+ * `Editor` / `Graph` / `EditorUi` / `EmbedFile` / `App` 都是这个文件里的顶层符号。
+ * 但它的**入口**是查看器那一条（末尾只调 `Editor.initMath()` 与
+ * `GraphViewer.processElements()`），所以编辑器的引导要在这里补上。
+ */
+(function () {
+  // 先把「哪些符号真的挂到了 window 上」记下来：起不来时要能一眼看出是
+  // 「这份产物里根本没有编辑器」还是「有但引导写错了」。
+  window.__drawioGlobals = {};
+  for (const name of ['Editor', 'EditorUi', 'Graph', 'GraphViewer', 'App', 'EmbedFile', 'mxUtils', 'mxGraph']) {
+    window.__drawioGlobals[name] = typeof window[name];
+  }
+  if (typeof window.EditorUi !== 'function') {
+    window.__drawioHostError =
+      'viewer.min.js 里没有 EditorUi（window 上只有 ' +
+      Object.keys(window.__drawioGlobals)
+        .filter(function (key) { return window.__drawioGlobals[key] !== 'undefined'; })
+        .join(', ') +
+      '）';
+    return;
+  }
+  try {
+    var ui = new window.EditorUi(document.body);
+    window.__drawioHostUi = ui;
+    /*
+     * 嵌入模式：把控制权交给父窗口 —— 等父窗口 `postMessage` 一份 XML 过来，
+     * 用户改完再 `postMessage` 回去。这是 draw.io 官方 embed 的协议，
+     * 由 `EditorUi.prototype.installMessageHandler` 实现。
+     */
+    ui.initializeEmbedMode();
+    window.__drawioHostReady = true;
+  } catch (thrown) {
+    window.__drawioHostError = String(thrown && thrown.message ? thrown.message : thrown);
+  }
+})();
+</script>
+</body>
+</html>

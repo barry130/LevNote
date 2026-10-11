@@ -34,7 +34,8 @@ import { useEffect, useRef } from 'react';
 import type { EditorHandle, EditorMountProps, EditorSearch } from '../../core/editor/types.js';
 import { parseMindmap } from '../../core/mindmap/parse.js';
 import { serializeMindmap } from '../../core/mindmap/serialize.js';
-import { MINDMAP_DEFAULT_LAYOUT, MINDMAP_VERSION, type LineEnding, type MindmapDocument, type MindmapNode } from '../../core/mindmap/types.js';
+import { emptyMindmapDocument } from '../../core/mindmap/template.js';
+import { type LineEnding, type MindmapDocument, type MindmapNode } from '../../core/mindmap/types.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions } from '../../core/search/find.js';
 import { directionOf, fromKernelData, toKernelData } from './adapter.js';
 import './mindmap.css';
@@ -54,14 +55,14 @@ const VERIFY_DELAY = 300;
  * 是「还没开始写」。给它一个中心主题，比让用户面对一个空白的纯文本编辑器友好。
  *
  * 注意 `canHandle` 那边**必须**放行空内容，否则这条走不到（见 `index.ts`）。
+ *
+ * 内容本身交给 `core/mindmap/template.ts` —— 与「新建文件时该写什么」
+ * （`core/new-file-content.ts`）共用**同一份**构造，只差中心主题是谁
+ * （新建时是用户自己刚起的文件名，这里是空文件的占位主题）。
+ * 两份各自抄一份字段，格式演进时就会有一份先掉队。
  */
-export function createEmptyDocument(): MindmapDocument {
-  return {
-    root: { id: 'root', topic: '中心主题', children: [], extra: {} },
-    layout: MINDMAP_DEFAULT_LAYOUT,
-    extra: {},
-    version: MINDMAP_VERSION,
-  };
+function createEmptyDocument(): MindmapDocument {
+  return emptyMindmapDocument('中心主题');
 }
 
 type KernelTopic = ReturnType<MindElixirInstance['findEle']>;

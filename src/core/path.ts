@@ -98,6 +98,25 @@ export function isMindmapPath(path: string): boolean {
 }
 
 /**
+ * 认定为 draw.io 图纸的扩展名（ADR 0048）。
+ *
+ * 跟 `MINDMAP_EXTENSIONS` 同一个理由：这份名单会被内核注册、文件对话框的
+ * 过滤器、导出/引用解析、新建模板四处读到，所以只留一份。
+ *
+ * 刻意**不把 `.xml` 收进来**：`.xml` 是全世界都在用的一种泛型容器，
+ * 绝大多数 `.xml` 根本不是 draw.io 图纸。打开对话框里 `filterDrawio`
+ * 确实也列了 `xml`（那是「用户就是从 draw.io 导出来的」这一路的入口），
+ * 但**认领**一条路径要的是「打开后按图渲染」，因此这里只认 `.drawio`。
+ * 落到 `.xml` 的文件照旧由代码内核按 XML 源码打开 —— 说错类型比不认领更糟。
+ */
+export const DRAWIO_EXTENSIONS: ReadonlySet<string> = new Set(['.drawio']);
+
+/** 路径是否属于 draw.io 图纸。大小写不敏感（`extensionOf` 已统一小写）。 */
+export function isDrawioPath(path: string): boolean {
+  return DRAWIO_EXTENSIONS.has(extensionOf(path));
+}
+
+/**
  * 取所在目录。
  *
  * 返回 `null` 表示「拿不到目录」，也就是**不能猜**：光秃秃的文件名

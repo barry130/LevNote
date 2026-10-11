@@ -50,6 +50,7 @@ export const MENUS: readonly MenuDef[] = [
     accel: 'F',
     items: [
       'file.new',
+      'file.newMindmap',
       'file.open',
       'file.openFolder',
       'separator',

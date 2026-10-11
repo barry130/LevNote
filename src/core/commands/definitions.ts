@@ -18,6 +18,7 @@ import { asAppError } from '../document/types.js';
 import { isDesktop, printHtml } from '../platform/index.js';
 import { basename, dirname, joinPath } from '../path.js';
 import { buildSampleDocument, SAMPLE_DOCUMENT_NAME } from '../sample-document.js';
+import { newFileContent } from '../new-file-content.js';
 
 /**
  * 命令文案的**惰性求值**（2026-10-09，#TASK-I18N-CMD-LIVE-01）。
@@ -83,6 +84,58 @@ function activeDocument(ctx: CommandContext) {
 
 function hasDocument(ctx: CommandContext): boolean {
   return activeDocument(ctx) !== null;
+}
+
+/**
+ * 「在磁盘上起一份内容，然后打开它」——`file.new` / `file.newMindmap` /
+ * 示例文档共用的**一条编排**（ADR 0048）。
+ *
+ * ## 为什么不各写各的
+ *
+ * 这条编排只有四步，但它有**三条会出事的语义**：已存在绝不覆盖（硬约束 2）、
+ * 写失败必须说出理由、失败后不能继续 open。抄三份的下场是
+ * 「给 `file.new` 补上了失败原因，示例文档那条忘了」——
+ * 而示例文档恰恰是唯一一条**允许已存在就直接打开**的，差异被抄开之后就再也对不上了。
+ *
+ * 所以差异只留**数据**：目标已存在时说什么（`null` = 不说，直接打开），
+ * 写失败时说什么（收一个 `reason`，系统抛的原话）。
+ *
+ * `stat` 的 try/catch 是**故意**的：抛 = 文件不存在，那正是「新建」想要的情形；
+ * 反过来「先看不存在、再写」在别的程序抢先写入时会覆盖掉别人的文件。
+ * 真正的原子性在 `create: true` 与 Rust 侧的 `create_new(true)` 上。
+ */
+async function writeNewFileThenOpen(
+  ctx: CommandContext,
+  spec: {
+    readonly path: string;
+    readonly text: string;
+    /** 通知的标题。 */
+    readonly title: string;
+    /** 已存在时要说的那句。`null` = 不说，直接打开（示例文档的语义）。 */
+    readonly existsNotice: string | null;
+    /** 写失败时要说的那句。`reason` 是系统抛出来的原话，不翻译。 */
+    readonly failedNotice: (reason: string) => string;
+  },
+): Promise<void> {
+  let exists = true;
+  try {
+    await ctx.provider.statFile(spec.path);
+  } catch {
+    exists = false;
+  }
+  if (exists && spec.existsNotice !== null) {
+    await ctx.ui.notify(spec.existsNotice, spec.title);
+    return;
+  }
+  if (!exists) {
+    try {
+      await ctx.provider.writeTextFile({ path: spec.path, text: spec.text, create: true });
+    } catch (thrown) {
+      await ctx.ui.notify(spec.failedNotice(asAppError(thrown).message), spec.title);
+      return;
+    }
+  }
+  await ctx.workspace.open(spec.path);
 }
 
 interface ExportInput {
@@ -382,20 +435,52 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
       void (async () => {
         const path = await ctx.provider.pickSavePath(t('core.cmd.untitledName'));
         if (path === null) return;
-        try {
-          await ctx.provider.statFile(path);
-          await ctx.ui.notify(t('core.cmd.newFileExists'), t('core.cmd.newFileTitle'));
-          return;
-        } catch {
-          // stat 失败 = 文件不存在，正是「新建」想要的情形
-        }
-        try {
-          await ctx.provider.writeTextFile({ path, text: '', create: true });
-        } catch {
-          await ctx.ui.notify(t('core.cmd.newFileFailed'), t('core.cmd.newFileTitle'));
-          return;
-        }
-        await ctx.workspace.open(path);
+        await writeNewFileThenOpen(ctx, {
+          path,
+          // 内容由路径决定：选了 `.mindmap` 就落导图模板，其余落空文件
+          // （`core/new-file-content.ts`）。这一条让「新建」本身也认得格式，
+          // 不必非得找到那个专门的命令。
+          text: newFileContent(path),
+          title: t('core.cmd.newFileTitle'),
+          existsNotice: t('core.cmd.newFileExists'),
+          failedNotice: (reason) => t('core.cmd.newFileFailed', { reason }),
+        });
+      })();
+    },
+  }),
+  builtInCommand({
+    /**
+     * 新建思维导图：在磁盘上落**一张真的导图**，打开即进画布（ADR 0048）。
+     *
+     * ## 为什么需要它，而不能让用户自己去改后缀
+     *
+     * `.mindmap` 的内核一直是一等公民：空 `.mindmap` 打开就会进画布。
+     * 缺的是**入口**——此前菜单与命令面板里只有 `file.new`，
+     * 用户得先知道「导图文件的后缀是 `.mindmap`」这件只有作者知道的事。
+     *
+     * ## 落模板而不是落空文件
+     *
+     * 空文件也合法，但画布上是一个**看不见内容的框**；落模板则给中心节点
+     * 填上文件名（用户自己刚起的名字），打开就能点进去改。
+     * 模板由 `core/mindmap/template.ts` 生成，永远等于当前格式。
+     *
+     * 已存在时同样停手并说明，与 `file.new` 走同一条 `writeNewFileThenOpen`。
+     */
+    id: 'file.newMindmap',
+    titleKey: 'command.file.newMindmap.title',
+    categoryKey: 'command.category.file',
+    keywords: ['new mindmap', 'mind map', 'siweidaotu', '思维导图', '导图'],
+    run: (ctx) => {
+      void (async () => {
+        const path = await ctx.provider.pickSavePath(t('core.cmd.untitledMindmapName'));
+        if (path === null) return;
+        await writeNewFileThenOpen(ctx, {
+          path,
+          text: newFileContent(path),
+          title: t('core.cmd.newMindmapTitle'),
+          existsNotice: t('core.cmd.newFileExists'),
+          failedNotice: (reason) => t('core.cmd.newMindmapFailed', { reason }),
+        });
       })();
     },
   }),
@@ -863,19 +948,15 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
         if (root === null) return;
         const path = joinPath(root, SAMPLE_DOCUMENT_NAME);
         if (path === null) return;
-        try {
-          await ctx.provider.statFile(path);
-        } catch {
-          // stat 失败 = 还没有这份文件，写入它
-          try {
-            await ctx.provider.writeTextFile({ path, text: buildSampleDocument(), create: true });
-          } catch (thrown) {
-            const error = asAppError(thrown);
-            await ctx.ui.notify(t('core.cmd.sampleCreateFailed', { reason: error.message }), t('core.cmd.sampleTitle'));
-            return;
-          }
-        }
-        await ctx.workspace.open(path);
+        await writeNewFileThenOpen(ctx, {
+          path,
+          text: buildSampleDocument(),
+          title: t('core.cmd.sampleTitle'),
+          // 已存在就直接打开，不打扰用户：这份示例可能被改过，
+          // 而「想重置就删掉再点一次」已经写在示例文档正文里。
+          existsNotice: null,
+          failedNotice: (reason) => t('core.cmd.sampleCreateFailed', { reason }),
+        });
       })();
     },
   }),

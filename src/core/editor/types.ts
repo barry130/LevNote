@@ -16,7 +16,7 @@ import type { ComponentType } from 'react';
 
 import type { FindOptions } from '../search/find.js';
 
-export type EditorModuleId = 'markdown' | 'code' | 'mindmap' | 'diagram' | 'plaintext';
+export type EditorModuleId = 'markdown' | 'code' | 'mindmap' | 'diagram' | 'drawio' | 'plaintext';
 
 /**
  * 查找能力。

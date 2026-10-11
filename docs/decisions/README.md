@@ -53,6 +53,7 @@
 | [0045](./0045-watcher-silence-has-no-recovery.md) | 监听没起来要说出来：`WatchIssue{reason, failedPaths}` 两个槽**整份替换**（不累加、因此能自愈）；`reason` 三态（`null` 没问题 / `''` 有问题但说不出原因 / 原文）；两档措辞（整条链可能断 vs 只是几条路径没监视上）；按掉存**指纹**不存布尔；丢的是「早点知道的机会」而不是数据 —— 这类故障**不会自愈** | 已采纳 |
 | [0046](./0046-issues-this-run.md) | 本次运行的问题：0042–0045 那一族当场说的话在这里**留得住**（纯函数记录本 `core/health.ts`，**只活一次运行、不落盘**）；存 key+values 不存句子（否则语言被烤在记账那一刻）；恢复显式且**永不删除**；横幅族走 `syncFamily`（有的记上、消失的标成已恢复）、一次性事件直接 `recordIssue`；内容没变就什么都不做（双挂不是又出一次问题）；写失败要加闩（位置记忆每 600ms 落一次盘）；按族分组、「发生过 n 次」只在 n>1 时出现；**复制全部**是纯本地应用唯一一条把状态交给别人的路 | 已采纳 |
 | [0047](./0047-words-that-outlive-the-language-switch.md) | 切了语言，话还是旧的：ADR 0031 记下的七条「`t()` 的结果被烤进跨渲染结构」全部交回 key（文件树 / 跨文件替换 / 设置页错误 / 粘贴图片，`images.ts` 一交 key，`legacyText()` 品牌门整个删掉）；判据是「`t()` 的结果是否跨渲染存活 + 能不能不改内核契约就修」，白名单是**允许动的边界**不是清单；共享形状 `LocalizedText{key, params}`（`HealthLine` 收成别名、参数名取 `params`）；抛物原话当参数走绝不翻；句子只在一处拼——连逗号都是一个 key；`TreeProblem` 不留恒定的 `code`；block-preview 与三个 `Render.message` 出口**登记不做**（落点在内核绘制侧） | 已采纳 |
+| [0048](./0048-mindmap-and-drawio-are-first-class-too.md) | 另外两类文件也是一等公民：`.mindmap` 的内核早就写好，缺的是**入口**（新增 `file.newMindmap` + 侧栏 + `file.new` 选后缀），`.drawio` 连内核都没有 —— 新增只读图纸内核（单文件打开就画，`CODE_EXTENSIONS` 里的 `.drawio` 留着当 `sourceView`，**内核契约一个字没改**）；起始内容只有一份（`core/new-file-content.ts`，模板**生成**不抄字面量，`.mindmap` 用解析器验 `canonical`，`.drawio` 用 `missingStencilLibs` 验）；三个新建入口共用一条编排；图纸内核**刻意不实现 `canHandle`**（查看器自己说「不是合法 XML」更准）**也从不调用 `onChange`**；能力缺失写在面板上而不是「没那个按钮」；**编辑位缺资产有实测读数**（`scripts/v4-run.mjs`：`Editor` 是 `mxCellEditor` 替身，跑不起编辑器），改动路线按读数重写 | 已采纳 |
 
 ## 与其他文档的关系
 

@@ -70,6 +70,29 @@ export function missingStencilLibs(xml: string): string[] {
  */
 let starterCounter = 0;
 
+/**
+ * 一张新图纸的**起始 XML** —— 新建 `.drawio` 文件与插入 doc-block 共用这一份
+ * （与 `core/mindmap/template.ts` 的 `emptyMindmapText` 同一条纪律：**起始内容只有一份**）。
+ *
+ * 一个圆角矩形，不引用任何 stencil 库，因此 `missingStencilLibs` 恒为空。
+ *
+ * ## 那个标签为什么写「标题」而不是「双击改内容」
+ *
+ * 原先 doc-block 的起始内容写着「双击改内容，或直接编辑下面的 XML」。随包分发的是
+ * **只读**查看器，双击并不会让你改到任何东西 —— 一句承诺做不到的话比不写更糟
+ * （硬约束 2）。现在两个位置共用这一份，所以标签只能说「这是一个等着被你改写的标题」。
+ */
+export function drawioTemplateXml(): string {
+  return [
+    '<mxfile><diagram name="页1"><mxGraphModel><root>',
+    '<mxCell id="0" /><mxCell id="1" parent="0" />',
+    '<mxCell id="2" value="标题" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">',
+    '<mxGeometry x="120" y="120" width="200" height="80" as="geometry" />',
+    '</mxCell>',
+    '</root></mxGraphModel></diagram></mxfile>',
+  ].join('');
+}
+
 export function drawioDocBlockStarter(): string {
   const id = `diagram-${Date.now().toString(36)}-${(starterCounter += 1)}`;
   return [
@@ -79,12 +102,7 @@ export function drawioDocBlockStarter(): string {
     'mode: inline',
     'title: draw.io 图表',
     '---',
-    '<mxfile><diagram name="页1"><mxGraphModel><root>',
-    '<mxCell id="0" /><mxCell id="1" parent="0" />',
-    '<mxCell id="2" value="双击改内容，或直接编辑下面的 XML" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">',
-    '<mxGeometry x="120" y="120" width="200" height="80" as="geometry" />',
-    '</mxCell>',
-    '</root></mxGraphModel></diagram></mxfile>',
+    drawioTemplateXml(),
     '```',
     '',
   ].join('\n');

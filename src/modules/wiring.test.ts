@@ -17,6 +17,7 @@ import { listAdapters, resolveAdapter } from '../core/editor/registry.js';
 import { MARKDOWN_EXTENSIONS } from '../core/path.js';
 import { codeAdapter } from './code/index.js';
 import { languageForPath } from './code/setup.js';
+import { drawioAdapter } from './drawio/index.js';
 import { EDITOR_FALLBACK, registerBuiltInEditors } from './index.js';
 import { markdownAdapter } from './markdown/index.js';
 import { mindmapAdapter } from './mindmap/index.js';
@@ -63,12 +64,12 @@ describe('源码视图的接线', () => {
     await registerBuiltInEditors();
 
     // 顺序即优先级：markdown 在前（`.md` 归富文本内核），
-    // mindmap 在中间（`.mindmap` 归导图内核），
-    // code 在**最后**（它是备胎，认得前两个认得的所有扩展名，排前面会把它们全吃掉）。
+    // mindmap 与 drawio 居中（`.mindmap` / `.drawio` 各归自己的内核），
+    // code 在**最后**（它是备胎，认得前三个认得的所有扩展名，排前面会把它们全吃掉）。
     // 源码视图**不在**这张表里，它只挂在适配器对象上由外壳显式取用 ——
     // 塞进注册表的话，`resolveAdapter('a.md')` 就有了两个合法答案，
     // 哪一个先匹配到取决于注册顺序，那是没法推理的。
-    expect(listAdapters().map((adapter) => adapter.id)).toEqual(['markdown', 'mindmap', 'code']);
+    expect(listAdapters().map((adapter) => adapter.id)).toEqual(['markdown', 'mindmap', 'drawio', 'code']);
   });
 
   it('导图内核的源码视图也是代码内核 —— 于是它自动获得视图三态', () => {
@@ -76,6 +77,42 @@ describe('源码视图的接线', () => {
     // 外壳只看 `sourceView` 在不在，所以这一条就是「导图能不能切到源码视图」的全部依据。
     expect(mindmapAdapter.sourceView).toBe(codeAdapter);
     expect(languageForPath('图.mindmap')).toBe('json');
+  });
+
+  it('图纸内核的源码视图也是代码内核 —— 这就是本轮的编辑入口（ADR 0048）', () => {
+    // `.drawio` 的源码形态就是那份 XML。随包分发的是只读查看器，
+    // 所以「在源码视图里改 XML」是编辑图纸的唯一入口；
+    // 外壳只看 `sourceView` 在不在，所以这一条就是「图纸能不能改」的全部依据。
+    expect(drawioAdapter.sourceView).toBe(codeAdapter);
+    expect(languageForPath('图.drawio')).toBe('xml');
+  });
+});
+
+describe('图纸的备胎链（ADR 0048）', () => {
+  beforeAll(async () => {
+    await registerBuiltInEditors();
+  });
+
+  const pick = (text: string): string => resolveAdapter('图.drawio', EDITOR_FALLBACK, text).id;
+
+  it('任何 .drawio 都归图纸内核 —— 连坏 XML 也是', () => {
+    // 与导图那一族相反：图纸内核**不实现 `canHandle`**。
+    // 查看器自己会把「不是合法的 XML」写进元素，`renderDrawio` 把它读出来当失败理由，
+    // 于是面板上有一句针对这一份文件的诊断；而否决掉的话，用户看到的就是一份 XML 源码。
+    expect(pick('<mxfile><diagram name="页1"><mxGraphModel><root/></mxGraphModel></diagram></mxfile>')).toBe('drawio');
+    expect(pick('这根本不是 XML')).toBe('drawio');
+    expect(pick('')).toBe('drawio');
+  });
+
+  it('代码内核仍然认得 .drawio —— 它是备胎，也是图纸的源码视图', () => {
+    // 两件事同时成立才算数：少任何一个，`.drawio` 都会掉回「一份 XML 源码」。
+    expect(codeAdapter.matches('图.drawio')).toBe(true);
+    expect(drawioAdapter.matches('图.drawio')).toBe(true);
+    // 反过来不成立：图纸内核不该去抢 `.md` 或 `.mindmap`
+    expect(drawioAdapter.matches('笔记.md')).toBe(false);
+    expect(drawioAdapter.matches('图.mindmap')).toBe(false);
+    // `.xml` 刻意**不**认领：那是泛型容器，绝大多数 `.xml` 不是图纸（`core/path.ts` 有理由）
+    expect(drawioAdapter.matches('数据.xml')).toBe(false);
   });
 });
 

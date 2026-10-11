@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>draw.io 编辑器 · 探针宿主页</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  #frame { width: 100vw; height: 100vh; border: 0; display: block; }
+</style>
+</head>
+<body>
+<!--
+  这**必须**是一个带 iframe 的父页面：`EditorUi.prototype.initializeEmbedMode()` 第一件事
+  就是判断 `(embedMessageSource || window.opener || window.parent) != window`，
+  在顶层页面上它恒为假，嵌入模式根本不会启动。
+-->
+<iframe id="frame" src="/drawio/editor.html?embed=1&amp;proto=json&amp;spin=1" title="draw.io 编辑器"></iframe>
+<script>
+  // 收到的每一条 postMessage，原样留着（驱动脚本按它读数）。
+  window.__log = [];
+  window.addEventListener('message', function (event) {
+    window.__log.push(event.data);
+  });
+  window.send = function (message) {
+    document.getElementById('frame').contentWindow.postMessage(JSON.stringify(message), '*');
+  };
+</script>
+</body>
+</html>

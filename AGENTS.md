@@ -48,8 +48,8 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 ### 4–14
 
 4. **注册顺序即优先级**：`registerAdapter` 是 `push` + 先注册先匹配。
-   **备胎必须排在正主后面** —— 现在的顺序是 `markdown` → `mindmap` → `code`，
-   而 `code` 认得 `.md` 与 `.mindmap`（它是两者的源码形态）。
+   **备胎必须排在正主后面** —— 现在的顺序是 `markdown` → `mindmap` → `drawio` → `code`，
+   而 `code` 认得 `.md`、`.mindmap` 与 `.drawio`（它是三者的源码形态）。
    把它排前面会把两个正主全吃掉：`matches` 先命中、它又没有 `canHandle`，
    注册表直接返回它，后面那个内核**一次都不会被调用**。
    踩过一次（第一版就是 `markdown` → `code` → `mindmap`），
@@ -115,6 +115,8 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **文件监听没起来时怎么说** | `ui/App.tsx` 的 `WatchIssue`（`{ reason, failedPaths }`）+ `foldWatchIssue` / `watchIssueSignature` / `watchReasonOf`，第三条横幅。**这一族的判据不一样**：丢的不是数据，是「**早点知道的机会**」—— 监听一停，目录树不刷新、冲突检测不报警，用户可以在毫无察觉的情况下把别人的改动覆盖掉，而兜底那两条路（下一批事件、窗口聚焦的全量比对）都建立在「事件还会来」上。**它不会自愈**（目录被删 / inotify-kqueue 额度耗尽 = 事件永久不再到达），所以不能只 `console.warn`（发布版里没人看）。两路来源（批次里的 `error`、`watch_replace` 返回的失败路径）**各占一个槽、整份替换**——不累加（严格模式双挂不翻倍），也因此能自愈（正常的一批把 `reason` 清回 `null`）。`reason` 是**三态**：`null` 没问题 / `''` 有问题但拿不出原因 / 原文；压成两态会让「说不出原因」整条消失，**报 0 等于把一次故障藏回去**。两档措辞：整条链可能断 →「外部改动可能发现不了」，只是几条路径没监视上 →「有 {n} 条路径没在监视」（多半只是那几条被删/移了，重话说就是虚惊，虚惊多了用户就开始忽略这一类）。按掉存**指纹**不存布尔（关掉 A 不该把后来的 B 一起关掉）。**Rust 侧零改动**：`error: Option<String>` 与失败路径数组本来就是为此留的，只是前端一直没接。**别再把监听的任何失败写成 `console.warn`**，也**别给 `watchFiles` / `onFilesChanged` 的 promise `void` 掉而不接 catch**（ADR 0045） |
 | **说过的话留不留得下来（问题清单）** | `core/health.ts`（纯函数记录本，**只活一次运行、不落盘**）+ `ui/HealthDialog.tsx`（帮助菜单 → 「本次运行的问题」，命令 `diagnostics.issues`，**刻意不给快捷键**）。**这一族回答的是「横幅要求用户正好在看」**：按掉横幅的动机恰恰是「我不想现在处理」，一次运行里先后三四件事横幅一次只占一行，关掉应用就没了。记的是 `HealthLine{key, params}`（= `LocalizedText`）—— **不是句子**（在记账那一刻 `t()` 会把语言烤死，与 ADR 0031 的 `BUILT_IN_COMMANDS` 同一类错）。两条上报通道分开：**横幅族走 `syncFamily`**（有的记上、消失的**标成已恢复**，`resolvedAt` 不许被覆盖），**一次性事件直接 `recordIssue`**（内核加载、写失败、恢复的草稿与文件失败 —— 它们没有「恢复」这个状态）。三条纪律：① **内容没变就什么都不做**（上报点在渲染里，双挂不是又出一次问题，否则「发生过 2 次」对着只发生过一次的事说话）；② **写失败要加 ref 闩**（位置记忆每 600ms 落一次盘，不加就是「发生过 47 次」；闩只能挂在**上报点**上，不能从横幅的 `writeFailed` 推 —— 那个会被「知道了」清掉）；③ **恢复的记录永不删除**，只打标记（自动收起来是这一族里最难看的一种静默）。「**复制全部**」是纯本地应用唯一一条把状态交给别人的路（ADR 0001：没有账号、没有网络、没有遥测），所以那份文本必须脱离界面也读得懂，剪贴板失败要有一张脸。**加了新的一族要补 `AREA_LABEL_KEYS`**（`satisfies` 钉死，忘写标签名编译期就拦）（ADR 0046） |
 | **`t()` 的结果会跨渲染存活的地方** | `core/i18n/index.ts` 的 `LocalizedText{key, params}` + `msg()` / `textOf()`（`core/health.ts` 的 `HealthLine` 是它的别名）。**判据不是「这个文件属于 core 还是 ui」，是「`t()` 的结果有没有进 state / store 字段 / 会被存起来的返回值」** —— 进了就等于把语言烤死在调用那一刻。已收干净的四处：`TreeState.error`（`TreeProblem`，不带恒定的 `code`，`detail` 是抛物原话**不许翻**）与 `validateEntryName()` 的八条规则、`ReplaceReport`（片段数组 + 问题行，**句子只在 `renderReplaceReport()` 里拼，连逗号都是一个 key**）、`SettingsDialog.error`、`PasteImageFail.reason`（这一处一交 key，`DocumentStore` 的 `legacyText()` 品牌门就整个删掉了 —— **没有门后的门比没有门更糟**）。**抛物原话当 `params` 走，绝不当句子翻**（翻一句 `EACCES` 得到的是听起来像回事的谎）。**别再把 `t()` 的结果塞进任何活过渲染的结构**（ADR 0047） |
+| **新文件该写什么内容 / 新建入口** | `core/new-file-content.ts` 是**唯一的出口**，判据只用 `core/path.ts` 的 `is*Path`，**不许 import 任何 `modules/`**（硬约束 1）。模板**生成**而不是抄字面量（抄的那份会在格式演进时先掉队）：`core/mindmap/template.ts` 的 `emptyMindmapText()`、`core/drawio.ts` 的 `drawioTemplateXml()`（doc-block 的起始内容也复用它 —— **起始内容只有一份**）。用**各自的判据**验，不照抄字面量：`.mindmap` 看 `parseMindmap(...).canonical`（打开→保存无 diff），`.drawio` 看 `missingStencilLibs` 恒为空（随包只内置 bpmn/flowchart，新文件一打开就顶一条缺库警告不是迎接用户的方式）。`core/commands/definitions.ts` 的 `writeNewFileThenOpen` 是**三个新建入口**（`file.new` / `file.newMindmap` / 示例文档）共用的编排，差异只留数据。**加一种有格式的文件类型时三件事都要做**：判据加一条、模板加一份、命令加一个 —— 漏掉的那一处是**静默**给用户一个空文件（ADR 0048） |
+| **`.mindmap` / `.drawio` 各自的独立内核** | `modules/mindmap/index.ts`（`canHandle` + `canHandleReason` + `sourceView: codeAdapter`，ADR 0007 / 0025 / 0043）与 `modules/drawio/index.ts`（**刻意不实现 `canHandle`** —— 查看器自己会把「这不是合法的 XML」写进元素里，`renderDrawio` 读出来当 `DrawioRenderFail.message` 比适配层再判一遍**更准**，还省掉 ADR 0043 那张 kind 表的一个上限）。注册顺序 markdown → mindmap → **drawio** → code。三条纪律：① **`CODE_EXTENSIONS` 里 `.drawio` 与 `.mindmap` 必须留着** —— 它们是这两个内核的 `sourceView`，也就是它们的编辑入口兼内核被否决时的备胎；② **只读内核从不调用 `onChange`** —— 不能改文档就没有「改了什么」可报，报了就会把没变的文件标脏并重写一遍；③ **能力缺失写在面板上**，不靠「没那个按钮」让用户自己发现（硬约束 2），且要给出可走的下一步（图纸 → Ctrl+2 源码视图）。`.drawio` 的文档内容就是那段 XML，`onChange` 一接上就是可编辑，**内核契约一个字都不用改**（ADR 0048） |
 | **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
 | **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
 | 大纲提取 | `core/outline/outline.ts` |
@@ -155,7 +157,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | 活动栏（最左边那条图标带） | `ui/ActivityBar.tsx` + `ui/icons.tsx`（手写的十来个 path，**刻意不引图标库**）。五个入口都走命令，可用性来自 `CommandRegistry` 的 `enabled` |
 | **菜单栏（Typora 式文字菜单）** | `ui/MenuBar.tsx`（ADR 0037）。九个菜单（文件/编辑/段落/格式/搜索/视图/编码/主题/帮助），下拉项就是**命令 id**：标题 / 快捷键 / 可用性全从 `CommandRegistry` 现查，菜单不带语义。键盘挂 **window 捕获阶段**（坑 9），收起状态不挂监听。勾选列走三态 `isChecked`（**只画状态不产生语义**，真相在设置快照与视图模式），勾选槽位**按菜单整列保留**（同菜单有一项可勾选，其余项也留空槽对齐）。新加菜单项 = 先有命令、再往 `MENUS` 塞 id；**没有真实能力的项不许进菜单** |
 | **编码清单（一份）** | `core/encodings.ts` 的 `ENCODINGS` / `encodingSlug` —— 状态栏下拉与「编码」菜单共用；编码命令由清单生成（`encoding.set.<slug>`，title 就是选项文案），勾选读文档元数据 |
-| **内核怎么被加载与注册** | `modules/index.ts`（**动态 import**，ADR 0028）。三个内核按 markdown → mindmap → code 逐个 await 后注册（顺序即优先级，与解析时序无关）；单个内核加载失败记进 `editorRegistrationFailures()`，外壳出横幅但启动照常。注册由 `main.tsx` 在**首帧之前** await —— 表还空着就渲染，`.md` 会被静默兜到纯文本。兜底内核（plaintext）保持静态：最后防线不能自己也是异步的 |
+| **内核怎么被加载与注册** | `modules/index.ts`（**动态 import**，ADR 0028）。四个内核按 markdown → mindmap → drawio → code 逐个 await 后注册（顺序即优先级，与解析时序无关）；单个内核加载失败记进 `editorRegistrationFailures()`，外壳出横幅但启动照常。注册由 `main.tsx` 在**首帧之前** await —— 表还空着就渲染，`.md` 会被静默兜到纯文本。兜底内核（plaintext）保持静态：最后防线不能自己也是异步的 |
 | **视图三态（富文本 / 源码 / 分屏）** | `core/document/store.ts` 的 `ViewMode`（**枚举，不是两个布尔**）+ `ui/ViewSwitcher.tsx`（状态栏里的三档）。分屏的两栏在 `ui/DocumentPane.tsx`：左 = `primary.sourceView`（可编辑），右 = `primary` 加 `readOnly` |
 | **块手柄（悬停命中 / 上移下移 / 转为 / 拖动落点）** | `modules/markdown/block.ts`（纯逻辑 + 几何，**悬停走 DOM 元素、落点走坐标**，两条路的分工写在文件头）+ `modules/markdown/plugin.ts` 的 `blockHoverPlugin`（**不共用浮层骨架**：触发源是鼠标移动）+ `ui/BlockHandle.tsx`（显隐合三个条件） |
 | **什么时候清掉「该操作哪一块」** | `ui/BlockHandle.tsx` 里那个 `visible === false` 的 effect。**不是「菜单关了」** —— 清早了第二次打开菜单会「点了没反应」，见 ADR 0024 |
@@ -860,9 +862,34 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 `reason` 与 `snippet`、katex / mermaid / drawio 的 `Render.message` ——
 它们的落点在内核画的那一侧，修它要动 `core/editor/types.ts` 的契约。
 
+**另外两类文件也是一等公民（2026-10-13，ADR 0048）**：「Markdown 支持得很好」
+不等于「导图与图纸支持得很好」—— 本轮之前 `.mindmap` 内核早就在那儿了，
+**只是入口为零**（菜单里只有 `file.new`，落一个空文本文件；侧栏新建走 Rust 的
+`create_file`，注释明写「创建**空**文件，这里不替调用方预填任何内容」）。
+空 `.mindmap` 能打开（`describeMindmapVeto('')` 返回 `null` —— 空文件不是「坏文件」
+是「还没开始写」），但用户**没有任何办法主动得到一份**。`.drawio` 更彻底：
+连内核都没有，只能在 Markdown 里被引用。四条要记住的：
+① **起始内容只有一份出口**：`core/new-file-content.ts` 按 `is*Path` 判，
+**不许 import 任何 `modules/`**；模板**生成**而不是抄字面量（抄的那份会在格式演进时先掉队），
+用**各自的判据**验 —— `.mindmap` 看 `parseMindmap(...).canonical`（打开→保存无 diff），
+`.drawio` 看 `missingStencilLibs` 恒为空。三个新建入口共用
+`writeNewFileThenOpen`，差异只留数据。
+② **编辑入口的形状就是 `sourceView: codeAdapter`**，内核契约一个字没改 ——
+`.drawio` 的文档内容就是那段 XML，`onChange` 一接上就是可编辑。
+**只读内核从不调用 `onChange`**：不能改文档就没有「改了什么」可报，
+报了会把没变的文件标脏并重写一遍。
+③ **能力缺失写在面板上**，并给出可走的下一步（图纸 → Ctrl+2 源码视图），
+不靠「没那个按钮」让用户自己发现。**随包的 `viewer.min.js` 跑不起编辑器是有读数的**：
+产物里 `Editor` 是 `function(){return new mxCellEditor(this)}` 替身，
+`new EditorUi(document.body)` 直接抛 `Cannot set properties of undefined (setting 'lightbox')`。
+**别把它当编辑器用**，也别在 README 里承诺做不到的事。
+④ **注册顺序变成 markdown → mindmap → drawio → code**（硬约束 4）。
+**登记不做**：`modules/markdown/code-block-view.ts` 里 6 处硬编码中文文案
+属 ADR 0047 的漏网；侧栏新建不落模板（Rust 那条不改，命令面板那条落模板）。
+
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
-真实世界资源：P5-26/27（分发环境）、P7-32/33（签名主体）、P7-35（Mac）、
-P7-36/37（商标与域名）。
+真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、
+P7-32/33（签名主体）、P7-35（Mac）、P7-36/37（商标与域名）。
 
 > **✅ 纪律已解除（2026-10-02）**：`open-decisions.md` 里的 V1–V4 全部有结论，
 > 待验证清单已清空，**不再有「出结论之前不许新增待验证项」这条约束**。

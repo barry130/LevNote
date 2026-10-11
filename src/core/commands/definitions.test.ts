@@ -13,8 +13,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { setLocale, t } from '../i18n/index.js';
+import { AppError } from '../document/types.js';
+import { parseMindmap } from '../mindmap/parse.js';
+import { newFileContent } from '../new-file-content.js';
 import { BUILT_IN_COMMANDS, buildRecentFileCommands } from './definitions.js';
 import { CommandRegistry } from './registry.js';
+import type { CommandContext } from './types.js';
 
 function find(id: string) {
   const command = BUILT_IN_COMMANDS.find((item) => item.id === id);
@@ -127,5 +131,157 @@ describe('命令对象上不留构造用的 key', () => {
     expect(Object.keys(open)).not.toContain('categoryKey');
     // 展开 `{...command}`（外壳里真实存在这种写法）不该带出内部字段
     expect(Object.keys({ ...open }).sort()).toEqual(['category', 'id', 'keybinding', 'keywords', 'run', 'title']);
+  });
+});
+
+/**
+ * 「起一份新内容再打开」这条编排的行为（ADR 0048）。
+ *
+ * 三个入口共用它，所以这里一次钉住**共有的那几条语义**——
+ * 已存在绝不覆盖、写失败说出理由、失败后不继续打开、用户取消就什么都不做 ——
+ * 再各自钉一条**差异**（示例文档允许已存在就直接打开）。
+ * 抄开之后再逐条对，就是下一次「给 `file.new` 补了、示例文档忘了」的开始。
+ */
+describe('新建文件的三个入口共用一条编排', () => {
+  interface Harness {
+    readonly ctx: CommandContext;
+    readonly written: { path: string; text: string }[];
+    readonly opened: string[];
+    readonly notices: string[];
+    readonly picked: string[];
+  }
+
+  function harness(options: {
+    readonly pick: string | null;
+    readonly existing?: readonly string[];
+    readonly failWrite?: boolean;
+    readonly root?: string | null;
+  }): Harness {
+    const written: { path: string; text: string }[] = [];
+    const opened: string[] = [];
+    const notices: string[] = [];
+    const picked: string[] = [];
+    const existing = new Set(options.existing ?? []);
+    const ctx = {
+      provider: {
+        pickSavePath: async (name: string) => {
+          picked.push(name);
+          return options.pick;
+        },
+        statFile: async (path: string) => {
+          if (!existing.has(path)) throw new AppError('NOT_FOUND', '没有这个文件');
+          return { path, size: 0, mtimeMs: 0, readonly: false };
+        },
+        writeTextFile: async (request: { path: string; text: string }) => {
+          if (options.failWrite === true) throw new AppError('IO', 'EACCES: 没有写入权限');
+          written.push({ path: request.path, text: request.text });
+        },
+      },
+      workspace: {
+        getSnapshot: () => ({ tree: { root: options.root ?? 'C:\\w' } }),
+        open: (path: string) => {
+          opened.push(path);
+          return Promise.resolve();
+        },
+      },
+      ui: {
+        notify: async (message: string) => {
+          notices.push(message);
+        },
+      },
+    } as unknown as CommandContext;
+    return { ctx, written, opened, notices, picked };
+  }
+
+  /**
+   * 命令的 `run` 是即发即弃的（`void (async () => …)()`），这里等它走到终态。
+   *
+   * 等一个**宏任务**而不是轮询：整条链上的 promise 都已兑现，全排在微任务队列里，
+   * 一个宏任务就是它们的终点；轮询在「本该什么都不发生」（用户取消）那个用例上会超时。
+   */
+  async function settle(id: string, ctx: CommandContext): Promise<void> {
+    find(id).run(ctx);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  it('★ 新建思维导图：落一张真的导图，然后打开它', async () => {
+    const h = harness({ pick: 'C:\\notes\\会议记录.mindmap' });
+
+    await settle('file.newMindmap', h.ctx);
+
+    expect(h.written).toHaveLength(1);
+    expect(h.written[0]?.path).toBe('C:\\notes\\会议记录.mindmap');
+    const parsed = parseMindmap(h.written[0]?.text ?? '');
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.document?.root.topic).toBe('会议记录');
+    expect(h.opened).toEqual(['C:\\notes\\会议记录.mindmap']);
+    expect(h.notices).toEqual([]);
+  });
+
+  it('另存为对话框默认给的是 `.mindmap` 后缀（不给默认名，用户无从知道后缀）', async () => {
+    const h = harness({ pick: 'C:\\notes\\会议记录.mindmap' });
+
+    await settle('file.newMindmap', h.ctx);
+
+    expect(h.picked).toEqual(['未命名.mindmap']);
+  });
+
+  it('★ 已存在：说明并停手 —— 不写、不打开', async () => {
+    const h = harness({ pick: 'C:\\notes\\会议记录.mindmap', existing: ['C:\\notes\\会议记录.mindmap'] });
+
+    await settle('file.newMindmap', h.ctx);
+
+    expect(h.written).toEqual([]);
+    expect(h.opened).toEqual([]);
+    expect(h.notices).toHaveLength(1);
+    expect(h.notices[0]).toContain('没有新建');
+  });
+
+  it('★ 写失败：说出原因，且不继续打开', async () => {
+    const h = harness({ pick: 'C:\\notes\\会议记录.mindmap', failWrite: true });
+
+    await settle('file.newMindmap', h.ctx);
+
+    expect(h.opened).toEqual([]);
+    expect(h.notices).toHaveLength(1);
+    expect(h.notices[0]).toContain('EACCES');
+  });
+
+  it('用户在对话框里取消：什么都不发生', async () => {
+    const h = harness({ pick: null });
+
+    await settle('file.newMindmap', h.ctx);
+
+    expect(h.written).toEqual([]);
+    expect(h.opened).toEqual([]);
+    expect(h.notices).toEqual([]);
+  });
+
+  it('★ 普通「新建文件」选了 `.mindmap` 也落同一份模板 —— 格式判据只有一条出口', async () => {
+    const h = harness({ pick: 'C:\\notes\\随手一张.mindmap' });
+
+    await settle('file.new', h.ctx);
+
+    expect(h.written[0]?.text).toBe(newFileContent('C:\\notes\\随手一张.mindmap'));
+    expect(h.picked).toEqual(['未命名.md']);
+  });
+
+  it('普通「新建文件」写失败的说法里也有原因（降级要说出理由）', async () => {
+    const h = harness({ pick: 'C:\\notes\\a.md', failWrite: true });
+
+    await settle('file.new', h.ctx);
+
+    expect(h.notices).toHaveLength(1);
+    expect(h.notices[0]).toContain('EACCES');
+  });
+
+  it('示例文档的例外语义没被共用编排改掉：已存在时不打扰，直接打开', async () => {
+    const h = harness({ pick: 'C:\\w\\轻笺示例.md', existing: ['C:\\w\\轻笺示例.md'], root: 'C:\\w' });
+
+    await settle('help.sampleDocument', h.ctx);
+
+    expect(h.written).toEqual([]);
+    expect(h.opened).toEqual(['C:\\w\\轻笺示例.md']);
+    expect(h.notices).toEqual([]);
   });
 });

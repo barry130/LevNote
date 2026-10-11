@@ -83,7 +83,9 @@ src/
 │   └── platform/             #   唯一有平台差异的地方
 ├── modules/                  # 编辑器内核。外壳不认识它们
 │   ├── markdown/             #   Milkdown / ProseMirror
-│   ├── code/                 #   CodeMirror 6
+│   ├── code/                 #   CodeMirror 6（也是 mindmap / drawio 的源码视图）
+│   ├── mindmap/              #   .mindmap：MindElixir，JSON 往返内核
+│   ├── drawio/               #   .drawio：随包只读查看器 + 源码视图即编辑入口
 │   └── plaintext/            #   兜底内核：任何文件都必须打得开
 ├── ui/                       # React 外壳（工作区 / 标签栏 / 侧栏 / 面板 / 浮层）
 └── ../packages/interop-spec/ # 四类文档互操作规范的可执行实现
@@ -120,6 +122,27 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 内核通过 `canHandle` 可以否决自己，注册表会继续找下一个候选。
 带 YAML front matter 的 `.md` 就是这条规则的受益者：Markdown 富文本内核退位后，
 **代码内核接住它** —— 用户拿到的是有行号、有着色的源码，而不是一个白底 textarea。
+
+### 5. 四类文件各自是一等公民
+
+`.md` / `.mindmap` / `.drawio` / 代码文本各有自己的内核、自己的新建入口，
+单文件打开就画出来，不是「只能在 Markdown 里顺手做一下」。
+新文件该写什么内容只有一份出口（`core/new-file-content.ts`），
+新建的三个入口（命令面板 / 侧栏 / 示例文档）共用一条编排（取舍见
+[ADR 0048](docs/decisions/0048-mindmap-and-drawio-are-first-class-too.md)）。
+
+**`.drawio` 现在是只读的** —— 随包只有 `public/drawio/viewer.min.js`（2.654 MiB），
+编辑器本体没随包。改图纸的入口是 **源码视图（Ctrl+2）**，那里面的 XML 就是文档内容。
+面板上一直挂着这句话，不靠「没那个按钮」让你自己发现（硬约束 2）。
+
+实测读数（`node scripts/v4-run.mjs`）：随包那份产物里的 `Editor` 是
+`function () { return new mxCellEditor(this) }` 这个替身，**跑不起 draw.io 的编辑器**。
+要接真编辑器，取 draw.io **webapp** 那份未改动产物放进 `public/drawio/` 下面即可
+（需要 `index.html` + `js/app.min.js` + `styles/` + `images/`，与已有的 `shapes/` `stencils/`
+同源；`viewer.min.js` 就是这么取的，下载命令见 `scripts/v1-run.mjs`，体积与许可记录见
+[ADR 0027](docs/decisions/0027-drawio-viewer.md)）——
+**确切的上游地址本轮没联网核过，动手前先照 `viewer.min.js` 的来源确认一遍**。
+接进来之后 `modules/drawio/` 换一个 `Component` 就行，**内核契约一个字都不用改**。
 
 ---
 

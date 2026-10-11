@@ -1,0 +1,85 @@
+/**
+ * draw.io 图纸内核的挂载样式。
+ *
+ * ## 只管三件事，且**全是布局**
+ *
+ * 硬约束 13 说「样式表按**属性**划所有权」。这个文件里出现的每个选择器，
+ * 要么是内核**自己**造的节点（`.qm-drawio` / `.qm-drawio-canvas` /
+ * `.qm-drawio-note`），要么是外壳给内核留的位置 —— 没有任何一条去改
+ * **查看器画出来的东西**（`.mxgraph` 及其后代）。
+ *
+ * 画布的配色、工具栏、缩放那些是 mxGraph 自己声明的，图的配色写在 XML 里。
+ * 要改图纸长什么样，入口是那份 XML，不是在这里盖一层 CSS。
+ *
+ * ## `min-height: 0` 与导图那份是同一个坑（`mindmap.css` 有完整说明）
+ *
+ * flex 子项的 `min-height` 默认 `auto`，含义是「不许被压到比内容还小」。
+ * 查看器画出来的图区是内容尺寸的，于是缺了这一条，容器会被图撑到无限高、
+ * `overflow: auto` 永远不生效 —— 表现是「图纸跑到屏幕外面，滚不动也缩不了」。
+ */
+
+/* 根：整块面板，flex 列。 */
+.qm-drawio {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * 顶部那条说明。
+ *
+ * 「这份图纸现在只能查看」**必须一直挂在面板上**，而不是等用户发现双击没用
+ * 才知道（硬约束 2：能力缺失要说出来，不能靠「没有那个按钮」暗示）。
+ */
+.qm-drawio-note {
+  flex: none;
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-raised);
+  color: var(--slate);
+  font-size: 0.85em;
+  line-height: 1.7;
+}
+
+/* 图区：滚动归它（内核画的东西在里面滚动，不占内核根节点的滚动）。 */
+.qm-drawio-canvas {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  outline: none;
+}
+
+/*
+ * 这一份是空图纸 / 渲染失败，图区收起、让位给占位说明。
+ *
+ * 用 `display: none` 而不是条件挂载：条件挂载会让「从空图纸改成有图纸」这条路
+ * 整个失效（那一刻 `canvasRef` 是 null，effect 什么都不画）。详见 `DrawioEditor.tsx`。
+ */
+.qm-drawio-canvas.is-tucked {
+  display: none;
+}
+
+/*
+ * 空图纸 / 渲染失败时占位的那块。
+ *
+ * 与上面那条不同色：那是「一直如此」的限制说明，这一条是「这一份文件出问题了」。
+ */
+.qm-drawio-blank {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--slate);
+  font-size: 0.9em;
+  line-height: 1.8;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+.qm-drawio-blank.is-failed {
+  color: var(--vermilion);
+}

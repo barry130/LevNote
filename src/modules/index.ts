@@ -5,7 +5,7 @@
  *   模块（`src/modules/*`） → 契约（`src/core/editor/types.ts`） ← 外壳（`src/ui/*`）
  *
  * 也就是说外壳**不 import 任何具体内核**，它只 import 这个汇总入口拿到
- * 「兜底内核」和「注册动作」。将来接 CodeMirror / mind-elixir / draw.io，
+ * 「兜底内核」和「注册动作」。将来接 CodeMirror / 别的导图内核 / 别的图纸渲染器，
  * 只需在这里多注册一个适配器，外壳一行都不用改。
  *
  * ## 三个内核走**动态 import**（P3 第 18 项）
@@ -60,9 +60,10 @@ let registration: Promise<void> | null = null;
  * **注册顺序即优先级**（见 `registry.ts`）。这里的顺序由 await 的先后钉死，
  * 与动态 import 的解析时序无关：
  * 1. `markdown` 在前 —— `.md` 归富文本内核；
- * 2. `mindmap` 在中间 —— `.mindmap` 归导图内核；
- * 3. `code` 在**最后** —— 它是**备胎**，而且认得前两个认得的所有扩展名
- *    （`.md` 与 `.mindmap`）。所以它必须排在它们后面：备胎抢在正主前面，
+ * 2. `mindmap` 居中 —— `.mindmap` 归导图内核；
+ * 3. `drawio` 在其后 —— `.drawio` 归图纸内核（ADR 0048）；
+ * 4. `code` 在**最后** —— 它是**备胎**，而且认得前三个认得的所有扩展名
+ *    （`.md` / `.mindmap` / `.drawio`）。所以它必须排在它们后面：备胎抢在正主前面，
  *    就会把所有文件都吃掉。
  *
  * 这条顺序决定了两件具体的事，而它们光看模块文件是推不出来的：
@@ -70,6 +71,12 @@ let registration: Promise<void> | null = null;
  *   否决之后，注册表继续找，`code` 接住（一份有着色的 Markdown 源码）；
  * - 「坏掉的 `.mindmap` 用什么打开」—— 同理，导图内核否决之后由 `code` 接住
  *   （一份有着色的 JSON 源码），而不是掉到纯文本。
+ *
+ * **`.drawio` 是这条顺序的第三道考验**：代码内核的 `CODE_EXTENSIONS` 里
+ * **必须**留着 `.drawio`（`drawio` 内核的 `sourceView` 就指着它），
+ * 所以「图纸内核能不能认领」与「源码视图还能不能打开」是两个必须同时成立的事 ——
+ * 少任何一个，`.drawio` 都会掉回「一份 XML 源码」。改动任一侧时，
+ * 先看一眼 `src/modules/wiring.test.ts` 里那几条断言。
  *
  * **「打开任何文件都不能失败」的具体形态就是这条链**：
  * 正主 → 备胎 → 纯文本，一级比一级少，但一级都不会打不开。
@@ -95,6 +102,15 @@ export function registerBuiltInEditors(): Promise<void> {
       },
     );
     if (mindmap !== null) registerAdapter(mindmap.mindmapAdapter);
+
+    const drawio = await import('./drawio/index.js').then(
+      (module) => module,
+      (thrown: unknown) => {
+        failures.push({ id: 'drawio', reason: describe(thrown) });
+        return null;
+      },
+    );
+    if (drawio !== null) registerAdapter(drawio.drawioAdapter);
 
     const code = await import('./code/index.js').then(
       (module) => module,

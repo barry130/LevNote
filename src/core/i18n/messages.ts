@@ -52,6 +52,7 @@ export const zhCN = {
 
   // ---- 文件 ---------------------------------------------------------------
   'command.file.new.title': '新建文件',
+  'command.file.newMindmap.title': '新建思维导图',
   'command.file.open.title': '打开文件',
   'command.file.openFolder.title': '打开文件夹',
   'command.file.save.title': '保存',
@@ -652,7 +653,10 @@ export const zhCN = {
   'core.cmd.untitledName': '未命名.md',
   'core.cmd.newFileTitle': '新建文件',
   'core.cmd.newFileExists': '该位置已有一个同名文件。为避免覆盖，没有新建；如要编辑它，请直接打开。',
-  'core.cmd.newFileFailed': '文件没能创建（磁盘错误或没有写入权限）。',
+  'core.cmd.newFileFailed': '文件没能创建（磁盘错误或没有写入权限）：{reason}',
+  'core.cmd.untitledMindmapName': '未命名.mindmap',
+  'core.cmd.newMindmapTitle': '新建思维导图',
+  'core.cmd.newMindmapFailed': '思维导图没能创建：{reason}',
 
   'core.keys.unparseable': '快捷键写法无法解析：{spec} —— {reason}',
   'core.keys.emptyPart': '存在空的段落，多半是多了或少了 +',
@@ -685,6 +689,10 @@ export const zhCN = {
   'core.render.drawioLoadFailed': '查看器脚本加载失败（应用资源不完整？）。',
   'core.render.drawioFailed': '查看器加载失败：{reason}',
   'core.render.timeout': '渲染没有在预期时间内完成。',
+  'ui.drawio.readOnlyNote': '这份图纸现在只能查看。改它请切到源码视图（Ctrl+2），直接编辑里面的 XML。',
+  'ui.drawio.emptyHint': '这份图纸还是空的。切到源码视图（Ctrl+2）写一份 XML，它就会画出来。',
+  'ui.drawio.missingLibs': '未内置的形状库：{libs} —— 相关形状已按矩形显示。',
+  'ui.drawio.libJoin': '、',
 
   // .mindmap 解析 / 序列化的提示与错误（绝不静默：每一条都说清降级了什么）
   'core.mm.descArray': '数组（{n} 项）',
@@ -801,6 +809,7 @@ export const en: Record<MessageKey, string> = {
 
   // ---- 文件 ---------------------------------------------------------------
   'command.file.new.title': 'New File',
+  'command.file.newMindmap.title': 'New Mind Map',
   'command.file.open.title': 'Open File…',
   'command.file.openFolder.title': 'Open Folder…',
   'command.file.save.title': 'Save',
@@ -1392,7 +1401,10 @@ export const en: Record<MessageKey, string> = {
   'core.cmd.untitledName': 'Untitled.md',
   'core.cmd.newFileTitle': 'New File',
   'core.cmd.newFileExists': 'A file with that name already exists there. To avoid overwriting it, nothing was created; open it directly if you want to edit it.',
-  'core.cmd.newFileFailed': 'The file could not be created (disk error, or no write permission).',
+  'core.cmd.newFileFailed': 'The file could not be created (disk error, or no write permission): {reason}',
+  'core.cmd.untitledMindmapName': 'Untitled.mindmap',
+  'core.cmd.newMindmapTitle': 'New Mind Map',
+  'core.cmd.newMindmapFailed': 'The mind map could not be created: {reason}',
 
   'core.keys.unparseable': 'Cannot parse the keybinding: {spec} — {reason}',
   'core.keys.emptyPart': 'Empty segment found — there is probably one “+” too many or too few',
@@ -1422,6 +1434,10 @@ export const en: Record<MessageKey, string> = {
   'core.render.drawioLoadFailed': 'Failed to load the viewer script (are the app resources incomplete?).',
   'core.render.drawioFailed': 'Failed to load the viewer: {reason}',
   'core.render.timeout': 'Rendering did not finish within the expected time.',
+  'ui.drawio.readOnlyNote': 'This diagram can only be viewed for now. To change it, switch to the source view (Ctrl+2) and edit the XML.',
+  'ui.drawio.emptyHint': 'This diagram is still empty. Switch to the source view (Ctrl+2) and write some XML — it will be drawn.',
+  'ui.drawio.missingLibs': 'Shape libraries that are not bundled: {libs} — the affected shapes are shown as plain rectangles.',
+  'ui.drawio.libJoin': ', ',
 
   'core.mm.descArray': 'an array ({n} items)',
   'core.mm.descString': 'the string {value}',
