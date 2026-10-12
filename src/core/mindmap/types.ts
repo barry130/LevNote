@@ -93,6 +93,7 @@ export const KNOWN_NODE_KEYS: ReadonlySet<string> = new Set([
   'note',
   'collapsed',
   'style',
+  'icons',
   'children',
 ]);
 
@@ -105,6 +106,18 @@ export interface MindmapNode {
   collapsed?: boolean;
   /** 样式。**内容是不透明的** —— 我们不解释它，只负责原样保留。 */
   style?: Record<string, unknown>;
+  /**
+   * 标记 / 优先级（ADR 0053）：**显示字形本身**（emoji 一类字符），按先加在后。
+   *
+   * 与 `topic` 存显示文本同一条理由：字形就是内容，任何能排文本的内核
+   * 都能显示它，于是这份文件不绑定「哪一个导图内核、哪一张标记词表」。
+   * 我们的调色盘词表（`modules/mindmap/markers.ts`）只是**界面知识**，
+   * 不是格式层语义：文件里出现词表之外的字符，照旧原样保留（§5），
+   * 内核也照样把它排在主题旁边。
+   *
+   * 空数组是合法值（「全清过」也是一句话说得清的状态，序列化时原样写回）。
+   */
+  icons?: string[];
   /**
    * 这个节点上**没认出来**的字段，原样保留（§5）。
    *

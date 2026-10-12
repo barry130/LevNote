@@ -97,6 +97,15 @@ function nodeToJson(node: MindmapNode): Record<string, unknown> {
     entries.push(['style', node.style]);
     taken.add('style');
   }
+  /**
+   * 标记（ADR 0053）：`undefined` 不写（没这回事），**空数组照写** ——
+   * 「全清过」与「从来没有」在文件里是两个可区分的状态，丢掉前者
+   * 就是一次静默改写（保存后 diff 里少一行）。键序：`style` 之后、`extra` 之前。
+   */
+  if (node.icons !== undefined) {
+    entries.push(['icons', node.icons]);
+    taken.add('icons');
+  }
 
   for (const [key, value] of Object.entries(node.extra)) {
     if (taken.has(key)) {

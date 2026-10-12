@@ -30,3 +30,83 @@
   /* 它是外壳自己的 div（内核往里面插东西），不是内核画的元素，所以可以声明外观 */
   outline: none;
 }
+
+/**
+ * 标记调色盘（ADR 0053）。与上面那条纪律的分界线：这些**是我们自己的元素**
+ * （React 画的兄弟节点，类名 `mm-marker-*` 归我们），不是内核的 DOM；
+ * 内核的选择器一个都不碰，内核也够不着这里。
+ */
+.mm-marker-palette {
+  position: fixed;
+  /* 固定定位 + 足够高的 z-index，确保它浮在内核画的右键菜单之上 */
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 208px;
+  max-width: 280px;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.mm-marker-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mm-marker-group-label {
+  font-size: 11px;
+  color: var(--ink-soft, var(--ink));
+  opacity: 0.7;
+}
+
+.mm-marker-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.mm-marker {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mm-marker:hover {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+/* 已挂在该主题上的字形：底色点出来，一眼看出「再点一次就是摘掉」 */
+.mm-marker.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.mm-marker-clear {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.75;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.mm-marker-clear:hover {
+  opacity: 1;
+  text-decoration: underline;
+}

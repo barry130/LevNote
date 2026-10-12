@@ -81,6 +81,14 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
               }
               onClick={() => onJump(item)}
             >
+              {/* 标记字形排在文字前（ADR 0053，XMind 同款视觉）。原样 join，不做词表翻译 ——
+                  大纲只负责「显示它有」，认字形是人的事。`aria-hidden`：字形已在前面的
+                  title 文字里，读屏不必逐个念 emoji。Markdown 条目没有 markers，一段都不渲染。 */}
+              {item.markers !== undefined && item.markers.length > 0 ? (
+                <span className="outline-markers" aria-hidden={true}>
+                  {item.markers.join('')}
+                </span>
+              ) : null}
               {item.text === '' ? (
                 <span className="hint">{mindmap ? t('ui.outline.emptyTopic') : t('ui.outline.emptyHeading')}</span>
               ) : (

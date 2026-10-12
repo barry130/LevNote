@@ -1,8 +1,8 @@
 # 0052 — 导图大纲面板：从 `doc.text` 用纯函数算条目，跳转契约带上文件层 id
 
 - 状态：已采纳
-- 日期：2026-10-14
-- 关联：[0007](./0007-mindmap-core-choice.md)、[0025](./0025-mindmap-kernel-integration.md)、[0047](./0047-localized-text.md)、[0048](./0048-mindmap-drawio-first-class.md)、[0049](./0049-mindmap-ui-follows-the-language.md)
+- 日期：2026-10-12
+- 关联：[0007](./0007-mindmap-core-choice.md)、[0025](./0025-mindmap-kernel-integration.md)、[0047](./0047-words-that-outlive-the-language-switch.md)、[0048](./0048-mindmap-and-drawio-are-first-class-too.md)、[0049](./0049-mindmap-ui-follows-the-language.md)
 - 承接：ADR 0048 让 `.mindmap` 成为一等公民；本轮补上对标产品第一屏就有、而 LevNote 完全没有的能力。
 
 ## 背景

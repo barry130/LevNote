@@ -271,6 +271,16 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
     if (isPlainObject(rawStyle)) node.style = rawStyle;
     else if (rawStyle !== undefined) badField('style', rawStyle);
 
+    /**
+     * 标记（ADR 0053）：只认「字符串数组」，**不认词表** —— 词表是界面知识
+     * （`modules/mindmap/markers.ts`），格式层一个字符都不解释。
+     * 数组里混进非字符串（整条进 `extra`，一个不丢）按 `badField` 惯例办；
+     * **不逐项过滤**：半好半坏的数组静默丢掉坏的那几项，正是「假装读进来了」。
+     */
+    const rawIcons = value.icons;
+    if (isUnknownArray(rawIcons) && rawIcons.every((entry): entry is string => typeof entry === 'string')) node.icons = rawIcons;
+    else if (rawIcons !== undefined) badField('icons', rawIcons);
+
     // --- children ------------------------------------------------------------
     const rawChildren = value.children;
     if (rawChildren === undefined) {

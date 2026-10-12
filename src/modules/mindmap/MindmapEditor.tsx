@@ -50,7 +50,7 @@
 
 import MindElixir, { type MindElixirInstance, type Operation } from 'mind-elixir';
 import 'mind-elixir/style';
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { EditorHandle, EditorMountProps, EditorSearch } from '../../core/editor/types.js';
 import { getLocale, msg, subscribeLocale, t, type LocalizedText } from '../../core/i18n/index.js';
@@ -61,6 +61,7 @@ import { type LineEnding, type MindmapDocument, type MindmapNode } from '../../c
 import { createFindPattern, findInText, replaceInText, type FindOptions } from '../../core/search/find.js';
 import { directionOf, fromKernelData, toKernelData } from './adapter.js';
 import { mindmapLangPack } from './lang-pack.js';
+import { applyMarkerToggle, MINDMAP_MARKER_GROUPS, MINDMAP_MARKERS } from './markers.js';
 import './mindmap.css';
 
 /**
@@ -273,6 +274,19 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
    */
   const scaleRef = useRef(1);
 
+  /**
+   * 标记调色盘（ADR 0053）。右键菜单的「标记…」打开它；它是**内核模块自己的界面**
+   * （与右键菜单同一条纪律），不进 `EditorHandle` —— 外壳没有对应的命令，
+   * 也就没有理由为它开一条契约。
+   *
+   * `markerApplyRef` / `markerClearRef` 在下面的 effect 里被赋值，闭住**当前这颗
+   * 内核**：语言切换会换内核（文件头三命门），ref 跟着换新函数，调色盘不用
+   * 因此关掉 —— 下一次点击自然落在新的内核上。
+   */
+  const [markerPalette, setMarkerPalette] = useState<MarkerPaletteState | null>(null);
+  const markerApplyRef = useRef<((nodeId: string, glyph: string) => readonly string[] | null) | null>(null);
+  const markerClearRef = useRef<((nodeId: string) => readonly string[] | null) | null>(null);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
@@ -309,6 +323,30 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
     let document = first;
 
     let mind: MindElixirInstance;
+
+    /**
+     * 右键菜单「标记…」的 handler（ADR 0053）。三件事：
+     *
+     * 1. **自己藏菜单** —— 内核对 `extend` 项只转发事件、不藏（内置项各自的
+     *    handler 里才有 `v.hidden = true`，见 `MindElixir.js:1399-1401`）；
+     * 2. **记下右键到的节点** —— 菜单点击不改选中，`currentNode` 就是它
+     *    （`showContextMenu` 之前内核已把它选上，`MindElixir.js:1202`）；
+     *    根节点也一样能标 —— 内核对根只禁内置项，不禁 `extend` 项；
+     * 3. 把**点击坐标**交给调色盘定位 —— 屏幕坐标，调色盘是 `position: fixed`。
+     */
+    const openMarkerPalette = (event: MouseEvent): void => {
+      const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
+      if (menu !== null) menu.setAttribute('hidden', '');
+      const topic = mind.currentNode;
+      if (topic == null) return;
+      setMarkerPalette({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: topic.nodeObj.id,
+        icons: [...(topic.nodeObj.icons ?? [])],
+      });
+    };
+
     try {
       mind = new MindElixir({
         el: host,
@@ -320,8 +358,17 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
         editable: !readOnlyRef.current,
         // 右键菜单：只读时整个关掉；能编辑时传**对象**而不是 `true`——
         // 传 `true` 用的是内核硬编码的英文包（`MindElixir.js:1379` 的 `Yn`）。
-        // 传对象才能带上我们的语言包（ADR 0049）。
-        contextMenu: readOnlyRef.current ? false : { focus: true, link: true, locale: mindmapLangPack() },
+        // 传对象才能带上我们的语言包（ADR 0049）。`extend` 里的「标记…」
+        // 追加在菜单末尾（ADR 0053），label 走 `t()` —— 语言一变内核重建，
+        // 这里自然跟着换语言，与 ADR 0049 同一条命门。
+        contextMenu: readOnlyRef.current
+          ? false
+          : {
+              focus: true,
+              link: true,
+              locale: mindmapLangPack(),
+              extend: [{ name: t('ui.mindmap.markerMenu'), onclick: openMarkerPalette }],
+            },
         keypress: !readOnlyRef.current,
         // 新建节点时的占位文字，同属内核那套界面文案（默认是 `"New Node"`）。
         newTopicName: t('ui.mindmap.newTopicName'),
@@ -401,6 +448,38 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
       }, VERIFY_DELAY);
     };
     mind.bus.addListener('linkDiv', scheduleVerify);
+
+    // --- 标记调色盘的落盘通道（ADR 0053） -------------------------------------
+    // 唯一入口是内核的公开 API `reshapeNode`：它同步重渲染主题载荷、fire
+    // 'operation' —— 落进上面的 emit 主通道，于是「改了标记」与「改了文字」
+    // 走同一条保存链路，标脏、写回、`getValue` 一概不用单独伺候。
+    markerApplyRef.current = (nodeId, glyph) => {
+      try {
+        const el = mind.findEle(nodeId) as KernelTopic | undefined;
+        if (el == null) return null;
+        const next = applyMarkerToggle(el.nodeObj.icons ?? [], glyph);
+        // 空数组照交，不是塞 undefined：「全清过」在文件里是 `"icons": []`
+        // 这一行（见 serialize / adapter 的注释），把它折成 undefined
+        // 就是保存后悄悄少一句话。
+        void mind.reshapeNode(el, { icons: next });
+        return next;
+      } catch {
+        // `findEle` 对看不见的节点会 throw（ADR 0052 那条）：调色盘开着时
+        // 节点被折叠/删除都够不成正常路径，抓一个「改不进去」比白屏诚实。
+        return null;
+      }
+    };
+    markerClearRef.current = (nodeId) => {
+      try {
+        const el = mind.findEle(nodeId) as KernelTopic | undefined;
+        if (el == null) return null;
+        if ((el.nodeObj.icons ?? []).length === 0) return [];
+        void mind.reshapeNode(el, { icons: [] });
+        return [];
+      } catch {
+        return null;
+      }
+    };
 
     // --- 查找 ---------------------------------------------------------------
     const search = createTopicSearch({
@@ -577,6 +656,11 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
       }
       // 缩放留给下一个内核（见 `scaleRef`）。
       scaleRef.current = mind.scaleVal;
+      // 标记落盘通道跟着内核一起下岗（新 effect 会装新的）；
+      // 调色盘若还开着就关掉 —— 它闭住的那个内核已经销毁了。
+      markerApplyRef.current = null;
+      markerClearRef.current = null;
+      setMarkerPalette(null);
       mind.bus.removeListener('operation', onOperation);
       mind.bus.removeListener('expandNode', emit);
       mind.bus.removeListener('changeDirection', emit);
@@ -587,7 +671,115 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
     // 除此之外内核只活一次 —— 外部内容变更一律走 handle.setValue，不该在这里重建。
   }, [locale]);
 
-  return <div ref={hostRef} className="qm-mindmap" tabIndex={-1} />;
+  /**
+   * 调色盘的三个出口。`useCallback` 只为引用稳定：`MarkerPalette` 里挂的
+   * document 级监听以 `onClose` 为依赖，不稳定的话每点一次字形都要
+   * 重挂一遍监听 —— 能用，但没必要。
+   */
+  const closeMarkerPalette = useCallback((): void => {
+    setMarkerPalette(null);
+  }, []);
+
+  const toggleMarker = useCallback((nodeId: string, glyph: string): void => {
+    // `null` = 这一下没落进去（节点已经够不着了）：快照不动，界面如实停在那里。
+    const next = markerApplyRef.current?.(nodeId, glyph) ?? null;
+    if (next === null) return;
+    setMarkerPalette((state) => (state !== null && state.nodeId === nodeId ? { ...state, icons: [...next] } : state));
+  }, []);
+
+  const clearMarkers = useCallback((nodeId: string): void => {
+    const next = markerClearRef.current?.(nodeId) ?? null;
+    if (next === null) return;
+    setMarkerPalette((state) => (state !== null && state.nodeId === nodeId ? { ...state, icons: [...next] } : state));
+  }, []);
+
+  return (
+    <>
+      <div ref={hostRef} className="qm-mindmap" tabIndex={-1} />
+      {markerPalette !== null && (
+        <MarkerPalette state={markerPalette} onToggle={toggleMarker} onClear={clearMarkers} onClose={closeMarkerPalette} />
+      )}
+    </>
+  );
+}
+
+/** 调色盘要显示的东西：位置（屏幕坐标）、目标节点、该节点当前的标记快照。 */
+interface MarkerPaletteState {
+  readonly x: number;
+  readonly y: number;
+  readonly nodeId: string;
+  readonly icons: readonly string[];
+}
+
+interface MarkerPaletteProps {
+  readonly state: MarkerPaletteState;
+  readonly onToggle: (nodeId: string, glyph: string) => void;
+  readonly onClear: (nodeId: string) => void;
+  readonly onClose: () => void;
+}
+
+/** 估尺寸，只用来把调色盘夹在视口里（jsdom 没有布局，不能问元素自己）。 */
+const PALETTE_EST_WIDTH = 232;
+const PALETTE_EST_HEIGHT = 300;
+
+/**
+ * 标记调色盘（ADR 0053）。
+ *
+ * 画在**内核容器之外**（`MindmapEditor` 返回的兄弟节点）：内核在它自己的
+ * 容器上监听点击/拖拽，够不着这里；它也不碰内核的 DOM —— 两边只通过
+ * `reshapeNode` 这一个公开 API 说话（见 `markerApplyRef` 的注释）。
+ *
+ * 关闭 = 点外面 / Escape。**点字形不关**：一个主题常常一次标优先级、一次
+ * 标色块，关了再开是折磨；摘掉也走同一下（再点一次 = 取消，XMind 同款）。
+ */
+function MarkerPalette({ state, onToggle, onClear, onClose }: MarkerPaletteProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent): void => {
+      if (rootRef.current === null) return;
+      if (event.target instanceof Node && !rootRef.current.contains(event.target)) onClose();
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  // 夹进视口：`Math.max` 保住 8px 下限（窗口比调色盘还窄时也不贴边出界）。
+  const left = Math.min(state.x, Math.max(8, window.innerWidth - PALETTE_EST_WIDTH - 8));
+  const top = Math.min(state.y, Math.max(8, window.innerHeight - PALETTE_EST_HEIGHT - 8));
+
+  return (
+    <div ref={rootRef} className="mm-marker-palette" style={{ left, top }} role="dialog" aria-label={t('ui.mindmap.markerMenu')}>
+      {MINDMAP_MARKER_GROUPS.map((group) => (
+        <div key={group.id} className="mm-marker-group">
+          <div className="mm-marker-group-label">{t(group.labelKey)}</div>
+          <div className="mm-marker-choices">
+            {MINDMAP_MARKERS.filter((marker) => marker.group === group.id).map((marker) => (
+              <button
+                key={marker.glyph}
+                type="button"
+                className={state.icons.includes(marker.glyph) ? 'mm-marker active' : 'mm-marker'}
+                title={t(marker.labelKey, marker.labelParams)}
+                onClick={() => onToggle(state.nodeId, marker.glyph)}
+              >
+                {marker.glyph}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button type="button" className="mm-marker-clear" onClick={() => onClear(state.nodeId)}>
+        {t('ui.mindmap.markerClear')}
+      </button>
+    </div>
+  );
 }
 
 interface TopicSearchDeps {

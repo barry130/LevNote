@@ -726,6 +726,24 @@ export const zhCN = {
   'ui.mindmap.clickTips': '请点击目标主题',
   'ui.mindmap.summary': '概要',
   'ui.mindmap.newTopicName': '新主题',
+  // 标记调色盘（ADR 0053）：右键菜单的入口 + 组头 + 悬停文案。词表在
+  // modules/mindmap/markers.ts，这里只有「话」。
+  'ui.mindmap.markerMenu': '标记…',
+  'ui.mindmap.markerGroupPriority': '优先级',
+  'ui.mindmap.markerGroupColor': '色标',
+  'ui.mindmap.markerGroupSymbol': '符号',
+  'ui.mindmap.markerPriority': '优先级 {n}',
+  'ui.mindmap.markerColorRed': '红色',
+  'ui.mindmap.markerColorOrange': '橙色',
+  'ui.mindmap.markerColorYellow': '黄色',
+  'ui.mindmap.markerColorGreen': '绿色',
+  'ui.mindmap.markerColorBlue': '蓝色',
+  'ui.mindmap.markerColorPurple': '紫色',
+  'ui.mindmap.markerSymbolStar': '星标',
+  'ui.mindmap.markerSymbolDone': '完成',
+  'ui.mindmap.markerSymbolImportant': '重要',
+  'ui.mindmap.markerSymbolQuestion': '疑问',
+  'ui.mindmap.markerClear': '清除这个主题上的全部标记',
   // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
   'ui.mindmap.exportPngImagesExternal':
     '有 {n} 张节点图片引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
@@ -1507,6 +1525,24 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.clickTips': 'Please click the target node',
   'ui.mindmap.summary': 'Summary',
   'ui.mindmap.newTopicName': 'New Node',
+  // Marker palette (ADR 0053): the context-menu entry, group headers, and hover
+  // text. The vocabulary lives in modules/mindmap/markers.ts; only words live here.
+  'ui.mindmap.markerMenu': 'Markers…',
+  'ui.mindmap.markerGroupPriority': 'Priority',
+  'ui.mindmap.markerGroupColor': 'Color',
+  'ui.mindmap.markerGroupSymbol': 'Symbols',
+  'ui.mindmap.markerPriority': 'Priority {n}',
+  'ui.mindmap.markerColorRed': 'Red',
+  'ui.mindmap.markerColorOrange': 'Orange',
+  'ui.mindmap.markerColorYellow': 'Yellow',
+  'ui.mindmap.markerColorGreen': 'Green',
+  'ui.mindmap.markerColorBlue': 'Blue',
+  'ui.mindmap.markerColorPurple': 'Purple',
+  'ui.mindmap.markerSymbolStar': 'Starred',
+  'ui.mindmap.markerSymbolDone': 'Done',
+  'ui.mindmap.markerSymbolImportant': 'Important',
+  'ui.mindmap.markerSymbolQuestion': 'Question',
+  'ui.mindmap.markerClear': 'Clear all markers on this topic',
   // Honest kernel-side notes when exporting an image (ADR 0050): external images
   // are not self-contained, and the two formats fail in different ways
   'ui.mindmap.exportPngImagesExternal':

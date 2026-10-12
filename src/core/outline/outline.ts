@@ -29,6 +29,13 @@ export interface OutlineItem {
    * 缺着传 `undefined` 比编一个假值诚实）。
    */
   readonly id?: string;
+  /**
+   * 该条目上挂的标记字形（ADR 0053）。只有导图大纲会设（`MindmapNode.icons`，
+   * 原样搬运、不做词表翻译 —— 词表是内核界面的事，大纲只负责「显示它有」）；
+   * Markdown 大纲**永不设**：Markdown 没有标记这个概念。
+   * 空数组**照传**：那是「全清过」的如实记录（§5.3），不是「没有」。
+   */
+  readonly markers?: readonly string[];
 }
 
 interface Fence {

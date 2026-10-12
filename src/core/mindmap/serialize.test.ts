@@ -32,7 +32,7 @@ describe('serializeMindmap · 确定性', () => {
     expect(keys).toEqual(['format', 'version', 'layout', 'zzz', 'aaa', 'root']);
   });
 
-  it('节点键顺序固定：id → topic → note → collapsed → style → 未识别键 → children', () => {
+  it('节点键顺序固定：id → topic → note → collapsed → style → icons → 未识别键 → children', () => {
     const text = serializeMindmap(
       doc({
         root: node({
@@ -41,13 +41,28 @@ describe('serializeMindmap · 确定性', () => {
           note: 'n',
           collapsed: true,
           style: {},
+          icons: ['1️⃣'],
           extra: { future: 1 },
           children: [node({ id: 'n2', topic: '子' })],
         }),
       }),
     );
     const root = (JSON.parse(text) as { root: Record<string, unknown> }).root;
-    expect(Object.keys(root)).toEqual(['id', 'topic', 'note', 'collapsed', 'style', 'future', 'children']);
+    expect(Object.keys(root)).toEqual(['id', 'topic', 'note', 'collapsed', 'style', 'icons', 'future', 'children']);
+  });
+
+  it('icons：undefined 不写、空数组照写 ——「全清过」是一句话，不是没有（ADR 0053）', () => {
+    const withoutIcons = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根' }) }));
+    expect(withoutIcons).not.toContain('"icons"');
+
+    const cleared = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根', icons: [] }) }));
+    expect(cleared).toContain('"icons": []');
+  });
+
+  it('icons 照写显示字形本身 —— 词表外的字形一个字符不动（§5）', () => {
+    const text = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根', icons: ['1️⃣', '🦆'] }) }));
+    const root = (JSON.parse(text) as { root: { icons?: string[] } }).root;
+    expect(root.icons).toEqual(['1️⃣', '🦆']);
   });
 
   it('同一份文档序列化两次得到完全一样的文本', () => {

@@ -81,11 +81,13 @@ const DEFAULT_DIRECTION: Direction = 2;
  *
  * - `parent`：内核自己维护的父引用（`getData()` 会删掉它，但我们再防一次 ——
  *   它是**循环引用**，一旦漏进 `extra`，`JSON.stringify` 会直接抛错）；
- * - `expanded`：折叠状态，由 `collapsed` 承载（改名，见文件头）。
+ * - `expanded`：折叠状态，由 `collapsed` 承载（改名，见文件头）；
+ * - `icons`：标记（ADR 0053）。它升格为格式层正字段之后**不能再走 `extra`** ——
+ *   走了就是同一个键两个来源，`serialize` 的重复键守卫会当场抛错。
  *
  * 其余「我们不认识」的键全部走 `extra`。
  */
-const NON_EXTRA_NODE_KEYS: ReadonlySet<string> = new Set(['id', 'topic', 'children', 'note', 'collapsed', 'style', 'parent', 'expanded']);
+const NON_EXTRA_NODE_KEYS: ReadonlySet<string> = new Set(['id', 'topic', 'children', 'note', 'collapsed', 'style', 'icons', 'parent', 'expanded']);
 
 /**
  * 顶层上**不属于** `extra` 的键。
@@ -124,6 +126,13 @@ function toKernelNode(node: MindmapNode): NodeObj {
 
   if (node.note !== undefined && node.note !== '') out.note = node.note;
   if (node.style !== undefined && Object.keys(node.style).length > 0) out.style = node.style;
+  /**
+   * 标记（ADR 0053）：**空数组也交内核**（与 `note !== ''` 那条不同）——
+   * 空数组是「全清过」这个状态本身，丢掉它会让保存后的文件悄悄少一行。
+   * 类型上不用 `setUnknown`：`icons` 是内核 `NodeObj` 自己的字段
+   * （`dist/types/types/index.d.ts:181`），正字段的待遇。
+   */
+  if (node.icons !== undefined) out.icons = node.icons;
   if (node.collapsed === true) out.expanded = false;
 
   return out;
@@ -176,6 +185,8 @@ function fromKernelNode(node: NodeObj): MindmapNode {
 
   if (node.note !== undefined && node.note !== '') out.note = node.note;
   if (node.style !== undefined && Object.keys(node.style).length > 0) out.style = node.style;
+  // 同 `toKernelNode`：空数组照样带回来（「全清过」不等于「从来没有」）。
+  if (node.icons !== undefined) out.icons = node.icons;
   if (node.expanded === false) out.collapsed = true;
 
   return out;

@@ -149,6 +149,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
 | **导出成图片（PNG / SVG，导图与图纸同一条路）** | 内核侧 `MindmapEditor.tsx` 与 `DrawioEditor.tsx` 的 `exportImage`（契约在 `core/editor/types.ts`，可选方法，产物 `{ blob, warnings }`）+ 外壳编排 `core/export/export-image.ts`（与 export-document.ts **并列**，不是它的分支；外壳只认能力不认内核 id —— 图纸接入时**外壳一行没改**）。**三条纪律别碰**：导图的底色换真实解析色要整体重赋值 + `finally` 还原（`mind.theme` 与 `LEVNOTE_THEME` 同一引用）；图纸的序列化必须 `XMLSerializer`（图片形状用 `xlink:href`，`outerHTML` 不补命名空间声明，独立文件按 XML 解析直接报错）；PNG 在 jsdom 不可测。详见 §六本轮段与 ADR 0050 / 0051 |
 | **大纲面板（Markdown 与导图两个来源）** | 提取器是纯函数两份：`core/outline/outline.ts`（Markdown，`level`/`line` 都是 1 基行号）与 `core/outline/mindmap-outline.ts`（导图，`line` 是**先序序号不是行号**、条目带 `id`）；跳转契约 `EditorHandle.goToOutlineItem({ level, text, id? })`（`id` 只有导图传 —— 文件层 id 指得准，Markdown 编不出真值就别编）。**导图侧四条纪律**：① `extractMindmapOutline` **必须**复用 `parseMindmap`（自造第二份「什么算一个主题」的判定迟早漂移，跳转会指错地方）；② 内核 `goToOutlineItem` 跳转时展开折叠祖先是**文档变更**（`collapsed` 是文件字段，onChange + 标脏照常，不标才是撒谎）；③ **根不展开**（mind-elixir 的 `expandNode` 只认带气泡的分支节点，对根调用抛 TypeError；根折叠也无视觉效果）与**只读不展开**（展开是编辑）是两个写死的例外；④ `findEle` 对看不见的节点 throw，**捕获交 false**，不白屏。外壳按 `isMindmapPath` 分派提取器与文案（产品范围，不是认内核）。详见 §六本轮段与 ADR 0052 |
+| **导图标记（优先级 / 色标 / 符号）** | 词表在 `modules/mindmap/markers.ts`（`MINDMAP_MARKER_GROUPS` 三组共 19 字形：priority `1️⃣`–`9️⃣` 互斥 / color `🟥🟧🟨🟩🟦🟪` 互斥 / symbol `⭐✅❗❓` 不互斥），右键「标记…」开调色盘；选中走 `reshapeNode` → `operation` 事件 → 既有 emit 主通道（标脏 / 保存照常，不单独伺候）。**四条纪律**：① **字形即内容** —— `icons` 存显示字形本身（与 `topic` 存显示文本同理），**不发明语义 id + 双向映射表**；文件里词表外的字形照 §5 原样保留（调色盘只是词表知识，住内核模块，不进格式层语义）；② **全清过 = `[]` 一路到底** —— `JSON.stringify` 会丢 undefined 键，用 `{icons: undefined}` 清空会把「全清过」状态静默丢掉；序列化键序 `style` 之后、`extra` 之前，`[]` 也写回（canonical）；适配层 `icons` 在已知字段清单里双向透传；③ 标记是内核自有 UI（同右键菜单纪律），**不进 `EditorHandle`**；只读时 `contextMenu: false` 自然关门；④ `applyMarkerToggle` 纯函数语义：同字形再点一次 = 取消，互斥组先移同组旧字形再把新字形追加到尾，词表外字形按非互斥 —— 任何路径都不许因词表外形值炸掉。大纲条目把标记内联显示（`OutlineItem.markers`）。详见 §六本轮段与 ADR 0053 |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
@@ -844,7 +845,7 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 「**复制全部**」是纯本地应用唯一一条把状态交给别人的路，所以那份文本必须
 脱离界面也读得懂，剪贴板失败要有一张脸。
 
-**说过的话要跟着语言变（2026-10-13，ADR 0047）**：0046 刚把「记的是 key 不是句子」
+**说过的话要跟着语言变（2026-10-11，ADR 0047）**：0046 刚把「记的是 key 不是句子」
 这条立起来，紧接着就发现**同一类错还剩四处**—— 文件树顶横幅（`failTreeAction`
 的十处调用 + `validateEntryName()` 的八条规则，两处生产者都扫了才没漏）、
 跨文件替换的汇报（`describeReplaceOutcome` 交出一句拼好的话，
@@ -864,7 +865,7 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 `reason` 与 `snippet`、katex / mermaid / drawio 的 `Render.message` ——
 它们的落点在内核画的那一侧，修它要动 `core/editor/types.ts` 的契约。
 
-**另外两类文件也是一等公民（2026-10-13，ADR 0048）**：「Markdown 支持得很好」
+**另外两类文件也是一等公民（2026-10-11，ADR 0048）**：「Markdown 支持得很好」
 不等于「导图与图纸支持得很好」—— 本轮之前 `.mindmap` 内核早就在那儿了，
 **只是入口为零**（菜单里只有 `file.new`，落一个空文本文件；侧栏新建走 Rust 的
 `create_file`，注释明写「创建**空**文件，这里不替调用方预填任何内容」）。
@@ -889,7 +890,7 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 **登记不做**：`modules/markdown/code-block-view.ts` 里 6 处硬编码中文文案
 属 ADR 0047 的漏网；侧栏新建不落模板（Rust 那条不改，命令面板那条落模板）。
 
-**内核自己画的字也得跟着语言变（2026-10-14，ADR 0049）**：ADR 0047 管的是
+**内核自己画的字也得跟着语言变（2026-10-11，ADR 0049）**：ADR 0047 管的是
 **我们自己的**文案，「切语言后那一句还是旧的」还有另一半 —— **内核自己画的那部分**。
 思维导图的右键菜单十一条与新节点占位文字全是英文，来源只有两处，都在
 `mind-elixir` 的构造参数里（`contextMenu.locale` / `newTopicName`），都有配置的口子。
@@ -909,7 +910,7 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 平移位置都不是公开 API，**别去撬内部状态** —— 升级即烂，而且撬出来的形状
 会静默地丢内容。想要更多的视图状态，得先给内核加公开 API。
 
-**导图画出来的样子归内核（2026-10-14，ADR 0050）**：对比主流导图软件后自派的
+**导图画出来的样子归内核（2026-10-12，ADR 0050）**：对比主流导图软件后自派的
 需求（用户原话「你自己比较一下现在主流的思维导图软件，看看你还欠缺什么，然后
 自己给自己需求继续开发」）—— 缺口是「完全不能把导图导出成图片」。落成的形状：
 ① 内核契约新增**可选**方法 `exportImage(format)`，产物是 `{ blob, warnings }`；
@@ -945,7 +946,7 @@ HTML 导出）。⑧ 测试边界要诚实：**PNG 路径在 jsdom 不可测**�
 side-effect 预载同一个模块** —— 整跑负载下首次装配不止一个宏任务，只等一个
 `setTimeout(0)` 是 flake（本轮踩过）。
 
-**图纸接上同一条图片导出路（2026-10-14，ADR 0051）**：继续对比后自派的另一半
+**图纸接上同一条图片导出路（2026-10-12，ADR 0051）**：继续对比后自派的另一半
 需求 —— `.drawio` 文档此前**完全不能**导出图片，而 draw.io 官方工具把「导出
 PNG / SVG」放在第一屏。这轮是 ADR 0050 重审条件（「第三家内核接入时复用同一
 契约与 export-image.ts，不另开导出路径」）的兑现，也是检验：`DrawioEditor.tsx`
@@ -976,7 +977,7 @@ jsdom 不可测（`Image` 永不加载）、像素零测试，靠 `pnpm run taur
 第二次 mount() 复用同一 root，React 视为「更新」而非重挂载，onReady
 （deps `[]`）不再发 handle，`expect(p).resolves` 直接拿到 undefined。
 
-**导图的大纲面板（2026-10-14，ADR 0052）**：对比 XMind 后自派的第三轮需求 ——
+**导图的大纲面板（2026-10-12，ADR 0052）**：对比 XMind 后自派的第三轮需求 ——
 大纲视图在导图产品里是第一屏功能，而 LevNote 的活动栏大纲按钮此前只认
 Markdown。这轮定了四件事，**换内核时最容易烂的是第一条**：
 ① 大纲提取器 `core/outline/mindmap-outline.ts` **必须复用 `parseMindmap`**
@@ -999,6 +1000,39 @@ jsdom 探测实证）。**只读不展开**（展开是编辑，交 false；可�
 工具教训一条：PowerShell `Set-Content` 不带 `-Encoding` 会写出 **UTF-16**，
 把 TS 文件整个毁掉（read 报 invalid UTF-8）—— 造文件用
 `New-Item` 占位 + read + `write` 工具，不要用 shell 重定向写源码文件。
+
+**导图标记（2026-10-12，ADR 0053）**：继续对比 XMind 后自派的第四轮需求 ——
+优先级标记在导图产品里是第一屏核心能力，而 LevNote 的 `.mindmap` 节点此前
+没有任何标记字段（`icons` 在格式层只是不透明透传，没有 UI 碰它）。
+这轮定了四件事：
+① **字形即内容**：格式层把 `icons` 升格为已知字段（序列化键序 `style` 之后、
+`extra` 之前，`[]` 也写回；适配层已知字段清单双向透传），存**显示字形本身**
+（与 `topic` 存显示文本同理）—— **不发明语义 id + 双向映射表**：那要永久维护
+两张表，且与 extra 桶透传的 `icons` 形成双表示冲突；字形还最内核无关
+（能排文本的内核就能显示）；词表外字形照 §5 原样保留（调色盘只是词表知识，
+住内核模块，不进格式层语义）。
+② **词表**：`modules/mindmap/markers.ts` 三组 19 字形 —— 优先级 `1️⃣`–`9️⃣`
+互斥、颜色 `🟥🟧🟨🟩🟦🟪` 互斥、符号 `⭐✅❗❓` 不互斥；`applyMarkerToggle`
+纯函数：同字形再点一次取消，互斥组先移同组旧字形再追加到尾，词表外字形按
+非互斥 —— 任何路径都不许因词表外形值炸掉。
+③ **内核 UI**：右键菜单 `contextMenu.extend` 追加「标记…」（extend 项在菜单
+尾部，onclick 里 `mind.currentNode` 即右键到的节点 —— 内核在弹菜单前已
+`selectNode`），打开调色盘；选中走 `reshapeNode` → `operation` 事件 → 既有
+emit 主通道，标脏 / 保存不用单独伺候；内核 `be` 转义 `& < "`（字形不可注入）；
+`getData` 是 `JSON.parse` 深拷贝、icons 照带。
+④ **全清过 = `[]` 一路到底**：`JSON.stringify` 丢 undefined 键，用
+`{icons: undefined}` 清空会把「全清过」状态**静默丢掉**（空数组是状态本身）。
+边界：icons 类型不对整值转 `extra`（格式层不猜）；只读 `contextMenu: false`
+自然关门；大纲条目把标记内联显示（`OutlineItem.markers`）。
+测试边界：jsdom 三个坑踩过写下 —— 右键必须是 `button === 2`、内核
+`setTimeout(200)` 后才出菜单、topic 选择器是 `me` 前缀（`data-nodeid="me"+id`）；
+观感（字形大小 / 调色盘样式）需 `tauri dev` 人工冒烟。
+**86 文件 / 1,775 条测试**（markers 12 + MindmapEditor 7 + parse 3 +
+serialize 2 + adapter 1）。
+工具教训：PowerShell `Get-Content | Set-Content` 回环在 zh-CN 下把无 BOM
+文件**按 GBK 双重编码整个毁掉**（恢复 = `git restore --source=HEAD` + `write`
+工具重写；教训已入运行时记忆）；`.at(-1)` 要求 lib ≥ es2022，tsc 报 TS2550，
+写 `arr[arr.length - 1] ?? ''`。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、

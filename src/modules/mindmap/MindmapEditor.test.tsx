@@ -551,3 +551,161 @@ describe('goToOutlineItem（大纲跳转，ADR 0052）', () => {
     expect(handle.getValue()).toBe(COLLAPSED);
   });
 });
+
+describe('标记调色盘（ADR 0053）', () => {
+  /**
+   * 右键根主题，把菜单点开。内核 `g`（MindElixir.js:1198-1203）有三个坑：
+   * ① 只认 `f.button === 2`——jsdom 的 `MouseEvent` 默认 button=0，必须显式给；
+   * ② 菜单是 `setTimeout(…, 200)` 之后才弹的，右键完要真等一下；
+   * ③ 内核把节点 id 加了 `me` 前缀（:397 `t.dataset.nodeid = "me" + e.id`），
+   *    所以夹具根 id 是 `n1`、DOM 里要找 `[data-nodeid="men1"]`。
+   * 等到之后内核已先 `selectNode`（:1202），所以 extend 项的 handler 里
+   * `currentNode` 就是右键到的那个节点 —— 这条链路断了调色盘会打开但落不了盘。
+   */
+  const rightClickRoot = async (): Promise<void> => {
+    const topic = container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+  };
+
+  /** 菜单里那条「标记…」（内核对 extend 项不藏菜单，是我们自己藏，见实现注释）。 */
+  const markerEntry = (): HTMLLIElement | null => {
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    return items.find((li) => li.textContent === '标记…') ?? null;
+  };
+
+  const openPalette = async (): Promise<HTMLElement> => {
+    await rightClickRoot();
+    const entry = markerEntry();
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    const palette = container.querySelector<HTMLElement>('.mm-marker-palette');
+    expect(palette).not.toBeNull();
+    return palette as HTMLElement;
+  };
+
+  /** 调色盘里某个字形的按钮。 */
+  const glyphButton = (palette: HTMLElement, glyph: string): HTMLButtonElement => {
+    const button = [...palette.querySelectorAll<HTMLButtonElement>('button')].find(
+      (entry) => entry.textContent === glyph,
+    );
+    expect(button).not.toBeNull();
+    return button as HTMLButtonElement;
+  };
+
+  const iconsOf = (text: string): readonly string[] => {
+    const root = (JSON.parse(text) as { root: { icons?: readonly string[] } }).root;
+    return root.icons ?? [];
+  };
+
+  it('右键菜单末尾有「标记…」，点开是调色盘 —— 三组全在（词表住内核模块）', async () => {
+    await mountReady();
+    const palette = await openPalette();
+
+    expect(palette.querySelectorAll('.mm-marker-group')).toHaveLength(3);
+    // 悬停文案走 i18n（组头是中文的 —— 语言切换靠内核重建，与 ADR 0049 同一条命门）
+    expect(palette.textContent).toContain('优先级');
+    expect(palette.textContent).toContain('符号');
+    expect(palette.textContent).toContain('清除这个主题上的全部标记');
+  });
+
+  it('标一个优先级：落盘走 reshapeNode → operation → onChange，文件里多出 icons', async () => {
+    const { handle, changes } = await mountReady();
+    const palette = await openPalette();
+
+    act(() => {
+      glyphButton(palette, '1️⃣').click();
+    });
+
+    expect(changes).toHaveLength(1);
+    expect(iconsOf(changes[0] ?? '')).toEqual(['1️⃣']);
+    // 挂上去的字形在调色盘里亮着 —— 再点一次就是摘掉
+    expect(glyphButton(palette, '1️⃣').className).toContain('active');
+    // 内核真把它画在主题上（icons 渲染由内核负责，这里只证载荷在）
+    expect(container.querySelector('[data-nodeid="men1"]')?.textContent).toContain('1️⃣');
+    expect(handle.getValue()).toContain('"icons"');
+  });
+
+  it('再点一次是摘掉：全清过写成 `"icons": []` —— 不是悄悄少一句话', async () => {
+    const { changes } = await mountReady();
+    const palette = await openPalette();
+
+    act(() => {
+      glyphButton(palette, '⭐').click();
+    });
+    act(() => {
+      glyphButton(palette, '⭐').click();
+    });
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(iconsOf(last)).toEqual([]);
+    expect(last).toContain('"icons": []');
+  });
+
+  it('互斥组：标了优先级 1 再标 2 —— 文件里只有一个，后标的排在后面', async () => {
+    const { changes } = await mountReady();
+    const palette = await openPalette();
+
+    act(() => {
+      glyphButton(palette, '1️⃣').click();
+    });
+    act(() => {
+      glyphButton(palette, '2️⃣').click();
+    });
+
+    expect(iconsOf(changes[changes.length - 1] ?? '')).toEqual(['2️⃣']);
+  });
+
+  it('清除按钮：两个组的标记一起摘，文件里留下 `"icons": []`', async () => {
+    const { changes } = await mountReady();
+    const palette = await openPalette();
+
+    act(() => {
+      glyphButton(palette, '1️⃣').click();
+    });
+    act(() => {
+      glyphButton(palette, '⭐').click();
+    });
+    expect(iconsOf(changes[changes.length - 1] ?? '')).toEqual(['1️⃣', '⭐']);
+
+    act(() => {
+      (palette.querySelector<HTMLButtonElement>('.mm-marker-clear') as HTMLButtonElement).click();
+    });
+
+    const cleared = changes[changes.length - 1] ?? '';
+    expect(iconsOf(cleared)).toEqual([]);
+    expect(cleared).toContain('"icons": []');
+  });
+
+  it('点调色盘外面就关 —— 但点字形不关（一次标多个是正常用法）', async () => {
+    await mountReady();
+    const palette = await openPalette();
+
+    act(() => {
+      glyphButton(palette, '1️⃣').click();
+    });
+    // 点了字形，调色盘还开着
+    expect(container.querySelector('.mm-marker-palette')).not.toBeNull();
+
+    act(() => {
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    });
+    expect(container.querySelector('.mm-marker-palette')).toBeNull();
+  });
+
+  it('只读时右键没有菜单，更没有调色盘 —— 标记是编辑，不悄悄放行', async () => {
+    await mountReady({ readOnly: true });
+
+    expect(container.querySelector('.context-menu')).toBeNull();
+    await rightClickRoot();
+    expect(markerEntry()).toBeNull();
+    expect(container.querySelector('.mm-marker-palette')).toBeNull();
+  });
+});

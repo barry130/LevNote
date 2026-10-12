@@ -78,15 +78,39 @@ describe('parseMindmap · 正常路径', () => {
     expect(text).not.toContain('"note"');
     expect(text).not.toContain('"collapsed"');
     expect(text).not.toContain('"style"');
+    expect(text).not.toContain('"icons"');
   });
 
   it('可选字段存在时原样往返', () => {
     const body = minimalBody();
-    body.root = { id: 'n1', topic: '根', note: '备注', collapsed: true, style: { color: '#f00' }, children: [] };
+    body.root = {
+      id: 'n1',
+      topic: '根',
+      note: '备注',
+      collapsed: true,
+      style: { color: '#f00' },
+      icons: ['1️⃣', '⭐'],
+      children: [],
+    };
     const { document } = mustParse(file(body));
     expect(document.root.note).toBe('备注');
     expect(document.root.collapsed).toBe(true);
     expect(document.root.style).toEqual({ color: '#f00' });
+    expect(document.root.icons).toEqual(['1️⃣', '⭐']);
+  });
+
+  it('icons 空数组是「全清过」的如实记录 —— 照读照写，canonical 不破（ADR 0053）', () => {
+    const body = minimalBody();
+    body.root = { id: 'n1', topic: '根', icons: [], children: [] };
+    const first = mustParse(file(body));
+    expect(first.issues).toEqual([]);
+    expect(first.document.root.icons).toEqual([]);
+
+    const text = serializeMindmap(first.document);
+    expect(text).toContain('"icons": []');
+    // 空数组折成 undefined 就是「保存后悄悄少一句话」—— 绝不静默（硬约束 2）
+    const again = mustParse(text);
+    expect(again.document.root.icons).toEqual([]);
   });
 });
 
@@ -147,6 +171,9 @@ describe('parseMindmap · 类型不对的字段一个都不丢', () => {
     { key: 'note', bad: 42, normalizesTo: 42 },
     { key: 'collapsed', bad: 'yes', normalizesTo: 'yes' },
     { key: 'style', bad: [1, 2], normalizesTo: [1, 2] },
+    // icons 不做逐项过滤：半好半坏的数组整值转 extra，防「悄悄只留下好的一半」
+    { key: 'icons', bad: 42, normalizesTo: 42 },
+    { key: 'icons', bad: ['1️⃣', 2], normalizesTo: ['1️⃣', 2] },
   ];
 
   for (const item of cases) {

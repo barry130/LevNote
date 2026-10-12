@@ -1,7 +1,7 @@
 # 0049 内核自己画的字也得跟着语言变 —— 切语言当场重建
 
 - 状态：已采纳
-- 日期：2026-10-14
+- 日期：2026-10-11
 - 关联：硬约束 2、3、11；[ADR 0031](./0031-i18n-skeleton.md)（目录里各留一处）、[ADR 0047](./0047-words-that-outlive-the-language-switch.md)（`t()` 的结果跨不跨渲染）
 - 承接：[ADR 0048](./0048-mindmap-and-drawio-are-first-class-too.md) 里「另外两类文件也是一等公民」之后，用户提的第一件事
 

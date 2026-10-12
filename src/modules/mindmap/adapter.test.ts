@@ -102,13 +102,13 @@ describe('节点字段的映射', () => {
   });
 
   it('内核认识的字段走 extra 往返，一个都不丢', () => {
+    // `icons` 曾经也在这一排里 —— ADR 0053 升格为正字段，搬进下面那条
     const data = kernel({
       id: 'n1',
       topic: '根',
       children: [],
       hyperLink: 'https://example.com',
       tags: ['重要'],
-      icons: ['star'],
       branchColor: '#ff0000',
       metadata: { owner: 'me' },
     });
@@ -117,7 +117,6 @@ describe('节点字段的映射', () => {
     expect(back.root.extra).toEqual({
       hyperLink: 'https://example.com',
       tags: ['重要'],
-      icons: ['star'],
       branchColor: '#ff0000',
       metadata: { owner: 'me' },
     });
@@ -127,6 +126,20 @@ describe('节点字段的映射', () => {
     expect(round.nodeData.hyperLink).toBe('https://example.com');
     expect(round.nodeData.tags).toEqual(['重要']);
     expect(round.nodeData.metadata).toEqual({ owner: 'me' });
+  });
+
+  it('icons 是正字段（ADR 0053）：文件 ↔ 内核同名直通，不进 extra、空数组照带', () => {
+    const withIcons = doc({ root: { id: 'n1', topic: '根', children: [], icons: ['1️⃣'], extra: {} } });
+    expect(toKernelData(withIcons).nodeData.icons).toEqual(['1️⃣']);
+
+    const back = fromKernelData(doc(), kernel({ id: 'n1', topic: '根', children: [], icons: ['1️⃣', '⭐'] }));
+    expect(back.root.icons).toEqual(['1️⃣', '⭐']);
+    // 关键回归点：升格之前它掉在 extra 里；掉在 extra 里会与正字段重复写键
+    expect(back.root.extra).toEqual({});
+
+    // 「全清过」的空数组从内核拿回来还是空数组 —— serialize 会写成 `"icons": []`
+    const cleared = fromKernelData(doc(), kernel({ id: 'n1', topic: '根', children: [], icons: [] }));
+    expect(cleared.root.icons).toEqual([]);
   });
 
   it('内核自己加的 parent 与改名的 expanded 都不进 extra', () => {

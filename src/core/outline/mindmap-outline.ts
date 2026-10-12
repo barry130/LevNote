@@ -55,7 +55,15 @@ export function extractMindmapOutline(text: string): MindmapOutlineItem[] {
   let ordinal = 0;
   const walk = (node: MindmapNode, level: number): void => {
     ordinal += 1;
-    items.push({ level, text: node.topic, line: ordinal, id: node.id });
+    // `icons` 原样带进大纲（含空数组 —— 那是「全清过」的如实状态，不是「没有」）；
+    // undefined 则缺着 —— 与 id 的纪律同一条：缺着传 undefined，不编假值。
+    items.push({
+      level,
+      text: node.topic,
+      line: ordinal,
+      id: node.id,
+      ...(node.icons !== undefined ? { markers: node.icons } : {}),
+    });
     for (const child of node.children) walk(child, level + 1);
   };
   walk(document.root, 1);

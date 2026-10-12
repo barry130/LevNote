@@ -1579,6 +1579,14 @@ body {
   color: var(--chrome-muted);
 }
 
+/* 条目上挂的标记字形（ADR 0053）：小一号、聚在一起，别抢主题文字的位置 */
+.outline-markers {
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin-right: 6px;
+  opacity: 0.85;
+}
+
 /* ---------------------------------------------------------------- 查找栏 */
 
 .findbar {
