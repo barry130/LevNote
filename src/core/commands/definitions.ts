@@ -217,9 +217,9 @@ async function runPrintExport(ctx: CommandContext): Promise<void> {
  * 图片导出（ADR 0050）：请内核把自己画成一张图，外壳只管问存到哪、写盘。
  *
  * 与 `runExport` 是**并列**的两条导出路：那边要语义 HTML（文本管线），这边要
- * 二进制 —— 画法长在内核里，这里从头到尾不出现任何具体内核的名字，
- * 将来 diagram / drawio 接上 `exportImage` 就自动出现在同一组命令里。
- * PNG / SVG 共用这一个工厂，差的只有 `format`。
+ * 二进制 —— 画法长在内核里，这里从头到尾不出现任何具体内核的名字。
+ * 导图、图纸（ADR 0050 / 0051）先后接上的就是这同一条路，一行没改；
+ * diagram 接上时还是它。PNG / SVG 共用这一个工厂，差的只有 `format`。
  */
 function runExportImage(format: 'png' | 'svg') {
   return async (ctx: CommandContext): Promise<void> => {

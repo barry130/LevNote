@@ -697,6 +697,13 @@ export const zhCN = {
   'ui.drawio.emptyHint': '这份图纸还是空的。切到源码视图（Ctrl+2）写一份 XML，它就会画出来。',
   'ui.drawio.missingLibs': '未内置的形状库：{libs} —— 相关形状已按矩形显示。',
   'ui.drawio.libJoin': '、',
+  // 导出图片时内核如实报出的实话（ADR 0051）：外链图片不自包含、缺形状库的形状按矩形画
+  'ui.drawio.exportPngImagesExternal':
+    '有 {n} 张图片形状引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
+  'ui.drawio.exportSvgImagesExternal':
+    '有 {n} 张图片形状引用的是外部文件，SVG 里保留的是原引用，打开时需要那些文件还在',
+  'ui.drawio.exportMissingLibs':
+    '有形状来自未内置的形状库（{libs}），导出的图里它们按矩形显示 —— 与屏幕上看到的一致',
 
   // 思维导图内核（mind-elixir）自己画的界面：右键菜单 11 条 + 新节点的占位文字。
   // 内核在**构造那一刻**就把这些字烤进 DOM（`MindElixir.js:1394` 的 innerHTML），
@@ -1468,6 +1475,14 @@ export const en: Record<MessageKey, string> = {
   'ui.drawio.emptyHint': 'This diagram is still empty. Switch to the source view (Ctrl+2) and write some XML — it will be drawn.',
   'ui.drawio.missingLibs': 'Shape libraries that are not bundled: {libs} — the affected shapes are shown as plain rectangles.',
   'ui.drawio.libJoin': ', ',
+  // Honest kernel-side notes when exporting an image (ADR 0051): external images are
+  // not self-contained, and shapes from missing libraries are drawn as plain rectangles
+  'ui.drawio.exportPngImagesExternal':
+    '{n} image shape(s) reference external files; they cannot be drawn into the PNG (the conversion does not read them)',
+  'ui.drawio.exportSvgImagesExternal':
+    '{n} image shape(s) reference external files; the SVG keeps the references, so those files must still exist when it is opened',
+  'ui.drawio.exportMissingLibs':
+    'Some shapes come from libraries that are not bundled ({libs}); they appear as plain rectangles in the exported image — the same as on screen',
 
   'ui.mindmap.addChild': 'Add child',
   'ui.mindmap.addParent': 'Add parent',

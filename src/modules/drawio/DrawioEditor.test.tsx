@@ -233,6 +233,110 @@ describe('图纸内核 · 与外壳之间的接缝', () => {
   });
 });
 
+/**
+ * 图片导出（ADR 0051）：与导图那轮一样，只钉**接缝**——
+ *
+ * - 内核真的把 `exportImage` 挂上了（缺了它，外壳的导出命令整条禁用）；
+ * - SVG 路径交得出真的 Blob：`XMLSerializer` 的产物自带 `xmlns` 声明
+ *   （没有它，独立 SVG 按 XML 一解析就报错）；外链图片形状如实进
+ *   `warnings`，且「保留原引用」是真的保留；缺形状库的降级也随文件带出去；
+ * - 没画出来（空文件 / 渲染失败）按契约交 `null`，不编一张空图出来。
+ *
+ * **PNG 不在这里测，也不可能在**：转换靠 `new Image()` 等加载事件，而 jsdom
+ * 的图片永远不加载 —— 与导图那轮同一条记录（`MindmapEditor.test.tsx`）。
+ * 像素对不对（底色、形状、文字）靠 `pnpm run tauri dev` 的人工冒烟，
+ * 写在这里只会得到一条假绿的测试。
+ */
+describe('exportImage（图纸内核 → 一张图）', () => {
+  it('★ handle 上真的有 exportImage —— 外壳的命令靠它才亮得起来', async () => {
+    const m = await mount();
+    await settle();
+
+    expect(typeof m.handle?.exportImage).toBe('function');
+  });
+
+  it('★ SVG：交得出真的 SVG Blob，序列化自带 xmlns（独立文件打得开）', async () => {
+    const m = await mount();
+    await settle();
+
+    const image = await m.handle?.exportImage?.('svg');
+
+    expect(image).not.toBeNull();
+    expect(image?.blob.type).toBe('image/svg+xml');
+    expect((image?.blob.size ?? 0)).toBeGreaterThan(0);
+    // XMLSerializer 而不是 outerHTML 的理由落在产物上：根上带 xmlns 声明
+    const text = await (image?.blob.text() ?? Promise.resolve(''));
+    expect(text).toContain('xmlns="http://www.w3.org/2000/svg"');
+    // 这份图纸没有外链图片形状，warnings 是空的（谎报警告与漏报一样是错）
+    expect(image?.warnings).toEqual([]);
+  });
+
+  it('外链图片形状：如实进 warnings，且 SVG 里保留的是原引用', async () => {
+    // 一张外链、一张内嵌（data:）—— 警告里说的就是那张外链的
+    spy.result = {
+      ok: true,
+      svg: [
+        '<svg id="d"><rect/>',
+        '<image href="https://example.com/pic.png" />',
+        '<image href="data:image/png;base64,AAA" />',
+        '</svg>',
+      ].join(''),
+    };
+    const m = await mount();
+    await settle();
+
+    const image = await m.handle?.exportImage?.('svg');
+
+    expect(image?.warnings).toHaveLength(1);
+    expect(image?.warnings[0]?.key).toBe('ui.drawio.exportSvgImagesExternal');
+    // 「SVG 保留原引用」是那句话的承诺：引用原样留在导出的串里
+    const text = await (image?.blob.text() ?? Promise.resolve(''));
+    expect(text).toContain('https://example.com/pic.png');
+  });
+
+  it('缺 stencil 库的图纸：导出的文件把「形状按矩形显示」这条实话带出去', async () => {
+    // 与「三种占位」那条同款 XML：network 库没内置，图是画出来了的
+    const xml = XML.replace('rounded=1;html=1;', 'shape=mxgraph.network.server;html=1;');
+    const m = await mount({ initialValue: xml });
+    await settle();
+
+    const image = await m.handle?.exportImage?.('svg');
+
+    // 屏幕上占位区说了「按矩形显示」；文件离开面板之后，这句得跟着文件走
+    expect(image).not.toBeNull();
+    expect(image?.warnings.map((warning) => warning.key)).toEqual(['ui.drawio.exportMissingLibs']);
+  });
+
+  it('渲染失败 ⇒ 按契约交 null，而不是编一张空图', async () => {
+    spy.result = { ok: false, message: 'Invalid XML: Parser error' };
+    const m = await mount();
+    await settle();
+
+    // 第二次 mount 会被 React 当成「更新」而不是重挂载，onReady 不会再发
+    // handle —— 所以「失败」与「空文件」必须各占一个测试（root 是 beforeEach 重建的）
+    await expect(m.handle?.exportImage?.('svg')).resolves.toBeNull();
+  });
+
+  it('空文件 ⇒ null（画布上没有图，编不出一张来）', async () => {
+    const m = await mount({ initialValue: '   ' });
+    await settle();
+
+    await expect(m.handle?.exportImage?.('svg')).resolves.toBeNull();
+  });
+
+  it('导一次之后还能再导 —— 序列化没有碰坏画布上的图', async () => {
+    const m = await mount();
+    await settle();
+
+    const first = await m.handle?.exportImage?.('svg');
+    const second = await m.handle?.exportImage?.('svg');
+
+    expect(second).not.toBeNull();
+    expect(second?.blob.type).toBe('image/svg+xml');
+    expect(second?.blob.size).toBe(first?.blob.size);
+  });
+});
+
 describe('图纸内核 · 切语言（ADR 0047）', () => {
   it('自己写的那几句话跟着变，渲染器的原话保持原样', async () => {
     await mount({ initialValue: '' });

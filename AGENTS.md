@@ -148,7 +148,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.mindmap` 的读写** | `core/mindmap/`（纯函数、**不 import 任何内核** —— 「结构自持，不绑定具体内核」是 §7.1 的设计意图）。字段对应表见 `docs/format-spec.md` §7.1.2 |
 | **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
 | **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
-| **导图导出成图片（PNG / SVG）** | 内核侧 `MindmapEditor.tsx` 的 `exportImage`（契约在 `core/editor/types.ts`，可选方法，产物 `{ blob, warnings }`）+ 外壳编排 `core/export/export-image.ts`（与 export-document.ts **并列**，不是它的分支）。**两条纪律别碰**：底色换真实解析色要整体重赋值 + `finally` 还原（`mind.theme` 与 `LEVNOTE_THEME` 同一引用），PNG 在 jsdom 不可测。详见 §六本轮段与 ADR 0050 |
+| **导出成图片（PNG / SVG，导图与图纸同一条路）** | 内核侧 `MindmapEditor.tsx` 与 `DrawioEditor.tsx` 的 `exportImage`（契约在 `core/editor/types.ts`，可选方法，产物 `{ blob, warnings }`）+ 外壳编排 `core/export/export-image.ts`（与 export-document.ts **并列**，不是它的分支；外壳只认能力不认内核 id —— 图纸接入时**外壳一行没改**）。**三条纪律别碰**：导图的底色换真实解析色要整体重赋值 + `finally` 还原（`mind.theme` 与 `LEVNOTE_THEME` 同一引用）；图纸的序列化必须 `XMLSerializer`（图片形状用 `xlink:href`，`outerHTML` 不补命名空间声明，独立文件按 XML 解析直接报错）；PNG 在 jsdom 不可测。详见 §六本轮段与 ADR 0050 / 0051 |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
@@ -944,6 +944,37 @@ HTML 导出）。⑧ 测试边界要诚实：**PNG 路径在 jsdom 不可测**�
 另外 `definitions.test.ts` 里跑命令用动态 `import()` 的，**测试文件头部要
 side-effect 预载同一个模块** —— 整跑负载下首次装配不止一个宏任务，只等一个
 `setTimeout(0)` 是 flake（本轮踩过）。
+
+**图纸接上同一条图片导出路（2026-10-14，ADR 0051）**：继续对比后自派的另一半
+需求 —— `.drawio` 文档此前**完全不能**导出图片，而 draw.io 官方工具把「导出
+PNG / SVG」放在第一屏。这轮是 ADR 0050 重审条件（「第三家内核接入时复用同一
+契约与 export-image.ts，不另开导出路径」）的兑现，也是检验：`DrawioEditor.tsx`
+一实现 `exportImage`，`.drawio` 文档上 `file.exportPng` / `file.exportSvg`
+**自动亮起** —— 能力检查、菜单、编排、写盘纪律**外壳一行没改**，契约放
+`core/editor/types.ts` 的意义第一次被兑现检验。图纸内核的三个事实定的形状，
+**别拿导图的经验去套**：① 查看器（viewer.min.js）**没有任何导出 API** ——
+mind-elixir 有现成 `exportPng()` 可借，这里没有，PNG 只能内核层自建
+Image+canvas（失败一律交 null 让外壳如实报；将来拿到 draw.io 编辑器资产时
+这条自建链退役，借编辑器自己的导出，见 ADR 0051 重审条件）。② 底色**不用换**：
+mxGraph 把解析好的底色写进 svg 根的**行内 style**（实证
+`this.svg.style.backgroundColor = <色>.cssText`），序列化天然带走；PNG 画布
+那侧要自己铺 `getComputedStyle(svg).backgroundColor`（解析出 `rgb` 系且非
+全透明才铺，解析不出**不铺也不编色**）。③ 序列化必须 `XMLSerializer`，**不是
+`outerHTML`**：mxGraph 图片形状用 `xlink:href`，`outerHTML` 不补命名空间声明，
+那样的文件独立打开按 XML 一解析就报错 —— **这条换了写法产物当场废**。
+`exportImage` 先 `await renderRef.current`（在途那趟 `renderDrawio`）——
+「打开立刻导出」不许拍到半张图；画布上没有 svg（失败 / 空文件）按契约交
+`null`。导的是**此刻画布上的那张**（当前页、当前缩放，所见即所得）。
+警告三句随文件走（`LocalizedText`）：外链图片 PNG 画不出 / SVG 保留原引用
+（`href` / `xlink:href` 非 `data:` 都算，两处都看）、缺 stencil 库的形状
+**按矩形显示与屏幕一致**（那句约定离开应用没人解释，得跟着文件走）。
+ADR 0048 给 `toHtml()`-null 留的重审条件（「外链图片怎么办」）里的
+「**明确标注**」在此兑现；**换成内联未做**（内核没有读盘能力），
+`toHtml()` 维持 `null` —— 两条路各答各的，别混。测试边界同导图：PNG 在
+jsdom 不可测（`Image` 永不加载）、像素零测试，靠 `pnpm run tauri dev`
+人工冒烟；测试形状教训：**这套挂载每个 it 只 mount() 一次** —— 同一 it 里
+第二次 mount() 复用同一 root，React 视为「更新」而非重挂载，onReady
+（deps `[]`）不再发 handle，`expect(p).resolves` 直接拿到 undefined。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、
