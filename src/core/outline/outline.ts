@@ -22,6 +22,13 @@ export interface OutlineItem {
   readonly text: string;
   /** 1 基行号，用于跳转 */
   readonly line: number;
+  /**
+   * 条目在**文件层**的唯一 id。只有导图大纲会设（§7.1 每个节点都有 `id`）；
+   * Markdown 大纲**永不设**：它来自纯文本提取，手里没有这个东西 ——
+   * 与 `goToOutlineItem` / `goToAnchor` 拆开的理由同源（数据来源不同，
+   * 缺着传 `undefined` 比编一个假值诚实）。
+   */
+  readonly id?: string;
 }
 
 interface Fence {

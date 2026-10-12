@@ -24,6 +24,7 @@ import type { EditorHandle, EditorMountProps } from '../../core/editor/types.js'
 import { setLocale } from '../../core/i18n/index.js';
 import { DEFAULT_FIND_OPTIONS } from '../../core/search/find.js';
 import { MINDMAP_FORMAT, MINDMAP_VERSION } from '../../core/mindmap/types.js';
+import { extractMindmapOutline } from '../../core/outline/mindmap-outline.js';
 import MindmapEditor from './MindmapEditor.js';
 
 declare global {
@@ -398,5 +399,155 @@ describe('exportImage（导图内核 → 一张图）', () => {
     expect(second).not.toBeNull();
     expect(second?.blob.type).toBe('image/svg+xml');
     expect(second?.blob.size).toBe(first?.blob.size);
+  });
+});
+
+/**
+ * 大纲跳转（ADR 0052）。这里钉的接缝：
+ *
+ * - handle 上真的有 `goToOutlineItem`（缺了它，导图文档的大纲条目全灰）；
+ * - 跳转是**选中**不是编辑：没动过文件的跳转之后 `changes` 一条都没有，
+ *   `getValue()` 逐字节不变；
+ * - 折叠的祖先会被展开，而**展开是文档变更**：`collapsed` 是文件字段（§7.1），
+ *   所以那条 onChange 与标脏是诚实的，保存会把展开状态写进文件
+ *   （例外：**根**—— 内核对根的折叠不做视觉隐藏，也没有根的展开器，
+ *   跳转照常成功，但不假装展开过）；
+ * - 面板（`extractMindmapOutline`）与内核吃的 id **同源** —— 缺 id 的文件
+ *   两边都由同一个解析器补 `auto-` 前缀，跳转才能指对地方。
+ *
+ * jsdom 没有布局引擎，所以「图真的滚到那个主题跟前」断不了；这里断的是
+ * 数据层的每一步（返回值、onChange、getValue），视口效果靠
+ * `pnpm run tauri dev` 的人工冒烟。
+ */
+describe('goToOutlineItem（大纲跳转，ADR 0052）', () => {
+  /** 根折叠着，孙辈（甲的孙）藏在里面 —— 跳它必须先把根展开。 */
+  const COLLAPSED = `${JSON.stringify(
+    {
+      format: MINDMAP_FORMAT,
+      version: MINDMAP_VERSION,
+      layout: 'logicalStructure',
+      root: {
+        id: 'r',
+        topic: '根',
+        collapsed: true,
+        children: [
+          { id: 'jia', topic: '甲', children: [{ id: 'a1', topic: '甲的孙', children: [] }] },
+          { id: 'yi', topic: '乙', children: [] },
+        ],
+      },
+    },
+    null,
+    2,
+  )}\n`;
+
+  /** 两层都折叠：a 折着 a1，a1 折着 a11 —— 跳 a11 要展开两段。 */
+  const DOUBLE = `${JSON.stringify(
+    {
+      format: MINDMAP_FORMAT,
+      version: MINDMAP_VERSION,
+      layout: 'logicalStructure',
+      root: {
+        id: 'root',
+        topic: '根',
+        children: [
+          {
+            id: 'a',
+            topic: '一层',
+            collapsed: true,
+            children: [{ id: 'a1', topic: '二层', collapsed: true, children: [{ id: 'a11', topic: '三层', children: [] }] }],
+          },
+        ],
+      },
+    },
+    null,
+    2,
+  )}\n`;
+
+  it('★ handle 上真的有 goToOutlineItem —— 外壳的大纲条目靠它才点得动', async () => {
+    const { handle } = await mountReady();
+    expect(typeof handle.goToOutlineItem).toBe('function');
+  });
+
+  it('按 id 跳到可见的主题：true，且选中不是编辑 —— changes 空、getValue 逐字节不变', async () => {
+    const { handle, changes } = await mountReady();
+
+    const jumped = handle.goToOutlineItem?.({ level: 2, text: '分支甲', id: 'n2' }) ?? false;
+
+    expect(jumped).toBe(true);
+    expect(changes).toEqual([]);
+    expect(handle.getValue()).toBe(CANONICAL);
+  });
+
+  it('没带 id 时按 (层级, 文字) 找第一个 —— 老契约不破', async () => {
+    const { handle } = await mountReady();
+    expect(handle.goToOutlineItem?.({ level: 2, text: '分支乙' }) ?? false).toBe(true);
+  });
+
+  it('找不到的主题交 false —— 如实说没跳过去，而不是抛错或假装成功', async () => {
+    const { handle } = await mountReady();
+    expect(handle.goToOutlineItem?.({ level: 2, text: '分支甲', id: 'no-such-node' }) ?? false).toBe(false);
+  });
+
+  it('根折叠着的文件照样跳：内核本就不藏根的子分支，也不假装展开它', async () => {
+    const { handle, changes } = await mountReady({ initialValue: COLLAPSED });
+
+    const jumped = handle.goToOutlineItem?.({ level: 3, text: '甲的孙', id: 'a1' }) ?? false;
+
+    // 内核对根的 collapsed 不做视觉隐藏（子分支永远渲染），`expandNode`
+    // 对根还会抛错（根没有 +/- 气泡）—— 所以这里如实的做法是：
+    // 跳过去（true），但不假装展开过（一次 onChange 都没有，文件一个字节不动）
+    expect(jumped).toBe(true);
+    expect(changes).toEqual([]);
+    expect(handle.getValue()).toBe(COLLAPSED);
+  });
+
+  it('中层折叠跳最深层：每展开一层是一次文档变更 —— changes 恰好两条', async () => {
+    const { handle, changes } = await mountReady({ initialValue: DOUBLE });
+
+    const jumped = handle.goToOutlineItem?.({ level: 4, text: '三层', id: 'a11' }) ?? false;
+
+    expect(jumped).toBe(true);
+    // 两次展开 = 两条 onChange：collapsed 是文件字段，保存会把展开状态写进文件
+    expect(changes).toHaveLength(2);
+    expect(handle.getValue()).not.toContain('"collapsed"');
+  });
+
+  it('缺 id 的文件：面板算出的 auto-id 与内核吃到的是同一套（同源解析器）—— 跳得中', async () => {
+    const noId = `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: { topic: '根', children: [{ topic: '分支', children: [] }] },
+      },
+      null,
+      2,
+    )}\n`;
+    const { handle } = await mountReady({ initialValue: noId });
+
+    // 面板走的就是这条提取器 —— 拿它的条目跳，等于复放真实点击的那条数据链
+    const items = extractMindmapOutline(noId);
+    expect(items.map((item) => item.id)).toEqual(['auto-0', 'auto-1']);
+
+    const leaf = items[1];
+    expect(leaf).toBeDefined();
+    expect(handle.goToOutlineItem?.({ level: leaf?.level ?? 0, text: leaf?.text ?? '', id: leaf?.id }) ?? false).toBe(true);
+  });
+
+  it('只读时跳折叠子树：不展开（那是编辑），交 false —— 而不是弄脏文件', async () => {
+    const { handle, changes } = await mountReady({ initialValue: DOUBLE, readOnly: true });
+
+    expect(handle.goToOutlineItem?.({ level: 4, text: '三层', id: 'a11' }) ?? false).toBe(false);
+    expect(changes).toEqual([]);
+    expect(handle.getValue()).toBe(DOUBLE);
+  });
+
+  it('只读时跳可见主题照跳 —— 选中不是编辑，文件不动一个字节', async () => {
+    // 根折叠不影响可见性（内核不藏根的子分支），只读也照跳、照样一个字节不动
+    const { handle, changes } = await mountReady({ initialValue: COLLAPSED, readOnly: true });
+
+    expect(handle.goToOutlineItem?.({ level: 3, text: '甲的孙', id: 'a1' }) ?? false).toBe(true);
+    expect(changes).toEqual([]);
+    expect(handle.getValue()).toBe(COLLAPSED);
   });
 });

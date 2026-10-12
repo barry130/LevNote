@@ -168,6 +168,11 @@ export const zhCN = {
   'ui.outline.lineN': '第 {line} 行',
   'ui.outline.noJump': '当前编辑器内核不支持按标题跳转',
   'ui.outline.emptyHeading': '（空标题）',
+  // 导图大纲的措辞（ADR 0052）：条目是「主题」，没有「行」可指
+  'ui.outline.countTopics': '{n} 个主题',
+  'ui.outline.jumpToTopic': '点击跳到这个主题',
+  'ui.outline.emptyTopic': '（空主题）',
+  'ui.outline.mmUnreadable': '暂时读不出导图的结构。',
 
   // ---- 视图三档 -----------------------------------------------------------
   'ui.view.groupLabel': '视图模式',
@@ -956,6 +961,11 @@ export const en: Record<MessageKey, string> = {
   'ui.outline.lineN': 'Line {line}',
   'ui.outline.noJump': 'The current editor kernel does not support heading jumps',
   'ui.outline.emptyHeading': '(empty heading)',
+  // Mind-map outline wording (ADR 0052): entries are topics, not lines
+  'ui.outline.countTopics': '{n} topics',
+  'ui.outline.jumpToTopic': 'Jump to this topic',
+  'ui.outline.emptyTopic': '(empty topic)',
+  'ui.outline.mmUnreadable': 'Cannot read the mind map structure right now.',
 
   // ---- 视图三档 -----------------------------------------------------------
   'ui.view.groupLabel': 'View mode',

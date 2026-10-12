@@ -33,7 +33,7 @@ import { runCommandSafely } from '../core/commands/runner.js';
 import type { CommandContext, UiActions } from '../core/commands/types.js';
 import type { DocBlockPreview, EditorHandle, EditorPosition } from '../core/editor/types.js';
 import type { OutlineItem } from '../core/outline/outline.js';
-import { basename, isMarkdownPath, resolveRelative } from '../core/path.js';
+import { basename, isMarkdownPath, isMindmapPath, resolveRelative } from '../core/path.js';
 import type { DocumentStore } from '../core/document/store.js';
 import {
   askConfirm,
@@ -2092,20 +2092,23 @@ export function App({ workspace, provider, initialSettings, searcher: injectedSe
   const jumpToOutline = useCallback((item: OutlineItem) => {
     const current = handleRef.current;
     if (!current?.goToOutlineItem) return;
-    current.goToOutlineItem({ level: item.level, text: item.text });
+    current.goToOutlineItem({ level: item.level, text: item.text, id: item.id });
   }, []);
 
   /**
-   * 只有 Markdown 家族的文档才显示大纲。
+   * Markdown 家族和导图文档才显示大纲（导图大纲见 ADR 0052）。
    *
    * 判断放在外壳而不是内核：这是**产品决策**（哪些文件值得有大纲），
    * 不是内核能力。内核只需要实现 `goToOutlineItem`。
    *
-   * 名单来自 `core/path.ts` —— 外壳**可以**知道「哪些文件是 Markdown」，
-   * 因为那是产品范围；它**不可以**知道「Markdown 用哪个内核渲染」，
-   * 那才是内核知识。两者很容易被混为一谈。
+   * 名单来自 `core/path.ts` —— 外壳**可以**知道「哪些文件是 Markdown /
+   * 哪些是导图」，因为那是产品范围；它**不可以**知道「这些文件用哪个
+   * 内核渲染」，那才是内核知识。两者很容易被混为一谈。
    */
-  const outlineEnabled = useMemo(() => activePath !== null && isMarkdownPath(activePath), [activePath]);
+  const outlineEnabled = useMemo(
+    () => activePath !== null && (isMarkdownPath(activePath) || isMindmapPath(activePath)),
+    [activePath],
+  );
 
   const sidebarWidth = liveSidebarWidth ?? settings.sidebarWidth;
 

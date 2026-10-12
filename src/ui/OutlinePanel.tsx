@@ -1,10 +1,11 @@
 /**
  * 大纲面板。
  *
- * 长文档的导航刚需。它与 Markdown 内核**解耦**：大纲直接从 `doc.text`
- * 用纯函数算出来（`core/outline/outline.ts`），因此
- * 打开一份 10 万字的文档时，算大纲不会去碰编辑器内核，
- * 也不会因为内核还在异步初始化而拿不到内容。
+ * 长文档的导航刚需。它与编辑器内核**解耦**：大纲直接从 `doc.text`
+ * 用纯函数算出来 —— Markdown 走 `core/outline/outline.ts`，
+ * 导图走 `core/outline/mindmap-outline.ts`（ADR 0052，复用 `parseMindmap`，
+ * 与喂给内核的数据同一套语义）。因此打开一份 10 万字的文档时，
+ * 算大纲不会去碰编辑器内核，也不会因为内核还在异步初始化而拿不到内容。
  *
  * 跳转走 `EditorHandle.goToOutlineItem`。不支持跳转的内核（纯文本兜底）
  * 会把条目显示成不可点击并说明原因 —— 而不是给一个点了没反应的列表。
@@ -15,6 +16,8 @@ import { useMemo, useSyncExternalStore } from 'react';
 import type { DocumentStore } from '../core/document/store.js';
 import { emptyStoreState } from '../core/document/store.js';
 import { extractOutline, outlineDepths, type OutlineItem } from '../core/outline/outline.js';
+import { extractMindmapOutline } from '../core/outline/mindmap-outline.js';
+import { isMindmapPath } from '../core/path.js';
 import { t } from '../core/i18n/index.js';
 
 export interface OutlinePanelProps {
@@ -28,8 +31,13 @@ export interface OutlinePanelProps {
 export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelProps) {
   const state = useSyncExternalStore(store?.subscribe ?? NOOP_SUBSCRIBE, store?.getSnapshot ?? EMPTY_SNAPSHOT);
   const text = state.doc?.text ?? '';
+  /** 提取器按**产品范围**分派（哪些文件有大纲是产品决策，见 App 的 `outlineEnabled`）。 */
+  const mindmap = isMindmapPath(state.doc?.path ?? '');
 
-  const items = useMemo(() => extractOutline(text), [text]);
+  const items = useMemo(
+    () => (mindmap ? extractMindmapOutline(text) : extractOutline(text)),
+    [mindmap, text],
+  );
   const depths = useMemo(() => outlineDepths(items), [items]);
 
   return (
@@ -37,7 +45,7 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
       <header className="outline-head">
         <span className="outline-title">{t('ui.outline.title')}</span>
         <span className="grow" />
-        <span className="hint">{t('ui.outline.count', { n: items.length })}</span>
+        <span className="hint">{mindmap ? t('ui.outline.countTopics', { n: items.length }) : t('ui.outline.count', { n: items.length })}</span>
         <button type="button" title={t('ui.outline.close')} onClick={onClose}>
           ×
         </button>
@@ -45,9 +53,14 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
 
       {items.length === 0 ? (
         <div className="outline-empty">
-          {text === '' ? t('ui.outline.emptyDoc') : t('ui.outline.noHeadings')}
+          {text === ''
+            ? t('ui.outline.emptyDoc')
+            : mindmap
+              ? t('ui.outline.mmUnreadable')
+              : t('ui.outline.noHeadings')}
           <br />
-          {t('ui.outline.howHint')}
+          {/* 「用 # 开头」只对 Markdown 有意义；导图解析不出来时如实说读不出，不教用户改行 */}
+          {!mindmap && t('ui.outline.howHint')}
         </div>
       ) : (
         <div className="outline-list" role="tree">
@@ -59,10 +72,20 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
               className={`outline-item level-${item.level}`}
               style={{ paddingLeft: 10 + (depths[index] ?? 0) * 12 }}
               disabled={!canJump}
-              title={canJump ? t('ui.outline.lineN', { line: item.line }) : t('ui.outline.noJump')}
+              title={
+                canJump
+                  ? mindmap
+                    ? t('ui.outline.jumpToTopic')
+                    : t('ui.outline.lineN', { line: item.line })
+                  : t('ui.outline.noJump')
+              }
               onClick={() => onJump(item)}
             >
-              {item.text === '' ? <span className="hint">{t('ui.outline.emptyHeading')}</span> : item.text}
+              {item.text === '' ? (
+                <span className="hint">{mindmap ? t('ui.outline.emptyTopic') : t('ui.outline.emptyHeading')}</span>
+              ) : (
+                item.text
+              )}
             </button>
           ))}
         </div>

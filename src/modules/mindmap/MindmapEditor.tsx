@@ -107,6 +107,29 @@ function findNodeById(root: MindmapNode, id: string): MindmapNode | null {
 }
 
 /**
+ * 大纲跳转的目标定位（ADR 0052）：找到目标节点，连从根到它的整条祖先链一起交回 ——
+ * 展开折叠祖先时要知道「谁挡在路上」，只找到节点本身不够。
+ *
+ * 匹配规则与契约注释一致：带 `id` 优先按 `id`（主题可以重名，`(level, text)`
+ * 只能找到第一个）；没带就按「层级 + 文字」找第一个。返回的链是先序，
+ * `[0]` 是根，最后一项是目标本身。
+ */
+function findTopicPath(root: MindmapNode, target: { id?: string; level: number; text: string }): MindmapNode[] | null {
+  const seek = (node: MindmapNode, prefix: readonly MindmapNode[]): MindmapNode[] | null => {
+    const path = [...prefix, node];
+    const matched =
+      target.id !== undefined ? node.id === target.id : path.length === target.level && node.topic === target.text;
+    if (matched) return path;
+    for (const child of node.children) {
+      const hit = seek(child, path);
+      if (hit !== null) return hit;
+    }
+    return null;
+  };
+  return seek(root, []);
+}
+
+/**
  * 在所有节点的 `topic` 里查找。
  *
  * ## 为什么逐节点查找，而不是拼成一篇大文本再查
@@ -471,6 +494,72 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
       },
 
       search,
+
+      /**
+       * 大纲跳转（ADR 0052）。外壳的大纲面板把「根 → 分支 → 叶」平铺成一张表，
+       * 点一条要把图带到那个主题跟前。
+       *
+       * ## 为什么按 `document`（信封）找，而不是内核自己的数据树
+       *
+       * 大纲条目的 id 来自**文件层**（面板用 `parseMindmap` 算的，见
+       * `core/outline/mindmap-outline.ts`），这里与 `search` 的 `readDocument`
+       * 同一个来源 —— 两侧的 id 在「打开 → 编辑 → 重建」全链路上一致
+       * （缺 id 的文件两边都由同一个解析器补 `auto-` 前缀）。内核自己的
+       * `nodeData` 反而不可靠：专注模式（右键菜单的「聚焦」）会把它换成子树，
+       * 结构不是全的。
+       *
+       * ## 展开折叠的祖先是文档变更，标脏是诚实的
+       *
+       * `collapsed` 是文件字段（§7.1），展开它就是改文档 —— `expandNode` 发的
+       * 事件走 `emit` 主通道，保存会把展开状态写进文件。这不是副作用，
+       * 是这件事本来的样子。
+       *
+       * ## 逐段 try/catch，抓的是内核的 `throw`
+       *
+       * `findEle` 对看不见的节点（折叠中 / 专注模式的子树之外）会**抛错**而不是
+       * 返回空（`MindElixir.js:341`）。抓住、交 `false` —— 外壳会如实说没跳过去，
+       * 而不是白屏。
+       *
+       * 只读时折叠的祖先**不展开**（那是编辑），够不着的条目交 `false`；
+       * 看得见的照跳 —— 选中不是编辑，不弄脏文件。
+       */
+      goToOutlineItem: ({ level, text, id }) => {
+        const path = findTopicPath(document.root, { id, level, text });
+        if (path === null) return false;
+        const target = path[path.length - 1];
+        if (target === undefined) return false;
+
+        /**
+         * 展开路上折叠着的祖先（自根向下）。两个如实的例外：
+         *
+         * - **根不展开**：内核的 `expandNode` 只认带「+/-」气泡的分支节点，
+         *   对根调用会抛错（根没有那个气泡）；而内核对根的 `collapsed`
+         *   本来就不做视觉隐藏 —— 子分支永远渲染，跳过去照样看得见。
+         *   所以跳转照常成功，文件里的 `collapsed` 维持原样，不假装展开过。
+         * - **只读不展开**：展开是编辑，够不着的条目交 `false`。
+         */
+        const ancestors = path.slice(0, -1);
+        for (let index = 0; index < ancestors.length; index += 1) {
+          const ancestor = ancestors[index];
+          if (ancestor === undefined || ancestor.collapsed !== true) continue;
+          if (index === 0) continue;
+          if (readOnlyRef.current) return false;
+          try {
+            mind.expandNode(mind.findEle(ancestor.id), true);
+          } catch {
+            return false;
+          }
+        }
+        try {
+          const el = mind.findEle(target.id);
+          mind.selectNode(el);
+          mind.scrollIntoView(el);
+        } catch {
+          return false;
+        }
+        host.focus();
+        return true;
+      },
     };
 
     onReadyRef.current(handle);

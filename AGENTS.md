@@ -120,7 +120,6 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **内核自己画的界面文案** | `modules/mindmap/lang-pack.ts` 的 `mindmapLangPack()` 十二键加 `newTopicName`，**现查现变**（模块级常量会在模块被求值那一刻烤死语言，ADR 0031 的坑）。内核在**安装那一刻**把右键菜单十一条烤成 DOM（`MindElixir.js:1394` 的 `innerHTML`）—— 所以 `contextMenu` 传 `true` 只能拿到它硬编码的英文包，**要传对象**才带得上我们的语言包。语言一变只能**重建内核**：`useSyncExternalStore(subscribeLocale, getLocale)` 把 `locale` 放进主 effect 的依赖数组（全项目第一处真的订阅语言变化的消费方）。重建的三条命门，缺一条就是一次静默的坏：① 种子取 `latestRef`（「此刻 Ctrl+S 会写出的那份文本」，拿 `initialValue` 重新解析会让用户的修改**静默回滚**）；② `getValue()` 里记进 `latestRef` 的是**交出去的那个值**不是 `lastText` —— 记错的话下一次保存把用户文件**重排版**，「打开 → 保存逐字节一致」当场破掉；③ 缩放用公开的 `scaleVal` / `scale()` 还原，而选中项 / 专注模式 / 平移**不保**（都不是公开 API，别去撬内部状态，升级即烂）（ADR 0049） |
 | **「上次读到哪儿」（光标 / 滚动）** | `core/positions.ts`（存储：独立键 + LRU 200 条）。**位置的坐标系由内核自己定**，外壳只做往返 —— 见 ADR 0021，别想着在外壳里把它换算成「第几个字符」 |
 | **滚动比例那四行算术** | `core/editor/position.ts`（`readScrollRatio` / `applyScrollRatio`）。三个内核共用；**别各写一份**（其中两份一定会忘了判除零） |
-| 大纲提取 | `core/outline/outline.ts` |
 | 字数 / 阅读时长 | `core/statistics.ts`（Word 口径，内核无关） |
 | **哪些文件算 Markdown** | `core/path.ts` 的 `MARKDOWN_EXTENSIONS` / `isMarkdownPath()`。**名单只有这一份**，四个地方在用它 |
 | **所有浮层摆在哪**（位置算术） | `ui/floating.ts` 的 `computeFloatingPlacement`（**纯函数**，12 条单测）。四个浮层共用：选中工具条（`center`/上）、斜杠菜单（`start`/下）、表格工具条（`center`/下）、代码块语言面板（`end`/下）。**改摆放规则改这里，不要在组件里再抄一份** —— 它被抄过两遍才提取出来的 |
@@ -149,6 +148,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
 | **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
 | **导出成图片（PNG / SVG，导图与图纸同一条路）** | 内核侧 `MindmapEditor.tsx` 与 `DrawioEditor.tsx` 的 `exportImage`（契约在 `core/editor/types.ts`，可选方法，产物 `{ blob, warnings }`）+ 外壳编排 `core/export/export-image.ts`（与 export-document.ts **并列**，不是它的分支；外壳只认能力不认内核 id —— 图纸接入时**外壳一行没改**）。**三条纪律别碰**：导图的底色换真实解析色要整体重赋值 + `finally` 还原（`mind.theme` 与 `LEVNOTE_THEME` 同一引用）；图纸的序列化必须 `XMLSerializer`（图片形状用 `xlink:href`，`outerHTML` 不补命名空间声明，独立文件按 XML 解析直接报错）；PNG 在 jsdom 不可测。详见 §六本轮段与 ADR 0050 / 0051 |
+| **大纲面板（Markdown 与导图两个来源）** | 提取器是纯函数两份：`core/outline/outline.ts`（Markdown，`level`/`line` 都是 1 基行号）与 `core/outline/mindmap-outline.ts`（导图，`line` 是**先序序号不是行号**、条目带 `id`）；跳转契约 `EditorHandle.goToOutlineItem({ level, text, id? })`（`id` 只有导图传 —— 文件层 id 指得准，Markdown 编不出真值就别编）。**导图侧四条纪律**：① `extractMindmapOutline` **必须**复用 `parseMindmap`（自造第二份「什么算一个主题」的判定迟早漂移，跳转会指错地方）；② 内核 `goToOutlineItem` 跳转时展开折叠祖先是**文档变更**（`collapsed` 是文件字段，onChange + 标脏照常，不标才是撒谎）；③ **根不展开**（mind-elixir 的 `expandNode` 只认带气泡的分支节点，对根调用抛 TypeError；根折叠也无视觉效果）与**只读不展开**（展开是编辑）是两个写死的例外；④ `findEle` 对看不见的节点 throw，**捕获交 false**，不白屏。外壳按 `isMindmapPath` 分派提取器与文案（产品范围，不是认内核）。详见 §六本轮段与 ADR 0052 |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
@@ -975,6 +975,30 @@ jsdom 不可测（`Image` 永不加载）、像素零测试，靠 `pnpm run taur
 人工冒烟；测试形状教训：**这套挂载每个 it 只 mount() 一次** —— 同一 it 里
 第二次 mount() 复用同一 root，React 视为「更新」而非重挂载，onReady
 （deps `[]`）不再发 handle，`expect(p).resolves` 直接拿到 undefined。
+
+**导图的大纲面板（2026-10-14，ADR 0052）**：对比 XMind 后自派的第三轮需求 ——
+大纲视图在导图产品里是第一屏功能，而 LevNote 的活动栏大纲按钮此前只认
+Markdown。这轮定了四件事，**换内核时最容易烂的是第一条**：
+① 大纲提取器 `core/outline/mindmap-outline.ts` **必须复用 `parseMindmap`**
+（`level` 是树深、`line` 是先序序号、条目带文件层 id）—— 面板与内核看到
+「什么算一个主题」靠同一份判定；自造第二份迟早漂移，跳转会悄悄指错地方。
+② 契约 `goToOutlineItem({ level, text, id? })` 的 `id` **只有导图传**
+（Markdown 编不出真值就别编，缺着比假值诚实）；主题可重名，id 才指得准。
+③ 内核跳转（`MindmapEditor.tsx`）的两个**写死的例外**：**根不展开** ——
+mind-elixir 的 `expandNode` 读 `i.children[1]`（+/− 气泡），根没有气泡，
+对根调用**抛 TypeError**；且根折叠在视觉上不生效（子分支永远渲染，
+jsdom 探测实证）。**只读不展开**（展开是编辑，交 false；可见的照跳，
+`selectNode` 不发事件，选中不是编辑）。`findEle` 对看不见的节点 throw
+（`FindEle: Node … not found, maybe it's collapsed.`），**捕获交 false**。
+④ 展开折叠祖先是**文档变更**：`collapsed` 是文件字段，onChange + 标脏照常
+—— 跳转把看不见的地方变可见，本来就该存进文件；不标脏才是撒谎
+（用户看到展开了，保存重开却还是折着的）。面板按 `isMindmapPath` 分派
+提取器与文案（外壳知道「哪些文件是导图」是产品范围，不知道用哪个内核）。
+测试边界：jsdom 无布局，`scrollIntoView` 的真实滚动不断言，断言返回值 +
+展开链经 `getValue` 落回文本；人工冒烟（开 `.mindmap` → 开大纲 → 点深层条目）。
+工具教训一条：PowerShell `Set-Content` 不带 `-Encoding` 会写出 **UTF-16**，
+把 TS 文件整个毁掉（read 报 invalid UTF-8）—— 造文件用
+`New-Item` 占位 + read + `write` 工具，不要用 shell 重定向写源码文件。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、

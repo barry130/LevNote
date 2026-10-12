@@ -1544,6 +1544,80 @@ describe('思维导图能被主动造出来（ADR 0048）', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 导图的大纲面板（ADR 0052）
+// ---------------------------------------------------------------------------
+
+describe('导图文档也有大纲面板（ADR 0052）', () => {
+  /**
+   * 这里钉的是**外壳接线**：`.mindmap` 打开时大纲面板亮得起来、条目来自
+   * `extractMindmapOutline`、点一条真的把 `id` 交给了内核（接缝那一侧的
+   * 行为由 `MindmapEditor.test.tsx` 钉）。jsdom 没有布局，所以「图滚过去了」
+   * 断不了 —— 点击不抛、参数链路对，就是这条链在这里能诚实验的全部。
+   */
+
+  const MAP = JSON.stringify({
+    format: 'levnote.mindmap',
+    version: 1,
+    layout: 'logicalStructure',
+    root: {
+      id: 'n1',
+      topic: '季度计划',
+      children: [
+        { id: 'n2', topic: '研发', children: [] },
+        { id: 'n3', topic: '发布', children: [] },
+      ],
+    },
+  });
+
+  it('打开 .mindmap：大纲面板在，条目是主题不是标题，数量也对', async () => {
+    mounted = await mount((p) => p.put('计划.mindmap', MAP), { settings: { outlineVisible: true } });
+    await mounted.open('计划.mindmap');
+
+    const panel = mounted.container.querySelector('.outline');
+    expect(panel, '.outline 面板应该挂出来').not.toBeNull();
+    // 三个主题（根 + 两个分支）都列出来 —— 折叠的概念在这里不存在，大纲要能去到看不见的地方
+    const items = panel?.querySelectorAll('.outline-item') ?? [];
+    expect(items.length).toBe(3);
+    expect(panel?.textContent).toContain('季度计划');
+    expect(panel?.textContent).toContain('研发');
+    // 计数说的是「主题」，不是 Markdown 那句「标题」
+    expect(panel?.textContent).toContain('3 个主题');
+  });
+
+  it('Markdown 文档不受影响：还是「N 个标题」那套措辞', async () => {
+    mounted = await mount((p) => p.put('笔记.md', '# 一个标题\n'), { settings: { outlineVisible: true } });
+    await mounted.open('笔记.md');
+
+    const panel = mounted.container.querySelector('.outline');
+    expect(panel?.querySelectorAll('.outline-item').length).toBe(1);
+    expect(panel?.textContent).toContain('1 个标题');
+  });
+
+  it('点一条不抛错 —— id 已经透传给内核（跳转效果属内核侧，另有测试）', async () => {
+    mounted = await mount((p) => p.put('计划.mindmap', MAP), { settings: { outlineVisible: true } });
+    await mounted.open('计划.mindmap');
+
+    const items = [
+      ...(mounted.container.querySelector('.outline')?.querySelectorAll<HTMLButtonElement>('.outline-item') ?? []),
+    ];
+    expect(items.length).toBeGreaterThan(1);
+    // 第二条 = 「研发」。点它不该抛错；真跳没跳过去由内核的 goToOutlineItem 决定，
+    // 这里 jsdom 断不了视口，只钉「外壳把点击交出去了、没白屏」
+    await act(async () => {
+      items[1]?.click();
+    });
+    await settle();
+  });
+
+  it('大纲开关默认关着：没开偏好的用户不会突然多一块面板', async () => {
+    mounted = await mount((p) => p.put('计划.mindmap', MAP));
+    await mounted.open('计划.mindmap');
+
+    expect(mounted.container.querySelector('.outline')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 活动栏
 // ---------------------------------------------------------------------------
 

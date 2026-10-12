@@ -190,10 +190,16 @@ export interface EditorHandle {
    * 没有「行」这个概念，硬要它把行号翻译成位置只能靠猜 ——
    * 猜错的后果是跳到文档里一个无关的地方，比不跳更糟。
    *
+   * `id` 是导图大纲才带的**文件层**节点 id（§7.1 每个节点都有）：
+   * 导图的主题可以重名，`(level, text)` 只能找到第一个；Markdown 大纲
+   * 来自纯文本提取，手里没有 id —— 它不传（`undefined`），就像
+   * `goToAnchor` 拆开时说的：数据来源不同，缺着比编一个假值诚实。
+   * 内核按「有 `id` 优先按 `id` 找，没有就按 `(level, text)` 找」处理。
+   *
    * 返回 false 表示找不到或这个内核不支持。外壳据此决定大纲项是否可点击，
    * 而不是给一个点了没反应的项。
    */
-  goToOutlineItem?(item: { level: number; text: string }): boolean;
+  goToOutlineItem?(item: { level: number; text: string; id?: string }): boolean;
   /**
    * 可选：把光标移到本文档里某个**锚点**处（点 `#标题` 这类链接）。
    *
