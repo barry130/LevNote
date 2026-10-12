@@ -61,6 +61,8 @@ export const MENUS: readonly MenuDef[] = [
       'separator',
       'file.exportHtml',
       'file.exportPdf',
+      'file.exportPng',
+      'file.exportSvg',
       'separator',
       'app.settings',
       'file.closeTab',

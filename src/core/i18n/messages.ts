@@ -64,6 +64,8 @@ export const zhCN = {
   // ---- 导出 ---------------------------------------------------------------
   'command.file.exportHtml.title': '导出为自包含 HTML',
   'command.file.exportPdf.title': '打印 / 导出为 PDF',
+  'command.file.exportPng.title': '导出为 PNG 图片',
+  'command.file.exportSvg.title': '导出为 SVG 图片',
 
   // ---- 标签页 ---------------------------------------------------------------
   'command.tab.next.title': '下一个标签页',
@@ -619,6 +621,8 @@ export const zhCN = {
   'core.export.diagramsRendered': '{n} 张图表已画成 SVG',
   'core.export.diagramsFailed': '{n} 张图表画不出来，只保留了源码',
   'core.export.plainFallback': '当前内核没有富文本结构，已按纯文本呈现',
+  'core.export.imageBuildFailed': '生成图片失败：{reason}',
+  'core.export.imageDrawFailed': '内核没能把图画出来，没有生成文件',
 
   'core.print.buildFailed': '生成打印内容失败：{reason}',
   'core.print.windowFailed': '打不开打印窗口：{reason}',
@@ -710,6 +714,11 @@ export const zhCN = {
   'ui.mindmap.clickTips': '请点击目标主题',
   'ui.mindmap.summary': '概要',
   'ui.mindmap.newTopicName': '新主题',
+  // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
+  'ui.mindmap.exportPngImagesExternal':
+    '有 {n} 张节点图片引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
+  'ui.mindmap.exportSvgImagesExternal':
+    '有 {n} 张节点图片引用的是外部文件，SVG 里保留的是原引用，打开时需要那些文件还在',
 
   // .mindmap 解析 / 序列化的提示与错误（绝不静默：每一条都说清降级了什么）
   'core.mm.descArray': '数组（{n} 项）',
@@ -838,6 +847,8 @@ export const en: Record<MessageKey, string> = {
   // ---- 导出 ---------------------------------------------------------------
   'command.file.exportHtml.title': 'Export as Self-Contained HTML',
   'command.file.exportPdf.title': 'Print / Export as PDF',
+  'command.file.exportPng.title': 'Export as PNG Image',
+  'command.file.exportSvg.title': 'Export as SVG Image',
 
   // ---- 标签页 ---------------------------------------------------------------
   'command.tab.next.title': 'Next Tab',
@@ -1384,6 +1395,8 @@ export const en: Record<MessageKey, string> = {
   'core.export.diagramsRendered': '{n} diagram(s) rendered as SVG',
   'core.export.diagramsFailed': '{n} diagram(s) failed to render; the source was kept',
   'core.export.plainFallback': 'The current kernel has no rich-text structure; presented as plain text',
+  'core.export.imageBuildFailed': 'Failed to build the image: {reason}',
+  'core.export.imageDrawFailed': 'The kernel could not draw the image; no file was written',
 
   'core.print.buildFailed': 'Failed to build print content: {reason}',
   'core.print.windowFailed': 'Could not open the print window: {reason}',
@@ -1469,6 +1482,12 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.clickTips': 'Please click the target node',
   'ui.mindmap.summary': 'Summary',
   'ui.mindmap.newTopicName': 'New Node',
+  // Honest kernel-side notes when exporting an image (ADR 0050): external images
+  // are not self-contained, and the two formats fail in different ways
+  'ui.mindmap.exportPngImagesExternal':
+    '{n} node image(s) reference external files; they cannot be drawn into the PNG (the conversion does not read them)',
+  'ui.mindmap.exportSvgImagesExternal':
+    '{n} node image(s) reference external files; the SVG keeps the references, so those files must still exist when it is opened',
 
   'core.mm.descArray': 'an array ({n} items)',
   'core.mm.descString': 'the string {value}',

@@ -355,3 +355,48 @@ describe('内核自己画的界面（ADR 0049）', () => {
     expect(menuText()).toBe('');
   });
 });
+
+/**
+ * 图片导出（ADR 0050）：这里只钉**接缝**——
+ *
+ * - 内核真的把 `exportImage` 挂上了（缺了它，外壳的导出命令整条禁用）；
+ * - SVG 路径真的交得出一份 `image/svg+xml` 的 Blob（内核 exportSvg 是同步的，
+ *   jsdom 里也跑得完）；
+ * - 这份没有外链图片的文档，`warnings` 是空的（谎报警告与漏报一样是错）。
+ *
+ * **PNG 不在这里测，也不可能在**：内核转 PNG 用 `new Image()` 等加载事件，
+ * 而 jsdom 的图片永远不加载 —— 那条路在测试环境里不会 resolve，只会挂起。
+ * 像素对不对（底板底色、文字、连线）更没有布局引擎可言，
+ * 靠 `pnpm run tauri dev` 里的人工冒烟，写在这里只会得到一条假绿的测试。
+ */
+describe('exportImage（导图内核 → 一张图）', () => {
+  it('★ handle 上真的有 exportImage —— 外壳的命令靠它才亮得起来', async () => {
+    const { handle } = await mountReady();
+    expect(typeof handle.exportImage).toBe('function');
+  });
+
+  it('★ SVG：交得出一份真的 SVG Blob，且没有外链图片时不多说警告', async () => {
+    const { handle } = await mountReady();
+
+    const image = await handle.exportImage?.('svg');
+
+    expect(image).not.toBeNull();
+    expect(image?.blob.type).toBe('image/svg+xml');
+    // 真画了东西，不是空壳（内核画布尺寸 + 节点序列化，都在这个尺寸里）
+    expect((image?.blob.size ?? 0)).toBeGreaterThan(0);
+    expect(image?.warnings).toEqual([]);
+  });
+
+  it('导一次之后还能再导 —— 临时换掉的主题真被还原了，而不是留在那儿', async () => {
+    const { handle } = await mountReady();
+
+    const first = await handle.exportImage?.('svg');
+    const second = await handle.exportImage?.('svg');
+
+    // 第二次还能画且尺寸一致：还原没还原好（主题对象被换坏）的话，
+    // 第二次要么画不出、要么内容明显不同
+    expect(second).not.toBeNull();
+    expect(second?.blob.type).toBe('image/svg+xml');
+    expect(second?.blob.size).toBe(first?.blob.size);
+  });
+});

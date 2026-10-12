@@ -14,6 +14,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { setLocale, t } from '../i18n/index.js';
 import { AppError } from '../document/types.js';
+// 预载图片导出模块：run 里的动态 import **首次**加载要走真实的模块装配，
+// 可能不止一个宏任务 —— settle 的一个 setTimeout 等不到它。预载之后
+// 那个 import() 退化成已兑现的微任务，settle 才是确定性的。
+import '../export/export-image.js';
 import { parseMindmap } from '../mindmap/parse.js';
 import { newFileContent } from '../new-file-content.js';
 import { BUILT_IN_COMMANDS, buildRecentFileCommands } from './definitions.js';
@@ -283,5 +287,119 @@ describe('新建文件的三个入口共用一条编排', () => {
     expect(h.written).toEqual([]);
     expect(h.opened).toEqual(['C:\\w\\轻笺示例.md']);
     expect(h.notices).toEqual([]);
+  });
+});
+
+/**
+ * 图片导出命令（ADR 0050）：能力启用 + 全链编排。
+ *
+ * 钉的是**接缝**：enabled 只认 `exportImage` 这个能力（不看内核是谁）、
+ * run 把 draw / provider / 建议名递给 `export-image.ts`、内核的警告随通报
+ * 一条不少地到用户眼前。「画出来的像素对不对」不在这里 ——
+ * 那是内核与真浏览器的事（jsdom 没有布局引擎）。
+ */
+describe('图片导出：能力启用，命令不认识任何具体内核', () => {
+  interface Harness {
+    readonly ctx: CommandContext;
+    readonly notices: string[];
+    readonly picked: string[];
+    readonly binaryWrites: { path: string; bytes: ArrayBuffer }[];
+  }
+
+  function harness(options: {
+    readonly handle: { exportImage?: (format: 'png' | 'svg') => Promise<{ blob: Blob; warnings: readonly unknown[] } | null> };
+    readonly pick?: string | null;
+  }): Harness {
+    const notices: string[] = [];
+    const picked: string[] = [];
+    const binaryWrites: { path: string; bytes: ArrayBuffer }[] = [];
+    const ctx = {
+      provider: {
+        pickSavePath: async (name: string) => {
+          picked.push(name);
+          return options.pick ?? null;
+        },
+        writeBinaryFile: async (path: string, bytes: ArrayBuffer) => {
+          binaryWrites.push({ path, bytes });
+          return { path, size: bytes.byteLength, mtimeMs: 0 };
+        },
+      },
+      workspace: {
+        activeStore: {
+          getSnapshot: () => ({
+            doc: { path: 'C:\\notes\\导图.mindmap', displayName: '导图.mindmap', text: '', savedText: '' },
+          }),
+        },
+      },
+      ui: {
+        editor: () => options.handle,
+        notify: async (message: string) => {
+          notices.push(message);
+        },
+      },
+    } as unknown as CommandContext;
+    return { ctx, notices, picked, binaryWrites };
+  }
+
+  async function settle(id: string, ctx: CommandContext): Promise<void> {
+    find(id).run(ctx);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  it('★ 内核实现了 exportImage 命令才可用，没有就整条禁用', () => {
+    const withKernel = harness({ handle: { exportImage: async () => null } });
+    const withoutKernel = harness({ handle: {} });
+
+    expect(find('file.exportPng').enabled?.(withKernel.ctx)).toBe(true);
+    expect(find('file.exportSvg').enabled?.(withKernel.ctx)).toBe(true);
+    expect(find('file.exportPng').enabled?.(withoutKernel.ctx)).toBe(false);
+    expect(find('file.exportSvg').enabled?.(withoutKernel.ctx)).toBe(false);
+  });
+
+  it('★ PNG 全链：建议名剥掉扩展名、内核的图原样写盘、警告进通报', async () => {
+    const h = harness({
+      pick: 'C:\\out\\导图.png',
+      handle: {
+        exportImage: async () => ({
+          blob: new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }),
+          warnings: [
+            { key: 'ui.mindmap.exportPngImagesExternal', params: { n: 3 } },
+          ],
+        }),
+      },
+    });
+
+    await settle('file.exportPng', h.ctx);
+
+    expect(h.picked).toEqual(['导图.png']);
+    expect(h.binaryWrites).toHaveLength(1);
+    expect(h.binaryWrites[0]?.path).toBe('C:\\out\\导图.png');
+    expect(Array.from(new Uint8Array(h.binaryWrites[0]?.bytes ?? new ArrayBuffer(0)))).toEqual([1, 2, 3]);
+    expect(h.notices).toHaveLength(1);
+    expect(h.notices[0]).toContain('已导出 导图.png');
+    expect(h.notices[0]).toContain('3 张节点图片');
+  });
+
+  it('内核没实现时点了也不装作导出过（没有通知、没有对话框）', async () => {
+    const h = harness({ handle: {} });
+
+    await settle('file.exportPng', h.ctx);
+
+    expect(h.picked).toEqual([]);
+    expect(h.binaryWrites).toEqual([]);
+    expect(h.notices).toEqual([]);
+  });
+
+  it('内核说画不出来（null）时按导出失败通报', async () => {
+    const h = harness({
+      pick: 'C:\\out\\导图.svg',
+      handle: { exportImage: async () => null },
+    });
+
+    await settle('file.exportSvg', h.ctx);
+
+    expect(h.notices).toHaveLength(1);
+    expect(h.notices[0]).toContain('内核没能把图画出来');
+    expect(h.binaryWrites).toEqual([]);
   });
 });

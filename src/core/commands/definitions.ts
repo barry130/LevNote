@@ -87,6 +87,16 @@ function hasDocument(ctx: CommandContext): boolean {
 }
 
 /**
+ * 图片导出是**可选能力**（ADR 0050）：内核实现了 `exportImage` 命令才可用，
+ * 没实现就整条命令禁用 —— 与 `diagnostics.roundTrip` 同一个形状。
+ * 绝不按内核 id 分支（AGENTS.md 红线）：会画图的内核接上契约就自动亮起来。
+ */
+function hasImageExport(ctx: CommandContext): boolean {
+  const doc = activeDocument(ctx);
+  return doc !== null && typeof ctx.ui.editor()?.exportImage === 'function';
+}
+
+/**
  * 「在磁盘上起一份内容，然后打开它」——`file.new` / `file.newMindmap` /
  * 示例文档共用的**一条编排**（ADR 0048）。
  *
@@ -201,6 +211,37 @@ async function runPrintExport(ctx: CommandContext): Promise<void> {
 
   if (result.status === 'opened') await ctx.ui.notify(result.message, t('core.cmd.printTitle'));
   else await ctx.ui.notify(result.message, t('core.cmd.exportFailed'));
+}
+
+/**
+ * 图片导出（ADR 0050）：请内核把自己画成一张图，外壳只管问存到哪、写盘。
+ *
+ * 与 `runExport` 是**并列**的两条导出路：那边要语义 HTML（文本管线），这边要
+ * 二进制 —— 画法长在内核里，这里从头到尾不出现任何具体内核的名字，
+ * 将来 diagram / drawio 接上 `exportImage` 就自动出现在同一组命令里。
+ * PNG / SVG 共用这一个工厂，差的只有 `format`。
+ */
+function runExportImage(format: 'png' | 'svg') {
+  return async (ctx: CommandContext): Promise<void> => {
+    const doc = activeDocument(ctx);
+    if (doc === null) return;
+    const handle = ctx.ui.editor();
+    // bind 住 handle：契约方法是内核闭包外的普通方法，别的内核实现可能用 this
+    const draw = handle === null ? undefined : handle.exportImage?.bind(handle);
+    if (draw === undefined) return;
+
+    // 与导出家族同一个按需加载理由（P3 第 18 项）
+    const { exportImage } = await import('../export/export-image.js');
+    const result = await exportImage({
+      title: doc.displayName.replace(/\.[^.]+$/, ''),
+      format,
+      draw: () => draw(format),
+      provider: ctx.provider,
+    });
+
+    if (result.status === 'saved') await ctx.ui.notify(result.message, t('core.cmd.exportDone'));
+    else if (result.status === 'failed') await ctx.ui.notify(result.message, t('core.cmd.exportFailed'));
+  };
 }
 
 /**
@@ -562,6 +603,24 @@ export const BUILT_IN_COMMANDS: readonly Command[] = [
     // printHtml 里还有一道明确拒绝，防的是别的入口直接调动作。
     enabled: (ctx) => hasDocument(ctx) && isDesktop(),
     run: runPrintExport,
+  }),
+  builtInCommand({
+    id: 'file.exportPng',
+    titleKey: 'command.file.exportPng.title',
+    categoryKey: 'command.category.export',
+    keywords: ['png', 'image', 'tupian', 'daochu'],
+    // 不给快捷键：Mod+Shift+E 已归 HTML 导出；图片导出是低频动作，
+    // 再排一个组合键只会平添一个谁也记不住的绑定。
+    enabled: hasImageExport,
+    run: runExportImage('png'),
+  }),
+  builtInCommand({
+    id: 'file.exportSvg',
+    titleKey: 'command.file.exportSvg.title',
+    categoryKey: 'command.category.export',
+    keywords: ['svg', 'image', 'tupian', 'daochu'],
+    enabled: hasImageExport,
+    run: runExportImage('svg'),
   }),
 
   // ---- 标签页 -----------------------------------------------------------

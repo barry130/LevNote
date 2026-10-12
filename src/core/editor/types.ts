@@ -14,6 +14,7 @@
 
 import type { ComponentType } from 'react';
 
+import type { LocalizedText } from '../i18n/index.js';
 import type { FindOptions } from '../search/find.js';
 
 export type EditorModuleId = 'markdown' | 'code' | 'mindmap' | 'diagram' | 'drawio' | 'plaintext';
@@ -48,6 +49,19 @@ export interface EditorSearch {
   replaceAll(replacement: string): number;
   /** 清空匹配状态（关闭查找栏、改查询时）。 */
   clear(): void;
+}
+
+/**
+ * 内核画好的一张图（`exportImage` 的产物，ADR 0050）。
+ */
+export interface EditorImageExport {
+  /** 图的二进制内容：`'png'` ⇒ PNG 位图；`'svg'` ⇒ SVG 源码文本。 */
+  readonly blob: Blob;
+  /**
+   * 内核自己知道、外壳问不出来的实话（比如「有节点图片引用的是外部文件」）。
+   * 外壳必须把这些随结果一起转达给用户，不许吞掉 —— 空数组才是「没什么好说的」。
+   */
+  readonly warnings: readonly LocalizedText[];
 }
 
 /**
@@ -92,6 +106,25 @@ export interface EditorHandle {
    * 缺了它功能降级，但整个内核仍然可用。
    */
   readonly search?: EditorSearch;
+  /**
+   * 可选：导出成一张图（ADR 0050）。
+   *
+   * **为什么不是 `toHtml()`**：那是「**外壳**拿语义 HTML 去拼一个自包含网页」，
+   * 走的是文本管线；而导图画出来的样子长在**内核**里（连线走向、节点盒子、
+   * 分支配色、折叠关系），外壳没有能把它复现的信息 —— 硬凑的结果一定不像。
+   * 所以这里是「**请内核把自己画一张**」，返回二进制，外壳只管存到哪。
+   *
+   * 哪些内核该实现：自己画视图的（mindmap、diagram、drawio）。
+   * 逐 Rune 排文字的（markdown、code、plaintext）导出「图」没有意义。
+   *
+   * @param format `'png'` 是位图（能贴进任何地方、不能无损放大）；
+   *   `'svg'` 是矢量（能无损放大、需要看图工具支持）。
+   * @returns 画好的图与内核的实话（`warnings` 必须随结果转达给用户）。
+   *   返回 `null` 表示「内核支持导出，但这一次没能画出来」（位图编码失败等）
+   *   ——这是**失败**，调用方必须如实报，不许当成成功。
+   *   整个方法缺失才是「不支持」，那种情况命令按禁用显示。
+   */
+  exportImage?(format: 'png' | 'svg'): Promise<EditorImageExport | null>;
   /**
    * 可选：撤销 / 重做（菜单入口用）。
    *

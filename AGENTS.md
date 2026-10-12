@@ -148,6 +148,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **`.mindmap` 的读写** | `core/mindmap/`（纯函数、**不 import 任何内核** —— 「结构自持，不绑定具体内核」是 §7.1 的设计意图）。字段对应表见 `docs/format-spec.md` §7.1.2 |
 | **`.mindmap` ⇄ 内核数据** | `modules/mindmap/adapter.ts`（ADR 0007 后果 2 要的薄适配层）。契约是「**带旧信封进去、拿新信封出来**」：顶层 `extra` 只能从上一份信封继承（内核的 `getData()` 返回写死的字段列表），节点层才是现读的 |
 | **导图编辑体验** | `modules/mindmap/MindmapEditor.tsx`。两条变更通道（`operation`/`expandNode` 主通道 + `linkDiv` 防抖兜底，后者是为 `expandNodeAll` 那种**改了数据不报事件**的操作准备的）；`getValue` 在用户没动过时交回**原文** |
+| **导图导出成图片（PNG / SVG）** | 内核侧 `MindmapEditor.tsx` 的 `exportImage`（契约在 `core/editor/types.ts`，可选方法，产物 `{ blob, warnings }`）+ 外壳编排 `core/export/export-image.ts`（与 export-document.ts **并列**，不是它的分支）。**两条纪律别碰**：底色换真实解析色要整体重赋值 + `finally` 还原（`mind.theme` 与 `LEVNOTE_THEME` 同一引用），PNG 在 jsdom 不可测。详见 §六本轮段与 ADR 0050 |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
@@ -907,6 +908,42 @@ ADR 0001 那边（没有账号、没有网络、没有遥测）让这件事更�
 视图状态里**只有缩放**用公开 API 还原（`scaleVal` / `scale()`），选中项 / 专注模式 /
 平移位置都不是公开 API，**别去撬内部状态** —— 升级即烂，而且撬出来的形状
 会静默地丢内容。想要更多的视图状态，得先给内核加公开 API。
+
+**导图画出来的样子归内核（2026-10-14，ADR 0050）**：对比主流导图软件后自派的
+需求（用户原话「你自己比较一下现在主流的思维导图软件，看看你还欠缺什么，然后
+自己给自己需求继续开发」）—— 缺口是「完全不能把导图导出成图片」。落成的形状：
+① 内核契约新增**可选**方法 `exportImage(format)`，产物是 `{ blob, warnings }`；
+`toHtml()` 对导图**依旧返回 null** —— 富导出的正解不是让外壳拼语义 HTML
+（连线 / 盒子 / 配色长在内核的 DOM 里，外壳没有那部分信息），而是「请内核把自己
+画一张」。**别把这两条路混了。** ② `warnings` 是「绝不静默」在跨层消息上的落点：
+外链图片节点在 SVG 里只剩引用、在 PNG 里**画不出来**（SVG 作为图片加载时不取
+外部资源），这个实话只有内核知道，用 `LocalizedText`（ADR 0047）传出来。
+**别删警告，也别升级成拒绝** —— 用户无从修复（内核读不了盘，内联不了）。
+③ 底色有个坑：内核把 `theme.cssVar['--bgcolor']`（我们配的是 `var(--surface)`）
+**原样**写进独立 SVG 的底板 `fill`（`MindElixir.js:2671`），独立文件里没有
+`--surface` 定义就会黑底。修法是画图前用 `getComputedStyle` 拿**真实解析色**
+（浅 `#ffffff` / 深 `#1f1f1f`，跟着主题走），解析不出（空串或还含 `var(`，
+jsdom 就是）就**保留原样** —— 宁可底色可疑，不编颜色。**两条纪律**：
+`mind.theme` 与 `LEVNOTE_THEME` 是**同一个引用**，必须整体重赋值 + `finally`
+还原，原地改会污染下一个实例；`exportPng` 第一行是**同步**调 `exportSvg` 拿到
+SVG 串再异步转换，所以「换主题 → await → 还原」的窗口是安全的，别改这个顺序。
+④ PNG **不自己重画**（内核 `exportPng()` 全链完成，重实现要追内核序列化语义跑，
+升级即烂）；文字保留内核默认的 `foreignObject`（保真高，代价是部分老 SVG 查看器
+不显示 —— 写在 ADR 的取舍里，等真实抱怨再动）。⑤ 编排**先问后画**
+（`core/export/export-image.ts`，与 export-document.ts 并列不是分支）：PNG 位图
+编码费时，用户在对话框上点取消不该白画。⑥ 导出家族**统一不覆盖**：
+`writeBinaryFile` 是 create_new（HTML 导出的 `writeTextFile({create:true})`
+同语义），CONFLICT 原文如实转达 —— **别在图片这条偷偷放宽**，要覆盖是家族级
+的决定（见 ADR 0050 重审条件）。⑦ 两条命令 `file.exportPng` / `file.exportSvg`
+**按能力启用**（`typeof handle.exportImage === 'function'`，diagnostics.roundTrip
+同款形状，**绝不**按内核 id 分支），不给快捷键（低频动作，`Mod+Shift+E` 已归
+HTML 导出）。⑧ 测试边界要诚实：**PNG 路径在 jsdom 不可测**（`Image` 永不加载，
+只会挂起 —— 这不是可测而未测），像素零测试（jsdom 无布局，画布 200×200、
+底色走回退分支）；单测只钉「参数对 / Blob 类型 / 如实失败 / 警告拼接」，
+像素靠 `pnpm run tauri dev` 人工冒烟（两格式 × 两主题，独立打开验底色）。
+另外 `definitions.test.ts` 里跑命令用动态 `import()` 的，**测试文件头部要
+side-effect 预载同一个模块** —— 整跑负载下首次装配不止一个宏任务，只等一个
+`setTimeout(0)` 是 flake（本轮踩过）。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、

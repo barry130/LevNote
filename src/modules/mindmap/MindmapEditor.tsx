@@ -53,7 +53,7 @@ import 'mind-elixir/style';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 import type { EditorHandle, EditorMountProps, EditorSearch } from '../../core/editor/types.js';
-import { getLocale, subscribeLocale, t } from '../../core/i18n/index.js';
+import { getLocale, msg, subscribeLocale, t, type LocalizedText } from '../../core/i18n/index.js';
 import { parseMindmap } from '../../core/mindmap/parse.js';
 import { serializeMindmap } from '../../core/mindmap/serialize.js';
 import { emptyMindmapDocument } from '../../core/mindmap/template.js';
@@ -165,6 +165,46 @@ const LEVNOTE_THEME = {
     '--panel-border-color': 'var(--line)',
   },
 };
+
+/**
+ * 引用**外部文件**的节点图片数（`src` 是 `data:` 的会内嵌进导出的图里，
+ * 其余的内核只会原样写一个引用）。
+ *
+ * 这是「绝不静默」的又一次兑现：外链图片导出去之后**不再是自包含的**
+ * （PNG 里干脆画不出来），用户必须知道 —— 数出来交给 `exportImage` 的
+ * `warnings`，而不是装作没看见。
+ */
+function countExternalImages(nodes: HTMLElement): number {
+  let count = 0;
+  for (const image of nodes.querySelectorAll('img')) {
+    const src = image.getAttribute('src') ?? '';
+    if (src !== '' && !src.startsWith('data:')) count += 1;
+  }
+  return count;
+}
+
+/**
+ * 导出用的主题：把 `--bgcolor` 换成**此刻真实解析出的颜色**。
+ *
+ * 内核导出 SVG 时把 `theme.cssVar['--bgcolor']`（`'var(--surface)'`）**原样**
+ * 写进底板矩形的 `fill` —— 而一份独立打开的 SVG 里没有 `--surface` 的定义，
+ * `var()` 解析不出来，底板会黑掉。浏览器的自定义属性**计算值**会把 `var()`
+ * 替换成具体色值（跟随当前浅色 / 深色主题），取那个。
+ *
+ * 解析不出来（空串、或还含着 `var(` —— 测试环境没有层叠样式就是这样）
+ * 就**保留原样**：宁可导出底色可疑也不编一个颜色糊弄过去。
+ *
+ * 返回**新对象**而不是原地改：`mind.theme` 与模块级 `LEVNOTE_THEME` 是同一个
+ * 引用，原地改会污染它，下一个实例就被牵连了。调用方负责用完还原。
+ */
+function withResolvedBackground(
+  theme: MindElixirInstance['theme'],
+  container: HTMLElement,
+): MindElixirInstance['theme'] {
+  const resolved = getComputedStyle(container).getPropertyValue('--bgcolor').trim();
+  if (resolved === '' || resolved.includes('var(')) return theme;
+  return { ...theme, cssVar: { ...theme.cssVar, '--bgcolor': resolved } };
+}
 
 function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: EditorMountProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -388,10 +428,47 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
        *
        * 返回 `null` 是**合法结果**（见契约）：自包含导出会退回用 `<pre>` 呈现 JSON 原文，
        * 并如实说明，而不是伪造一份「看起来像图」的 HTML。
-       * 真要做富导出，正解是内核的 `exportSvg()` 那条路，那是另一个决定（要处理
-       * `foreignObject` 的兼容性与样式内联），不在「接入内核」这件事的射程内。
+       * 真要做富导出，正解是内核的 `exportSvg()` 那条路 —— 那个决定已经做了
+       * （ADR 0050，见下面的 `exportImage`），但它是「导一张图文件」，
+       * 不是「给自包含 HTML 提供内容片段」，所以这里依旧返回 `null`。
        */
       toHtml: async () => null,
+
+      /**
+       * 把导图画成一张图（ADR 0050 —— `toHtml` 注释里说的「另一个决定」就是它）。
+       *
+       * 画法是内核的：PNG 走 `exportPng()`、SVG 走 `exportSvg()`，这里不重画、
+       * 也不重排 —— 外壳复现不了内核的图，复现只会像得走样。这里只做两件
+       * 内核自己不会做的事：把底色解析成真实色值（见 `withResolvedBackground`），
+       * 以及数出引用外部文件的节点图片、把「这张图不是自包含的」如实带出去
+       * （见 `countExternalImages`）。
+       *
+       * 返回 `null` 照契约语义如实传（这一次没能画出来，比如位图编码失败）。
+       */
+      exportImage: async (format) => {
+        const warnings: LocalizedText[] = [];
+        const external = countExternalImages(mind.nodes);
+        if (external > 0) {
+          warnings.push(
+            msg(
+              format === 'png'
+                ? 'ui.mindmap.exportPngImagesExternal'
+                : 'ui.mindmap.exportSvgImagesExternal',
+              { n: external },
+            ),
+          );
+        }
+        // 换底色 → 画 → 还原。`exportPng` 内部**先同步**调 `exportSvg` 拿到 SVG 串
+        // 才开始异步转换（读过内核源码），所以还原不会抢在「画」之前发生。
+        const previousTheme = mind.theme;
+        mind.theme = withResolvedBackground(previousTheme, mind.container);
+        try {
+          const blob = format === 'png' ? await mind.exportPng() : mind.exportSvg();
+          return blob === null ? null : { blob, warnings };
+        } finally {
+          mind.theme = previousTheme;
+        }
+      },
 
       search,
     };
