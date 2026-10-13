@@ -14,6 +14,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DiagramView } from '../../core/editor/types.js';
+import { getLocale, setLocale } from '../../core/i18n/index.js';
 import type { DrawioRender } from '../../core/drawio-render.js';
 import { typeInto } from '../../test/typing.js';
 import { createMarkdownEditor, type MarkdownEditorInstance } from './setup.js';
@@ -154,6 +155,23 @@ describe('doc-block · 引用模式（src）', () => {
     expect(spy.calls).toHaveLength(0);
     expect(diagramText(dom)).toContain('读不到引用的文件：missing.drawio');
     expect(query<HTMLElement>(dom, '.qm-cb-diagram').classList.contains('is-failed')).toBe(true);
+  });
+
+  it('读不到的纸条跟着语言走（ADR 0057）', async () => {
+    const before = getLocale();
+    const { dom } = await open(BROKEN_SRC, { resolveDocBlock: async () => null });
+    await flush();
+
+    expect(diagramText(dom)).toContain('读不到引用的文件：missing.drawio');
+
+    setLocale('en');
+    await flush();
+    // 换语言只是把纸条重画一遍，不去重新渲染图
+    expect(diagramText(dom)).toContain('Could not read the referenced file: missing.drawio');
+    expect(spy.calls).toHaveLength(0);
+
+    // 收尾必须把语言放回去，不污染后面的用例
+    setLocale(before);
   });
 
   it('外壳没实现 resolveDocBlock：同样是「读不到」，不抛错', async () => {

@@ -24,6 +24,9 @@
  * 文档没有目录信息、文件不存在、格式读不出来、外壳没有这个能力。
  * 画一个空框或破图图标等于把「为什么」藏起来 —— 而用户下一步要做的
  * 恰恰是「去把那张图找回来」，他需要知道路径。
+ *
+ * 占位上的这些说明是我们的文案，跟着应用语言走（ADR 0057）：加载中/
+ * 失败的纸条在语言切换时重画，读得到的图本身不动。
  */
 
 import type { Node as ProseNode } from '@milkdown/kit/prose/model';
@@ -32,6 +35,7 @@ import type { EditorView, NodeView } from '@milkdown/kit/prose/view';
 import { $prose } from '@milkdown/kit/utils';
 
 import type { ImageInfo } from '../../core/editor/types.js';
+import { msg, subscribeLocale, t, textOf, type LocalizedText } from '../../core/i18n/index.js';
 
 /**
  * ProseMirror 的图片节点名（对齐 preset-commonmark 的 schema）。
@@ -100,13 +104,21 @@ class ImageView implements NodeView {
    * 一个字段的成本，换来「问状态」不需要读 DOM。
    */
   private state: 'is-loading' | 'is-loaded' | 'is-failed' = 'is-loading';
+  /**
+   * 画进占位的那句失败说明（ADR 0057）。记成 `LocalizedText` 而不是
+   * 渲染好的字符串：语言切换要重画，键 + 参数才重得动，翻好的字翻不回去。
+   */
+  private failLine: LocalizedText | null = null;
 
   constructor(
     private node: ProseNode,
     private readonly getHandlers: () => ImageViewHandlers,
+    /** 活着的视图登记表，语言切换时挨个重画（ADR 0057）。 */
+    private readonly live: Set<ImageView>,
   ) {
     this.dom = document.createElement('span');
     this.dom.className = 'qm-img';
+    this.live.add(this);
 
     this.el = document.createElement('img');
     this.el.className = 'qm-img-el';
@@ -170,13 +182,13 @@ class ImageView implements NodeView {
     this.pending = src;
 
     if (src === '') {
-      this.fail('图片没有地址');
+      this.fail(msg('ui.markdown.imageNoSrc'));
       return;
     }
 
     const resolver = this.getHandlers().resolve;
     if (resolver === undefined) {
-      this.fail(`无法显示本地图片：${src}`);
+      this.fail(msg('ui.markdown.imageResolveUnavailable', { src }));
       return;
     }
 
@@ -184,7 +196,7 @@ class ImageView implements NodeView {
     this.setState('is-loading');
     // 读盘不是瞬时的（一次 IPC + 一次 base64）。这段时间里说一句「在读」，
     // 好过让那个位置一片空白 —— 空白看起来像「图没了」
-    this.note.textContent = '正在读取图片…';
+    this.note.textContent = t('ui.markdown.imageLoading');
 
     let url: string | null;
     try {
@@ -199,7 +211,7 @@ class ImageView implements NodeView {
     if (!this.alive || mine !== this.token) return;
 
     if (url === null || url === '') {
-      this.fail(`图片读不到：${src}`);
+      this.fail(msg('ui.markdown.imageReadFailed', { src }));
       return;
     }
 
@@ -208,9 +220,10 @@ class ImageView implements NodeView {
     this.setState('is-loaded');
   }
 
-  private fail(message: string): void {
+  private fail(line: LocalizedText): void {
     this.el.removeAttribute('src');
-    this.note.textContent = message;
+    this.failLine = line;
+    this.note.textContent = textOf(line);
     this.setState('is-failed');
   }
 
@@ -243,8 +256,22 @@ class ImageView implements NodeView {
     return true;
   }
 
+  /**
+   * 语言换了：占位纸条是我们的文案，得重画（ADR 0057）。
+   * 已加载的图上没有我们的字，不动。
+   */
+  onLocaleChange(): void {
+    if (!this.alive) return;
+    if (this.state === 'is-loading') {
+      this.note.textContent = t('ui.markdown.imageLoading');
+    } else if (this.state === 'is-failed' && this.failLine !== null) {
+      this.note.textContent = textOf(this.failLine);
+    }
+  }
+
   destroy(): void {
     this.alive = false;
+    this.live.delete(this);
   }
 }
 
@@ -256,15 +283,27 @@ class ImageView implements NodeView {
  * （与 `MarkdownEditor.tsx` 里用 ref 转发回调是同一个理由）。
  */
 export function imageViewPlugin(getHandlers: () => ImageViewHandlers) {
-  return $prose(
-    () =>
-      new Plugin({
-        key: imageKey,
-        props: {
-          nodeViews: {
-            [IMAGE]: (node, _view: EditorView) => new ImageView(node, getHandlers),
-          },
+  return $prose(() => {
+    // 语言没有对应的 DOM 痕迹（主题走 data-theme 属性），直接订阅 i18n
+    // （ADR 0049 同款），换了语言就把活着的占位纸条重画一遍（ADR 0057）。
+    const live = new Set<ImageView>();
+    const unsubscribeLocale = subscribeLocale(() => {
+      for (const view of live) view.onLocaleChange();
+    });
+
+    return new Plugin({
+      key: imageKey,
+      props: {
+        nodeViews: {
+          [IMAGE]: (node, _view: EditorView) => new ImageView(node, getHandlers, live),
+        },
+      },
+      view: () => ({
+        destroy: () => {
+          unsubscribeLocale();
+          live.clear();
         },
       }),
-  );
+    });
+  });
 }

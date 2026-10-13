@@ -18,6 +18,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ImagePasteRequest } from '../../core/editor/types.js';
+import { getLocale, setLocale } from '../../core/i18n/index.js';
 import { createMarkdownEditor, type MarkdownEditorInstance } from './setup.js';
 
 let opened: MarkdownEditorInstance | null = null;
@@ -139,6 +140,24 @@ describe('图片的显示', () => {
     expect(box?.className).toContain('is-failed');
     expect(box?.querySelector('.qm-img-note')?.textContent).toContain('./missing.png');
     expect(imageEl(harness)?.hasAttribute('src')).toBe(false);
+  });
+
+  it('读不到的纸条跟着语言走（ADR 0057）', async () => {
+    const before = getLocale();
+    const harness = await open('![说明](./missing.png)\n', {
+      resolveImageUrl: async () => null,
+    });
+    await settle();
+
+    const note = () => harness.dom.querySelector('.qm-img')?.querySelector('.qm-img-note');
+    expect(note()?.textContent).toContain('图片读不到：./missing.png');
+
+    setLocale('en');
+    await settle();
+    expect(note()?.textContent).toContain('Could not read the image: ./missing.png');
+
+    // 收尾必须把语言放回去，不污染后面的用例
+    setLocale(before);
   });
 
   it('外壳没有这个能力时也画占位，而不是抛错', async () => {

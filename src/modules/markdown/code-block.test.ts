@@ -20,6 +20,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { CodeBlockState } from '../../core/editor/types.js';
+import { getLocale, setLocale } from '../../core/i18n/index.js';
 import { typeInto } from '../../test/typing.js';
 import { lineCount } from './code-block-view.js';
 import { createMarkdownEditor, type MarkdownEditorInstance } from './setup.js';
@@ -193,6 +194,23 @@ describe('代码块的 NodeView', () => {
   it('语言标签显示围栏里写的语言', async () => {
     const h = await open('```python\nprint(1)\n```\n');
     expect(badgeLabel(h.dom)).toBe('python');
+  });
+
+  it('语言标签的提示跟着语言走（ADR 0057）', async () => {
+    const before = getLocale();
+    const h = await open('```\n裸代码\n```\n');
+
+    const badge = () => query<HTMLButtonElement>(h.dom, '.qm-cb-lang');
+    expect(badge().title).toBe('代码语言：纯文本（点击选择）');
+
+    setLocale('en');
+    // 换语言不重建编辑器：title/aria 是我们自己画的 chrome，
+    // 订阅者来了就重画（ADR 0049 同款纪律）
+    expect(badge().title).toBe('Code language: Plain text (click to choose)');
+    expect(badge().getAttribute('aria-label')).toBe('Code language: Plain text, click to choose');
+
+    // 收尾必须把语言放回去，不污染后面的用例
+    setLocale(before);
   });
 
   it('行号槽不进文档 —— 存出来的 markdown 里没有那一列数字', async () => {

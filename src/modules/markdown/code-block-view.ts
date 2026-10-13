@@ -69,6 +69,7 @@ import type { DocBlockPreview, SelectionRect } from '../../core/editor/types.js'
 import { referencedDiagramSrc, parseDocBlock } from '../../core/docblock.js';
 import { missingStencilLibs } from '../../core/drawio.js';
 import { renderDrawio } from '../../core/drawio-render.js';
+import { getLocale, subscribeLocale, t } from '../../core/i18n/index.js';
 import { isMermaidLanguage } from '../../core/mermaid.js';
 import { renderMermaid } from '../../core/mermaid-render.js';
 import type { ResolvedTheme } from '../../core/theme/theme.js';
@@ -93,9 +94,8 @@ export const CODE_BLOCK = 'code_block';
  */
 const CARD_KINDS = new Set(['markdown', 'mindmap', 'text']);
 
-/** 没有指定语言时，标签上显示的文字。 */
-export const PLAIN_TEXT_LABEL = '纯文本';
-
+// 用户可见文案一律走 i18n（ADR 0057）：铭牌、图区占位、引用卡、摘要都是我们说的话。
+// 别人的话（mermaid 的报错、外壳交来的 reason）原样转述，不套 t()。
 const chromeKey = new PluginKey('levnote-code-block-chrome');
 
 /** 用户点了语言标签。 */
@@ -221,6 +221,8 @@ class CodeBlockView implements NodeView {
   private drawnLines = -1;
   /** 标签上当前显示的文字；null 表示还没画过。 */
   private drawnLabel: string | null = null;
+  /** 铭牌那套文案最近一次画的是哪种语言；null 表示还没画过（ADR 0057）。 */
+  private chromeLocale: string | null = null;
   /**
    * 这个视图还在不在文档里。
    *
@@ -234,16 +236,18 @@ class CodeBlockView implements NodeView {
   /** 光标是不是在这个块里。 */
   private editing = false;
   /**
-   * 图区正在画（或已经画完）的那一份「源码 + 主题」。
+   * 图区正在画（或已经画完）的那一份「源码 + 主题 + 语言」。
    *
-   * 两个都要记：前者决定「源码改了要不要重画」，后者决定「换了明暗要不要重画」
+   * 三个都要记：源码决定「源码改了要不要重画」，主题决定「换了明暗要不要重画」
    * （只有 mermaid 在乎主题 —— drawio 的颜色写在图自己的 XML 里，见
-   * `renderDrawio` 的注释）。`null` 表示图区是空的。
+   * `renderDrawio` 的注释），语言决定「图区里**我们的**占位与提示文案要不要
+   * 重画（ADR 0057）—— 图里的字不归我们管，图区上贴的纸条归我们管」。
+   * `null` 表示图区是空的。
    */
   private painted:
-    | { readonly kind: 'mermaid'; readonly source: string; readonly theme: ResolvedTheme }
-    | { readonly kind: 'docblock'; readonly source: string }
-    | { readonly kind: 'card'; readonly source: string }
+    | { readonly kind: 'mermaid'; readonly source: string; readonly theme: ResolvedTheme; readonly locale: string }
+    | { readonly kind: 'docblock'; readonly source: string; readonly locale: string }
+    | { readonly kind: 'card'; readonly source: string; readonly locale: string }
     | null = null;
   /**
    * 交给「放大看」的那份**源**。mermaid 是块文本本身；doc-block 是被渲染的
@@ -314,8 +318,8 @@ class CodeBlockView implements NodeView {
     zoom.className = 'qm-cb-zoom';
     zoom.contentEditable = 'false';
     zoom.textContent = '⤢';
-    zoom.title = '放大看这张图';
-    zoom.setAttribute('aria-label', '放大看这张图');
+    zoom.title = t('ui.markdown.zoomTitle');
+    zoom.setAttribute('aria-label', t('ui.markdown.zoomTitle'));
     zoom.hidden = true;
     // 同语言标签：不拦 mousedown，焦点会先离开编辑器、图会被重画一遍
     zoom.addEventListener('mousedown', (event) => event.preventDefault());
@@ -407,14 +411,25 @@ class CodeBlockView implements NodeView {
       fillGutter(this.gutter, lines);
     }
 
+    // 语言变了（ADR 0057）：铭牌的 title / aria、放大钮的提示都是我们的文案，
+    // 得跟着重画。把 drawnLabel 清空让下面的短路失效 —— label 本身没变
+    // 也重写一遍是无害的，换来的是这套「没变就不碰 DOM」的纪律不用另开口子。
+    const locale = getLocale();
+    if (locale !== this.chromeLocale) {
+      this.chromeLocale = locale;
+      this.drawnLabel = null;
+      this.zoom.title = t('ui.markdown.zoomTitle');
+      this.zoom.setAttribute('aria-label', t('ui.markdown.zoomTitle'));
+    }
+
     const language = this.language();
-    const label = language === '' ? PLAIN_TEXT_LABEL : language;
+    const label = language === '' ? t('ui.markdown.plainText') : language;
     if (label === this.drawnLabel) return;
     this.drawnLabel = label;
 
     this.badge.textContent = label;
-    this.badge.title = `代码语言：${label}（点击选择）`;
-    this.badge.setAttribute('aria-label', `代码语言：${label}，点击选择`);
+    this.badge.title = t('ui.markdown.langBadgeTitle', { label });
+    this.badge.setAttribute('aria-label', t('ui.markdown.langBadgeAria', { label }));
   }
 
   /**
@@ -493,7 +508,9 @@ class CodeBlockView implements NodeView {
       painted.kind === kind &&
       painted.source === source &&
       // 只有 mermaid 在乎主题（颜色是渲染时定死的）；drawio 的颜色在 XML 里
-      (painted.kind !== 'mermaid' || painted.theme === theme);
+      (painted.kind !== 'mermaid' || painted.theme === theme) &&
+      // 图区里贴的占位 / 提示纸条是我们的文案（ADR 0057），换了语言就过期了
+      painted.locale === getLocale();
     if (paintedFresh) {
       this.syncMode();
       return;
@@ -533,10 +550,10 @@ class CodeBlockView implements NodeView {
   private async renderDiagram(source: string, theme: ResolvedTheme): Promise<void> {
     // 同步记下「正在画的是这一份」：于是并发的第二次 `ensureDiagram`
     // 不会重复发起，而 `syncMode()` 也知道现在该显示图区（哪怕是「正在渲染」）
-    this.painted = { kind: 'mermaid', source, theme };
+    this.painted = { kind: 'mermaid', source, theme, locale: getLocale() };
     this.svg = null;
     this.diagramSource = source;
-    this.paintDiagramNote('正在渲染图表…', 'is-loading');
+    this.paintDiagramNote(t('ui.markdown.diagramRendering'), 'is-loading');
     this.syncZoom();
     this.syncMode();
 
@@ -578,7 +595,7 @@ class CodeBlockView implements NodeView {
    * （图区被 CSS 隐藏了），与 mermaid 失败时占着图区的理由相同。
    */
   private async renderDocBlock(source: string): Promise<void> {
-    this.painted = { kind: 'docblock', source };
+    this.painted = { kind: 'docblock', source, locale: getLocale() };
     this.svg = null;
     this.syncZoom();
     this.syncMode();
@@ -592,27 +609,27 @@ class CodeBlockView implements NodeView {
     let failed: string | null = null;
 
     if (parsed.errors.includes('MISSING_TERMINATOR')) {
-      failed = 'doc-block 缺少结束行 —— 属性区和载荷之间必须有一整行「---」。';
+      failed = t('ui.markdown.docblockMissingFence');
     } else if (src !== null) {
-      this.paintDiagramNote(`正在读取 ${src} …`, 'is-loading');
+      this.paintDiagramNote(t('ui.markdown.readingDiagram', { src }), 'is-loading');
       xml = (await this.getHandlers()?.resolveDiagram?.(src)) ?? null;
-      if (xml === null) failed = `读不到引用的文件：${src}`;
+      if (xml === null) failed = t('ui.markdown.readFailed', { src });
     } else if (inline) {
       // 载荷全是空白与「没有载荷」是同一件事 —— 都要把图该写在哪儿说出来。
       // 不留给 renderDrawio 的空内容短路：那句「内容是空的」没有这句可操作
       if (parsed.payload !== null && parsed.payload.trim() !== '') {
         xml = parsed.payload;
       } else {
-        failed = 'inline 载荷是空的 —— 图的内容应该写在「---」之后。';
+        failed = t('ui.markdown.inlineEmpty');
       }
     } else {
-      failed = '声明了 kind: diagram，但没有 src 引用，也不是 inline 载荷。';
+      failed = t('ui.markdown.diagramNoSource');
     }
 
     if (!this.alive || mine !== this.token) return;
 
     if (failed !== null || xml === null) {
-      this.paintDiagramNote(failed ?? '读不到引用的文件。', 'is-failed');
+      this.paintDiagramNote(failed ?? t('ui.markdown.readFailedShort'), 'is-failed');
       this.syncZoom();
       this.syncMode();
       return;
@@ -646,7 +663,7 @@ class CodeBlockView implements NodeView {
       // 所以必须由我们把这件事说出来。硬约束 2 在查看器上的落点
       const note = document.createElement('div');
       note.className = 'qm-cb-note qm-cb-note-warn';
-      note.textContent = `未内置的形状库：${missing.join('、')} —— 相关形状已按矩形显示。`;
+      note.textContent = t('ui.markdown.missingStencilLibs', { libs: missing.join('、') });
       this.diagram.appendChild(note);
     }
     this.svg = result.svg;
@@ -667,7 +684,7 @@ class CodeBlockView implements NodeView {
     if (state === 'is-failed') {
       const hint = document.createElement('div');
       hint.className = 'qm-cb-note-hint';
-      hint.textContent = '点一下改源码';
+      hint.textContent = t('ui.markdown.clickToEditSource');
       children.push(hint);
     }
     this.diagram.replaceChildren(...children);
@@ -690,7 +707,7 @@ class CodeBlockView implements NodeView {
    * 一个点下去没有反应的按钮是「假按钮」，比不画更糟。
    */
   private renderRefCard(source: string): void {
-    this.painted = { kind: 'card', source };
+    this.painted = { kind: 'card', source, locale: getLocale() };
     this.svg = null;
     this.syncZoom();
     // 重画 = 源码变过。展开着的摘要对应的是上一份属性，收起（想看再展开，
@@ -702,12 +719,12 @@ class CodeBlockView implements NodeView {
     const attrs = parsed.attrs;
 
     if (parsed.errors.includes('MISSING_TERMINATOR')) {
-      this.paintDiagramNote('doc-block 缺少结束行 —— 属性区和载荷之间必须有一整行「---」。', 'is-failed');
+      this.paintDiagramNote(t('ui.markdown.docblockMissingFence'), 'is-failed');
       this.syncMode();
       return;
     }
     if (attrs.src === null || attrs.src === '') {
-      this.paintDiagramNote('引用缺少 src —— 这里应该写被引用文件的相对路径。', 'is-failed');
+      this.paintDiagramNote(t('ui.markdown.refMissingSrc'), 'is-failed');
       this.syncMode();
       return;
     }
@@ -740,7 +757,7 @@ class CodeBlockView implements NodeView {
 
     const from = document.createElement('span');
     from.className = 'qm-docref-src';
-    from.textContent = `来自 ${ref.src}`;
+    from.textContent = t('ui.markdown.refFrom', { src: ref.src });
     main.appendChild(from);
 
     main.addEventListener('click', (event) => {
@@ -759,7 +776,7 @@ class CodeBlockView implements NodeView {
       const preview = document.createElement('button');
       preview.type = 'button';
       preview.className = 'qm-docref-action';
-      preview.textContent = '预览';
+      preview.textContent = t('ui.markdown.preview');
       // 坑 9 的配套：不拦掉 mousedown，焦点先挪到按钮上，ProseMirror 的选区
       // 随之丢掉 —— 卡片虽然在「非编辑」形态，同一条纪律不豁免
       preview.addEventListener('mousedown', (event) => event.preventDefault());
@@ -775,7 +792,7 @@ class CodeBlockView implements NodeView {
       const edit = document.createElement('button');
       edit.type = 'button';
       edit.className = 'qm-docref-action';
-      edit.textContent = '就地编辑';
+      edit.textContent = t('ui.markdown.editInPlace');
       edit.addEventListener('mousedown', (event) => event.preventDefault());
       edit.addEventListener('click', (event) => {
         event.preventDefault();
@@ -850,19 +867,19 @@ class CodeBlockView implements NodeView {
 
     if (preview === undefined) {
       el.classList.add('is-loading');
-      el.textContent = '正在读摘要……';
+      el.textContent = t('ui.markdown.previewLoading');
     } else if (preview.kind === 'error') {
       el.classList.add('is-failed');
       el.textContent = preview.reason;
     } else if (preview.kind === 'markdown') {
       const meta = document.createElement('div');
       meta.className = 'qm-docref-preview-meta';
-      meta.textContent = `约 ${preview.wordCount} 字`;
+      meta.textContent = t('ui.markdown.previewWords', { count: preview.wordCount });
       el.appendChild(meta);
       if (preview.headings.length === 0) {
         const none = document.createElement('div');
         none.className = 'qm-docref-preview-empty';
-        none.textContent = '没有标题';
+        none.textContent = t('ui.markdown.previewNoHeadings');
         el.appendChild(none);
       } else {
         const list = document.createElement('ul');
@@ -879,7 +896,7 @@ class CodeBlockView implements NodeView {
     } else if (preview.kind === 'text') {
       const meta = document.createElement('div');
       meta.className = 'qm-docref-preview-meta';
-      meta.textContent = `共 ${preview.lineCount} 行`;
+      meta.textContent = t('ui.markdown.previewLines', { count: preview.lineCount });
       el.appendChild(meta);
       const snippet = document.createElement('pre');
       snippet.className = 'qm-docref-preview-snippet';
@@ -892,7 +909,7 @@ class CodeBlockView implements NodeView {
       el.appendChild(title);
       const meta = document.createElement('div');
       meta.className = 'qm-docref-preview-empty';
-      meta.textContent = `${preview.nodeCount} 个节点`;
+      meta.textContent = t('ui.markdown.previewNodes', { count: preview.nodeCount });
       el.appendChild(meta);
     }
 
@@ -956,6 +973,17 @@ class CodeBlockView implements NodeView {
     if (!this.alive) return;
     this.editing = this.containsSelection(state.selection);
     // `ensureDiagram` 内部会调 `syncMode`，所以不需要再调一次
+    this.ensureDiagram();
+  }
+
+  /**
+   * 语言换了：徽章/按钮上的字、图区里我们写的占位纸条都是我们的文案，
+   * 得重画（ADR 0057）。内核别人的话（mermaid 的报错、外壳的 reason）
+   * 原样转述，不在这里翻。
+   */
+  onLocaleChange(): void {
+    if (!this.alive) return;
+    this.renderChrome();
     this.ensureDiagram();
   }
 
@@ -1077,12 +1105,18 @@ export function codeBlockChromePlugin(
           attributes: true,
           attributeFilter: ['data-theme'],
         });
+        // 主题走 data-theme 属性，语言没有对应的 DOM 痕迹 —— 直接订阅
+        // i18n（ADR 0049 同款），换了语言就把活着的纸条重画一遍。
+        const unsubscribeLocale = subscribeLocale(() => {
+          for (const view of live) view.onLocaleChange();
+        });
 
         return {
           update: (current) => {
             for (const view of live) view.syncSelection(current.state);
           },
           destroy: () => {
+            unsubscribeLocale();
             themeWatcher?.disconnect();
             live.clear();
           },

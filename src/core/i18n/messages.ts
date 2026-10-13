@@ -776,6 +776,36 @@ export const zhCN = {
   'ui.mindmap.exportSvgImagesExternal':
     '有 {n} 张节点图片引用的是外部文件，SVG 里保留的是原引用，打开时需要那些文件还在',
 
+  // markdown 内核用户可见文案（ADR 0057）：代码块铭牌 / 图区占位 / 引用卡 / 图片备注。
+  // 只收我们自己说的话；别人的话（mermaid 的报错、外壳给的 reason）原样转述，不进这里
+  'ui.markdown.plainText': '纯文本',
+  'ui.markdown.zoomTitle': '放大看这张图',
+  'ui.markdown.langBadgeTitle': '代码语言：{label}（点击选择）',
+  'ui.markdown.langBadgeAria': '代码语言：{label}，点击选择',
+  'ui.markdown.diagramRendering': '正在渲染图表…',
+  'ui.markdown.docblockMissingFence':
+    'doc-block 缺少结束行 —— 属性区和载荷之间必须有一整行「---」。',
+  'ui.markdown.readingDiagram': '正在读取 {src} …',
+  'ui.markdown.readFailed': '读不到引用的文件：{src}',
+  'ui.markdown.readFailedShort': '读不到引用的文件。',
+  'ui.markdown.inlineEmpty': 'inline 载荷是空的 —— 图的内容应该写在「---」之后。',
+  'ui.markdown.diagramNoSource': '声明了 kind: diagram，但没有 src 引用，也不是 inline 载荷。',
+  'ui.markdown.missingStencilLibs': '未内置的形状库：{libs} —— 相关形状已按矩形显示。',
+  'ui.markdown.clickToEditSource': '点一下改源码',
+  'ui.markdown.refMissingSrc': '引用缺少 src —— 这里应该写被引用文件的相对路径。',
+  'ui.markdown.refFrom': '来自 {src}',
+  'ui.markdown.preview': '预览',
+  'ui.markdown.editInPlace': '就地编辑',
+  'ui.markdown.previewLoading': '正在读摘要……',
+  'ui.markdown.previewWords': '约 {count} 字',
+  'ui.markdown.previewNoHeadings': '没有标题',
+  'ui.markdown.previewLines': '共 {count} 行',
+  'ui.markdown.previewNodes': '{count} 个节点',
+  'ui.markdown.imageNoSrc': '图片没有地址',
+  'ui.markdown.imageResolveUnavailable': '无法显示本地图片：{src}',
+  'ui.markdown.imageLoading': '正在读取图片…',
+  'ui.markdown.imageReadFailed': '图片读不到：{src}',
+
   // .mindmap 解析 / 序列化的提示与错误（绝不静默：每一条都说清降级了什么）
   'core.mm.descArray': '数组（{n} 项）',
   'core.mm.descString': '字符串 {value}',
@@ -1601,6 +1631,37 @@ export const en: Record<MessageKey, string> = {
     '{n} node image(s) reference external files; they cannot be drawn into the PNG (the conversion does not read them)',
   'ui.mindmap.exportSvgImagesExternal':
     '{n} node image(s) reference external files; the SVG keeps the references, so those files must still exist when it is opened',
+
+  // User-visible strings inside the markdown kernel (ADR 0057): the code-block badge,
+  // diagram placeholders, reference cards, and image notes. Only our own words live here;
+  // other people's words (mermaid errors, reasons handed over by the shell) are relayed verbatim
+  'ui.markdown.plainText': 'Plain text',
+  'ui.markdown.zoomTitle': 'Open this diagram in a viewer',
+  'ui.markdown.langBadgeTitle': 'Code language: {label} (click to choose)',
+  'ui.markdown.langBadgeAria': 'Code language: {label}, click to choose',
+  'ui.markdown.diagramRendering': 'Rendering the diagram…',
+  'ui.markdown.docblockMissingFence':
+    'doc-block is missing its closing line — there must be a whole "---" line between the attributes and the payload.',
+  'ui.markdown.readingDiagram': 'Reading {src}…',
+  'ui.markdown.readFailed': 'Could not read the referenced file: {src}',
+  'ui.markdown.readFailedShort': 'Could not read the referenced file.',
+  'ui.markdown.inlineEmpty': 'The inline payload is empty — the diagram source should be written after the "---" line.',
+  'ui.markdown.diagramNoSource': 'Declared kind: diagram, but there is no src reference and no inline payload.',
+  'ui.markdown.missingStencilLibs': 'Stencil libraries not bundled: {libs} — the affected shapes are shown as plain rectangles.',
+  'ui.markdown.clickToEditSource': 'Click to edit the source',
+  'ui.markdown.refMissingSrc': 'This reference is missing src — the relative path of the referenced file goes here.',
+  'ui.markdown.refFrom': 'From {src}',
+  'ui.markdown.preview': 'Preview',
+  'ui.markdown.editInPlace': 'Edit in place',
+  'ui.markdown.previewLoading': 'Reading the summary…',
+  'ui.markdown.previewWords': 'About {count} words',
+  'ui.markdown.previewNoHeadings': 'No headings',
+  'ui.markdown.previewLines': '{count} lines',
+  'ui.markdown.previewNodes': '{count} nodes',
+  'ui.markdown.imageNoSrc': 'The image has no src',
+  'ui.markdown.imageResolveUnavailable': 'Cannot show a local image: {src}',
+  'ui.markdown.imageLoading': 'Reading the image…',
+  'ui.markdown.imageReadFailed': 'Could not read the image: {src}',
 
   'core.mm.descArray': 'an array ({n} items)',
   'core.mm.descString': 'the string {value}',

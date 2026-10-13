@@ -153,6 +153,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **导图节点插图（粘贴进图 / 占位 / 移除）** | 词表与工具函数在 `modules/mindmap/node-images.ts`（收集引用 / 占位图 / 预热 / 剪贴板取图 / 尺寸解码与钳制 / `bytesToDataUrl`，全部纯函数或静态工具），UI 是 `MindmapEditor` 内部弹层（同右键菜单纪律，**不进 `EditorHandle`**）。**五条纪律**：① 格式层 `image` 照 `icons`（0053）先例升格为正字段，形状照内核 `{ url, width, height, fit? }` 不发明中间表示 —— `url` 存**文件 src**、尺寸即内容；整对象照收（不认识的子键原样跟着走），类型不对**整值转 extra**；键序 `icons` 后 `extra` 前，适配层双向直通；② **预热必须在内核创建之前**（`imageProxy` 是同步的、解析是异步的）：`data:` 透传、查得到换 data:、**查不到画占位图**（内嵌 SVG + 路径如实写在里面）——「图丢了是常见状态」，内核的「缺则不画」是静默，占位才是如实；http 外链也走占位（ADR 0001 零联网不破例）；③ 插入走内核 paste 的官方让位口 `pasteHandler`（内核先吃「复制的节点」magic JSON，吃不下才交原始事件）；剪贴板 `files` 与 `items` **两处都看**（平台填充不一致，markdown `imageFilesOf` 的既有教训）；字节交外壳 `onImagePaste`、外壳交回 null 时内核**静默**（外壳已 notice，再报就是两条消息）；④ 移除 = `{image: undefined}`（stringify 干净丢掉）；无图弹层给「按 Ctrl+V」提示 —— 空弹层是静默；⑤ 只读第一行 return —— 图片是编辑，不悄悄放行。详见 §六本轮段与 ADR 0054 |
 | **导图节点链接与标签（右键弹层挂取 / 🔗 单击即走）** | 内核原生渲染这两样（`a.hyper-link` 锚点 + `div.tags` chip）但**零 UI**：菜单里的 `link` 项其实是节点连线 `createArrow`，全库锚点无任何点击监听 —— 编辑与激活都归 `MindmapEditor` 内部弹层/监听（同右键菜单纪律，**不进 `EditorHandle`**）。**五条纪律**：① 格式层 `hyperLink`（**非空字符串** —— 内核对假值不渲染，`""` 是画不出来的链接，整值转 extra；原文不 trim 不解码，分类归外壳）与 `tags`（**文字即内容**：`string \| { text, className?, style? }`；未知子键照收、坏形状**整条**转 extra 不逐项过滤、空数组照写 = 全清过）照 0053/0054 先例升格，键序 `image` 后 `extra` 前，适配层双向直通；② 编辑 = 右键「链接…」「标签…」弹层：无链接时**没有**移除按钮（不是置灰）、空输入禁保存、连挂不关弹层（连挂是正常用法）、重复标签 no-op 现值原样返回；`tagAdd`/`tagRemove` 从内核现取 `nodeObj.tags` 算新组（marker 先例，**不依赖弹层快照算**）；落盘统一 `reshapeNode` → `operation` → emit 主通道；③ 🔗 **单击即走**（与 markdown 的 Ctrl+点击 刻意不同：显式 chip 无歧义，XMind 同款）：host **捕获阶段**无条件 `preventDefault`+`stopPropagation`（内核不拦，WebView 不能整页飞走）；`href` 从 `nodeObj` 读**不从 DOM 读**（DOM 会说谎），`text` 读 `innerText`（内核拿它画的；jsdom 的 `textContent` 是空）—— 交外壳 `onLinkClick` → `classifyLink`/`openLink` 现成出口，文件路径可打开工作区另一份 `.mindmap`；④ 激活是读不是编辑 —— 只读也激活，但 `contextMenu: false` 挂取入口随菜单关门；⑤ 导出与大纲不伺候：`exportSvg` 自带 tags 文本与 `<a href>` 零改动（URL 本来就在文件里，是能力不是泄漏）；大纲只取 `topic`（0052 的刻意）。详见 §六本轮段与 ADR 0055 |
 | **导图节点备注（📝 徽章 / 双入口 / 清空即移除）** | `note` 是格式层**早已存在的正字段**（键序第三个），但内核**零渲染零 UI**（探针实证 `me-tpc` 里一个字都不画）—— 本轮不升格格式层，动的是「看得见、改得了」，UI 是 `MindmapEditor` 内部徽章 + 弹层（同右键菜单纪律，**不进 `EditorHandle`**）。**五条纪律**：① 可见性 = 自挂徽章：`syncNoteBadges(mind.nodes, open)` 遍历 `me-tpc`，`nodeObj.note` 非空字符串挂 `button.mm-note-badge`（📝）、无则摘 —— **不 fork 内核渲染**（fork 会在内核升级时丢）；同步挂 **init 后一次 + `linkDiv` 监听**两处；② **`operation` 是编辑主通道、`linkDiv` 是重建兜底**：内核 undo/redo 走 `refresh(prev)` 且**不发 operation** —— 徽章被重建抹掉、onChange 不来，两条都由 `linkDiv` 兜底（徽章重同步 + 既有 `scheduleVerify` 300ms 迟到的脏标记 —— 迟到不是缺席，探针在 jsdom 里 Ctrl+Z 整链钉死）；③ 编辑 = 徽章 + 右键「备注…」**双入口**（堵上的设计洞：徽章唯一入口 ⇒ 没备注的节点永远创建不了第一条）；弹层 textarea **普通 Enter 是换行**、Ctrl+Enter/按钮保存、保存写 trim 后文本；**清空 = 移除 `{note: undefined}` 干净丢键** —— 与 0053 `icons` 的 `[]` 纪律**刻意不同**（空数组有视觉语义是「全清过」的记录，note 零渲染空串只是噪声）；落盘照走 `reshapeNode` → `operation` → emit 主通道（undo 历史自动记进去）；④ 大纲联动：`OutlineItem.note` + 面板 📝 指示 —— 指示是「有」，正文不进大纲（大纲是导航不是阅读器）；⑤ 导出与搜索不伺候：`exportSvg` 按选择器挑元素、未知类名不选走 ⇒ 徽章天然不进图（导出的是文件内容，徽章是编辑器部件，同右键菜单不进导出）；`EditorSearch` 的 `from/to` 是 topic 段内偏移、replace 走 `setNodeTopic` 同步通道 —— note 塞进去会按备注偏移改主题字，不搜、记 ADR 重审；只读徽章照显、弹层只读无按钮（读不是编辑，🔗 同款）详见 §六本轮段与 ADR 0056 |
+| **markdown 内核文案跟随语言（三机制 / 重画不重建）** | markdown 模块此前**零 i18n 导入**（0047 登记的「6 处」实测是两文件 28 处：`code-block-view.ts` 24 + `image-view.ts` 4）。**三条纪律**：① 同一需求、三种回路形状 —— 机制跟着既有回路走，不另造：badge chrome 走 `chromeLocale` 域（locale 变 ⇒ `drawnLabel=null` 重画 title/aria）；图区纸条走 `painted.locale` 失效 → `ensureDiagram` **整链重渲染**（`paintDiagramNote` 签名不改、收已转好的 string —— 纸条是渲染产物，重跑渲染才是正路；重渲染**不重调**渲染器，断言锁 `spy.calls` 仍 0）；图片占位记 `failLine`（`ImageView` 没有重渲染回路，只能原地换字 —— **有回路重跑回路、没回路记键+参数**，`fail()` 改收 `LocalizedText`）；② **重画不重建**（与 0049 导图刻意不同：ProseMirror 状态、undo 栈、选区全丢不起）—— 照主题切换的既有通道 `subscribeLocale` + live 注册表（`$prose` 工厂闭包订阅、NodeView 构造 `add` / `destroy` `delete`、`view.destroy` 退订 —— 每编辑器实例一份，不泄漏）；③ **别人的话不翻**：mermaid 与 `renderDrawio` 的 `result.message`、`DocBlockPreview.reason` 原样转述（用户拿它搜上游 issue，翻译了反而害人）；zh 逐字照抄旧硬编码 ⇒ 存量断言一行不动（**兼容即契约**）。详见 §六本轮段与 ADR 0057 |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
@@ -1102,6 +1103,23 @@ direction）—— 判据用语义不用字节；**⑤ 设计洞自查**：徽�
 测试：**87 文件 / 1,839 条**（MindmapEditor 备注 describe +7、mindmap-outline
 +1、App 大纲 📝 +1）；观感需 `tauri dev` 人工冒烟（长备注弹层高度、
 多主题徽章对齐、undo 后徽章重现）。
+
+**markdown 内核文案跟随语言（2026-10-13，ADR 0057）**：第八轮自派需求 ——
+0047 当年登记「落点在内核绘制侧，暂不做」的那块，这轮补上。这里只记工程教训：
+**① 注册在案的清单不可信**：0047 只数了 6 处，grep 实证是两文件 28 处 ——
+登记只记了标签，漏了纸条、卡片与摘要区；范围靠 grep 全量重数，不靠旧账。
+**② 机制跟着既有回路走**：badge 有 `drawnLabel` 短路就加 `chromeLocale` 域、
+图区有 `painted` 盖章短机制就给盖章加 `locale` 成员、`ImageView` 没有重画
+回路才发明 `failLine` —— 三种形状不是三种发明，是对三种既有回路的顺应。
+**③ 订阅的生与死要对称**：`$prose` 工厂闭包每编辑器实例跑一次 —— 订阅在
+闭包里、退订必须在 `view.destroy`；NodeView 构造 `add`、`destroy` `delete`，
+否则编辑器销毁后监听器泄漏。**④ 别人的话不翻**：mermaid 与 `renderDrawio`
+的 `result.message`、`DocBlockPreview.reason` 原样转述 —— 用户拿它去搜上游
+issue，翻译了反而害人。**⑤ zh 逐字照抄旧硬编码** ⇒ 存量断言一行不动
+（兼容即契约，0047 的「逐字节一致」纪律在 i18n 上的对偶）。
+测试：**87 文件 / 1,842 条**（badge title / doc-block 失败纸条 / image
+失败纸条三机制各 +1）；en 文案的字体宽度对 chrome 布局的影响需
+`tauri dev` 人工冒烟。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、
