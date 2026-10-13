@@ -67,4 +67,30 @@ describe('导图大纲（ADR 0052）', () => {
     });
     expect(extractMindmapOutline(text)).toEqual([{ level: 1, text: '42', line: 1, id: 'r' }]);
   });
+
+  it('备注原样带进大纲（ADR 0056）；空串折成「没有」—— 与弹层落盘同一套语义', () => {
+    const text = JSON.stringify({
+      format: MINDMAP_FORMAT,
+      version: MINDMAP_VERSION,
+      root: {
+        id: 'r',
+        topic: '根',
+        note: '这是根的备注',
+        children: [
+          { id: 'a', topic: '有备注', note: '甲的多行\n备注' },
+          { id: 'b', topic: '空备注', note: '' },
+          { id: 'c', topic: '没备注' },
+        ],
+      },
+    });
+    // 多行备注不截断不清洗 —— 大纲只负责「显示它有」，原文给面板做悬停
+    expect(extractMindmapOutline(text)).toEqual([
+      { level: 1, text: '根', line: 1, id: 'r', note: '这是根的备注' },
+      { level: 2, text: '有备注', line: 2, id: 'a', note: '甲的多行\n备注' },
+      // 空串与缺省都不传：弹层保存时把空串折成 undefined（键干净消失），
+      // 大纲认的也是「非空才叫有」—— 两边同一把尺子
+      { level: 2, text: '空备注', line: 3, id: 'b' },
+      { level: 2, text: '没备注', line: 4, id: 'c' },
+    ]);
+  });
 });

@@ -94,6 +94,14 @@ export function OutlinePanel({ store, canJump, onJump, onClose }: OutlinePanelPr
               ) : (
                 item.text
               )}
+              {/* 备注指示（ADR 0056）：📝 排在文字后 —— 标记是「这条的性质」（排前），备注是「这条还藏着话」（排后）。
+                  悬停 `title` 给备注原文（面板只负责「显示它有」，不截断不翻译）；读屏念「备注」两个字
+                  （`aria-label`），不逐个念 emoji。Markdown 条目没有 note，一段都不渲染。 */}
+              {item.note !== undefined ? (
+                <span className="outline-note" role="note" aria-label={t('ui.mindmap.noteBadgeTitle')} title={item.note}>
+                  📝
+                </span>
+              ) : null}
             </button>
           ))}
         </div>

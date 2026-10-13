@@ -36,6 +36,13 @@ export interface OutlineItem {
    * 空数组**照传**：那是「全清过」的如实记录（§5.3），不是「没有」。
    */
   readonly markers?: readonly string[];
+  /**
+   * 条目上挂的备注原文（ADR 0056）。只有导图大纲会设（`MindmapNode.note`，
+   * 原样搬运）；Markdown 大纲**永不设**：Markdown 没有节点备注这个概念。
+   * 空串不传 —— 备注弹层把空串折成「没有」，大纲与它同一套语义；
+   * 有就传全文，面板只拿它说「这条有备注」，不截断不翻译。
+   */
+  readonly note?: string;
 }
 
 interface Fence {

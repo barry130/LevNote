@@ -1615,6 +1615,37 @@ describe('导图文档也有大纲面板（ADR 0052）', () => {
 
     expect(mounted.container.querySelector('.outline')).toBeNull();
   });
+
+  it('带备注的主题在大纲里有 📝 指示 —— 图上看不见的备注，大纲里看得见（ADR 0056）', async () => {
+    // 研发挂一条备注；另外两条主题不挂 —— 指示要挂对条目，不是面板级开关
+    const withNote = JSON.stringify({
+      format: 'levnote.mindmap',
+      version: 1,
+      layout: 'logicalStructure',
+      root: {
+        id: 'n1',
+        topic: '季度计划',
+        children: [
+          { id: 'n2', topic: '研发', note: '先修崩溃率', children: [] },
+          { id: 'n3', topic: '发布', children: [] },
+        ],
+      },
+    });
+    mounted = await mount((p) => p.put('计划.mindmap', withNote), { settings: { outlineVisible: true } });
+    await mounted.open('计划.mindmap');
+
+    const items = [
+      ...(mounted.container.querySelector('.outline')?.querySelectorAll('.outline-item') ?? []),
+    ];
+    expect(items.length).toBe(3);
+    const notes = items.map((item) => item.querySelector('.outline-note'));
+    expect(notes[0], '根没备注').toBeNull();
+    expect(notes[1], '研发有备注').not.toBeNull();
+    expect(notes[1]?.textContent).toBe('📝');
+    expect(notes[2], '发布没备注').toBeNull();
+    // 备注正文不进大纲 —— 指示是「有」，不是把备注抄进列表
+    expect(items[1]?.textContent).not.toContain('先修崩溃率');
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -1235,3 +1235,226 @@ describe('链接与标签（ADR 0055）', () => {
     expect(popover.querySelector('.mm-tag-empty')).not.toBeNull();
   });
 });
+
+describe('备注（ADR 0056）', () => {
+  /**
+   * 与标记/插图/链接/标签不同的一个事实（写用例前先说清楚）：
+   * `note` 内核**零渲染**（Se 只画 text / icons / image / hyperLink / tags
+   * 五样，MindElixir.js:353-378 里一个字都不画它）—— 徽章与右键
+   * 「备注…」是我们的全部。徽章挂重画链（`linkDiv`）重同步，所以
+   * undo / redo 把它带走又找回来的那条链也在这里钉死。
+   */
+
+  /** 根主题带可选 `note` 的规范文件；子分支 n2 恒不带备注（对照用）。 */
+  const noteFile = (root: Record<string, unknown>): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '根主题',
+          children: [{ id: 'n2', topic: '分支' }],
+          ...root,
+        },
+      },
+      null,
+      2,
+    )}\n`;
+
+  /** 根主题上的那枚 📝（有备注才存在）。 */
+  const rootBadge = (): HTMLButtonElement | null =>
+    container.querySelector<HTMLButtonElement>('[data-nodeid="men1"] .mm-note-badge');
+
+  /** 右键菜单里那条「备注…」。 */
+  const noteMenuEntry = (): HTMLLIElement | null => {
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    return items.find((li) => li.textContent === '备注…') ?? null;
+  };
+
+  /** 右键根主题 → 点「备注…」→ 拿到弹层（从零创建的唯一入口）。 */
+  const openNoteViaMenu = async (): Promise<HTMLElement> => {
+    const topic = container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    const entry = noteMenuEntry();
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-note-popover');
+    expect(popover).not.toBeNull();
+    return popover as HTMLElement;
+  };
+
+  /** React 受控 textarea 同样要借原生 setter（与输入框那条同一条命门）。 */
+  const typeIntoArea = (area: HTMLTextAreaElement, value: string): void => {
+    const setNativeValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set?.bind(area);
+    setNativeValue?.(value);
+    area.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  /** 等内核把 reshapeNode 的异步重建跑完（徽章在 linkDiv 之后才回来）。 */
+  const settleKernel = async (): Promise<void> => {
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+  };
+
+  it('★ 右键菜单末尾有「备注…」—— 没有徽章可点的节点从这里创建第一条', async () => {
+    const { handle, changes } = await mountReady({ initialValue: noteFile({}) });
+
+    const popover = await openNoteViaMenu();
+    // 还没有备注：空弹层 —— 没有移除按钮（不是禁用），保存按不下去
+    expect(popover.querySelector('.mm-note-remove')).toBeNull();
+    expect(popover.querySelector<HTMLButtonElement>('.mm-note-save')?.disabled).toBe(true);
+
+    const area = popover.querySelector<HTMLTextAreaElement>('.mm-note-input');
+    await act(async () => {
+      typeIntoArea(area as HTMLTextAreaElement, '第一条备注');
+    });
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-note-save')?.click();
+    });
+    await settleKernel();
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain('"note": "第一条备注"');
+    expect(handle.getValue()).toContain('"note": "第一条备注"');
+    // 保存成功弹层自己关；徽章跟着 linkDiv 的重建长出来 —— 备注从看不见变成看得见
+    expect(container.querySelector('.mm-note-popover')).toBeNull();
+    expect(rootBadge()).not.toBeNull();
+  });
+
+  it('有备注的节点挂 📝 徽章，没有的节点不挂 —— 空串也算没有（弹层落盘已折掉它）', async () => {
+    await mountReady({ initialValue: noteFile({ note: '根的备注' }) });
+
+    const badge = rootBadge();
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe('📝');
+    // title 走 i18n（ADR 0049 同一条命门：语言变了内核重建、徽章重同步）
+    expect(badge?.title).toBe('备注');
+    // 对照：n2 没有备注，不挂徽章
+    expect(container.querySelector('[data-nodeid="men2"] .mm-note-badge')).toBeNull();
+  });
+
+  it('点徽章直接开弹层：预填当前备注原文，Ctrl+Enter 落盘、弹层自关', async () => {
+    const { handle, changes } = await mountReady({ initialValue: noteFile({ note: '第一版' }) });
+
+    await act(async () => {
+      rootBadge()?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-note-popover');
+    expect(popover).not.toBeNull();
+    const area = popover?.querySelector<HTMLTextAreaElement>('.mm-note-input');
+    expect(area?.value).toBe('第一版');
+
+    await act(async () => {
+      typeIntoArea(area as HTMLTextAreaElement, '第二版\n第二行');
+    });
+    await act(async () => {
+      // 备注里的普通 Enter 是换行 —— 保存是 Ctrl+Enter，占位文案里写着
+      area?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
+    });
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain('"note": "第二版\\n第二行"');
+    expect(handle.getValue()).toContain('"note": "第二版\\n第二行"');
+    expect(container.querySelector('.mm-note-popover')).toBeNull();
+  });
+
+  it('移除备注：note 键干净消失（undefined 被 stringify 丢掉），徽章随重画摘掉', async () => {
+    const { handle, changes } = await mountReady({ initialValue: noteFile({ note: '要被移除的' }) });
+
+    await act(async () => {
+      rootBadge()?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-note-popover');
+    // 有备注才有移除按钮 —— 与链接弹层同一条判据
+    expect(popover?.querySelector('.mm-note-remove')).not.toBeNull();
+    act(() => {
+      popover?.querySelector<HTMLButtonElement>('.mm-note-remove')?.click();
+    });
+    await settleKernel();
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).not.toContain('"note"');
+    expect(handle.getValue()).not.toContain('"note"');
+    expect(rootBadge()).toBeNull();
+  });
+
+  it('undo 把备注找回来：徽章跟着 linkDiv 重建重现，脏标记迟到但会到（ADR 0056 的两件套）', async () => {
+    const { handle, changes } = await mountReady({ initialValue: noteFile({ note: '会被撤销的' }) });
+
+    // 先移除（走徽章入口，证明同一条落盘通道）
+    await act(async () => {
+      rootBadge()?.click();
+    });
+    act(() => {
+      container.querySelector<HTMLButtonElement>('.mm-note-remove')?.click();
+    });
+    await settleKernel();
+    expect(handle.getValue()).not.toContain('"note"');
+
+    // 内核的 undo（Kn 插件监听 .map-container 的 keydown：Ctrl+Z）
+    // —— 它走 refresh(prev)，**不 fire operation**：徽章靠 linkDiv 重挂，
+    // 脏标记靠 linkDiv → scheduleVerify 迟到。两条都在这里钉死。
+    const map = container.querySelector<HTMLElement>('.map-container');
+    expect(map).not.toBeNull();
+    await act(async () => {
+      map?.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 350);
+      });
+    });
+
+    expect(rootBadge()).not.toBeNull();
+    expect(handle.getValue()).toContain('"note": "会被撤销的"');
+    // scheduleVerify（300ms）追上之后 onChange 也到了 —— 迟到不是缺席
+    expect(changes[changes.length - 1] ?? '').toContain('"note": "会被撤销的"');
+  });
+
+  it('清空 textarea 后保存按不下去 —— 要清空走「移除」，两个出口不混', async () => {
+    await mountReady({ initialValue: noteFile({ note: '占位的旧备注' }) });
+
+    await act(async () => {
+      rootBadge()?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-note-popover');
+    const area = popover?.querySelector<HTMLTextAreaElement>('.mm-note-input');
+    expect(popover?.querySelector<HTMLButtonElement>('.mm-note-save')?.disabled).toBe(false);
+
+    await act(async () => {
+      typeIntoArea(area as HTMLTextAreaElement, '   ');
+    });
+    // 全是空白 = 没有可保存的内容；移除按钮还在，出路没堵死
+    expect(popover?.querySelector<HTMLButtonElement>('.mm-note-save')?.disabled).toBe(true);
+    expect(popover?.querySelector('.mm-note-remove')).not.toBeNull();
+  });
+
+  it('只读：徽章照显、点开是只读弹层 —— 读备注是读，不是编辑', async () => {
+    await mountReady({ initialValue: noteFile({ note: '只读备注' }), readOnly: true });
+
+    const badge = rootBadge();
+    expect(badge).not.toBeNull();
+    await act(async () => {
+      badge?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-note-popover');
+    expect(popover).not.toBeNull();
+    const area = popover?.querySelector<HTMLTextAreaElement>('.mm-note-input');
+    expect(area?.value).toBe('只读备注');
+    // 只读弹层：整套按钮不渲染（不是禁用）、textarea 只读
+    expect(area?.readOnly).toBe(true);
+    expect(popover?.querySelector('.mm-note-save')).toBeNull();
+    expect(popover?.querySelector('.mm-note-remove')).toBeNull();
+  });
+});

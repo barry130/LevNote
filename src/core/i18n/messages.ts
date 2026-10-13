@@ -763,6 +763,13 @@ export const zhCN = {
   'ui.mindmap.tagPlaceholder': '新标签，回车挂上',
   'ui.mindmap.tagAdd': '添加',
   'ui.mindmap.tagRemoveOne': '移除这个标签',
+  // 节点备注（ADR 0056）：右键「备注…」创建；徽章让它看得见、点得着 ——
+  // note 内核不渲染文本，界面上露头的只有这枚徽章
+  'ui.mindmap.noteMenu': '备注…',
+  'ui.mindmap.noteBadgeTitle': '备注',
+  'ui.mindmap.notePlaceholder': '写点什么……（Ctrl+Enter 保存）',
+  'ui.mindmap.noteSave': '保存',
+  'ui.mindmap.noteRemove': '移除备注',
   // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
   'ui.mindmap.exportPngImagesExternal':
     '有 {n} 张节点图片引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
@@ -1581,6 +1588,13 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.tagPlaceholder': 'New tag, press Enter to attach',
   'ui.mindmap.tagAdd': 'Add',
   'ui.mindmap.tagRemoveOne': 'Remove this tag',
+  // Node notes (ADR 0056): create via the right-click「Note…」entry; the badge
+  // makes it visible and clickable — the kernel renders no note text
+  'ui.mindmap.noteMenu': 'Note…',
+  'ui.mindmap.noteBadgeTitle': 'Note',
+  'ui.mindmap.notePlaceholder': 'Write something… (Ctrl+Enter to save)',
+  'ui.mindmap.noteSave': 'Save',
+  'ui.mindmap.noteRemove': 'Remove note',
   // Honest kernel-side notes when exporting an image (ADR 0050): external images
   // are not self-contained, and the two formats fail in different ways
   'ui.mindmap.exportPngImagesExternal':

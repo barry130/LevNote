@@ -152,9 +152,11 @@ function findTopicPath(root: MindmapNode, target: { id?: string; level: number; 
  *
  * ## 只搜 `topic`
  *
- * 不搜 `note`：内核**不渲染** `note`（它在数据里，界面上看不见）。
- * 搜一个用户看不见的东西，会得到「找到 3 处，但一处都看不到」——
- * 那比不搜更让人困惑。
+ * `note` 不搜（ADR 0056 之后它**看得见**了 —— 备注徽章就是为这个画的，
+ * 但这里仍不搜）：`TopicHit` 的 `from / to` 是 **topic 段内偏移**，
+ * `replace` 拿这对偏移去改 topic —— 把 note 的命中塞进同一张表，
+ * 替换就会按备注的偏移去改主题文字。搜得到却换不了是半成品，
+ * 整体不搜、写进 ADR 的重审条件，是如实的边界而不是遗漏。
  */
 function collectHits(root: MindmapNode, options: FindOptions): TopicHit[] {
   const hits: TopicHit[] = [];
@@ -238,6 +240,49 @@ function withResolvedBackground(
   const resolved = getComputedStyle(container).getPropertyValue('--bgcolor').trim();
   if (resolved === '' || resolved.includes('var(')) return theme;
   return { ...theme, cssVar: { ...theme.cssVar, '--bgcolor': resolved } };
+}
+
+/**
+ * 备注徽章（ADR 0056）：`note` 内核零渲染 —— 数据里有、界面上一字不画
+ * （Se 只画 text / icons / image / hyperLink / tags 五样）。徽章是它唯一
+ * 看得见的形态；**创建**走右键「备注…」（还没有徽章可点），**改 / 看**
+ * 走点徽章 —— 两个入口进的是同一个弹层。
+ *
+ * 幂等同步：内核每次重画（`linkDiv`：拖拽 / 展开 / undo / redo /
+ * `reshapeNode` 都会触发）后跑一遍 —— 有备注的节点补徽章，没有的摘掉。
+ * 徽章是 `me-tpc` 里的**兄弟元素**，不在内核认识的任何容器里，Se 重建
+ * 时 `innerHTML = ""` 自然带走它，下一次同步再补 —— 内核从不经手它，
+ * 也不需要。导出器按选择器挑元素，不认识 `button.mm-note-badge`，
+ * 不会被带进 SVG / PNG —— 导出的是文件内容，徽章是编辑器部件
+ * （与右键菜单同理，ADR 0056 写明了这条边界）。
+ *
+ * 点击读的是**此刻的 `nodeObj`** 而不是同步那一刻的快照：徽章可能比数据
+ * 旧（弹层刚保存过、undo 刚回滚过），`nodeObj` 永远是真值 —— DOM 会
+ * 说谎的教训，与 ADR 0055 的 🔗 同一条。空串不画徽章：空备注没有可
+ * 指认的内容。
+ */
+function syncNoteBadges(nodes: HTMLElement, open: (nodeId: string, note: string, x: number, y: number) => void): void {
+  for (const tpc of Array.from(nodes.querySelectorAll('me-tpc'))) {
+    const note = (tpc as KernelTopic).nodeObj.note;
+    const badge = tpc.querySelector('button.mm-note-badge');
+    if (typeof note !== 'string' || note === '') {
+      badge?.remove();
+      continue;
+    }
+    if (badge !== null) continue;
+    const created = document.createElement('button');
+    created.type = 'button';
+    created.className = 'mm-note-badge';
+    created.textContent = '📝';
+    created.title = t('ui.mindmap.noteBadgeTitle');
+    created.addEventListener('click', (event) => {
+      const owner = created.closest('me-tpc');
+      if (owner === null) return;
+      const current = (owner as KernelTopic).nodeObj.note;
+      open((owner as KernelTopic).nodeObj.id, typeof current === 'string' ? current : '', event.clientX, event.clientY);
+    });
+    tpc.appendChild(created);
+  }
 }
 
 function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, resolveImageUrl, onImagePaste, onLinkClick }: EditorMountProps) {
@@ -327,6 +372,14 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
   const [tagPopover, setTagPopover] = useState<TagPopoverState | null>(null);
   const tagAddRef = useRef<((nodeId: string, text: string) => readonly MindmapTag[] | null) | null>(null);
   const tagRemoveRef = useRef<((nodeId: string, index: number) => readonly MindmapTag[] | null) | null>(null);
+
+  /**
+   * 备注弹层（ADR 0056），与前三条内核自有 UI 同一条纪律：不进 `EditorHandle`。
+   * `noteApplyRef` 同 `linkApplyRef`：effect 里装上、闭住当前内核，cleanup 下岗。
+   * 保存与移除都走 `reshapeNode({ note })` → `operation` → 既有 emit 主通道。
+   */
+  const [notePopover, setNotePopover] = useState<NotePopoverState | null>(null);
+  const noteApplyRef = useRef<((nodeId: string, note: string | undefined) => boolean) | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -481,6 +534,27 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       };
 
       /**
+       * 右键菜单「备注…」的 handler（ADR 0056），与前四个同构。它是备注
+       * 的**创建入口**：还没有备注的节点没有徽章可点，从零写第一条备注
+       * 只能走这里。`note` 是打开那一刻的快照（没有就是空串），弹层据此
+       * 出「保存」还是「保存 + 移除」两套按钮；落盘在 ref 通道里现取
+       * `nodeObj`，快照过期也不会写错（`tagAddRef` 的先例）。
+       */
+      const openNotePopoverMenu = (event: MouseEvent): void => {
+        const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
+        if (menu !== null) menu.setAttribute('hidden', '');
+        const topic = mind.currentNode;
+        if (topic == null) return;
+        const raw = topic.nodeObj.note;
+        setNotePopover({
+          x: event.clientX,
+          y: event.clientY,
+          nodeId: topic.nodeObj.id,
+          note: typeof raw === 'string' ? raw : '',
+        });
+      };
+
+      /**
        * 粘贴图片（ADR 0054）。内核的 paste 监听先吃「复制的节点」那份 magic
        * JSON（`MindElixir.js:1016-1027`），吃不下才把**原始事件**交到这里 ——
        * 所以节点复制粘贴的既有行为一个字节都不受影响。
@@ -545,9 +619,9 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
           // 右键菜单：只读时整个关掉；能编辑时传**对象**而不是 `true`——
           // 传 `true` 用的是内核硬编码的英文包（`MindElixir.js:1379` 的 `Yn`）。
           // 传对象才能带上我们的语言包（ADR 0049）。`extend` 里的「标记…」
-          // 「图片…」「链接…」「标签…」追加在菜单末尾（ADR 0053 / 0054 / 0055），
-          // label 走 `t()` —— 语言一变内核重建，这里自然跟着换语言，与
-          // ADR 0049 同一条命门。
+          // 「图片…」「链接…」「标签…」「备注…」追加在菜单末尾
+          // （ADR 0053 / 0054 / 0055 / 0056），label 走 `t()` ——
+          // 语言一变内核重建，这里自然跟着换语言，与 ADR 0049 同一条命门。
           contextMenu: readOnlyRef.current
             ? false
             : {
@@ -559,6 +633,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
                   { name: t('ui.mindmap.imageMenu'), onclick: openImagePopover },
                   { name: t('ui.mindmap.linkMenu'), onclick: openLinkPopover },
                   { name: t('ui.mindmap.tagMenu'), onclick: openTagPopover },
+                  { name: t('ui.mindmap.noteMenu'), onclick: openNotePopoverMenu },
                 ],
               },
           keypress: !readOnlyRef.current,
@@ -754,6 +829,43 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
           return null;
         }
       };
+
+      // --- 备注弹层的落盘通道（ADR 0056） ---------------------------------------
+      // 仍是同一条 `reshapeNode` 路。空串是「移除」：`note` 的空串在徽章上
+      // 没有可指认的内容（`syncNoteBadges` 对 '' 不画徽章），写回文件却会
+      // 留一行 `"note": ""` —— 保存时折成 `undefined`，`JSON.stringify`
+      // 把它整个丢掉，键干净消失（同 image / hyperLink 的移除）。
+      noteApplyRef.current = (nodeId, note) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return false;
+          if (note === undefined || note === '') {
+            if (el.nodeObj.note === undefined || el.nodeObj.note === '') return true;
+            void mind.reshapeNode(el, { note: undefined });
+            return true;
+          }
+          void mind.reshapeNode(el, { note });
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      // --- 备注徽章（ADR 0056） -------------------------------------------------
+      // `note` 内核零渲染：数据里有、界面上一个字都不画（Se 只画
+      // text/icons/image/hyperLink/tags 五样）。徽章是它唯一看得见的形态：
+      // 有备注的节点挂 📝，点击直接开弹层（快捷新入口）；**从零创建**走右键
+      // 「备注…」（还没有徽章可点）。同步时机 = 内核每次重画：初始化一次 +
+      // `linkDiv`（拖拽/展开/undo/redo/reshapeNode 全都会触发它，探针实测
+      // undo 后徽章随之消失/重现）。
+      const openNotePopover = (nodeId: string, note: string, x: number, y: number): void => {
+        setNotePopover({ x, y, nodeId, note });
+      };
+      const syncBadges = (): void => {
+        syncNoteBadges(mind.nodes, openNotePopover);
+      };
+      mind.bus.addListener('linkDiv', syncBadges);
+      syncBadges();
 
       // --- 链接的点击激活（ADR 0055） -------------------------------------------
       // 内核只画 🔗、不给锚点挂任何监听（grep 全库只有渲染 `:366` 与导出
@@ -984,7 +1096,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         }
         // 缩放留给下一个内核（见 `scaleRef`）。
         scaleRef.current = mind.scaleVal;
-        // 标记 / 图片 / 链接 / 标签四条内核自有 UI 的落盘通道跟着内核一起
+        // 标记 / 图片 / 链接 / 标签 / 备注五条内核自有 UI 的落盘通道跟着内核一起
         // 下岗（新 effect 会装新的）；弹层若还开着就关掉 —— 它闭住的那个
         // 内核已经销毁了。
         markerApplyRef.current = null;
@@ -993,15 +1105,18 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         linkApplyRef.current = null;
         tagAddRef.current = null;
         tagRemoveRef.current = null;
+        noteApplyRef.current = null;
         setMarkerPalette(null);
         setImagePopover(null);
         setLinkPopover(null);
         setTagPopover(null);
+        setNotePopover(null);
         host.removeEventListener('click', onHyperLinkClick, true);
         mind.bus.removeListener('operation', onOperation);
         mind.bus.removeListener('expandNode', emit);
         mind.bus.removeListener('changeDirection', emit);
         mind.bus.removeListener('linkDiv', scheduleVerify);
+        mind.bus.removeListener('linkDiv', syncBadges);
         mind.destroy();
       };
     };
@@ -1098,6 +1213,23 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
     setTagPopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, tags: [...next] } : state));
   }, []);
 
+  /** 备注弹层的出口，引用稳定的理由同上。 */
+  const closeNotePopover = useCallback((): void => {
+    setNotePopover(null);
+  }, []);
+
+  const saveNote = useCallback((nodeId: string, text: string): void => {
+    // 落盘通道里空串已折成移除（见 `noteApplyRef` 的注释）。
+    if (noteApplyRef.current?.(nodeId, text) !== true) return;
+    setNotePopover(null);
+  }, []);
+
+  const removeNote = useCallback((nodeId: string): void => {
+    // `false` = 没移成（节点已经够不着了）：弹层如实留在原地。
+    if (noteApplyRef.current?.(nodeId, undefined) !== true) return;
+    setNotePopover(null);
+  }, []);
+
   return (
     <>
       <div ref={hostRef} className="qm-mindmap" tabIndex={-1} />
@@ -1109,6 +1241,9 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       )}
       {linkPopover !== null && (
         <LinkPopover state={linkPopover} onSave={saveLink} onRemove={removeLink} onClose={closeLinkPopover} />
+      )}
+      {notePopover !== null && (
+        <NotePopover state={notePopover} readOnly={readOnly === true} onSave={saveNote} onRemove={removeNote} onClose={closeNotePopover} />
       )}
       {tagPopover !== null && (
         <TagPopover state={tagPopover} onAdd={addTag} onRemove={removeTag} onClose={closeTagPopover} />
@@ -1465,6 +1600,97 @@ function TagPopover({ state, onAdd, onRemove, onClose }: TagPopoverProps) {
           {t('ui.mindmap.tagAdd')}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** 备注弹层要显示的东西：位置、目标节点、打开那一刻的备注原文（空串 = 还没有）。 */
+interface NotePopoverState {
+  readonly x: number;
+  readonly y: number;
+  readonly nodeId: string;
+  readonly note: string;
+}
+
+interface NotePopoverProps {
+  readonly state: NotePopoverState;
+  readonly readOnly: boolean;
+  readonly onSave: (nodeId: string, text: string) => void;
+  readonly onRemove: (nodeId: string) => void;
+  readonly onClose: () => void;
+}
+
+const NOTE_POPOVER_EST_WIDTH = 300;
+const NOTE_POPOVER_EST_HEIGHT = 240;
+
+/**
+ * 备注弹层（ADR 0056）。关闭 / 夹视口照前三个弹层；正文是 textarea
+ * （备注天然多行）。**Ctrl+Enter 保存**：备注里的普通 Enter 是换行，
+ * 不能像链接那样把 Enter 拿去当保存 —— 按键写进了占位文案。空文本
+ * 不能「保存」（要清空用「移除」），与链接弹层同一条判据。
+ * 只读时整套按钮不渲染、textarea 只读 —— 读备注是读，不是编辑。
+ */
+function NotePopover({ state, readOnly, onSave, onRemove, onClose }: NotePopoverProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [draft, setDraft] = useState(state.note);
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent): void => {
+      if (rootRef.current === null) return;
+      if (event.target instanceof Node && rootRef.current.contains(event.target)) return;
+      onClose();
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const left = Math.min(state.x, Math.max(8, window.innerWidth - NOTE_POPOVER_EST_WIDTH - 8));
+  const top = Math.min(state.y, Math.max(8, window.innerHeight - NOTE_POPOVER_EST_HEIGHT - 8));
+
+  const save = (): void => {
+    const trimmed = draft.trim();
+    if (trimmed === '') return;
+    onSave(state.nodeId, trimmed);
+  };
+
+  return (
+    <div ref={rootRef} className="mm-note-popover" style={{ left, top }} role="dialog" aria-label={t('ui.mindmap.noteBadgeTitle')}>
+      <textarea
+        ref={inputRef}
+        className="mm-note-input"
+        value={draft}
+        placeholder={t('ui.mindmap.notePlaceholder')}
+        aria-label={t('ui.mindmap.noteBadgeTitle')}
+        readOnly={readOnly}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) save();
+        }}
+      />
+      {!readOnly && (
+        <div className="mm-note-actions">
+          <button type="button" className="mm-note-save" disabled={draft.trim() === ''} onClick={save}>
+            {t('ui.mindmap.noteSave')}
+          </button>
+          {state.note !== '' && (
+            <button type="button" className="mm-note-remove" onClick={() => onRemove(state.nodeId)}>
+              {t('ui.mindmap.noteRemove')}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

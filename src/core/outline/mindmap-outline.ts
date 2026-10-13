@@ -57,12 +57,15 @@ export function extractMindmapOutline(text: string): MindmapOutlineItem[] {
     ordinal += 1;
     // `icons` 原样带进大纲（含空数组 —— 那是「全清过」的如实状态，不是「没有」）；
     // undefined 则缺着 —— 与 id 的纪律同一条：缺着传 undefined，不编假值。
+    // `note` 同一条（ADR 0056）：有就带全文，空串折成「没有」（弹层落盘
+    // 时已把空串折成 undefined，这里只认非空 —— 两边同一套语义）。
     items.push({
       level,
       text: node.topic,
       line: ordinal,
       id: node.id,
       ...(node.icons !== undefined ? { markers: node.icons } : {}),
+      ...(typeof node.note === 'string' && node.note !== '' ? { note: node.note } : {}),
     });
     for (const child of node.children) walk(child, level + 1);
   };
