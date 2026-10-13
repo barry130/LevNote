@@ -989,3 +989,249 @@ describe('节点插图（ADR 0054）', () => {
     expect(popover.querySelector('.mm-image-remove')).toBeNull();
   });
 });
+
+describe('链接与标签（ADR 0055）', () => {
+  /**
+   * 与标记/插图不同的两个事实（写用例前先说清楚，不然断言会选错层）：
+   * - `hyperLink` / `tags` 的**渲染是内核原生**的（Se，MindElixir.js:364-378），
+   *   这里只证「落盘 + 交给外壳」的接缝，不证画得对不对。
+   * - 内核对 hyperLink **零 UI**（菜单里的 link 项是节点连线，不是它），所以
+   *   编辑弹层、🔗 的点击激活全是我们的代码 —— 断言可以直接落在 DOM 上。
+   * - 🔗 是显式挂上的链接 chip，单击即激活（XMind 同款）；markdown 正文里
+   *   要 Ctrl+点击 是因为正文链接是嵌在文字里的。差异写进了 ADR。
+   */
+
+  /** 根主题带可选 hyperLink / tags 的规范文件。 */
+  const linkTagFile = (root: Record<string, unknown>): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: { id: 'n1', topic: '根主题', children: [], ...root },
+      },
+      null,
+      2,
+    )}\n`;
+
+  /** 内核在根主题载荷里画出来的那个 🔗（有链接才存在）。 */
+  const rootLink = (): HTMLAnchorElement | null =>
+    container.querySelector<HTMLAnchorElement>('[data-nodeid="men1"] a.hyper-link');
+
+  const tagsOf = (text: string): readonly unknown[] => {
+    const root = (JSON.parse(text) as { root: { tags?: readonly unknown[] } }).root;
+    return root.tags ?? [];
+  };
+
+  /** 右键菜单里那条「链接…」/「标签…」。 */
+  const menuEntry = (title: string): HTMLLIElement | null => {
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    return items.find((li) => li.textContent === title) ?? null;
+  };
+
+  const openPopover = async (title: string, className: string): Promise<HTMLElement> => {
+    const topic = container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    const entry = menuEntry(title);
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    const popover = container.querySelector<HTMLElement>(className);
+    expect(popover).not.toBeNull();
+    return popover as HTMLElement;
+  };
+
+  /** React 受控输入要借原生 setter 才认输入 —— 直接赋 value 会被 React 吞掉。 */
+  const typeInto = (input: HTMLInputElement, value: string): void => {
+    // 先 bind 再用（unbound-method）：与 App.test.tsx 里 native setter 的写法一致
+    const setNativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.bind(input);
+    setNativeValue?.(value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  it('右键「链接…」：输入框预填当前链接，改成新链接落盘、弹层自己关', async () => {
+    const { handle, changes } = await mountReady({ initialValue: linkTagFile({ hyperLink: 'https://example.com/a' }) });
+
+    const popover = await openPopover('链接…', '.mm-link-popover');
+    const input = popover.querySelector<HTMLInputElement>('.mm-link-input');
+    expect(input?.value).toBe('https://example.com/a');
+
+    await act(async () => {
+      typeInto(input as HTMLInputElement, 'https://example.com/b');
+    });
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-link-save')?.click();
+    });
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain('"hyperLink": "https://example.com/b"');
+    expect(handle.getValue()).toContain('"hyperLink": "https://example.com/b"');
+    // 保存成功弹层自己关 —— 半途关掉才是异常
+    expect(container.querySelector('.mm-link-popover')).toBeNull();
+  });
+
+  it('没有链接时：给提示与空输入，移除按钮压根没有；填上才能保存', async () => {
+    const { changes } = await mountReady();
+
+    const popover = await openPopover('链接…', '.mm-link-popover');
+    expect(popover.querySelector('.mm-link-hint')).not.toBeNull();
+    // 没链接就没有移除按钮 —— 不是禁用，是压根没有
+    expect(popover.querySelector('.mm-link-remove')).toBeNull();
+
+    const save = popover.querySelector<HTMLButtonElement>('.mm-link-save');
+    expect(save?.disabled).toBe(true);
+
+    await act(async () => {
+      typeInto(popover.querySelector<HTMLInputElement>('.mm-link-input') as HTMLInputElement, 'notes/别的导图.mindmap');
+    });
+    expect(save?.disabled).toBe(false);
+    act(() => {
+      save?.click();
+    });
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain('"hyperLink": "notes/别的导图.mindmap"');
+  });
+
+  it('移除链接：文件里不再有 hyperLink —— undefined 被 stringify 干净丢掉', async () => {
+    const { handle, changes } = await mountReady({ initialValue: linkTagFile({ hyperLink: 'https://example.com/a' }) });
+
+    const popover = await openPopover('链接…', '.mm-link-popover');
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-link-remove')?.click();
+    });
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).not.toContain('"hyperLink"');
+    expect(handle.getValue()).not.toContain('"hyperLink"');
+    expect(container.querySelector('.mm-link-popover')).toBeNull();
+  });
+
+  it('点 🔗 激活链接：交给外壳分类打开，默认行为拦下 —— WebView 不能整页飞走', async () => {
+    const activated: { href: string; text: string }[] = [];
+    const { changes } = await mountReady({
+      initialValue: linkTagFile({ hyperLink: 'https://example.com/a' }),
+      onLinkClick: (link) => {
+        activated.push({ ...link });
+      },
+    });
+
+    const link = rootLink();
+    expect(link).not.toBeNull();
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    await act(async () => {
+      link?.dispatchEvent(event);
+    });
+
+    // href 从内核 nodeObj 取，不从 DOM 读 —— DOM 会说谎（marker 教训）
+    expect(activated).toEqual([{ href: 'https://example.com/a', text: '🔗' }]);
+    // 整页导航必须拦在内核挂载层 —— 内核自己不拦（grep 全库只有渲染与导出两处）
+    expect(event.defaultPrevented).toBe(true);
+    // 激活不是编辑：文件一个字节不动
+    expect(changes).toEqual([]);
+  });
+
+  it('只读也能点 🔗 —— 查链接不是改文件；但右键没有编辑菜单', async () => {
+    const activated: { href: string; text: string }[] = [];
+    await mountReady({
+      readOnly: true,
+      initialValue: linkTagFile({ hyperLink: 'notes/别的导图.mindmap' }),
+      onLinkClick: (link) => {
+        activated.push({ ...link });
+      },
+    });
+
+    await act(async () => {
+      rootLink()?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    expect(activated).toEqual([{ href: 'notes/别的导图.mindmap', text: '🔗' }]);
+
+    const topic = container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    expect(container.querySelector('.context-menu')).toBeNull();
+    expect(menuEntry('链接…')).toBeNull();
+    expect(menuEntry('标签…')).toBeNull();
+  });
+
+  it('标签弹层：回车与按钮都能挂，挂上后输入框清空、弹层不关 —— 挂多个是正常用法', async () => {
+    const { handle, changes } = await mountReady();
+
+    const popover = await openPopover('标签…', '.mm-tag-popover');
+    const input = popover.querySelector<HTMLInputElement>('.mm-tag-input');
+
+    await act(async () => {
+      typeInto(input as HTMLInputElement, '重要');
+    });
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    await act(async () => {
+      typeInto(input as HTMLInputElement, '风险');
+    });
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-tag-add')?.click();
+    });
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(tagsOf(last)).toEqual(['重要', '风险']);
+    expect(handle.getValue()).toContain('"tags"');
+    // 输入框清空、弹层还开着 —— 连挂是正常用法
+    expect(input?.value).toBe('');
+    expect(container.querySelector('.mm-tag-popover')).not.toBeNull();
+    // chip 挂上来了（文字在独立的 span 里，✕ 按钮不算文字）
+    const chips = [...popover.querySelectorAll<HTMLElement>('.mm-tag-text')];
+    expect(chips.map((chip) => chip.textContent)).toEqual(['重要', '风险']);
+  });
+
+  it('重复标签不落第二份：现值原样返回，文件不动', async () => {
+    const { changes } = await mountReady({ initialValue: linkTagFile({ tags: ['重要'] }) });
+
+    const popover = await openPopover('标签…', '.mm-tag-popover');
+    const input = popover.querySelector<HTMLInputElement>('.mm-tag-input');
+    await act(async () => {
+      typeInto(input as HTMLInputElement, '重要');
+    });
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-tag-add')?.click();
+    });
+
+    // no-op：内核没收到 reshapeNode，onChange 一条都没多
+    expect(changes).toEqual([]);
+    const chips = [...popover.querySelectorAll<HTMLElement>('.mm-tag-text')];
+    expect(chips).toHaveLength(1);
+  });
+
+  it('✕ 按索引摘标签；最后一个摘掉留下 `"tags": []` —— 全清过不是没有', async () => {
+    const { handle, changes } = await mountReady({ initialValue: linkTagFile({ tags: ['重要', '风险'] }) });
+
+    const popover = await openPopover('标签…', '.mm-tag-popover');
+    const first = popover.querySelectorAll<HTMLButtonElement>('.mm-tag-remove')[0];
+    act(() => {
+      first?.click();
+    });
+    let last = changes[changes.length - 1] ?? '';
+    expect(tagsOf(last)).toEqual(['风险']);
+
+    const next = popover.querySelectorAll<HTMLButtonElement>('.mm-tag-remove')[0];
+    act(() => {
+      next?.click();
+    });
+    last = changes[changes.length - 1] ?? '';
+    expect(last).toContain('"tags": []');
+    expect(handle.getValue()).toContain('"tags": []');
+    // 挂过又全摘掉 ≠ 从没挂过 —— 空列表提示与空输入并存
+    expect(popover.querySelector('.mm-tag-empty')).not.toBeNull();
+  });
+});

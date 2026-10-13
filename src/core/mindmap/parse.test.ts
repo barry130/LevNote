@@ -150,6 +150,45 @@ describe('parseMindmap · 正常路径', () => {
     expect(first.issues).toEqual([]);
     expect(first.document.root.image).toEqual({ url: 'a.png', width: 10, height: 20 });
   });
+
+  it('hyperLink 与 tags 升格为正字段（ADR 0055）：读进类型，标签对象不认识的子键原样跟着走', () => {
+    const body = minimalBody();
+    body.root = {
+      id: 'n1',
+      topic: '根',
+      hyperLink: 'https://example.com/a',
+      // riskLevel 不在词表里 —— 整对象照收，只认三键的「干净拷贝」会把它静默丢掉
+      tags: ['重要', { text: '风险', className: 'mm-x', style: { color: '#f00' }, riskLevel: '高' }],
+      children: [],
+    };
+    const first = mustParse(file(body));
+    expect(first.issues).toEqual([]);
+    expect(first.document.root.hyperLink).toBe('https://example.com/a');
+    expect(first.document.root.tags).toEqual([
+      '重要',
+      { text: '风险', className: 'mm-x', style: { color: '#f00' }, riskLevel: '高' },
+    ]);
+
+    const again = mustParse(serializeMindmap(first.document));
+    expect(again.document.root.hyperLink).toBe('https://example.com/a');
+    expect(again.document.root.tags).toEqual([
+      '重要',
+      { text: '风险', className: 'mm-x', style: { color: '#f00' }, riskLevel: '高' },
+    ]);
+  });
+
+  it('tags 空数组是「全清过」的如实记录 —— 照读照写（ADR 0055）', () => {
+    const body = minimalBody();
+    body.root = { id: 'n1', topic: '根', tags: [], children: [] };
+    const first = mustParse(file(body));
+    expect(first.issues).toEqual([]);
+    expect(first.document.root.tags).toEqual([]);
+
+    const text = serializeMindmap(first.document);
+    expect(text).toContain('"tags": []');
+    const again = mustParse(text);
+    expect(again.document.root.tags).toEqual([]);
+  });
 });
 
 describe('parseMindmap · 向前兼容（§5 的透传桶）', () => {
@@ -161,15 +200,16 @@ describe('parseMindmap · 向前兼容（§5 的透传桶）', () => {
   });
 
   it('节点上未识别的键进该节点的 extra，且**往返后仍在**', () => {
+    // `tags` 曾是这里的样本 —— ADR 0055 升格为正字段后它不再进 extra，换 `labels`
     const body = minimalBody();
-    body.root = { id: 'n1', topic: '根', children: [], tags: ['a', 'b'], weight: 3 };
+    body.root = { id: 'n1', topic: '根', children: [], labels: ['a', 'b'], weight: 3 };
     const first = mustParse(file(body));
     expect(codes(first.issues)).toEqual(['UNKNOWN_KEY']);
-    expect(first.document.root.extra).toEqual({ tags: ['a', 'b'], weight: 3 });
+    expect(first.document.root.extra).toEqual({ labels: ['a', 'b'], weight: 3 });
 
     // 关键：**过一遍内核会丢的东西，必须先过一遍我们的信封**
     const again = mustParse(serializeMindmap(first.document));
-    expect(again.document.root.extra).toEqual({ tags: ['a', 'b'], weight: 3 });
+    expect(again.document.root.extra).toEqual({ labels: ['a', 'b'], weight: 3 });
   });
 
   it('未识别键的**相对顺序**在往返中不变', () => {
@@ -218,6 +258,13 @@ describe('parseMindmap · 类型不对的字段一个都不丢', () => {
     { key: 'image', bad: { url: 'a.png' }, normalizesTo: { url: 'a.png' } },
     { key: 'image', bad: { url: 'a.png', width: 0, height: 10 }, normalizesTo: { url: 'a.png', width: 0, height: 10 } },
     { key: 'image', bad: { url: 'a.png', width: 10, height: 10, fit: 'bogus' }, normalizesTo: { url: 'a.png', width: 10, height: 10, fit: 'bogus' } },
+    // hyperLink 只认非空串：内核对假值不渲染，`""` 是画不出来的链接（ADR 0055）
+    { key: 'hyperLink', bad: 42, normalizesTo: 42 },
+    { key: 'hyperLink', bad: '', normalizesTo: '' },
+    // tags 不逐项过滤：混进一个坏形状整条转 extra，防「悄悄只留好的一半」（ADR 0055）
+    { key: 'tags', bad: '重要', normalizesTo: '重要' },
+    { key: 'tags', bad: ['重要', 2], normalizesTo: ['重要', 2] },
+    { key: 'tags', bad: [{ className: 'mm-x' }], normalizesTo: [{ className: 'mm-x' }] },
   ];
 
   for (const item of cases) {

@@ -753,6 +753,16 @@ export const zhCN = {
   'ui.mindmap.imageDecodeFailed': '这张图解码不出尺寸，图片没有挂上。',
   'ui.mindmap.imageAttachFailed': '图片没能挂到主题上（它可能刚被删掉或折叠）。',
   'ui.mindmap.imagePlaceholderNote': '(图不在这里)',
+  // 节点链接与标签（ADR 0055）：右键「链接…」「标签…」两个弹层的实话
+  'ui.mindmap.linkMenu': '链接…',
+  'ui.mindmap.linkHint': '支持 https:// / mailto: / 指向工作区文件的路径，由外壳分类打开。',
+  'ui.mindmap.linkPlaceholder': 'https://… 或 文件路径',
+  'ui.mindmap.linkSave': '保存链接',
+  'ui.mindmap.linkRemove': '移除链接',
+  'ui.mindmap.tagMenu': '标签…',
+  'ui.mindmap.tagPlaceholder': '新标签，回车挂上',
+  'ui.mindmap.tagAdd': '添加',
+  'ui.mindmap.tagRemoveOne': '移除这个标签',
   // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
   'ui.mindmap.exportPngImagesExternal':
     '有 {n} 张节点图片引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
@@ -1561,6 +1571,16 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.imageDecodeFailed': 'This image could not be decoded for its size; nothing was attached.',
   'ui.mindmap.imageAttachFailed': 'The image could not be attached to the topic (it may have just been removed or collapsed).',
   'ui.mindmap.imagePlaceholderNote': '(image not here)',
+  // Node links and tags (ADR 0055): the right-click "Link…" / "Tags…" panels
+  'ui.mindmap.linkMenu': 'Link…',
+  'ui.mindmap.linkHint': 'Supports https:// / mailto: / paths to workspace files; the shell classifies and opens them.',
+  'ui.mindmap.linkPlaceholder': 'https://… or a file path',
+  'ui.mindmap.linkSave': 'Save link',
+  'ui.mindmap.linkRemove': 'Remove link',
+  'ui.mindmap.tagMenu': 'Tags…',
+  'ui.mindmap.tagPlaceholder': 'New tag, press Enter to attach',
+  'ui.mindmap.tagAdd': 'Add',
+  'ui.mindmap.tagRemoveOne': 'Remove this tag',
   // Honest kernel-side notes when exporting an image (ADR 0050): external images
   // are not self-contained, and the two formats fail in different ways
   'ui.mindmap.exportPngImagesExternal':

@@ -35,6 +35,7 @@ import {
   type MindmapIssue,
   type MindmapIssueCode,
   type MindmapNode,
+  type MindmapTag,
   type ParseMindmapOptions,
   type ParseMindmapResult,
 } from './types.js';
@@ -74,6 +75,26 @@ function isImageShape(value: unknown): value is MindmapImage {
   if (typeof record.width !== 'number' || !Number.isFinite(record.width) || record.width <= 0) return false;
   if (typeof record.height !== 'number' || !Number.isFinite(record.height) || record.height <= 0) return false;
   if (record.fit !== undefined && record.fit !== 'fill' && record.fit !== 'contain' && record.fit !== 'cover') return false;
+  return true;
+}
+
+/**
+ * 标签元素的形状判据（ADR 0055）。字符串直接是；对象只要求
+ * `text` 是非空串、`className`（若有）是字符串、`style`（若有）是普通对象 ——
+ * 其余子键不挑（与 `image` 整对象照收同一条理由：别人的内容我们不解释，
+ * 但求往返一个字节不丢）。
+ *
+ * `style` 只判「是普通对象」、不逐值判字符串：与节点本体的 `style`
+ * （`isPlainObject(rawStyle)` 即收）同一条纪律 —— 我们不解释它，
+ * 就没资格因为「值长得不像 CSS」把别人的标签整个扔掉。
+ */
+function isTagEntry(value: unknown): value is MindmapTag {
+  if (typeof value === 'string') return true;
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  if (typeof record.text !== 'string' || record.text === '') return false;
+  if (record.className !== undefined && typeof record.className !== 'string') return false;
+  if (record.style !== undefined && !isPlainObject(record.style)) return false;
   return true;
 }
 
@@ -312,6 +333,27 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
       // 序列化时一并写回 —— 只认四个键的「干净拷贝」会把它们静默丢掉。
       node.image = { ...rawImage };
     } else if (rawImage !== undefined) badField('image', rawImage);
+
+    /**
+     * 节点超链接（ADR 0055）：只认「非空字符串」。内核对假值不渲染，
+     * `""` 是画不出来的链接 —— 与 `image` 三键齐才有效同一条纪律：
+     * 读进一个**内核一定画不出来**的值，就是「假装读进来了」。
+     * 校验形状之外我们不碰内容：`classifyLink` 的分类（http / mailto /
+     * 工作区文件）是外壳的事，格式层猜了反而会把合法的写法判成坏值。
+     */
+    const rawHyperLink = value.hyperLink;
+    if (typeof rawHyperLink === 'string' && rawHyperLink !== '') node.hyperLink = rawHyperLink;
+    else if (rawHyperLink !== undefined) badField('hyperLink', rawHyperLink);
+
+    /**
+     * 节点标签（ADR 0055）：只认「每个元素都是合法标签的数组」，与 `icons`
+     * 同一条纪律 —— **不逐项过滤**：数组里混进一个不认识的形状，
+     * 整条进 `extra`（一个不丢）。对象元素**整对象照收**（不挑键）：
+     * 别人往标签对象里写的子键，原样跟着走，序列化时一并写回。
+     */
+    const rawTags = value.tags;
+    if (isUnknownArray(rawTags) && rawTags.every(isTagEntry)) node.tags = rawTags;
+    else if (rawTags !== undefined) badField('tags', rawTags);
 
     // --- children ------------------------------------------------------------
     const rawChildren = value.children;

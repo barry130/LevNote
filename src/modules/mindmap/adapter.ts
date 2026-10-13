@@ -37,7 +37,7 @@ import type { MindElixirData, NodeObj } from 'mind-elixir';
 
 import type { KernelRejectReason } from '../../core/editor/types.js';
 import { parseMindmap } from '../../core/mindmap/parse.js';
-import { MINDMAP_DEFAULT_LAYOUT, type MindmapDocument, type MindmapNode } from '../../core/mindmap/types.js';
+import { MINDMAP_DEFAULT_LAYOUT, type MindmapDocument, type MindmapNode, type MindmapTag } from '../../core/mindmap/types.js';
 
 /**
  * 内核的方向编号。
@@ -85,10 +85,24 @@ const DEFAULT_DIRECTION: Direction = 2;
  * - `icons`：标记（ADR 0053）。它升格为格式层正字段之后**不能再走 `extra`** ——
  *   走了就是同一个键两个来源，`serialize` 的重复键守卫会当场抛错。
  * - `image`：节点插图（ADR 0054），同上。
+ * - `hyperLink` / `tags`：节点超链接与标签（ADR 0055），同上。
  *
  * 其余「我们不认识」的键全部走 `extra`。
  */
-const NON_EXTRA_NODE_KEYS: ReadonlySet<string> = new Set(['id', 'topic', 'children', 'note', 'collapsed', 'style', 'icons', 'image', 'parent', 'expanded']);
+const NON_EXTRA_NODE_KEYS: ReadonlySet<string> = new Set([
+  'id',
+  'topic',
+  'children',
+  'note',
+  'collapsed',
+  'style',
+  'icons',
+  'image',
+  'hyperLink',
+  'tags',
+  'parent',
+  'expanded',
+]);
 
 /**
  * 顶层上**不属于** `extra` 的键。
@@ -140,6 +154,15 @@ function toKernelNode(node: MindmapNode): NodeObj {
    * `MindmapImage` 形状一致，正字段的待遇；`undefined` 不交（没这回事）。
    */
   if (node.image !== undefined) out.image = node.image;
+  /**
+   * 节点超链接与标签（ADR 0055）：直通，不校验 —— 方向同 `icons` /
+   * `image`：内核的 `NodeObj.hyperLink`（纯字符串）与 `NodeObj.tags`
+   * 与我们的形状一致，正字段的待遇；`undefined` 不交（没这回事）。
+   * `tags` 的**空数组也交内核**：内核对空数组不画（`MindElixir.js:372`
+   * 的长度判据），但 `getData()` 会带着它回来 —— 「全清过」不丢。
+   */
+  if (node.hyperLink !== undefined) out.hyperLink = node.hyperLink;
+  if (node.tags !== undefined) out.tags = node.tags;
   if (node.collapsed === true) out.expanded = false;
 
   return out;
@@ -196,6 +219,17 @@ function fromKernelNode(node: NodeObj): MindmapNode {
   if (node.icons !== undefined) out.icons = node.icons;
   // 节点插图（ADR 0054）：同 `icons` 的理由，内核正字段直通不校验。
   if (node.image !== undefined) out.image = node.image;
+  // 节点超链接（ADR 0055）：同上，纯字符串直通。
+  if (node.hyperLink !== undefined) out.hyperLink = node.hyperLink;
+  /**
+   * 节点标签（ADR 0055）：直通，理由同上。需要一次断言：内核把
+   * `TagObj.style` 的类型写宽为 `Partial<CSSStyleDeclaration>`（运行时
+   * 的宽松描述），而 `getData()` 是 JSON 深拷贝 —— 回到这里的值
+   * 只可能是 JSON 值（样式表里全是字符串），按文件形状收下。
+   * 内核与文件形状之间的对齐损耗由这一层吸收，正是适配层的职责
+   * （文件头注释）。
+   */
+  if (node.tags !== undefined) out.tags = node.tags as MindmapTag[];
   if (node.expanded === false) out.collapsed = true;
 
   return out;

@@ -95,6 +95,8 @@ export const KNOWN_NODE_KEYS: ReadonlySet<string> = new Set([
   'style',
   'icons',
   'image',
+  'hyperLink',
+  'tags',
   'children',
 ]);
 
@@ -116,6 +118,29 @@ export interface MindmapImage {
   /** 填充方式。可省。 */
   readonly fit?: MindmapImageFit;
 }
+
+/**
+ * 对象形状的标签（ADR 0055）。字段与 mind-elixir 的 `TagObj` 一致 ——
+ * 同 `MindmapImage` 的理由：`text + 可选样式/类名` 本就是导图界标签的公共形状。
+ * `style` 的值在文件里只可能是字符串（CSS 声明）；内核的类型把它写得更宽
+ * （`Partial<CSSStyleDeclaration>`），那是对**内核运行时**的如实描述，
+ * 文件层按文件的样子说。
+ */
+export interface MindmapTagObj {
+  /** 标签文字。非空 —— 空标签画出来什么都不显示。 */
+  readonly text: string;
+  /** 行内样式。内容不透明，原样保留。 */
+  readonly style?: Record<string, string>;
+  /** 类名。 */
+  readonly className?: string;
+}
+
+/**
+ * 节点标签（ADR 0055）：一个标签要么是纯字符串，要么是带样式的对象。
+ * 与 `icons` 存显示字形同一条理由：**文字就是内容**，任何能排文本的内核
+ * 都能显示它，于是这份文件不绑定「哪一个导图内核」。
+ */
+export type MindmapTag = string | MindmapTagObj;
 
 /** 导图节点。字段与 §7.1 一致，外加一个透传桶。 */
 export interface MindmapNode {
@@ -152,6 +177,28 @@ export interface MindmapNode {
    * 解析时三者缺一或类型不对，**整值**转 `extra`（一个不丢）。
    */
   image?: MindmapImage;
+  /**
+   * 节点超链接（ADR 0055）：**一个字符串，不是对象** —— 与内核的
+   * `NodeObj.hyperLink`（`dist/types/types/index.d.ts:182`）同形。
+   * 存的是文件里的原文（不 trim、不解码 —— `LinkActivation` 的契约原话），
+   * 打开哪种出口（http / mailto / 工作区文件）由外壳的 `classifyLink`
+   * 分类，格式层不猜。
+   *
+   * 要求**非空串**：内核对假值不渲染（`MindElixir.js:364` 的 `if (t.hyperLink)`），
+   * `""` 写进文件是「画不出来的链接」，装作读进来了就是另一种静默丢内容。
+   * 类型不对或为空 ⇒ 整值转 `extra`（一个不丢）。
+   */
+  hyperLink?: string;
+  /**
+   * 节点标签（ADR 0055）：按先加在后。元素是字符串或 `MindmapTagObj`，
+   * 形状照内核不发明中间表示。
+   *
+   * **空数组照写**（与 `icons` 同一条「全清过」纪律）：`[]` 是「全清过」
+   * 这个状态本身的如实记录，不是「没有」。数组里混进不认识的形状 ⇒
+   * 整条转 `extra`（不逐项过滤 —— 半好半坏的数组静默丢掉坏的那几项，
+   * 正是「假装读进来了」）。
+   */
+  tags?: MindmapTag[];
   /**
    * 这个节点上**没认出来**的字段，原样保留（§5）。
    *

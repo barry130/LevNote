@@ -32,7 +32,7 @@ describe('serializeMindmap · 确定性', () => {
     expect(keys).toEqual(['format', 'version', 'layout', 'zzz', 'aaa', 'root']);
   });
 
-  it('节点键顺序固定：id → topic → note → collapsed → style → icons → image → 未识别键 → children', () => {
+  it('节点键顺序固定：id → topic → note → collapsed → style → icons → image → hyperLink → tags → 未识别键 → children', () => {
     const text = serializeMindmap(
       doc({
         root: node({
@@ -43,13 +43,27 @@ describe('serializeMindmap · 确定性', () => {
           style: {},
           icons: ['1️⃣'],
           image: { url: 'a.png', width: 10, height: 20 },
+          hyperLink: 'https://example.com/a',
+          tags: ['重要'],
           extra: { future: 1 },
           children: [node({ id: 'n2', topic: '子' })],
         }),
       }),
     );
     const root = (JSON.parse(text) as { root: Record<string, unknown> }).root;
-    expect(Object.keys(root)).toEqual(['id', 'topic', 'note', 'collapsed', 'style', 'icons', 'image', 'future', 'children']);
+    expect(Object.keys(root)).toEqual([
+      'id',
+      'topic',
+      'note',
+      'collapsed',
+      'style',
+      'icons',
+      'image',
+      'hyperLink',
+      'tags',
+      'future',
+      'children',
+    ]);
   });
 
   it('image：有则原样写出，undefined 不写（ADR 0054）', () => {
@@ -75,6 +89,29 @@ describe('serializeMindmap · 确定性', () => {
     const text = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根', icons: ['1️⃣', '🦆'] }) }));
     const root = (JSON.parse(text) as { root: { icons?: string[] } }).root;
     expect(root.icons).toEqual(['1️⃣', '🦆']);
+  });
+
+  it('hyperLink：有则原样写出，undefined 不写（ADR 0055）', () => {
+    const without = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根' }) }));
+    expect(without).not.toContain('"hyperLink"');
+
+    const withLink = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根', hyperLink: 'notes/别的导图.mindmap' }) }));
+    const root = (JSON.parse(withLink) as { root: { hyperLink?: string } }).root;
+    expect(root.hyperLink).toBe('notes/别的导图.mindmap');
+  });
+
+  it('tags：undefined 不写、空数组照写 ——「全清过」是一句话，不是没有（ADR 0055）', () => {
+    const withoutTags = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根' }) }));
+    expect(withoutTags).not.toContain('"tags"');
+
+    const cleared = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根', tags: [] }) }));
+    expect(cleared).toContain('"tags": []');
+
+    const mixed = serializeMindmap(
+      doc({ root: node({ id: 'n1', topic: '根', tags: ['重要', { text: '风险', className: 'mm-x' }] }) }),
+    );
+    const root = (JSON.parse(mixed) as { root: { tags?: unknown[] } }).root;
+    expect(root.tags).toEqual(['重要', { text: '风险', className: 'mm-x' }]);
   });
 
   it('同一份文档序列化两次得到完全一样的文本', () => {

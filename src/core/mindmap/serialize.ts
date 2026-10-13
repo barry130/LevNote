@@ -114,6 +114,23 @@ function nodeToJson(node: MindmapNode): Record<string, unknown> {
     entries.push(['image', node.image]);
     taken.add('image');
   }
+  /**
+   * 节点超链接（ADR 0055）：`undefined` 不写（没这回事）。键序：`image` 之后、
+   * `extra` 之前 —— 与 §7.1.2 的表一致；解析时同序读入，往返稳定。
+   */
+  if (node.hyperLink !== undefined) {
+    entries.push(['hyperLink', node.hyperLink]);
+    taken.add('hyperLink');
+  }
+  /**
+   * 节点标签（ADR 0055）：`undefined` 不写（没这回事），**空数组照写** ——
+   * 与 `icons` 同一条「全清过」纪律：`[]` 是一个说得清的状态，
+   * 丢掉它就是保存后 diff 里悄悄少一行。键序同上。
+   */
+  if (node.tags !== undefined) {
+    entries.push(['tags', node.tags]);
+    taken.add('tags');
+  }
 
   for (const [key, value] of Object.entries(node.extra)) {
     if (taken.has(key)) {

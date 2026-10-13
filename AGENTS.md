@@ -151,6 +151,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **大纲面板（Markdown 与导图两个来源）** | 提取器是纯函数两份：`core/outline/outline.ts`（Markdown，`level`/`line` 都是 1 基行号）与 `core/outline/mindmap-outline.ts`（导图，`line` 是**先序序号不是行号**、条目带 `id`）；跳转契约 `EditorHandle.goToOutlineItem({ level, text, id? })`（`id` 只有导图传 —— 文件层 id 指得准，Markdown 编不出真值就别编）。**导图侧四条纪律**：① `extractMindmapOutline` **必须**复用 `parseMindmap`（自造第二份「什么算一个主题」的判定迟早漂移，跳转会指错地方）；② 内核 `goToOutlineItem` 跳转时展开折叠祖先是**文档变更**（`collapsed` 是文件字段，onChange + 标脏照常，不标才是撒谎）；③ **根不展开**（mind-elixir 的 `expandNode` 只认带气泡的分支节点，对根调用抛 TypeError；根折叠也无视觉效果）与**只读不展开**（展开是编辑）是两个写死的例外；④ `findEle` 对看不见的节点 throw，**捕获交 false**，不白屏。外壳按 `isMindmapPath` 分派提取器与文案（产品范围，不是认内核）。详见 §六本轮段与 ADR 0052 |
 | **导图标记（优先级 / 色标 / 符号）** | 词表在 `modules/mindmap/markers.ts`（`MINDMAP_MARKER_GROUPS` 三组共 19 字形：priority `1️⃣`–`9️⃣` 互斥 / color `🟥🟧🟨🟩🟦🟪` 互斥 / symbol `⭐✅❗❓` 不互斥），右键「标记…」开调色盘；选中走 `reshapeNode` → `operation` 事件 → 既有 emit 主通道（标脏 / 保存照常，不单独伺候）。**四条纪律**：① **字形即内容** —— `icons` 存显示字形本身（与 `topic` 存显示文本同理），**不发明语义 id + 双向映射表**；文件里词表外的字形照 §5 原样保留（调色盘只是词表知识，住内核模块，不进格式层语义）；② **全清过 = `[]` 一路到底** —— `JSON.stringify` 会丢 undefined 键，用 `{icons: undefined}` 清空会把「全清过」状态静默丢掉；序列化键序 `style` 之后、`extra` 之前，`[]` 也写回（canonical）；适配层 `icons` 在已知字段清单里双向透传；③ 标记是内核自有 UI（同右键菜单纪律），**不进 `EditorHandle`**；只读时 `contextMenu: false` 自然关门；④ `applyMarkerToggle` 纯函数语义：同字形再点一次 = 取消，互斥组先移同组旧字形再把新字形追加到尾，词表外字形按非互斥 —— 任何路径都不许因词表外形值炸掉。大纲条目把标记内联显示（`OutlineItem.markers`）。详见 §六本轮段与 ADR 0053 |
 | **导图节点插图（粘贴进图 / 占位 / 移除）** | 词表与工具函数在 `modules/mindmap/node-images.ts`（收集引用 / 占位图 / 预热 / 剪贴板取图 / 尺寸解码与钳制 / `bytesToDataUrl`，全部纯函数或静态工具），UI 是 `MindmapEditor` 内部弹层（同右键菜单纪律，**不进 `EditorHandle`**）。**五条纪律**：① 格式层 `image` 照 `icons`（0053）先例升格为正字段，形状照内核 `{ url, width, height, fit? }` 不发明中间表示 —— `url` 存**文件 src**、尺寸即内容；整对象照收（不认识的子键原样跟着走），类型不对**整值转 extra**；键序 `icons` 后 `extra` 前，适配层双向直通；② **预热必须在内核创建之前**（`imageProxy` 是同步的、解析是异步的）：`data:` 透传、查得到换 data:、**查不到画占位图**（内嵌 SVG + 路径如实写在里面）——「图丢了是常见状态」，内核的「缺则不画」是静默，占位才是如实；http 外链也走占位（ADR 0001 零联网不破例）；③ 插入走内核 paste 的官方让位口 `pasteHandler`（内核先吃「复制的节点」magic JSON，吃不下才交原始事件）；剪贴板 `files` 与 `items` **两处都看**（平台填充不一致，markdown `imageFilesOf` 的既有教训）；字节交外壳 `onImagePaste`、外壳交回 null 时内核**静默**（外壳已 notice，再报就是两条消息）；④ 移除 = `{image: undefined}`（stringify 干净丢掉）；无图弹层给「按 Ctrl+V」提示 —— 空弹层是静默；⑤ 只读第一行 return —— 图片是编辑，不悄悄放行。详见 §六本轮段与 ADR 0054 |
+| **导图节点链接与标签（右键弹层挂取 / 🔗 单击即走）** | 内核原生渲染这两样（`a.hyper-link` 锚点 + `div.tags` chip）但**零 UI**：菜单里的 `link` 项其实是节点连线 `createArrow`，全库锚点无任何点击监听 —— 编辑与激活都归 `MindmapEditor` 内部弹层/监听（同右键菜单纪律，**不进 `EditorHandle`**）。**五条纪律**：① 格式层 `hyperLink`（**非空字符串** —— 内核对假值不渲染，`""` 是画不出来的链接，整值转 extra；原文不 trim 不解码，分类归外壳）与 `tags`（**文字即内容**：`string \| { text, className?, style? }`；未知子键照收、坏形状**整条**转 extra 不逐项过滤、空数组照写 = 全清过）照 0053/0054 先例升格，键序 `image` 后 `extra` 前，适配层双向直通；② 编辑 = 右键「链接…」「标签…」弹层：无链接时**没有**移除按钮（不是置灰）、空输入禁保存、连挂不关弹层（连挂是正常用法）、重复标签 no-op 现值原样返回；`tagAdd`/`tagRemove` 从内核现取 `nodeObj.tags` 算新组（marker 先例，**不依赖弹层快照算**）；落盘统一 `reshapeNode` → `operation` → emit 主通道；③ 🔗 **单击即走**（与 markdown 的 Ctrl+点击 刻意不同：显式 chip 无歧义，XMind 同款）：host **捕获阶段**无条件 `preventDefault`+`stopPropagation`（内核不拦，WebView 不能整页飞走）；`href` 从 `nodeObj` 读**不从 DOM 读**（DOM 会说谎），`text` 读 `innerText`（内核拿它画的；jsdom 的 `textContent` 是空）—— 交外壳 `onLinkClick` → `classifyLink`/`openLink` 现成出口，文件路径可打开工作区另一份 `.mindmap`；④ 激活是读不是编辑 —— 只读也激活，但 `contextMenu: false` 挂取入口随菜单关门；⑤ 导出与大纲不伺候：`exportSvg` 自带 tags 文本与 `<a href>` 零改动（URL 本来就在文件里，是能力不是泄漏）；大纲只取 `topic`（0052 的刻意）。详见 §六本轮段与 ADR 0055 |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
@@ -1068,6 +1069,23 @@ notice，再报就是两条消息）；只读第一行 return —— 图片是�
 **87 文件 / 1,812 条测试**（node-images 20 + MindmapEditor 9 + parse 6 +
 serialize 1 + adapter 1）；像素观感需 `tauri dev` 人工冒烟（开带图的
 `.mindmap`、粘贴截图、挪走图片文件看占位）。
+
+**导图节点链接与标签（2026-10-12，ADR 0055）**：第六轮自派需求 —— XMind
+第一屏的最后两块（第三个候选 `note` 内核完全不渲染，刻意跳过，重审条件
+单列）。要点全在 §三那张表的行里，这里只记工程教训：**① 内核对
+hyperLink 零 UI 是实测出来的**（菜单里的 `link` 项是节点连线
+`createArrow`，grep 全库锚点无任何点击监听）—— 「内核有这个字段」和
+「内核有这套交互」是两回事，落码前 grep 一遍再说；**② jsdom 实现了
+`innerText` 但 `textContent` 是空**（探针实证）—— 内核拿 `innerText` 画
+🔗，读回就得顺「写进」的那条 API 走，别想当然换成姐妹属性；**③ eslint
+对 `?.` 上的方法引用报 unbound-method，cast 也不认** —— 仓库既有惯例是
+`Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.bind(input)`
+（App/SearchPanel/Sidebar 测试里四处同款），别再发明第五种写法；
+**④ tsconfig 的 target 不到 es2022 就没有 `.at(-1)`**（TS2550）—— 照旧写
+`arr[arr.length - 1] ?? ''`。测试：**87 文件 / 1,830 条**（MindmapEditor
+弹层/激活/只读链路 +8、parse 升格回归 +7、serialize +2、adapter +1）；
+观感与真 WebView 的导航拦截需 `tauri dev` 人工冒烟（挂一条链接点它、指向
+另一份 `.mindmap` 再点、挂两个标签导出 SVG 用浏览器打开）。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、

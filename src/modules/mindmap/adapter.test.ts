@@ -102,29 +102,31 @@ describe('节点字段的映射', () => {
   });
 
   it('内核认识的字段走 extra 往返，一个都不丢', () => {
-    // `icons` 曾经也在这一排里 —— ADR 0053 升格为正字段，搬进下面那条
+    // `icons` / `image` / `hyperLink` / `tags` 曾在或本可出现在这一排里 ——
+    // ADR 0053 / 0054 / 0055 陆续升格为正字段，搬进下面各条
     const data = kernel({
       id: 'n1',
       topic: '根',
       children: [],
-      hyperLink: 'https://example.com',
-      tags: ['重要'],
       branchColor: '#ff0000',
       metadata: { owner: 'me' },
+      // hyperLinkHref / tagList 是**谁都不认识**的键（NodeObj 里没有）——
+      // spread 一个 Record 绕过字面量的 excess check，测的才是真「未知键」
+      ...({ hyperLinkHref: 'https://example.com', tagList: ['重要'] } as Record<string, unknown>),
     });
     const back = fromKernelData(doc(), data);
 
     expect(back.root.extra).toEqual({
-      hyperLink: 'https://example.com',
-      tags: ['重要'],
       branchColor: '#ff0000',
       metadata: { owner: 'me' },
+      hyperLinkHref: 'https://example.com',
+      tagList: ['重要'],
     });
 
     // 交回内核时原样展开 —— 这一步漏了，「存得住但看不见」
-    const round = toKernelData(back);
-    expect(round.nodeData.hyperLink).toBe('https://example.com');
-    expect(round.nodeData.tags).toEqual(['重要']);
+    const round = toKernelData(back) as unknown as { nodeData: Record<string, unknown> };
+    expect(round.nodeData.hyperLinkHref).toBe('https://example.com');
+    expect(round.nodeData.tagList).toEqual(['重要']);
     expect(round.nodeData.metadata).toEqual({ owner: 'me' });
   });
 
@@ -155,6 +157,28 @@ describe('节点字段的映射', () => {
     expect(back.root.image).toEqual({ url: 'b.png', width: 30, height: 40, fit: 'cover' });
     // 关键回归点：升格之前它掉在 extra 里；掉在 extra 里会与正字段重复写键
     expect(back.root.extra).toEqual({});
+  });
+
+  it('hyperLink 与 tags 是正字段（ADR 0055）：文件 ↔ 内核同名直通，不进 extra', () => {
+    const withLink = doc({
+      root: { id: 'n1', topic: '根', children: [], hyperLink: 'https://example.com/a', tags: ['重要', { text: '风险', className: 'mm-x' }], extra: {} },
+    });
+    const data = toKernelData(withLink);
+    expect(data.nodeData.hyperLink).toBe('https://example.com/a');
+    expect(data.nodeData.tags).toEqual(['重要', { text: '风险', className: 'mm-x' }]);
+
+    const back = fromKernelData(
+      doc(),
+      kernel({ id: 'n1', topic: '根', children: [], hyperLink: 'https://example.com/b', tags: [{ text: '风险' }] }),
+    );
+    expect(back.root.hyperLink).toBe('https://example.com/b');
+    expect(back.root.tags).toEqual([{ text: '风险' }]);
+    // 关键回归点：升格之前它们掉在 extra 里；掉在 extra 里会与正字段重复写键
+    expect(back.root.extra).toEqual({});
+
+    // 「全清过」的空数组从内核拿回来还是空数组 —— serialize 会写成 `"tags": []`
+    const cleared = fromKernelData(doc(), kernel({ id: 'n1', topic: '根', children: [], tags: [] }));
+    expect(cleared.root.tags).toEqual([]);
   });
 
   it('内核自己加的 parent 与改名的 expanded 都不进 extra', () => {

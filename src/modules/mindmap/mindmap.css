@@ -166,3 +166,170 @@
   color: var(--ink);
   line-height: 1.6;
 }
+
+/* ---- 链接弹层（ADR 0055）—— 形状照调色盘 ---- */
+
+.mm-link-popover {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 280px;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.mm-link-hint {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.7;
+  line-height: 1.5;
+}
+
+.mm-link-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.mm-link-input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.mm-link-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mm-link-save,
+.mm-link-remove {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.mm-link-save:hover:not(:disabled),
+.mm-link-remove:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mm-link-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---- 标签弹层（ADR 0055）—— 形状照调色盘 ---- */
+
+.mm-tag-popover {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 260px;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.mm-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.mm-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.mm-tag-remove {
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  opacity: 0.55;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.mm-tag-remove:hover {
+  opacity: 1;
+  color: var(--vermilion);
+}
+
+/* 一个标签都没有时的提示文案（与输入框占位同一条话） */
+.mm-tag-empty {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.6;
+  line-height: 1.6;
+}
+
+.mm-tag-entry {
+  display: flex;
+  gap: 6px;
+}
+
+.mm-tag-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.mm-tag-input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
+.mm-tag-add {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.mm-tag-add:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mm-tag-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

@@ -57,7 +57,7 @@ import { getLocale, msg, subscribeLocale, t, type LocalizedText } from '../../co
 import { parseMindmap } from '../../core/mindmap/parse.js';
 import { serializeMindmap } from '../../core/mindmap/serialize.js';
 import { emptyMindmapDocument } from '../../core/mindmap/template.js';
-import { type LineEnding, type MindmapDocument, type MindmapImage, type MindmapNode } from '../../core/mindmap/types.js';
+import { type LineEnding, type MindmapDocument, type MindmapImage, type MindmapNode, type MindmapTag } from '../../core/mindmap/types.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions } from '../../core/search/find.js';
 import { directionOf, fromKernelData, toKernelData } from './adapter.js';
 import { mindmapLangPack } from './lang-pack.js';
@@ -240,7 +240,7 @@ function withResolvedBackground(
   return { ...theme, cssVar: { ...theme.cssVar, '--bgcolor': resolved } };
 }
 
-function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, resolveImageUrl, onImagePaste }: EditorMountProps) {
+function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, resolveImageUrl, onImagePaste, onLinkClick }: EditorMountProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
 
   // 回调每次渲染都是新函数，直接进依赖会让内核被反复重建
@@ -256,6 +256,10 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
   resolveImageUrlRef.current = resolveImageUrl;
   const onImagePasteRef = useRef(onImagePaste);
   onImagePasteRef.current = onImagePaste;
+  // 链接激活契约（ADR 0055）同一条纪律：click 监听挂在内核 effect 里，
+  // 拿的必须是「此刻」的外壳回调。
+  const onLinkClickRef = useRef(onLinkClick);
+  onLinkClickRef.current = onLinkClick;
 
   const initialValueRef = useRef(initialValue);
   const readOnlyRef = useRef(readOnly);
@@ -310,6 +314,19 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
    */
   const [imagePopover, setImagePopover] = useState<ImagePopoverState | null>(null);
   const imageRemoveRef = useRef<((nodeId: string) => boolean) | null>(null);
+
+  /**
+   * 链接 / 标签弹层（ADR 0055），与前两条内核自有 UI 同一条纪律：不进
+   * `EditorHandle`，落盘 ref 在 effect 里装、cleanup 时下岗。标签的增删
+   * 照 `markerApplyRef` 的先例**从内核现取现算**（不依赖弹层快照），返回
+   * 新快照供弹层回显 —— 快照只负责「列出来」，真值永远在内核的
+   * `nodeObj` 里。
+   */
+  const [linkPopover, setLinkPopover] = useState<LinkPopoverState | null>(null);
+  const linkApplyRef = useRef<((nodeId: string, url: string | undefined) => boolean) | null>(null);
+  const [tagPopover, setTagPopover] = useState<TagPopoverState | null>(null);
+  const tagAddRef = useRef<((nodeId: string, text: string) => readonly MindmapTag[] | null) | null>(null);
+  const tagRemoveRef = useRef<((nodeId: string, index: number) => readonly MindmapTag[] | null) | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -422,6 +439,48 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       };
 
       /**
+       * 右键菜单「链接…」的 handler（ADR 0055），藏菜单 / 记节点 / 传坐标
+       * 三件事同构。`url` 是此刻的链接原文（没有就是空串）—— 弹层据此
+       * 出「保存」还是「保存 + 移除」两套按钮，一个字段说得清。内核的
+       * `hyperLink` 就是纯字符串，没有 title 之类的伴生数据可快照。
+       */
+      const openLinkPopover = (event: MouseEvent): void => {
+        const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
+        if (menu !== null) menu.setAttribute('hidden', '');
+        const topic = mind.currentNode;
+        if (topic == null) return;
+        const raw = topic.nodeObj.hyperLink;
+        setLinkPopover({
+          x: event.clientX,
+          y: event.clientY,
+          nodeId: topic.nodeObj.id,
+          url: typeof raw === 'string' ? raw : '',
+        });
+      };
+
+      /**
+       * 右键菜单「标签…」的 handler（ADR 0055），同构。`tags` 是**打开那
+       * 一刻的快照**，只负责弹层里「列出来」；真正落盘的增删在 ref 通道里
+       * 从内核的 `nodeObj` 现取现算（`markerApplyRef` 的先例），快照过期
+       * 也不会写错。
+       */
+      const openTagPopover = (event: MouseEvent): void => {
+        const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
+        if (menu !== null) menu.setAttribute('hidden', '');
+        const topic = mind.currentNode;
+        if (topic == null) return;
+        setTagPopover({
+          x: event.clientX,
+          y: event.clientY,
+          nodeId: topic.nodeObj.id,
+          // 断言一次（内核 `TagObj.style` 的类型写宽为运行时描述，见
+          // `types.ts` 里 `MindmapTagObj` 的注释）：`getData()` 是 JSON
+          // 深拷贝值，只可能是 JSON 值。
+          tags: [...(topic.nodeObj.tags ?? [])] as MindmapTag[],
+        });
+      };
+
+      /**
        * 粘贴图片（ADR 0054）。内核的 paste 监听先吃「复制的节点」那份 magic
        * JSON（`MindElixir.js:1016-1027`），吃不下才把**原始事件**交到这里 ——
        * 所以节点复制粘贴的既有行为一个字节都不受影响。
@@ -486,8 +545,9 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
           // 右键菜单：只读时整个关掉；能编辑时传**对象**而不是 `true`——
           // 传 `true` 用的是内核硬编码的英文包（`MindElixir.js:1379` 的 `Yn`）。
           // 传对象才能带上我们的语言包（ADR 0049）。`extend` 里的「标记…」
-          // 「图片…」追加在菜单末尾（ADR 0053 / 0054），label 走 `t()` ——
-          // 语言一变内核重建，这里自然跟着换语言，与 ADR 0049 同一条命门。
+          // 「图片…」「链接…」「标签…」追加在菜单末尾（ADR 0053 / 0054 / 0055），
+          // label 走 `t()` —— 语言一变内核重建，这里自然跟着换语言，与
+          // ADR 0049 同一条命门。
           contextMenu: readOnlyRef.current
             ? false
             : {
@@ -497,6 +557,8 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
                 extend: [
                   { name: t('ui.mindmap.markerMenu'), onclick: openMarkerPalette },
                   { name: t('ui.mindmap.imageMenu'), onclick: openImagePopover },
+                  { name: t('ui.mindmap.linkMenu'), onclick: openLinkPopover },
+                  { name: t('ui.mindmap.tagMenu'), onclick: openTagPopover },
                 ],
               },
           keypress: !readOnlyRef.current,
@@ -638,6 +700,87 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
           return false;
         }
       };
+
+      // --- 链接弹层的落盘通道（ADR 0055） ---------------------------------------
+      // 同一条 `reshapeNode` 路：fire 的 `operation` 落进 emit 主通道。
+      // `url === undefined` 是「移除」：`JSON.stringify` 把 undefined 整个
+      // 丢掉，文件里这个键干净消失（同 image 的移除）。
+      linkApplyRef.current = (nodeId, url) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return false;
+          if (url === undefined) {
+            if (el.nodeObj.hyperLink === undefined) return true;
+            void mind.reshapeNode(el, { hyperLink: undefined });
+            return true;
+          }
+          void mind.reshapeNode(el, { hyperLink: url });
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      // --- 标签弹层的落盘通道（ADR 0055） ---------------------------------------
+      // 整组替换（不是逐项增删），新组**从内核现取现算**（`markerApplyRef`
+      // 的先例）：弹层快照可能过期，内核的 `nodeObj` 才是真值；返回新快照
+      // 供弹层回显。空数组照交 —— 「全清过」在文件里是 `"tags": []` 这
+      // 一行，折成 undefined 就是保存后悄悄少一句话（同 icons 的纪律）。
+      tagAddRef.current = (nodeId, text) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return null;
+          const next = [...(el.nodeObj.tags ?? [])] as MindmapTag[];
+          // 重复原文是 no-op：列表里看得到它，再落一次盘只会 fire 一次
+          // 同值 `operation`（假脏）。返回现值让弹层保持原样。
+          if (next.some((tag) => (typeof tag === 'string' ? tag === text : tag.text === text))) return next;
+          next.push(text);
+          void mind.reshapeNode(el, { tags: next });
+          return next;
+        } catch {
+          return null;
+        }
+      };
+      tagRemoveRef.current = (nodeId, index) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return null;
+          const next = [...(el.nodeObj.tags ?? [])] as MindmapTag[];
+          if (index < 0 || index >= next.length) return next;
+          next.splice(index, 1);
+          void mind.reshapeNode(el, { tags: next });
+          return next;
+        } catch {
+          return null;
+        }
+      };
+
+      // --- 链接的点击激活（ADR 0055） -------------------------------------------
+      // 内核只画 🔗、不给锚点挂任何监听（grep 全库只有渲染 `:366` 与导出
+      // `:2687` 两处碰 `hyper-link`）：WebView 里裸点会整页导航走，所以必须
+      // 我们自己拦。捕获阶段、无条件 `preventDefault` —— 「点开一个链接」
+      // 是读不是编辑，**只读也激活**（markdown 正文链接要修饰键、这里
+      // 是显式 chip 普通单击即走，差异写进 ADR 0055）。
+      // URL 从 `nodeObj` 读而不是 DOM 的 `href`：DOM 会说谎（内核渲染
+      // 策略变了 / 属性被内联改过），数据侧才是「文件里写了什么」。
+      const onHyperLinkClick = (event: MouseEvent): void => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const anchor = target.closest('a.hyper-link');
+        if (anchor === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const topic = anchor.closest('me-tpc');
+        const url = topic instanceof Element ? (topic as KernelTopic).nodeObj.hyperLink : undefined;
+        if (typeof url !== 'string' || url === '') return;
+        // 内核就是拿 `innerText` 画的（Se，MindElixir.js:366）；jsdom 的
+        // `textContent` 因此是空的 —— 读 innerText 才两头都拿得到。
+        onLinkClickRef.current?.({
+          href: url,
+          text: (anchor as HTMLElement).innerText || anchor.textContent || '',
+        });
+      };
+      host.addEventListener('click', onHyperLinkClick, true);
 
       // --- 查找 ---------------------------------------------------------------
       const search = createTopicSearch({
@@ -841,13 +984,20 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         }
         // 缩放留给下一个内核（见 `scaleRef`）。
         scaleRef.current = mind.scaleVal;
-        // 标记 / 图片两条内核自有 UI 的落盘通道跟着内核一起下岗（新 effect 会装新的）；
-        // 弹层若还开着就关掉 —— 它闭住的那个内核已经销毁了。
+        // 标记 / 图片 / 链接 / 标签四条内核自有 UI 的落盘通道跟着内核一起
+        // 下岗（新 effect 会装新的）；弹层若还开着就关掉 —— 它闭住的那个
+        // 内核已经销毁了。
         markerApplyRef.current = null;
         markerClearRef.current = null;
         imageRemoveRef.current = null;
+        linkApplyRef.current = null;
+        tagAddRef.current = null;
+        tagRemoveRef.current = null;
         setMarkerPalette(null);
         setImagePopover(null);
+        setLinkPopover(null);
+        setTagPopover(null);
+        host.removeEventListener('click', onHyperLinkClick, true);
         mind.bus.removeListener('operation', onOperation);
         mind.bus.removeListener('expandNode', emit);
         mind.bus.removeListener('changeDirection', emit);
@@ -912,6 +1062,42 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
     setImagePopover(null);
   }, []);
 
+  /** 链接 / 标签弹层的出口，引用稳定的理由同上。 */
+  const closeLinkPopover = useCallback((): void => {
+    setLinkPopover(null);
+  }, []);
+
+  const saveLink = useCallback((nodeId: string, url: string): void => {
+    if (linkApplyRef.current?.(nodeId, url) !== true) return;
+    setLinkPopover(null);
+  }, []);
+
+  const removeLink = useCallback((nodeId: string): void => {
+    // `false` = 没移成（节点已经够不着了）：弹层如实留在原地。
+    if (linkApplyRef.current?.(nodeId, undefined) !== true) return;
+    setLinkPopover(null);
+  }, []);
+
+  const closeTagPopover = useCallback((): void => {
+    setTagPopover(null);
+  }, []);
+
+  const addTag = useCallback((nodeId: string, text: string): void => {
+    // 空白不算标签（占位文案就写着「回车挂上」，空回车应该是无事发生）。
+    const trimmed = text.trim();
+    if (trimmed === '') return;
+    // `null` = 没加成（节点已经够不着了）：快照不动，弹层如实停在原地。
+    const next = tagAddRef.current?.(nodeId, trimmed) ?? null;
+    if (next === null) return;
+    setTagPopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, tags: [...next] } : state));
+  }, []);
+
+  const removeTag = useCallback((nodeId: string, index: number): void => {
+    const next = tagRemoveRef.current?.(nodeId, index) ?? null;
+    if (next === null) return;
+    setTagPopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, tags: [...next] } : state));
+  }, []);
+
   return (
     <>
       <div ref={hostRef} className="qm-mindmap" tabIndex={-1} />
@@ -920,6 +1106,12 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       )}
       {imagePopover !== null && (
         <ImagePopover state={imagePopover} onRemove={removeImage} onClose={closeImagePopover} />
+      )}
+      {linkPopover !== null && (
+        <LinkPopover state={linkPopover} onSave={saveLink} onRemove={removeLink} onClose={closeLinkPopover} />
+      )}
+      {tagPopover !== null && (
+        <TagPopover state={tagPopover} onAdd={addTag} onRemove={removeTag} onClose={closeTagPopover} />
       )}
     </>
   );
@@ -1080,6 +1272,199 @@ function ImagePopover({ state, onRemove, onClose }: ImagePopoverProps) {
           </button>
         </>
       )}
+    </div>
+  );
+}
+
+/** 链接弹层要显示的东西：位置、目标节点、此刻的链接原文（空串 = 还没有）。 */
+interface LinkPopoverState {
+  readonly x: number;
+  readonly y: number;
+  readonly nodeId: string;
+  readonly url: string;
+}
+
+interface LinkPopoverProps {
+  readonly state: LinkPopoverState;
+  readonly onSave: (nodeId: string, url: string) => void;
+  readonly onRemove: (nodeId: string) => void;
+  readonly onClose: () => void;
+}
+
+const LINK_POPOVER_EST_WIDTH = 300;
+const LINK_POPOVER_EST_HEIGHT = 190;
+
+/**
+ * 链接弹层（ADR 0055）。关闭 / 夹视口 / 监听模式照 `MarkerPalette`；
+ * 多出来的东西是输入框 —— 所以打开时把焦点直接放进输入框（另外两个
+ * 弹层没有输入框，也就没有这一步）。
+ *
+ * `state.url` 决定按钮的套数：还没有链接就只有「保存」，有链接才补
+ * 「移除」。保存的判据与按钮的禁用是同一条（trim 后非空）—— Enter
+ * 那条路复用同一个 `save()`，不另写一份判断。
+ */
+function LinkPopover({ state, onSave, onRemove, onClose }: LinkPopoverProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [draft, setDraft] = useState(state.url);
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent): void => {
+      if (rootRef.current === null) return;
+      if (event.target instanceof Node && rootRef.current.contains(event.target)) return;
+      onClose();
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  // 打开就是为了改：焦点落在输入框并全选现值 —— 覆写一条链接是常态。
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const left = Math.min(state.x, Math.max(8, window.innerWidth - LINK_POPOVER_EST_WIDTH - 8));
+  const top = Math.min(state.y, Math.max(8, window.innerHeight - LINK_POPOVER_EST_HEIGHT - 8));
+
+  const save = (): void => {
+    const trimmed = draft.trim();
+    if (trimmed === '') return;
+    onSave(state.nodeId, trimmed);
+  };
+
+  return (
+    <div ref={rootRef} className="mm-link-popover" style={{ left, top }} role="dialog" aria-label={t('ui.mindmap.linkMenu')}>
+      <div className="mm-link-hint">{t('ui.mindmap.linkHint')}</div>
+      <input
+        ref={inputRef}
+        className="mm-link-input"
+        type="text"
+        value={draft}
+        placeholder={t('ui.mindmap.linkPlaceholder')}
+        aria-label={t('ui.mindmap.linkMenu')}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') save();
+        }}
+      />
+      <div className="mm-link-actions">
+        <button type="button" className="mm-link-save" disabled={draft.trim() === ''} onClick={save}>
+          {t('ui.mindmap.linkSave')}
+        </button>
+        {state.url !== '' && (
+          <button type="button" className="mm-link-remove" onClick={() => onRemove(state.nodeId)}>
+            {t('ui.mindmap.linkRemove')}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 标签弹层要显示的东西：位置、目标节点、打开那一刻的标签快照。 */
+interface TagPopoverState {
+  readonly x: number;
+  readonly y: number;
+  readonly nodeId: string;
+  readonly tags: readonly MindmapTag[];
+}
+
+interface TagPopoverProps {
+  readonly state: TagPopoverState;
+  readonly onAdd: (nodeId: string, text: string) => void;
+  readonly onRemove: (nodeId: string, index: number) => void;
+  readonly onClose: () => void;
+}
+
+const TAG_POPOVER_EST_WIDTH = 280;
+const TAG_POPOVER_EST_HEIGHT = 300;
+
+/**
+ * 标签弹层（ADR 0055）。**加一个不关弹层**：连着挂几个标签是常态，
+ * 关了再开是折磨（「点字形不关」同一条理由）。每个 chip 带 ✕ 按索引
+ * 移除 —— 快照与内核的一致性由 ref 通道保证（见 `tagRemoveRef`），
+ * 这里只管把「点的是第几个」报上去。
+ */
+function TagPopover({ state, onAdd, onRemove, onClose }: TagPopoverProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [draft, setDraft] = useState('');
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent): void => {
+      if (rootRef.current === null) return;
+      if (event.target instanceof Node && rootRef.current.contains(event.target)) return;
+      onClose();
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const left = Math.min(state.x, Math.max(8, window.innerWidth - TAG_POPOVER_EST_WIDTH - 8));
+  const top = Math.min(state.y, Math.max(8, window.innerHeight - TAG_POPOVER_EST_HEIGHT - 8));
+
+  const add = (): void => {
+    const trimmed = draft.trim();
+    if (trimmed === '') return;
+    onAdd(state.nodeId, trimmed);
+    setDraft('');
+  };
+
+  return (
+    <div ref={rootRef} className="mm-tag-popover" style={{ left, top }} role="dialog" aria-label={t('ui.mindmap.tagMenu')}>
+      <div className="mm-tag-list">
+        {state.tags.map((tag, index) => (
+          <span key={`${index}`} className="mm-tag-chip">
+            {/* 文字单独一层：chip 的 textContent 就不是「文字+✕」混在一起 */}
+            <span className="mm-tag-text">{typeof tag === 'string' ? tag : tag.text}</span>
+            <button
+              type="button"
+              className="mm-tag-remove"
+              aria-label={t('ui.mindmap.tagRemoveOne')}
+              onClick={() => onRemove(state.nodeId, index)}
+            >
+              ✕
+            </button>
+          </span>
+        ))}
+        {state.tags.length === 0 && <div className="mm-tag-empty">{t('ui.mindmap.tagPlaceholder')}</div>}
+      </div>
+      <div className="mm-tag-entry">
+        <input
+          ref={inputRef}
+          className="mm-tag-input"
+          type="text"
+          value={draft}
+          placeholder={t('ui.mindmap.tagPlaceholder')}
+          aria-label={t('ui.mindmap.tagMenu')}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') add();
+          }}
+        />
+        <button type="button" className="mm-tag-add" disabled={draft.trim() === ''} onClick={add}>
+          {t('ui.mindmap.tagAdd')}
+        </button>
+      </div>
     </div>
   );
 }
