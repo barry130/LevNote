@@ -31,6 +31,7 @@ import {
   MINDMAP_VERSION,
   type LineEnding,
   type MindmapDocument,
+  type MindmapImage,
   type MindmapIssue,
   type MindmapIssueCode,
   type MindmapNode,
@@ -59,6 +60,21 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  */
 function isUnknownArray(value: unknown): value is unknown[] {
   return Array.isArray(value);
+}
+
+/**
+ * 节点插图的形状判据（ADR 0054）。只在这里判一次，`parseNode` 只管用。
+ *
+ * `fit` 单独判而不是并进 `&&` 链：省略（`undefined`）合法，其余值不合法。
+ */
+function isImageShape(value: unknown): value is MindmapImage {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  if (typeof record.url !== 'string' || record.url === '') return false;
+  if (typeof record.width !== 'number' || !Number.isFinite(record.width) || record.width <= 0) return false;
+  if (typeof record.height !== 'number' || !Number.isFinite(record.height) || record.height <= 0) return false;
+  if (record.fit !== undefined && record.fit !== 'fill' && record.fit !== 'contain' && record.fit !== 'cover') return false;
+  return true;
 }
 
 /** 行尾是**文件属性**（§4）。整篇第一个换行决定它，混排时不猜（保存层按原样写回）。 */
@@ -280,6 +296,22 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
     const rawIcons = value.icons;
     if (isUnknownArray(rawIcons) && rawIcons.every((entry): entry is string => typeof entry === 'string')) node.icons = rawIcons;
     else if (rawIcons !== undefined) badField('icons', rawIcons);
+
+    /**
+     * 节点插图（ADR 0054）：只认「三者齐、类型对」这一种形状 ——
+     * `url` 非空字符串、`width` / `height` 是正的有限数、`fit` 只认
+     * fill / contain / cover（省略合法）。
+     * 三者缺一或任何一项类型不对，**整值**转 `extra`（一个不丢）：半张图
+     * 是画不出来的（内核 url/width/height 缺一即不渲染），装作读进来了
+     * 就是静默丢内容的另一种写法。`fit` 不在枚举里同样整值降级 ——
+     * 内核会把它原样塞进 `object-fit`，认不出的值在 CSS 里等于无效声明。
+     */
+    const rawImage = value.image;
+    if (isPlainObject(rawImage) && isImageShape(rawImage)) {
+      // 整对象照收（不挑键）：`image` 里若还写了别的子键，原样跟着走，
+      // 序列化时一并写回 —— 只认四个键的「干净拷贝」会把它们静默丢掉。
+      node.image = { ...rawImage };
+    } else if (rawImage !== undefined) badField('image', rawImage);
 
     // --- children ------------------------------------------------------------
     const rawChildren = value.children;

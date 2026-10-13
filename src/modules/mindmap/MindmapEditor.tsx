@@ -57,11 +57,21 @@ import { getLocale, msg, subscribeLocale, t, type LocalizedText } from '../../co
 import { parseMindmap } from '../../core/mindmap/parse.js';
 import { serializeMindmap } from '../../core/mindmap/serialize.js';
 import { emptyMindmapDocument } from '../../core/mindmap/template.js';
-import { type LineEnding, type MindmapDocument, type MindmapNode } from '../../core/mindmap/types.js';
+import { type LineEnding, type MindmapDocument, type MindmapImage, type MindmapNode } from '../../core/mindmap/types.js';
 import { createFindPattern, findInText, replaceInText, type FindOptions } from '../../core/search/find.js';
 import { directionOf, fromKernelData, toKernelData } from './adapter.js';
 import { mindmapLangPack } from './lang-pack.js';
 import { applyMarkerToggle, MINDMAP_MARKER_GROUPS, MINDMAP_MARKERS } from './markers.js';
+import {
+  bytesToDataUrl,
+  clampDisplaySize,
+  collectImageNodeIds,
+  collectImageUrls,
+  decodeImageSize,
+  extractImageFile,
+  placeholderImage,
+  prewarmImageCache,
+} from './node-images.js';
 import './mindmap.css';
 
 /**
@@ -230,7 +240,7 @@ function withResolvedBackground(
   return { ...theme, cssVar: { ...theme.cssVar, '--bgcolor': resolved } };
 }
 
-function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: EditorMountProps) {
+function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, resolveImageUrl, onImagePaste }: EditorMountProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
 
   // 回调每次渲染都是新函数，直接进依赖会让内核被反复重建
@@ -240,6 +250,12 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
   onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
+  // 图片契约同一条纪律（照 `MarkdownEditor` 的 ref 转发）：闭包不烤死，
+  // 内核 effect 里拿到的永远是「此刻」的那一份。
+  const resolveImageUrlRef = useRef(resolveImageUrl);
+  resolveImageUrlRef.current = resolveImageUrl;
+  const onImagePasteRef = useRef(onImagePaste);
+  onImagePasteRef.current = onImagePaste;
 
   const initialValueRef = useRef(initialValue);
   const readOnlyRef = useRef(readOnly);
@@ -287,6 +303,14 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
   const markerApplyRef = useRef<((nodeId: string, glyph: string) => readonly string[] | null) | null>(null);
   const markerClearRef = useRef<((nodeId: string) => readonly string[] | null) | null>(null);
 
+  /**
+   * 图片弹层（ADR 0054），与标记调色盘同一条纪律：内核模块自己的界面，
+   * 不进 `EditorHandle`。`imageRemoveRef` 同 `markerApplyRef`：effect 里
+   * 装上、闭住当前这颗内核，cleanup 时下岗。
+   */
+  const [imagePopover, setImagePopover] = useState<ImagePopoverState | null>(null);
+  const imageRemoveRef = useRef<((nodeId: string) => boolean) | null>(null);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
@@ -320,352 +344,536 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
     const originalText = empty ? null : seed;
     const lineEnding = parsed.lineEnding;
 
-    let document = first;
-
-    let mind: MindElixirInstance;
+    /**
+     * 图片预热表（ADR 0054）：文件里的引用 → `data:` URL。挂在 effect 作用域：
+     * `boot` 与粘贴通道、`setValue` 共享 —— 粘贴成功后往里补新条目，
+     * 内核重渲染时 `imageProxy` 同步查表。
+     */
+    const imageCache = new Map<string, string>();
+    let teardown: (() => void) | null = null;
+    let cancelled = false;
 
     /**
-     * 右键菜单「标记…」的 handler（ADR 0053）。三件事：
+     * 装内核（三条命门的注释在文件头）。预热完才调它；没有图片引用时立刻调。
      *
-     * 1. **自己藏菜单** —— 内核对 `extend` 项只转发事件、不藏（内置项各自的
-     *    handler 里才有 `v.hidden = true`，见 `MindElixir.js:1399-1401`）；
-     * 2. **记下右键到的节点** —— 菜单点击不改选中，`currentNode` 就是它
-     *    （`showContextMenu` 之前内核已把它选上，`MindElixir.js:1202`）；
-     *    根节点也一样能标 —— 内核对根只禁内置项，不禁 `extend` 项；
-     * 3. 把**点击坐标**交给调色盘定位 —— 屏幕坐标，调色盘是 `position: fixed`。
+     * 返回 teardown 而不是把清理写在 effect 的 `return` 里，是因为**预热是异步的**：
+     * cleanup 完全可能抢在装内核之前发生（卸载组件、或语言快速切了两下），
+     * 那时什么都没装过，也就什么都不用拆 —— `teardown` 为 `null` 就是这个
+     * 状态；装过了就一定拆。预热表填好之前就装内核的话，第一帧画出来的全是
+     * 占位 —— 占位是「图不在这里」的如实陈述，不是「还没读完盘」的遮羞布。
      */
-    const openMarkerPalette = (event: MouseEvent): void => {
-      const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
-      if (menu !== null) menu.setAttribute('hidden', '');
-      const topic = mind.currentNode;
-      if (topic == null) return;
-      setMarkerPalette({
-        x: event.clientX,
-        y: event.clientY,
-        nodeId: topic.nodeObj.id,
-        icons: [...(topic.nodeObj.icons ?? [])],
-      });
-    };
+    const boot = (): (() => void) => {
+      let document = first;
 
-    try {
-      mind = new MindElixir({
-        el: host,
-        direction: directionOf(document.layout),
-        // 只读时三样一起关：`editable` 管拖拽与新建，`contextMenu` 管右键菜单，
-        // `keypress` 管 F2 / Enter 这些进编辑态的键。**编辑节点文字的入口只有 `keypress`**
-        // （`editTopic` 本身不检查 `editable`，是调用它的地方检查的），
-        // 所以这三个必须成套关 —— 少关一个就能改到内容。
-        editable: !readOnlyRef.current,
-        // 右键菜单：只读时整个关掉；能编辑时传**对象**而不是 `true`——
-        // 传 `true` 用的是内核硬编码的英文包（`MindElixir.js:1379` 的 `Yn`）。
-        // 传对象才能带上我们的语言包（ADR 0049）。`extend` 里的「标记…」
-        // 追加在菜单末尾（ADR 0053），label 走 `t()` —— 语言一变内核重建，
-        // 这里自然跟着换语言，与 ADR 0049 同一条命门。
-        contextMenu: readOnlyRef.current
-          ? false
-          : {
-              focus: true,
-              link: true,
-              locale: mindmapLangPack(),
-              extend: [{ name: t('ui.mindmap.markerMenu'), onclick: openMarkerPalette }],
-            },
-        keypress: !readOnlyRef.current,
-        // 新建节点时的占位文字，同属内核那套界面文案（默认是 `"New Node"`）。
-        newTopicName: t('ui.mindmap.newTopicName'),
-        // 内核自己的撤销栈：导图的编辑动作（新建 / 删除 / 拖动 / 改文字）都在内核里，
-        // 外壳的撤销栈够不着它们，所以交给内核自己管。
-        allowUndo: true,
-        // 内核的右下角浮动工具条（缩放、回到中心）保留：它是缩放唯一的可见入口。
-        toolBar: true,
-        theme: LEVNOTE_THEME,
-      });
-      mind.init(toKernelData(document));
-      // 把上一个内核的缩放还回去（`init()` 收尾会 `toCenter()`）。
-      // 头一次挂载时 `scaleRef` 是 1，这句不动它，所以第一次的视口仍是内核自己算的。
-      if (scaleRef.current !== 1) mind.scale(scaleRef.current);
-    } catch (thrown) {
-      onErrorRef.current?.(thrown instanceof Error ? thrown : new Error(String(thrown)));
-      return;
-    }
-
-    /**
-     * **基准必须取「内核稳定之后」的那一份，不能取刚解析出来的那一份。**
-     *
-     * 内核跑完第一次 `layout()` 之后会给每个顶层节点补上 `direction`
-     * （0 在左 / 1 在右 —— `dist/MindElixir.js` 第 308 行，按左右计数均分）。
-     * 那是一份**确定性的产物**：同一棵树永远分配出同样的结果。但它毕竟不在
-     * 用户的文件里，所以如果我们拿「解析结果」当基准，第一次比对就会把它
-     * 当成「用户改了东西」—— 表现是**打开文件什么都没做，`getValue()` 就交回
-     * 一份多出字段的文本**，而 §7.2 第 4 条要的正是「没改过就一个字节都不动」。
-     *
-     * 吸收进基准之后两件事同时成立：
-     * - 「打开 → 保存」逐字节一致（`getValue` 交回原文）；
-     * - 用户的左右分布**能存下来**（它留在 `extra` 里，`toKernelData` 时交回内核）。
-     */
-    const settled = fromKernelData(document, mind.getData());
-    document = settled;
-    let lastText = serializeMindmap(settled, { lineEnding });
-    const canonicalOriginal = lastText;
-
-    /**
-     * 把内核当前的数据同步回信封，内容真的变了才通知外壳。
-     *
-     * `text === lastText` 这条判据同时干掉了三类假脏：
-     * 内核在 `beginEdit` 时发的 `operation`、`linkDiv` 兜底通道与主通道的重复触发、
-     * 以及用户改了又改回原样。
-     */
-    const emit = (): void => {
-      const next = fromKernelData(document, mind.getData());
-      const text = serializeMindmap(next, { lineEnding });
-      if (text === lastText) return;
-      document = next;
-      lastText = text;
-      latestRef.current = text;
-      onChangeRef.current(text);
-    };
-
-    // --- 主通道 --------------------------------------------------------------
-    const onOperation = (info: Operation): void => {
-      // `beginEdit` 只把节点切进编辑态，**一个字节都没改**。
-      // 把它当变更会让「点一下节点」就把文档标脏，然后 Ctrl+S 写回一份
-      // 内容相同、格式不同的文件 —— 用户会觉得「我什么都没干，它为什么要保存」。
-      if (info.name === 'beginEdit') return;
-      emit();
-    };
-    mind.bus.addListener('operation', onOperation);
-    // 折叠 / 展开只发这个事件（`expanded` 不在 `operation` 里）
-    mind.bus.addListener('expandNode', emit);
-    // `Ctrl + 方向键` 换布局
-    mind.bus.addListener('changeDirection', emit);
-
-    // --- 兜底通道 ------------------------------------------------------------
-    let verifyTimer: ReturnType<typeof setTimeout> | null = null;
-    const scheduleVerify = (): void => {
-      if (verifyTimer !== null) clearTimeout(verifyTimer);
-      verifyTimer = setTimeout(() => {
-        verifyTimer = null;
-        emit();
-      }, VERIFY_DELAY);
-    };
-    mind.bus.addListener('linkDiv', scheduleVerify);
-
-    // --- 标记调色盘的落盘通道（ADR 0053） -------------------------------------
-    // 唯一入口是内核的公开 API `reshapeNode`：它同步重渲染主题载荷、fire
-    // 'operation' —— 落进上面的 emit 主通道，于是「改了标记」与「改了文字」
-    // 走同一条保存链路，标脏、写回、`getValue` 一概不用单独伺候。
-    markerApplyRef.current = (nodeId, glyph) => {
-      try {
-        const el = mind.findEle(nodeId) as KernelTopic | undefined;
-        if (el == null) return null;
-        const next = applyMarkerToggle(el.nodeObj.icons ?? [], glyph);
-        // 空数组照交，不是塞 undefined：「全清过」在文件里是 `"icons": []`
-        // 这一行（见 serialize / adapter 的注释），把它折成 undefined
-        // 就是保存后悄悄少一句话。
-        void mind.reshapeNode(el, { icons: next });
-        return next;
-      } catch {
-        // `findEle` 对看不见的节点会 throw（ADR 0052 那条）：调色盘开着时
-        // 节点被折叠/删除都够不成正常路径，抓一个「改不进去」比白屏诚实。
-        return null;
-      }
-    };
-    markerClearRef.current = (nodeId) => {
-      try {
-        const el = mind.findEle(nodeId) as KernelTopic | undefined;
-        if (el == null) return null;
-        if ((el.nodeObj.icons ?? []).length === 0) return [];
-        void mind.reshapeNode(el, { icons: [] });
-        return [];
-      } catch {
-        return null;
-      }
-    };
-
-    // --- 查找 ---------------------------------------------------------------
-    const search = createTopicSearch({
-      readDocument: () => document,
-      patchTopic: (id, topic) => {
-        const node = findNodeById(document.root, id);
-        if (node === null) return;
-        node.topic = topic;
-      },
-      mind,
-    });
-
-    const handle: EditorHandle = {
-      getValue: () => {
-        // 现取一次而不是返回上次 `emit` 的缓存：保存路径上「少一次同步」
-        // 就是「少写一段用户刚打的字」，这个风险不值得省那几毫秒。
-        const next = fromKernelData(document, mind.getData());
-        document = next;
-        lastText = serializeMindmap(next, { lineEnding });
-        // 用户没动过 → 交回**原始文本**，让「打开 → 保存」逐字节一致。
-        // 判据用的是「与内核稳定之后那份文档等价」而不是「文本相同」：
-        // 用户改了又改回来，同样应该交回原文（内容确实没变）。
-        const result = originalText !== null && lastText === canonicalOriginal ? originalText : lastText;
-        // 记的是**交出去的那个值**，不是 `lastText`。
-        // 两者可能不是同一串字节：对一份非规范形式的文件，`lastText` 是规范形式。
-        // 种子要是被规范形式污染了，下一次保存就会把用户的文件重排版 ——
-        // 「打开 → 保存逐字节一致」当场破掉，而界面上看不出任何异常。
-        latestRef.current = result;
-        return result;
-      },
-
-      setValue: (text) => {
-        const next = text.trim() === '' ? { document: createEmptyDocument(), lineEnding } : parseMindmap(text);
-        if (next.document === null) return;
-        document = next.document;
-        // `refresh()` 换数据但**不换方向**（读过源码确认），所以要显式设一次
-        mind.direction = directionOf(document.layout);
-        mind.refresh(toKernelData(document));
-        lastText = serializeMindmap(document, { lineEnding: next.lineEnding });
-        latestRef.current = lastText;
-      },
-
-      focus: () => host.focus(),
+      let mind: MindElixirInstance;
 
       /**
-       * 导图没有「语义 HTML」可给 —— 它的呈现是一张由绝对定位的 div 与 SVG 组成的图，
-       * 而 `toHtml()` 要的是能进导出文档的**内容**片段。
+       * 右键菜单「标记…」的 handler（ADR 0053）。三件事：
        *
-       * 返回 `null` 是**合法结果**（见契约）：自包含导出会退回用 `<pre>` 呈现 JSON 原文，
-       * 并如实说明，而不是伪造一份「看起来像图」的 HTML。
-       * 真要做富导出，正解是内核的 `exportSvg()` 那条路 —— 那个决定已经做了
-       * （ADR 0050，见下面的 `exportImage`），但它是「导一张图文件」，
-       * 不是「给自包含 HTML 提供内容片段」，所以这里依旧返回 `null`。
+       * 1. **自己藏菜单** —— 内核对 `extend` 项只转发事件、不藏（内置项各自的
+       *    handler 里才有 `v.hidden = true`，见 `MindElixir.js:1399-1401`）；
+       * 2. **记下右键到的节点** —— 菜单点击不改选中，`currentNode` 就是它
+       *    （`showContextMenu` 之前内核已把它选上，`MindElixir.js:1202`）；
+       *    根节点也一样能标 —— 内核对根只禁内置项，不禁 `extend` 项；
+       * 3. 把**点击坐标**交给调色盘定位 —— 屏幕坐标，调色盘是 `position: fixed`。
        */
-      toHtml: async () => null,
+      const openMarkerPalette = (event: MouseEvent): void => {
+        const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
+        if (menu !== null) menu.setAttribute('hidden', '');
+        const topic = mind.currentNode;
+        if (topic == null) return;
+        setMarkerPalette({
+          x: event.clientX,
+          y: event.clientY,
+          nodeId: topic.nodeObj.id,
+          icons: [...(topic.nodeObj.icons ?? [])],
+        });
+      };
 
       /**
-       * 把导图画成一张图（ADR 0050 —— `toHtml` 注释里说的「另一个决定」就是它）。
+       * 右键菜单「图片…」的 handler（ADR 0054），藏菜单 / 记节点 / 传坐标
+       * 三件事与 `openMarkerPalette` 完全同构。
        *
-       * 画法是内核的：PNG 走 `exportPng()`、SVG 走 `exportSvg()`，这里不重画、
-       * 也不重排 —— 外壳复现不了内核的图，复现只会像得走样。这里只做两件
-       * 内核自己不会做的事：把底色解析成真实色值（见 `withResolvedBackground`），
-       * 以及数出引用外部文件的节点图片、把「这张图不是自包含的」如实带出去
-       * （见 `countExternalImages`）。
-       *
-       * 返回 `null` 照契约语义如实传（这一次没能画出来，比如位图编码失败）。
+       * 预览图在这里就解析好（占位也在这里烘焙）：弹层是纯展示，不该
+       * 碰预热表之外的东西；预览用的就是这个节点此刻真正画着的那张图。
        */
-      exportImage: async (format) => {
-        const warnings: LocalizedText[] = [];
-        const external = countExternalImages(mind.nodes);
-        if (external > 0) {
-          warnings.push(
-            msg(
-              format === 'png'
-                ? 'ui.mindmap.exportPngImagesExternal'
-                : 'ui.mindmap.exportSvgImagesExternal',
-              { n: external },
-            ),
-          );
+      const openImagePopover = (event: MouseEvent): void => {
+        const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
+        if (menu !== null) menu.setAttribute('hidden', '');
+        const topic = mind.currentNode;
+        if (topic == null) return;
+        const raw = topic.nodeObj.image;
+        if (raw === undefined) {
+          setImagePopover({ kind: 'hint', x: event.clientX, y: event.clientY, nodeId: topic.nodeObj.id });
+          return;
         }
-        // 换底色 → 画 → 还原。`exportPng` 内部**先同步**调 `exportSvg` 拿到 SVG 串
-        // 才开始异步转换（读过内核源码），所以还原不会抢在「画」之前发生。
-        const previousTheme = mind.theme;
-        mind.theme = withResolvedBackground(previousTheme, mind.container);
-        try {
-          const blob = format === 'png' ? await mind.exportPng() : mind.exportSvg();
-          return blob === null ? null : { blob, warnings };
-        } finally {
-          mind.theme = previousTheme;
-        }
-      },
-
-      search,
+        const preview =
+          raw.url.startsWith('data:') || imageCache.has(raw.url)
+            ? (imageCache.get(raw.url) ?? raw.url)
+            : placeholderImage(raw.url);
+        setImagePopover({
+          kind: 'attached',
+          x: event.clientX,
+          y: event.clientY,
+          nodeId: topic.nodeObj.id,
+          image: { url: raw.url, width: raw.width, height: raw.height },
+          preview,
+        });
+      };
 
       /**
-       * 大纲跳转（ADR 0052）。外壳的大纲面板把「根 → 分支 → 叶」平铺成一张表，
-       * 点一条要把图带到那个主题跟前。
+       * 粘贴图片（ADR 0054）。内核的 paste 监听先吃「复制的节点」那份 magic
+       * JSON（`MindElixir.js:1016-1027`），吃不下才把**原始事件**交到这里 ——
+       * 所以节点复制粘贴的既有行为一个字节都不受影响。
        *
-       * ## 为什么按 `document`（信封）找，而不是内核自己的数据树
+       * 五步，每一步的失败都有归属：
+       * 1. 只读直接不管（粘贴是编辑）；剪贴板里没有图片也不管（可能是
+       *    别的内核/别的场景的粘贴，别抢事件）；
+       * 2. 没有选中的主题 ⇒ 报 `imageNoTarget`（内核层知道的事）；
+       * 3. `onImagePaste` 交回 `null` ⇒ **静默返回** —— 拒绝的原因只有外壳
+       *    知道，它已经 notice 过了；内核再报一次就是两条消息（契约原话）；
+       * 4. 解码不出尺寸 ⇒ 报 `imageDecodeFailed`，**什么都没挂上**；
+       * 5. `findEle` / `reshapeNode` 抛错（目标刚被删/折叠）⇒ 报 `imageAttachFailed`。
        *
-       * 大纲条目的 id 来自**文件层**（面板用 `parseMindmap` 算的，见
-       * `core/outline/mindmap-outline.ts`），这里与 `search` 的 `readDocument`
-       * 同一个来源 —— 两侧的 id 在「打开 → 编辑 → 重建」全链路上一致
-       * （缺 id 的文件两边都由同一个解析器补 `auto-` 前缀）。内核自己的
-       * `nodeData` 反而不可靠：专注模式（右键菜单的「聚焦」）会把它换成子树，
-       * 结构不是全的。
-       *
-       * ## 展开折叠的祖先是文档变更，标脏是诚实的
-       *
-       * `collapsed` 是文件字段（§7.1），展开它就是改文档 —— `expandNode` 发的
-       * 事件走 `emit` 主通道，保存会把展开状态写进文件。这不是副作用，
-       * 是这件事本来的样子。
-       *
-       * ## 逐段 try/catch，抓的是内核的 `throw`
-       *
-       * `findEle` 对看不见的节点（折叠中 / 专注模式的子树之外）会**抛错**而不是
-       * 返回空（`MindElixir.js:341`）。抓住、交 `false` —— 外壳会如实说没跳过去，
-       * 而不是白屏。
-       *
-       * 只读时折叠的祖先**不展开**（那是编辑），够不着的条目交 `false`；
-       * 看得见的照跳 —— 选中不是编辑，不弄脏文件。
+       * 成功的最后两步：把字节转成 `data:` URL 补进预热表（这一会话立刻可见，
+       * 保存后再打开则走预热那条正路），然后 `reshapeNode` 落盘 —— 它
+       * fire 的 `operation` 落进 emit 主通道，标脏 / 保存不用单独伺候
+       * （与标记同一条路，ADR 0053 的先例）。
        */
-      goToOutlineItem: ({ level, text, id }) => {
-        const path = findTopicPath(document.root, { id, level, text });
-        if (path === null) return false;
-        const target = path[path.length - 1];
-        if (target === undefined) return false;
-
-        /**
-         * 展开路上折叠着的祖先（自根向下）。两个如实的例外：
-         *
-         * - **根不展开**：内核的 `expandNode` 只认带「+/-」气泡的分支节点，
-         *   对根调用会抛错（根没有那个气泡）；而内核对根的 `collapsed`
-         *   本来就不做视觉隐藏 —— 子分支永远渲染，跳过去照样看得见。
-         *   所以跳转照常成功，文件里的 `collapsed` 维持原样，不假装展开过。
-         * - **只读不展开**：展开是编辑，够不着的条目交 `false`。
-         */
-        const ancestors = path.slice(0, -1);
-        for (let index = 0; index < ancestors.length; index += 1) {
-          const ancestor = ancestors[index];
-          if (ancestor === undefined || ancestor.collapsed !== true) continue;
-          if (index === 0) continue;
-          if (readOnlyRef.current) return false;
+      const onPaste = (event: ClipboardEvent): void => {
+        if (readOnlyRef.current) return;
+        const file = extractImageFile(event.clipboardData);
+        if (file === null) return;
+        event.preventDefault();
+        const topic = mind.currentNode;
+        if (topic == null) {
+          onErrorRef.current?.(new Error(t('ui.mindmap.imageNoTarget')));
+          return;
+        }
+        const topicId = topic.nodeObj.id;
+        void (async () => {
           try {
-            mind.expandNode(mind.findEle(ancestor.id), true);
+            const bytes = await file.arrayBuffer();
+            const src = await onImagePasteRef.current?.({ bytes, mimeType: file.type });
+            if (src === null || src === undefined) return;
+            const size = await decodeImageSize(bytes, file.type);
+            if (size === null) {
+              onErrorRef.current?.(new Error(t('ui.mindmap.imageDecodeFailed')));
+              return;
+            }
+            const display = clampDisplaySize(size.width, size.height);
+            imageCache.set(src, await bytesToDataUrl(bytes, file.type));
+            // 落盘前重找一次元素：等这几步异步的工夫里节点可能被删/折叠，
+            // `findEle` 对看不见的节点会 throw（ADR 0052 同款）——抓住、
+            // 如实报「没挂上」，好过把图片挂进一个已经不存在的节点。
+            const el = mind.findEle(topicId);
+            await mind.reshapeNode(el, { image: { url: src, width: display.width, height: display.height } });
           } catch {
-            return false;
+            onErrorRef.current?.(new Error(t('ui.mindmap.imageAttachFailed')));
           }
-        }
+        })();
+      };
+
+      try {
+        mind = new MindElixir({
+          el: host,
+          direction: directionOf(document.layout),
+          // 只读时三样一起关：`editable` 管拖拽与新建，`contextMenu` 管右键菜单，
+          // `keypress` 管 F2 / Enter 这些进编辑态的键。**编辑节点文字的入口只有 `keypress`**
+          // （`editTopic` 本身不检查 `editable`，是调用它的地方检查的），
+          // 所以这三个必须成套关 —— 少关一个就能改到内容。
+          editable: !readOnlyRef.current,
+          // 右键菜单：只读时整个关掉；能编辑时传**对象**而不是 `true`——
+          // 传 `true` 用的是内核硬编码的英文包（`MindElixir.js:1379` 的 `Yn`）。
+          // 传对象才能带上我们的语言包（ADR 0049）。`extend` 里的「标记…」
+          // 「图片…」追加在菜单末尾（ADR 0053 / 0054），label 走 `t()` ——
+          // 语言一变内核重建，这里自然跟着换语言，与 ADR 0049 同一条命门。
+          contextMenu: readOnlyRef.current
+            ? false
+            : {
+                focus: true,
+                link: true,
+                locale: mindmapLangPack(),
+                extend: [
+                  { name: t('ui.mindmap.markerMenu'), onclick: openMarkerPalette },
+                  { name: t('ui.mindmap.imageMenu'), onclick: openImagePopover },
+                ],
+              },
+          keypress: !readOnlyRef.current,
+          // 新建节点时的占位文字，同属内核那套界面文案（默认是 `"New Node"`）。
+          newTopicName: t('ui.mindmap.newTopicName'),
+          /**
+           * 图片显示（ADR 0054）：内核每次渲染带图节点都会来问一次
+           * （`MindElixir.js:357` 的 `o.src = this.imageProxy ? … : …`），
+           * 所以查表必须**同步** —— 这也是预热为什么在装内核**之前**：
+           * `data:` 内嵌图自包含，直接透传；文件引用查预热表；
+           * 查不到（图丢了 / 是外链，ADR 0001 不去 fetch）给**带路径的占位**。
+           * 三条出口都给得出东西，`src` 永远不为空。
+           */
+          imageProxy: (url: string): string =>
+            url.startsWith('data:') ? url : (imageCache.get(url) ?? placeholderImage(url)),
+          // 粘贴图片的入口（上面 `onPaste` 的注释说了整条链路）。
+          pasteHandler: onPaste,
+          // 内核自己的撤销栈：导图的编辑动作（新建 / 删除 / 拖动 / 改文字）都在内核里，
+          // 外壳的撤销栈够不着它们，所以交给内核自己管。
+          allowUndo: true,
+          // 内核的右下角浮动工具条（缩放、回到中心）保留：它是缩放唯一的可见入口。
+          toolBar: true,
+          theme: LEVNOTE_THEME,
+        });
+        mind.init(toKernelData(document));
+        // 把上一个内核的缩放还回去（`init()` 收尾会 `toCenter()`）。
+        // 头一次挂载时 `scaleRef` 是 1，这句不动它，所以第一次的视口仍是内核自己算的。
+        if (scaleRef.current !== 1) mind.scale(scaleRef.current);
+      } catch (thrown) {
+        onErrorRef.current?.(thrown instanceof Error ? thrown : new Error(String(thrown)));
+        return () => {};
+      }
+
+      /**
+       * **基准必须取「内核稳定之后」的那一份，不能取刚解析出来的那一份。**
+       *
+       * 内核跑完第一次 `layout()` 之后会给每个顶层节点补上 `direction`
+       * （0 在左 / 1 在右 —— `dist/MindElixir.js` 第 308 行，按左右计数均分）。
+       * 那是一份**确定性的产物**：同一棵树永远分配出同样的结果。但它毕竟不在
+       * 用户的文件里，所以如果我们拿「解析结果」当基准，第一次比对就会把它
+       * 当成「用户改了东西」—— 表现是**打开文件什么都没做，`getValue()` 就交回
+       * 一份多出字段的文本**，而 §7.2 第 4 条要的正是「没改过就一个字节都不动」。
+       *
+       * 吸收进基准之后两件事同时成立：
+       * - 「打开 → 保存」逐字节一致（`getValue` 交回原文）；
+       * - 用户的左右分布**能存下来**（它留在 `extra` 里，`toKernelData` 时交回内核）。
+       */
+      const settled = fromKernelData(document, mind.getData());
+      document = settled;
+      let lastText = serializeMindmap(settled, { lineEnding });
+      const canonicalOriginal = lastText;
+
+      /**
+       * 把内核当前的数据同步回信封，内容真的变了才通知外壳。
+       *
+       * `text === lastText` 这条判据同时干掉了三类假脏：
+       * 内核在 `beginEdit` 时发的 `operation`、`linkDiv` 兜底通道与主通道的重复触发、
+       * 以及用户改了又改回原样。
+       */
+      const emit = (): void => {
+        const next = fromKernelData(document, mind.getData());
+        const text = serializeMindmap(next, { lineEnding });
+        if (text === lastText) return;
+        document = next;
+        lastText = text;
+        latestRef.current = text;
+        onChangeRef.current(text);
+      };
+
+      // --- 主通道 --------------------------------------------------------------
+      const onOperation = (info: Operation): void => {
+        // `beginEdit` 只把节点切进编辑态，**一个字节都没改**。
+        // 把它当变更会让「点一下节点」就把文档标脏，然后 Ctrl+S 写回一份
+        // 内容相同、格式不同的文件 —— 用户会觉得「我什么都没干，它为什么要保存」。
+        if (info.name === 'beginEdit') return;
+        emit();
+      };
+      mind.bus.addListener('operation', onOperation);
+      // 折叠 / 展开只发这个事件（`expanded` 不在 `operation` 里）
+      mind.bus.addListener('expandNode', emit);
+      // `Ctrl + 方向键` 换布局
+      mind.bus.addListener('changeDirection', emit);
+
+      // --- 兜底通道 ------------------------------------------------------------
+      let verifyTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleVerify = (): void => {
+        if (verifyTimer !== null) clearTimeout(verifyTimer);
+        verifyTimer = setTimeout(() => {
+          verifyTimer = null;
+          emit();
+        }, VERIFY_DELAY);
+      };
+      mind.bus.addListener('linkDiv', scheduleVerify);
+
+      // --- 标记调色盘的落盘通道（ADR 0053） -------------------------------------
+      // 唯一入口是内核的公开 API `reshapeNode`：它同步重渲染主题载荷、fire
+      // 'operation' —— 落进上面的 emit 主通道，于是「改了标记」与「改了文字」
+      // 走同一条保存链路，标脏、写回、`getValue` 一概不用单独伺候。
+      markerApplyRef.current = (nodeId, glyph) => {
         try {
-          const el = mind.findEle(target.id);
-          mind.selectNode(el);
-          mind.scrollIntoView(el);
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return null;
+          const next = applyMarkerToggle(el.nodeObj.icons ?? [], glyph);
+          // 空数组照交，不是塞 undefined：「全清过」在文件里是 `"icons": []`
+          // 这一行（见 serialize / adapter 的注释），把它折成 undefined
+          // 就是保存后悄悄少一句话。
+          void mind.reshapeNode(el, { icons: next });
+          return next;
+        } catch {
+          // `findEle` 对看不见的节点会 throw（ADR 0052 那条）：调色盘开着时
+          // 节点被折叠/删除都够不成正常路径，抓一个「改不进去」比白屏诚实。
+          return null;
+        }
+      };
+      markerClearRef.current = (nodeId) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return null;
+          if ((el.nodeObj.icons ?? []).length === 0) return [];
+          void mind.reshapeNode(el, { icons: [] });
+          return [];
+        } catch {
+          return null;
+        }
+      };
+
+      // --- 图片弹层的移除通道（ADR 0054） ---------------------------------------
+      // 与标记同一条路：`reshapeNode({ image: undefined })` 一步到位。
+      // `undefined` 会被 `JSON.stringify` 从数据里整个丢掉 —— 文件里这个键
+      // 干净消失，不留下 `"image": null` 这种半句话。
+      imageRemoveRef.current = (nodeId) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return false;
+          if (el.nodeObj.image === undefined) return true;
+          void mind.reshapeNode(el, { image: undefined });
+          return true;
         } catch {
           return false;
         }
-        host.focus();
-        return true;
-      },
+      };
+
+      // --- 查找 ---------------------------------------------------------------
+      const search = createTopicSearch({
+        readDocument: () => document,
+        patchTopic: (id, topic) => {
+          const node = findNodeById(document.root, id);
+          if (node === null) return;
+          node.topic = topic;
+        },
+        mind,
+      });
+
+      const handle: EditorHandle = {
+        getValue: () => {
+          // 现取一次而不是返回上次 `emit` 的缓存：保存路径上「少一次同步」
+          // 就是「少写一段用户刚打的字」，这个风险不值得省那几毫秒。
+          const next = fromKernelData(document, mind.getData());
+          document = next;
+          lastText = serializeMindmap(next, { lineEnding });
+          // 用户没动过 → 交回**原始文本**，让「打开 → 保存」逐字节一致。
+          // 判据用的是「与内核稳定之后那份文档等价」而不是「文本相同」：
+          // 用户改了又改回来，同样应该交回原文（内容确实没变）。
+          const result = originalText !== null && lastText === canonicalOriginal ? originalText : lastText;
+          // 记的是**交出去的那个值**，不是 `lastText`。
+          // 两者可能不是同一串字节：对一份非规范形式的文件，`lastText` 是规范形式。
+          // 种子要是被规范形式污染了，下一次保存就会把用户的文件重排版 ——
+          // 「打开 → 保存逐字节一致」当场破掉，而界面上看不出任何异常。
+          latestRef.current = result;
+          return result;
+        },
+
+        setValue: (text) => {
+          const next = text.trim() === '' ? { document: createEmptyDocument(), lineEnding } : parseMindmap(text);
+          if (next.document === null) return;
+          document = next.document;
+          // `refresh()` 换数据但**不换方向**（读过源码确认），所以要显式设一次
+          mind.direction = directionOf(document.layout);
+          mind.refresh(toKernelData(document));
+          lastText = serializeMindmap(document, { lineEnding: next.lineEnding });
+          latestRef.current = lastText;
+          /**
+           * 新数据里的图片引用（ADR 0054）：`refresh` 那一刻表里还没有它们，
+           * 画出来的是占位 —— 预热完把**看得见的**带图节点用空 patch 的
+           * `reshapeNode` 重渲染一遍，占位换真图。折叠着的节点不重渲染
+           * 也无妨：展开那一刻内核会重新问 `imageProxy`，自然查到新表。
+           */
+          const fresh = collectImageUrls(document.root).filter(
+            (url) => !imageCache.has(url),
+          );
+          if (fresh.length === 0) return;
+          const imageIds = collectImageNodeIds(document.root);
+          void prewarmImageCache(fresh, resolveImageUrlRef.current).then((resolved) => {
+            for (const [url, dataUrl] of resolved) imageCache.set(url, dataUrl);
+            for (const id of imageIds) {
+              try {
+                void mind.reshapeNode(mind.findEle(id), {});
+              } catch {
+                // 看不见的节点（折叠 / 专注模式之外）下次渲染自然就对了。
+              }
+            }
+          });
+        },
+
+        focus: () => host.focus(),
+
+        /**
+         * 导图没有「语义 HTML」可给 —— 它的呈现是一张由绝对定位的 div 与 SVG 组成的图，
+         * 而 `toHtml()` 要的是能进导出文档的**内容**片段。
+         *
+         * 返回 `null` 是**合法结果**（见契约）：自包含导出会退回用 `<pre>` 呈现 JSON 原文，
+         * 并如实说明，而不是伪造一份「看起来像图」的 HTML。
+         * 真要做富导出，正解是内核的 `exportSvg()` 那条路 —— 那个决定已经做了
+         * （ADR 0050，见下面的 `exportImage`），但它是「导一张图文件」，
+         * 不是「给自包含 HTML 提供内容片段」，所以这里依旧返回 `null`。
+         */
+        toHtml: async () => null,
+
+        /**
+         * 把导图画成一张图（ADR 0050 —— `toHtml` 注释里说的「另一个决定」就是它）。
+         *
+         * 画法是内核的：PNG 走 `exportPng()`、SVG 走 `exportSvg()`，这里不重画、
+         * 也不重排 —— 外壳复现不了内核的图，复现只会像得走样。这里只做两件
+         * 内核自己不会做的事：把底色解析成真实色值（见 `withResolvedBackground`），
+         * 以及数出引用外部文件的节点图片、把「这张图不是自包含的」如实带出去
+         * （见 `countExternalImages`）。
+         *
+         * 返回 `null` 照契约语义如实传（这一次没能画出来，比如位图编码失败）。
+         *
+         * 节点插图（ADR 0054）让「外部图片」从理论变成了现实：本地文件引用
+         * 在 PNG 转换里读不到（转换不去碰磁盘），在 SVG 里是原样 `<image href>`
+         * —— 两条后果正是 `countExternalImages` 说的那两条。占位图（图丢了时
+         * 画的那张）是 `data:` 内嵌，自包含，不会误报。
+         */
+        exportImage: async (format) => {
+          const warnings: LocalizedText[] = [];
+          const external = countExternalImages(mind.nodes);
+          if (external > 0) {
+            warnings.push(
+              msg(
+                format === 'png'
+                  ? 'ui.mindmap.exportPngImagesExternal'
+                  : 'ui.mindmap.exportSvgImagesExternal',
+                { n: external },
+              ),
+            );
+          }
+          // 换底色 → 画 → 还原。`exportPng` 内部**先同步**调 `exportSvg` 拿到 SVG 串
+          // 才开始异步转换（读过内核源码），所以还原不会抢在「画」之前发生。
+          const previousTheme = mind.theme;
+          mind.theme = withResolvedBackground(previousTheme, mind.container);
+          try {
+            const blob = format === 'png' ? await mind.exportPng() : mind.exportSvg();
+            return blob === null ? null : { blob, warnings };
+          } finally {
+            mind.theme = previousTheme;
+          }
+        },
+
+        search,
+
+        /**
+         * 大纲跳转（ADR 0052）。外壳的大纲面板把「根 → 分支 → 叶」平铺成一张表，
+         * 点一条要把图带到那个主题跟前。
+         *
+         * ## 为什么按 `document`（信封）找，而不是内核自己的数据树
+         *
+         * 大纲条目的 id 来自**文件层**（面板用 `parseMindmap` 算的，见
+         * `core/outline/mindmap-outline.ts`），这里与 `search` 的 `readDocument`
+         * 同一个来源 —— 两侧的 id 在「打开 → 编辑 → 重建」全链路上一致
+         * （缺 id 的文件两边都由同一个解析器补 `auto-` 前缀）。内核自己的
+         * `nodeData` 反而不可靠：专注模式（右键菜单的「聚焦」）会把它换成子树，
+         * 结构不是全的。
+         *
+         * ## 展开折叠的祖先是文档变更，标脏是诚实的
+         *
+         * `collapsed` 是文件字段（§7.1），展开它就是改文档 —— `expandNode` 发的
+         * 事件走 `emit` 主通道，保存会把展开状态写进文件。这不是副作用，
+         * 是这件事本来的样子。
+         *
+         * ## 逐段 try/catch，抓的是内核的 `throw`
+         *
+         * `findEle` 对看不见的节点（折叠中 / 专注模式的子树之外）会**抛错**而不是
+         * 返回空（`MindElixir.js:341`）。抓住、交 `false` —— 外壳会如实说没跳过去，
+         * 而不是白屏。
+         *
+         * 只读时折叠的祖先**不展开**（那是编辑），够不着的条目交 `false`；
+         * 看得见的照跳 —— 选中不是编辑，不弄脏文件。
+         */
+        goToOutlineItem: ({ level, text, id }) => {
+          const path = findTopicPath(document.root, { id, level, text });
+          if (path === null) return false;
+          const target = path[path.length - 1];
+          if (target === undefined) return false;
+
+          /**
+           * 展开路上折叠着的祖先（自根向下）。两个如实的例外：
+           *
+           * - **根不展开**：内核的 `expandNode` 只认带「+/-」气泡的分支节点，
+           *   对根调用会抛错（根没有那个气泡）；而内核对根的 `collapsed`
+           *   本来就不做视觉隐藏 —— 子分支永远渲染，跳过去照样看得见。
+           *   所以跳转照常成功，文件里的 `collapsed` 维持原样，不假装展开过。
+           * - **只读不展开**：展开是编辑，够不着的条目交 `false`。
+           */
+          const ancestors = path.slice(0, -1);
+          for (let index = 0; index < ancestors.length; index += 1) {
+            const ancestor = ancestors[index];
+            if (ancestor === undefined || ancestor.collapsed !== true) continue;
+            if (index === 0) continue;
+            if (readOnlyRef.current) return false;
+            try {
+              mind.expandNode(mind.findEle(ancestor.id), true);
+            } catch {
+              return false;
+            }
+          }
+          try {
+            const el = mind.findEle(target.id);
+            mind.selectNode(el);
+            mind.scrollIntoView(el);
+          } catch {
+            return false;
+          }
+          host.focus();
+          return true;
+        },
+      };
+
+      // 外壳从此拿到这条通道（契约方法都挂在 handle 上）。
+      onReadyRef.current(handle);
+
+      return () => {
+        // 兜底通道还挂着一个待办的比对（用户拖完 300ms 内就切了语言）：
+        // 那份改动还没进 `latestRef`。重建前先把它结掉，否则「拖一下、切语言」
+        // 会丢掉那一下 —— 界面还画着动过的图，一保存就弹回去。
+        // 用 `emit()` 而不是 `getValue()`：前者是每次用户操作都在跑的同一段纯数据代码，
+        // 后者要在 cleanup 里包 try/catch 兜异常，那等于开一个静默吞错的洞（硬约束 2）。
+        if (verifyTimer !== null) {
+          clearTimeout(verifyTimer);
+          verifyTimer = null;
+          emit();
+        }
+        // 缩放留给下一个内核（见 `scaleRef`）。
+        scaleRef.current = mind.scaleVal;
+        // 标记 / 图片两条内核自有 UI 的落盘通道跟着内核一起下岗（新 effect 会装新的）；
+        // 弹层若还开着就关掉 —— 它闭住的那个内核已经销毁了。
+        markerApplyRef.current = null;
+        markerClearRef.current = null;
+        imageRemoveRef.current = null;
+        setMarkerPalette(null);
+        setImagePopover(null);
+        mind.bus.removeListener('operation', onOperation);
+        mind.bus.removeListener('expandNode', emit);
+        mind.bus.removeListener('changeDirection', emit);
+        mind.bus.removeListener('linkDiv', scheduleVerify);
+        mind.destroy();
+      };
     };
 
-    onReadyRef.current(handle);
+    // 先预热、后装内核 —— `boot` 头部的注释说了为什么这个顺序不能反。
+    const imageUrls = collectImageUrls(first.root);
+    const start = (): void => {
+      if (cancelled) return;
+      teardown = boot();
+    };
+    if (imageUrls.length === 0) {
+      start();
+    } else {
+      void prewarmImageCache(imageUrls, resolveImageUrlRef.current).then((resolved) => {
+        for (const [url, dataUrl] of resolved) imageCache.set(url, dataUrl);
+        start();
+      });
+    }
 
     return () => {
-      // 兜底通道还挂着一个待办的比对（用户拖完 300ms 内就切了语言）：
-      // 那份改动还没进 `latestRef`。重建前先把它结掉，否则「拖一下、切语言」
-      // 会丢掉那一下 —— 界面还画着动过的图，一保存就弹回去。
-      // 用 `emit()` 而不是 `getValue()`：前者是每次用户操作都在跑的同一段纯数据代码，
-      // 后者要在 cleanup 里包 try/catch 兜异常，那等于开一个静默吞错的洞（硬约束 2）。
-      if (verifyTimer !== null) {
-        clearTimeout(verifyTimer);
-        verifyTimer = null;
-        emit();
-      }
-      // 缩放留给下一个内核（见 `scaleRef`）。
-      scaleRef.current = mind.scaleVal;
-      // 标记落盘通道跟着内核一起下岗（新 effect 会装新的）；
-      // 调色盘若还开着就关掉 —— 它闭住的那个内核已经销毁了。
-      markerApplyRef.current = null;
-      markerClearRef.current = null;
-      setMarkerPalette(null);
-      mind.bus.removeListener('operation', onOperation);
-      mind.bus.removeListener('expandNode', emit);
-      mind.bus.removeListener('changeDirection', emit);
-      mind.bus.removeListener('linkDiv', scheduleVerify);
-      mind.destroy();
+      cancelled = true;
+      teardown?.();
     };
     // 依赖 `locale`：语言变了要重建（内核在安装那一刻就把菜单文案烤死了，见文件头）。
     // 除此之外内核只活一次 —— 外部内容变更一律走 handle.setValue，不该在这里重建。
@@ -693,11 +901,25 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly }: E
     setMarkerPalette((state) => (state !== null && state.nodeId === nodeId ? { ...state, icons: [...next] } : state));
   }, []);
 
+  /** 图片弹层的两个出口，引用稳定的理由同上。 */
+  const closeImagePopover = useCallback((): void => {
+    setImagePopover(null);
+  }, []);
+
+  const removeImage = useCallback((nodeId: string): void => {
+    // `false` = 没移成（节点已经够不着了）：弹层如实留在原地，不假装成功。
+    if (imageRemoveRef.current?.(nodeId) !== true) return;
+    setImagePopover(null);
+  }, []);
+
   return (
     <>
       <div ref={hostRef} className="qm-mindmap" tabIndex={-1} />
       {markerPalette !== null && (
         <MarkerPalette state={markerPalette} onToggle={toggleMarker} onClear={clearMarkers} onClose={closeMarkerPalette} />
+      )}
+      {imagePopover !== null && (
+        <ImagePopover state={imagePopover} onRemove={removeImage} onClose={closeImagePopover} />
       )}
     </>
   );
@@ -778,6 +1000,86 @@ function MarkerPalette({ state, onToggle, onClear, onClose }: MarkerPaletteProps
       <button type="button" className="mm-marker-clear" onClick={() => onClear(state.nodeId)}>
         {t('ui.mindmap.markerClear')}
       </button>
+    </div>
+  );
+}
+
+/**
+ * 图片弹层的两种状态（ADR 0054），判别字段 `kind`：
+ *
+ * - `'hint'`：主题上没图，弹层显示粘贴说明 —— 插图的入口只有粘贴这一条，
+ *   弹层就是这个事实的操作说明；
+ * - `'attached'`：有图，`preview` 是**预览图**（占位在 `openImagePopover` 里
+ *   就烘焙好了 —— 弹层是纯展示，不碰预热表、不碰文件系统），
+ *   「移除」是图片唯一的删除出口。`fit` 刻意不进来：它决定的是图怎么
+ *   嵌进节点（缩放语义），弹层里原样显示预览就够了。
+ */
+type ImagePopoverState =
+  | { readonly kind: 'hint'; readonly x: number; readonly y: number; readonly nodeId: string }
+  | {
+      readonly kind: 'attached';
+      readonly x: number;
+      readonly y: number;
+      readonly nodeId: string;
+      readonly image: MindmapImage;
+      readonly preview: string;
+    };
+
+interface ImagePopoverProps {
+  readonly state: ImagePopoverState;
+  readonly onRemove: (nodeId: string) => void;
+  readonly onClose: () => void;
+}
+
+/** 估尺寸的理由同 `PALETTE_EST_*`：夹视口用，jsdom 没布局可问。 */
+const IMAGE_POPOVER_EST_WIDTH = 280;
+const IMAGE_POPOVER_EST_HEIGHT = 320;
+
+/**
+ * 图片弹层（ADR 0054），形状照抄标记调色盘。
+ *
+ * 两种状态都有事可做，不静默：
+ * - **没图**：告诉用户怎么粘（选中主题 + Ctrl+V）—— 插图的入口只有粘贴
+ *   这一条，弹层就是这个事实的操作说明；
+ * - **有图**：显示引用与预览，给「移除」—— 唯一的删除出口也在这里。
+ */
+function ImagePopover({ state, onRemove, onClose }: ImagePopoverProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent): void => {
+      if (rootRef.current === null) return;
+      if (event.target instanceof Node && !rootRef.current.contains(event.target)) onClose();
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  const left = Math.min(state.x, Math.max(8, window.innerWidth - IMAGE_POPOVER_EST_WIDTH - 8));
+  const top = Math.min(state.y, Math.max(8, window.innerHeight - IMAGE_POPOVER_EST_HEIGHT - 8));
+
+  return (
+    <div ref={rootRef} className="mm-image-popover" style={{ left, top }} role="dialog" aria-label={t('ui.mindmap.imageMenu')}>
+      {state.kind === 'hint' ? (
+        <div className="mm-image-hint">{t('ui.mindmap.imagePasteHint')}</div>
+      ) : (
+        <>
+          <img className="mm-image-preview" src={state.preview} alt={t('ui.mindmap.imageMenu')} />
+          <div className="mm-image-meta">
+            {t('ui.mindmap.imageInfo', { path: state.image.url, w: String(state.image.width), h: String(state.image.height) })}
+          </div>
+          <button type="button" className="mm-image-remove" onClick={() => onRemove(state.nodeId)}>
+            {t('ui.mindmap.imageRemove')}
+          </button>
+        </>
+      )}
     </div>
   );
 }

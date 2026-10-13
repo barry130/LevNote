@@ -94,8 +94,28 @@ export const KNOWN_NODE_KEYS: ReadonlySet<string> = new Set([
   'collapsed',
   'style',
   'icons',
+  'image',
   'children',
 ]);
+
+/** 图片在画布上的填充方式。与 mind-elixir 的 `objectFit` 取值一致，省略即不写。 */
+export type MindmapImageFit = 'fill' | 'contain' | 'cover';
+
+/**
+ * 节点插图（ADR 0054）。字段与 mind-elixir 的 `NodeObj.image` 一致 ——
+ * 不是抄内核，而是「一张图、一个显示框」本就是导图界的公共形状
+ * （XMind / mind-elixir / MindMaster 皆然）。
+ */
+export interface MindmapImage {
+  /** 相对本文件的路径，或 `data:` 内嵌图。**绝不存绝对路径**（见 §5）。 */
+  readonly url: string;
+  /** 显示宽度（px）。 */
+  readonly width: number;
+  /** 显示高度（px）。 */
+  readonly height: number;
+  /** 填充方式。可省。 */
+  readonly fit?: MindmapImageFit;
+}
 
 /** 导图节点。字段与 §7.1 一致，外加一个透传桶。 */
 export interface MindmapNode {
@@ -118,6 +138,20 @@ export interface MindmapNode {
    * 空数组是合法值（「全清过」也是一句话说得清的状态，序列化时原样写回）。
    */
   icons?: string[];
+  /**
+   * 节点插图（ADR 0054）。`url` 指向一张相对本文件的图（或 `data:` 内嵌图）；
+   * `width` / `height` 是**显示尺寸**（px），不是原图尺寸 —— 粘贴时解码一次
+   * 定下来，之后文件里存的就是「画出来多大」；`fit` 可省。
+   *
+   * 与 `topic` 存显示文本、`icons` 存显示字形同一条理由：**尺寸即内容** ——
+   * 任何能排 `<img>` 的内核都认识「一张图、一个显示框」，于是这份文件
+   * 不绑定「哪一个导图内核」。原图本身由外壳按 `ImagePasteRequest` /
+   * `resolveImageUrl` 契约读写（`core/editor/types.ts`），格式层只见引用。
+   *
+   * `url` / `width` / `height` 三者**齐才有效**：内核缺一不画（据此设计占位图），
+   * 解析时三者缺一或类型不对，**整值**转 `extra`（一个不丢）。
+   */
+  image?: MindmapImage;
   /**
    * 这个节点上**没认出来**的字段，原样保留（§5）。
    *

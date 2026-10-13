@@ -106,6 +106,14 @@ function nodeToJson(node: MindmapNode): Record<string, unknown> {
     entries.push(['icons', node.icons]);
     taken.add('icons');
   }
+  /**
+   * 节点插图（ADR 0054）：`undefined` 不写（没这回事）。键序：`icons` 之后、
+   * `extra` 之前 —— 与 §7.1.2 的表一致；解析时同序读入，往返稳定。
+   */
+  if (node.image !== undefined) {
+    entries.push(['image', node.image]);
+    taken.add('image');
+  }
 
   for (const [key, value] of Object.entries(node.extra)) {
     if (taken.has(key)) {

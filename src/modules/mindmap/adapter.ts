@@ -84,10 +84,11 @@ const DEFAULT_DIRECTION: Direction = 2;
  * - `expanded`：折叠状态，由 `collapsed` 承载（改名，见文件头）；
  * - `icons`：标记（ADR 0053）。它升格为格式层正字段之后**不能再走 `extra`** ——
  *   走了就是同一个键两个来源，`serialize` 的重复键守卫会当场抛错。
+ * - `image`：节点插图（ADR 0054），同上。
  *
  * 其余「我们不认识」的键全部走 `extra`。
  */
-const NON_EXTRA_NODE_KEYS: ReadonlySet<string> = new Set(['id', 'topic', 'children', 'note', 'collapsed', 'style', 'icons', 'parent', 'expanded']);
+const NON_EXTRA_NODE_KEYS: ReadonlySet<string> = new Set(['id', 'topic', 'children', 'note', 'collapsed', 'style', 'icons', 'image', 'parent', 'expanded']);
 
 /**
  * 顶层上**不属于** `extra` 的键。
@@ -133,6 +134,12 @@ function toKernelNode(node: MindmapNode): NodeObj {
    * （`dist/types/types/index.d.ts:181`），正字段的待遇。
    */
   if (node.icons !== undefined) out.icons = node.icons;
+  /**
+   * 节点插图（ADR 0054）：直通，不校验 —— 方向同 `icons`：内核的
+   * `NodeObj.image`（`dist/types/types/index.d.ts:185-190`）与我们的
+   * `MindmapImage` 形状一致，正字段的待遇；`undefined` 不交（没这回事）。
+   */
+  if (node.image !== undefined) out.image = node.image;
   if (node.collapsed === true) out.expanded = false;
 
   return out;
@@ -187,6 +194,8 @@ function fromKernelNode(node: NodeObj): MindmapNode {
   if (node.style !== undefined && Object.keys(node.style).length > 0) out.style = node.style;
   // 同 `toKernelNode`：空数组照样带回来（「全清过」不等于「从来没有」）。
   if (node.icons !== undefined) out.icons = node.icons;
+  // 节点插图（ADR 0054）：同 `icons` 的理由，内核正字段直通不校验。
+  if (node.image !== undefined) out.image = node.image;
   if (node.expanded === false) out.collapsed = true;
 
   return out;

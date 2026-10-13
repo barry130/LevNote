@@ -32,7 +32,7 @@ describe('serializeMindmap · 确定性', () => {
     expect(keys).toEqual(['format', 'version', 'layout', 'zzz', 'aaa', 'root']);
   });
 
-  it('节点键顺序固定：id → topic → note → collapsed → style → icons → 未识别键 → children', () => {
+  it('节点键顺序固定：id → topic → note → collapsed → style → icons → image → 未识别键 → children', () => {
     const text = serializeMindmap(
       doc({
         root: node({
@@ -42,13 +42,25 @@ describe('serializeMindmap · 确定性', () => {
           collapsed: true,
           style: {},
           icons: ['1️⃣'],
+          image: { url: 'a.png', width: 10, height: 20 },
           extra: { future: 1 },
           children: [node({ id: 'n2', topic: '子' })],
         }),
       }),
     );
     const root = (JSON.parse(text) as { root: Record<string, unknown> }).root;
-    expect(Object.keys(root)).toEqual(['id', 'topic', 'note', 'collapsed', 'style', 'icons', 'future', 'children']);
+    expect(Object.keys(root)).toEqual(['id', 'topic', 'note', 'collapsed', 'style', 'icons', 'image', 'future', 'children']);
+  });
+
+  it('image：有则原样写出，undefined 不写（ADR 0054）', () => {
+    const without = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根' }) }));
+    expect(without).not.toContain('"image"');
+
+    const withImage = serializeMindmap(
+      doc({ root: node({ id: 'n1', topic: '根', image: { url: 'a.png', width: 10, height: 20, fit: 'cover' } }) }),
+    );
+    const root = (JSON.parse(withImage) as { root: { image?: Record<string, unknown> } }).root;
+    expect(root.image).toEqual({ url: 'a.png', width: 10, height: 20, fit: 'cover' });
   });
 
   it('icons：undefined 不写、空数组照写 ——「全清过」是一句话，不是没有（ADR 0053）', () => {

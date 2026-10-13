@@ -18,7 +18,7 @@
 
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EditorHandle, EditorMountProps } from '../../core/editor/types.js';
 import { setLocale } from '../../core/i18n/index.js';
@@ -707,5 +707,285 @@ describe('标记调色盘（ADR 0053）', () => {
     await rightClickRoot();
     expect(markerEntry()).toBeNull();
     expect(container.querySelector('.mm-marker-palette')).toBeNull();
+  });
+});
+
+describe('节点插图（ADR 0054）', () => {
+  /**
+   * 显示链路的事实（侦察期定的形状）：
+   * - 文件里的 `image.url` 是**相对路径**（外壳的粘贴约定），内核要的是能画的
+   *   data: URL —— 中间这层转换由内核挂载前的「预热」完成，查不到就画占位图。
+   * - jsdom 不解码图片，所以这里只证**接缝**：`resolveImageUrl` 收到什么、
+   *   `<img>` 的 src 最终是什么、文件有没有被动过。像素观感靠人工冒烟。
+   */
+
+  /** 根主题带一张图（引用 assets/ 下的一张 png）的规范文件。 */
+  const imageFile = (url: string): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '带图的根',
+          image: { url, width: 320, height: 240 },
+          children: [{ id: 'n2', topic: '分支', children: [] }],
+        },
+      },
+      null,
+      2,
+    )}\n`;
+
+  /** 根主题载荷里内核画出来的那张 `<img>`（有图才存在）。 */
+  const rootImg = (): HTMLImageElement | null =>
+    container.querySelector<HTMLImageElement>('[data-nodeid="men1"] img');
+
+  /** 右键菜单里那条「图片…」。 */
+  const imageEntry = (): HTMLLIElement | null => {
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    return items.find((li) => li.textContent === '图片…') ?? null;
+  };
+
+  const openImagePopover = async (): Promise<HTMLElement> => {
+    const topic = container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    const entry = imageEntry();
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-image-popover');
+    expect(popover).not.toBeNull();
+    return popover as HTMLElement;
+  };
+
+  /** jsdom 不解码图片，尺寸解码必须换成可控的假货（真图路径靠人工冒烟）。 */
+  const stubImage = (width: number, height: number): void => {
+    class FakeImage {
+      naturalWidth = width;
+      naturalHeight = height;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      src = '';
+      constructor() {
+        queueMicrotask(() => {
+          this.onload?.();
+        });
+      }
+    }
+    vi.stubGlobal('Image', FakeImage);
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('相对路径先经外壳解析成 data: URL 再上屏 —— 内核要的是能直接画的 src', async () => {
+    const asked: string[] = [];
+    const { handle, changes } = await mountReady({
+      initialValue: imageFile('assets/a.png'),
+      resolveImageUrl: async (src) => {
+        asked.push(src);
+        return 'data:image/png;base64,AAAA';
+      },
+    });
+
+    expect(asked).toEqual(['assets/a.png']);
+    expect(rootImg()?.getAttribute('src')).toBe('data:image/png;base64,AAAA');
+    // 预热只影响显示，文件一个字节不动
+    expect(changes).toEqual([]);
+    expect(handle.getValue()).toBe(imageFile('assets/a.png'));
+  });
+
+  it('图丢了走占位：路径如实写在占位图里，照样不碰文件', async () => {
+    const { changes } = await mountReady({
+      initialValue: imageFile('assets/lost.png'),
+      resolveImageUrl: async () => null,
+    });
+
+    const src = rootImg()?.getAttribute('src') ?? '';
+    expect(src.startsWith('data:image/svg+xml')).toBe(true);
+    expect(decodeURIComponent(src)).toContain('assets/lost.png');
+    expect(changes).toEqual([]);
+  });
+
+  it('data: 引用不劳驾外壳 —— 本来就能画，原样透传', async () => {
+    const asked: string[] = [];
+    await mountReady({
+      initialValue: imageFile('data:image/png;base64,AAAA'),
+      resolveImageUrl: async (src) => {
+        asked.push(src);
+        return 'SHOULD_NOT_BE_USED';
+      },
+    });
+
+    expect(asked).toEqual([]);
+    expect(rootImg()?.getAttribute('src')).toBe('data:image/png;base64,AAAA');
+  });
+
+  it('选中主题后粘贴图片：字节交给外壳落盘，回来的是文件 src + 内联 data: 上屏', async () => {
+    stubImage(640, 480);
+    const pasted: { bytes: ArrayBuffer; mimeType: string }[] = [];
+    const { handle, changes, errors } = await mountReady({
+      onImagePaste: async (request) => {
+        pasted.push({ ...request });
+        return 'assets/pasted.png';
+      },
+    });
+
+    const topic = container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'shot.png', { type: 'image/png' }));
+    await act(async () => {
+      container.querySelector('.map-container')?.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30);
+      });
+    });
+
+    // 外壳收到的是原始字节和 MIME —— 存哪、叫什么都归外壳管
+    expect(pasted).toHaveLength(1);
+    expect(pasted[0]?.bytes.byteLength).toBe(4);
+    expect(pasted[0]?.mimeType).toBe('image/png');
+
+    // 挂图是编辑：文件里多出 image，尺寸按最长边 320 缩好
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain('"image"');
+    expect(last).toContain('assets/pasted.png');
+    expect(last).toContain('"width": 320');
+    expect(last).toContain('"height": 240');
+    expect(errors).toEqual([]);
+    // 上屏的 src 是粘贴字节的内联 data:（粘贴路径不经过外壳解析）
+    expect(rootImg()?.getAttribute('src')).toBe('data:image/png;base64,iVBORw==');
+    expect(handle.getValue()).toContain('"image"');
+  });
+
+  it('没选中主题就粘贴：如实说「先点一个主题」，字节不交出去', async () => {
+    const pasted: unknown[] = [];
+    const { changes, errors } = await mountReady({
+      onImagePaste: async (request) => {
+        pasted.push(request);
+        return 'assets/pasted.png';
+      },
+    });
+
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'shot.png', { type: 'image/png' }));
+    await act(async () => {
+      container.querySelector('.map-container')?.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30);
+      });
+    });
+
+    expect(pasted).toHaveLength(0);
+    expect(changes).toEqual([]);
+    expect(errors.map((error) => error.message)).toContain('剪贴板里有图片，但没有选中的主题 —— 先点一个主题，再粘贴。');
+  });
+
+  it('外壳存盘失败（交回 null）：内核什么都不做也不报错 —— 两条消息比零条少', async () => {
+    const { changes, errors } = await mountReady({
+      onImagePaste: async () => null,
+    });
+
+    const topic = container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'shot.png', { type: 'image/png' }));
+    await act(async () => {
+      container.querySelector('.map-container')?.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30);
+      });
+    });
+
+    expect(changes).toEqual([]);
+    expect(errors).toEqual([]);
+    expect(rootImg()).toBeNull();
+  });
+
+  it('只读时粘贴直接不接招 —— 图片是编辑，不悄悄放行', async () => {
+    const pasted: unknown[] = [];
+    const { changes, errors } = await mountReady({
+      readOnly: true,
+      onImagePaste: async (request) => {
+        pasted.push(request);
+        return 'assets/pasted.png';
+      },
+    });
+
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'shot.png', { type: 'image/png' }));
+    await act(async () => {
+      container.querySelector('.map-container')?.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+      await new Promise((resolve) => {
+        setTimeout(resolve, 30);
+      });
+    });
+
+    expect(pasted).toHaveLength(0);
+    expect(changes).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  it('右键「图片…」：有图弹层显示引用与尺寸，移除后文件里不再有 image', async () => {
+    const { handle, changes } = await mountReady({
+      initialValue: imageFile('assets/a.png'),
+      resolveImageUrl: async () => 'data:image/png;base64,AAAA',
+    });
+
+    const popover = await openImagePopover();
+    const meta = popover.querySelector<HTMLElement>('.mm-image-meta');
+    expect(meta?.textContent).toContain('assets/a.png');
+    expect(meta?.textContent).toContain('320 × 240');
+
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-image-remove')?.click();
+    });
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).not.toContain('"image"');
+    expect(handle.getValue()).not.toContain('"image"');
+    // 移除完弹层自己收掉 —— 「全清过」没有可说的信息了
+    expect(container.querySelector('.mm-image-popover')).toBeNull();
+  });
+
+  it('右键「图片…」：没图时不给空弹层，给「怎么粘」的提示', async () => {
+    await mountReady();
+
+    const popover = await openImagePopover();
+    expect(popover.querySelector('.mm-image-hint')).not.toBeNull();
+    expect(popover.textContent).toContain('Ctrl+V');
+    // 没图就没有移除按钮 —— 不是禁用，是压根没有
+    expect(popover.querySelector('.mm-image-remove')).toBeNull();
   });
 });

@@ -142,6 +142,21 @@ describe('节点字段的映射', () => {
     expect(cleared.root.icons).toEqual([]);
   });
 
+  it('image 是正字段（ADR 0054）：文件 ↔ 内核同名直通，不进 extra', () => {
+    const withImage = doc({
+      root: { id: 'n1', topic: '根', children: [], image: { url: 'a.png', width: 10, height: 20 }, extra: {} },
+    });
+    expect(toKernelData(withImage).nodeData.image).toEqual({ url: 'a.png', width: 10, height: 20 });
+
+    const back = fromKernelData(
+      doc(),
+      kernel({ id: 'n1', topic: '根', children: [], image: { url: 'b.png', width: 30, height: 40, fit: 'cover' } }),
+    );
+    expect(back.root.image).toEqual({ url: 'b.png', width: 30, height: 40, fit: 'cover' });
+    // 关键回归点：升格之前它掉在 extra 里；掉在 extra 里会与正字段重复写键
+    expect(back.root.extra).toEqual({});
+  });
+
   it('内核自己加的 parent 与改名的 expanded 都不进 extra', () => {
     const back = fromKernelData(
       doc(),

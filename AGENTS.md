@@ -150,6 +150,7 @@ modules/（内核）  →  core/editor/types.ts（契约）  ←  ui/（外壳�
 | **导出成图片（PNG / SVG，导图与图纸同一条路）** | 内核侧 `MindmapEditor.tsx` 与 `DrawioEditor.tsx` 的 `exportImage`（契约在 `core/editor/types.ts`，可选方法，产物 `{ blob, warnings }`）+ 外壳编排 `core/export/export-image.ts`（与 export-document.ts **并列**，不是它的分支；外壳只认能力不认内核 id —— 图纸接入时**外壳一行没改**）。**三条纪律别碰**：导图的底色换真实解析色要整体重赋值 + `finally` 还原（`mind.theme` 与 `LEVNOTE_THEME` 同一引用）；图纸的序列化必须 `XMLSerializer`（图片形状用 `xlink:href`，`outerHTML` 不补命名空间声明，独立文件按 XML 解析直接报错）；PNG 在 jsdom 不可测。详见 §六本轮段与 ADR 0050 / 0051 |
 | **大纲面板（Markdown 与导图两个来源）** | 提取器是纯函数两份：`core/outline/outline.ts`（Markdown，`level`/`line` 都是 1 基行号）与 `core/outline/mindmap-outline.ts`（导图，`line` 是**先序序号不是行号**、条目带 `id`）；跳转契约 `EditorHandle.goToOutlineItem({ level, text, id? })`（`id` 只有导图传 —— 文件层 id 指得准，Markdown 编不出真值就别编）。**导图侧四条纪律**：① `extractMindmapOutline` **必须**复用 `parseMindmap`（自造第二份「什么算一个主题」的判定迟早漂移，跳转会指错地方）；② 内核 `goToOutlineItem` 跳转时展开折叠祖先是**文档变更**（`collapsed` 是文件字段，onChange + 标脏照常，不标才是撒谎）；③ **根不展开**（mind-elixir 的 `expandNode` 只认带气泡的分支节点，对根调用抛 TypeError；根折叠也无视觉效果）与**只读不展开**（展开是编辑）是两个写死的例外；④ `findEle` 对看不见的节点 throw，**捕获交 false**，不白屏。外壳按 `isMindmapPath` 分派提取器与文案（产品范围，不是认内核）。详见 §六本轮段与 ADR 0052 |
 | **导图标记（优先级 / 色标 / 符号）** | 词表在 `modules/mindmap/markers.ts`（`MINDMAP_MARKER_GROUPS` 三组共 19 字形：priority `1️⃣`–`9️⃣` 互斥 / color `🟥🟧🟨🟩🟦🟪` 互斥 / symbol `⭐✅❗❓` 不互斥），右键「标记…」开调色盘；选中走 `reshapeNode` → `operation` 事件 → 既有 emit 主通道（标脏 / 保存照常，不单独伺候）。**四条纪律**：① **字形即内容** —— `icons` 存显示字形本身（与 `topic` 存显示文本同理），**不发明语义 id + 双向映射表**；文件里词表外的字形照 §5 原样保留（调色盘只是词表知识，住内核模块，不进格式层语义）；② **全清过 = `[]` 一路到底** —— `JSON.stringify` 会丢 undefined 键，用 `{icons: undefined}` 清空会把「全清过」状态静默丢掉；序列化键序 `style` 之后、`extra` 之前，`[]` 也写回（canonical）；适配层 `icons` 在已知字段清单里双向透传；③ 标记是内核自有 UI（同右键菜单纪律），**不进 `EditorHandle`**；只读时 `contextMenu: false` 自然关门；④ `applyMarkerToggle` 纯函数语义：同字形再点一次 = 取消，互斥组先移同组旧字形再把新字形追加到尾，词表外字形按非互斥 —— 任何路径都不许因词表外形值炸掉。大纲条目把标记内联显示（`OutlineItem.markers`）。详见 §六本轮段与 ADR 0053 |
+| **导图节点插图（粘贴进图 / 占位 / 移除）** | 词表与工具函数在 `modules/mindmap/node-images.ts`（收集引用 / 占位图 / 预热 / 剪贴板取图 / 尺寸解码与钳制 / `bytesToDataUrl`，全部纯函数或静态工具），UI 是 `MindmapEditor` 内部弹层（同右键菜单纪律，**不进 `EditorHandle`**）。**五条纪律**：① 格式层 `image` 照 `icons`（0053）先例升格为正字段，形状照内核 `{ url, width, height, fit? }` 不发明中间表示 —— `url` 存**文件 src**、尺寸即内容；整对象照收（不认识的子键原样跟着走），类型不对**整值转 extra**；键序 `icons` 后 `extra` 前，适配层双向直通；② **预热必须在内核创建之前**（`imageProxy` 是同步的、解析是异步的）：`data:` 透传、查得到换 data:、**查不到画占位图**（内嵌 SVG + 路径如实写在里面）——「图丢了是常见状态」，内核的「缺则不画」是静默，占位才是如实；http 外链也走占位（ADR 0001 零联网不破例）；③ 插入走内核 paste 的官方让位口 `pasteHandler`（内核先吃「复制的节点」magic JSON，吃不下才交原始事件）；剪贴板 `files` 与 `items` **两处都看**（平台填充不一致，markdown `imageFilesOf` 的既有教训）；字节交外壳 `onImagePaste`、外壳交回 null 时内核**静默**（外壳已 notice，再报就是两条消息）；④ 移除 = `{image: undefined}`（stringify 干净丢掉）；无图弹层给「按 Ctrl+V」提示 —— 空弹层是静默；⑤ 只读第一行 return —— 图片是编辑，不悄悄放行。详见 §六本轮段与 ADR 0054 |
 | **导图能不能用某个文件** | `modules/mindmap/adapter.ts` 的 `checkKernelSafety`（id 含引号 / id 重复都要拦）+ `modules/mindmap/index.ts` 的 `canHandle`。退路是**代码内核**（有 JSON 着色），不是纯文本 |
 | **降级时说哪句话（ADR 0043）** | 契约 `core/editor/types.ts` 的 `canHandleReason?(path, text) → KernelRejectReason \| null` + `KernelRejectReason` 判别联合（**数据，不是翻译好的话** —— 字符串会把语言钉死在计算那一刻）。内核侧的唯一入口是 `modules/mindmap/adapter.ts` 的 `describeMindmapVeto(text)`，`canHandle` 与 `canHandleReason` 各自从它取一半 —— **不许分开实现**（会漂移到「说出来的理由」与「实际走的分支」不一致）。外壳侧是 `ui/DocumentPane.tsx` 的 `reasonOf` / `whyText`：`canHandleReason` 抛错按「没有理由」处理（`ui.pane.whyUnknown`），**绝不因此不开文件**。`resolveAdapter` 的行为不随这条契约改变（否决 → 下一个候选 → 兜底） |
 | **块级互操作（提取 / 拉平 / 引用卡片 / 就地编辑 / 摘要）** | 内核半边：`core/editor/types.ts` 的 `blockTransform` + `modules/markdown/transform.ts`；外壳半边：`core/document/block-ops.ts`（依赖注入）+ `core/commands/definitions.ts` 两条命令；卡片：`modules/markdown/code-block-view.ts` 的 `renderRefCard` + `onDocBlockOpen` 契约。**就地编辑 = 同面板钻取 + 返回栈**（`core/workspace/store.ts` 的 `openInPlace` / `goBackDrill` + `TabBar` 的返回 chip，ADR 0036 —— 嵌套内核已否决，别再想往节点视图里塞第二个内核）；**摘要 = 外壳算、内核画**（`core/document/block-preview.ts` + `resolveDocBlockPreview` 契约）。引用路径解析**必须**走 `core/path.ts` 的 `resolveRelative` |
@@ -1033,6 +1034,40 @@ serialize 2 + adapter 1）。
 文件**按 GBK 双重编码整个毁掉**（恢复 = `git restore --source=HEAD` + `write`
 工具重写；教训已入运行时记忆）；`.at(-1)` 要求 lib ≥ es2022，tsc 报 TS2550，
 写 `arr[arr.length - 1] ?? ''`。
+
+**导图节点插图（2026-10-12，ADR 0054）**：第五轮自派需求 —— XMind 的主题
+插图是第一屏能力，而 LevNote 导图此前零图片能力。**接 Markdown 已有的整套
+图片机制，不另造一套**（`resolveImageUrl` / `onImagePaste` 早就在 `EditorProps`
+里、`DocumentPane` 对每个内核统一传 —— 内核只解构，外壳零改动）：
+① **格式层**：`image` 照 `icons`（0053）先例升格为正字段，形状照内核
+`{ url, width, height, fit? }` 不发明中间表示；`url` 存**文件 src**（相对路径
+或 data:），尺寸即内容（不存它下次打开就是内核的默认猜值）；**整对象照收**
+（不认识的子键原样跟着走），类型不对**整值转 extra**；键序 `icons` 之后、
+`extra` 之前；适配层双向直通。
+② **显示 = 预热 + `imageProxy` 同步查表**：`imageProxy` 是同步的而解析是异步
+的 —— 预热必须在内核创建**之前**（收集 `image.url` → `Promise.all` 逐个
+`resolveImageUrl` → 填 Map → 再装内核）；`data:` 透传、查得到换 data:、
+**查不到画占位图**（内嵌 SVG 虚线框 + 🖼 + 路径如实写在里面）——「图丢了
+是常见状态」，内核的「缺则不画」是静默，占位才是如实；http 外链也走占位
+（ADR 0001 零联网不破例）；语言切换重建即重跑预热（0049 的命门顺带解决）；
+`setValue` 换文档补预热后对带图节点 `reshapeNode(el, {})` 空 patch 重渲染。
+③ **插入 = 粘贴**：内核 paste 的官方让位口 `pasteHandler`（内核先吃「复制的
+节点」magic JSON，吃不下才交原始事件）→ 剪贴板 `files` 与 `items` **两处都看**
+（平台填充不一致，markdown `imageFilesOf` 的既有教训）→ 没选中主题如实说
+（`onError`，绝不静默）→ 字节交 `onImagePaste` → 文件 src → 内核层
+`decodeImageSize`（`createObjectURL` + `Image`）→ 最长边 320 缩好 →
+`reshapeNode({ image })` 落既有主通道；外壳交回 null 时内核**静默**（外壳已
+notice，再报就是两条消息）；只读第一行 return —— 图片是编辑，不悄悄放行。
+④ **移除 = 右键「图片…」弹层**：有图显示引用 + 显示尺寸 + 移除
+（`{image: undefined}`，stringify 干净丢掉、文件里不剩半句）；无图显示
+「按 Ctrl+V」提示 —— 空弹层是静默。`fit` 刻意不进弹层（纯展示，别先造编辑 UI）。
+⑤ **工程教训**：预热是异步的 ⇒ effect 的销毁可能抢在创建之前 —— effect 体
+改成 `boot` 闭包返回 teardown，`cancelled` 标志守卫预热回调。jsdom 的
+`DataTransfer` 是「files 有货、items 是空壳」的填充方式（恰好钉住两处都看）；
+`Image` 不解码，`decodeImageSize` 测试必须 `vi.stubGlobal`。
+**87 文件 / 1,812 条测试**（node-images 20 + MindmapEditor 9 + parse 6 +
+serialize 1 + adapter 1）；像素观感需 `tauri dev` 人工冒烟（开带图的
+`.mindmap`、粘贴截图、挪走图片文件看占位）。
 
 **最该先做的一件事**：ROADMAP 上本地可完成的项已全部落地。剩下的都需要
 真实世界资源：P5-26（draw.io 编辑器资产，需联网取一次）/27（分发环境）、

@@ -744,6 +744,15 @@ export const zhCN = {
   'ui.mindmap.markerSymbolImportant': '重要',
   'ui.mindmap.markerSymbolQuestion': '疑问',
   'ui.mindmap.markerClear': '清除这个主题上的全部标记',
+  // 节点插图（ADR 0054）：右键「图片…」弹层 + 粘贴通道的实话（每条都说清发生了什么）
+  'ui.mindmap.imageMenu': '图片…',
+  'ui.mindmap.imagePasteHint': '这个主题上还没有图片：选中它，按 Ctrl+V 把剪贴板里的图粘上来。',
+  'ui.mindmap.imageInfo': '引用：{path}（显示 {w} × {h} px）',
+  'ui.mindmap.imageRemove': '移除这张图片',
+  'ui.mindmap.imageNoTarget': '剪贴板里有图片，但没有选中的主题 —— 先点一个主题，再粘贴。',
+  'ui.mindmap.imageDecodeFailed': '这张图解码不出尺寸，图片没有挂上。',
+  'ui.mindmap.imageAttachFailed': '图片没能挂到主题上（它可能刚被删掉或折叠）。',
+  'ui.mindmap.imagePlaceholderNote': '(图不在这里)',
   // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
   'ui.mindmap.exportPngImagesExternal':
     '有 {n} 张节点图片引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
@@ -1543,6 +1552,15 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.markerSymbolImportant': 'Important',
   'ui.mindmap.markerSymbolQuestion': 'Question',
   'ui.mindmap.markerClear': 'Clear all markers on this topic',
+  // Node images (ADR 0054): the right-click "Image…" panel + honest paste-channel messages
+  'ui.mindmap.imageMenu': 'Image…',
+  'ui.mindmap.imagePasteHint': 'No image on this topic yet — select it and press Ctrl+V to paste one from the clipboard.',
+  'ui.mindmap.imageInfo': 'Reference: {path} (shown at {w} × {h} px)',
+  'ui.mindmap.imageRemove': 'Remove this image',
+  'ui.mindmap.imageNoTarget': 'The clipboard holds an image, but no topic is selected — click a topic first, then paste.',
+  'ui.mindmap.imageDecodeFailed': 'This image could not be decoded for its size; nothing was attached.',
+  'ui.mindmap.imageAttachFailed': 'The image could not be attached to the topic (it may have just been removed or collapsed).',
+  'ui.mindmap.imagePlaceholderNote': '(image not here)',
   // Honest kernel-side notes when exporting an image (ADR 0050): external images
   // are not self-contained, and the two formats fail in different ways
   'ui.mindmap.exportPngImagesExternal':

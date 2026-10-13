@@ -79,6 +79,7 @@ describe('parseMindmap · 正常路径', () => {
     expect(text).not.toContain('"collapsed"');
     expect(text).not.toContain('"style"');
     expect(text).not.toContain('"icons"');
+    expect(text).not.toContain('"image"');
   });
 
   it('可选字段存在时原样往返', () => {
@@ -111,6 +112,43 @@ describe('parseMindmap · 正常路径', () => {
     // 空数组折成 undefined 就是「保存后悄悄少一句话」—— 绝不静默（硬约束 2）
     const again = mustParse(text);
     expect(again.document.root.icons).toEqual([]);
+  });
+
+  it('image 升格为正字段（ADR 0054）：四键齐全读进类型，不认识的子键原样跟着走', () => {
+    const body = minimalBody();
+    body.root = {
+      id: 'n1',
+      topic: '根',
+      // caption 不在格式层词表里 —— 整对象照收，只认四键的「干净拷贝」会把它静默丢掉
+      image: { url: 'assets/shot.png', width: 640, height: 480, fit: 'contain', caption: '截图' },
+      children: [],
+    };
+    const first = mustParse(file(body));
+    expect(first.issues).toEqual([]);
+    expect(first.document.root.image).toEqual({
+      url: 'assets/shot.png',
+      width: 640,
+      height: 480,
+      fit: 'contain',
+      caption: '截图',
+    });
+
+    const again = mustParse(serializeMindmap(first.document));
+    expect(again.document.root.image).toEqual({
+      url: 'assets/shot.png',
+      width: 640,
+      height: 480,
+      fit: 'contain',
+      caption: '截图',
+    });
+  });
+
+  it('image 的 fit 可省略；url/width/height 是内核画图的底线（ADR 0054）', () => {
+    const body = minimalBody();
+    body.root = { id: 'n1', topic: '根', image: { url: 'a.png', width: 10, height: 20 }, children: [] };
+    const first = mustParse(file(body));
+    expect(first.issues).toEqual([]);
+    expect(first.document.root.image).toEqual({ url: 'a.png', width: 10, height: 20 });
   });
 });
 
@@ -174,6 +212,12 @@ describe('parseMindmap · 类型不对的字段一个都不丢', () => {
     // icons 不做逐项过滤：半好半坏的数组整值转 extra，防「悄悄只留下好的一半」
     { key: 'icons', bad: 42, normalizesTo: 42 },
     { key: 'icons', bad: ['1️⃣', 2], normalizesTo: ['1️⃣', 2] },
+    // image 同理整值降级：内核 url/width/height 缺一即不渲染，
+    // 「半张图」装作读进来了就是静默丢内容的另一种写法（ADR 0054）
+    { key: 'image', bad: 42, normalizesTo: 42 },
+    { key: 'image', bad: { url: 'a.png' }, normalizesTo: { url: 'a.png' } },
+    { key: 'image', bad: { url: 'a.png', width: 0, height: 10 }, normalizesTo: { url: 'a.png', width: 0, height: 10 } },
+    { key: 'image', bad: { url: 'a.png', width: 10, height: 10, fit: 'bogus' }, normalizesTo: { url: 'a.png', width: 10, height: 10, fit: 'bogus' } },
   ];
 
   for (const item of cases) {

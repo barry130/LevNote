@@ -204,9 +204,11 @@ warning 表示「能工作，但你大概不是这个意思」。UI 上 error �
 ```
 
 设计取舍：**结构自持，不绑定具体内核**。`id` / `topic` / `children` 是三家内核（mind-elixir、
-simple-mind-map、自研）都有的最小公因式，`style` / `layout` / `note` / `icons` 是可选增强
+simple-mind-map、自研）都有的最小公因式，`style` / `layout` / `note` / `icons` / `image` 是可选增强
 （`icons` 2026-10-12 由 ADR 0053 从 extra 透传桶升格为正字段：存**显示字形本身**，
-与 `topic` 存显示文本同理 —— 不发明语义 id，不绑定某家的标记词表）。
+与 `topic` 存显示文本同理 —— 不发明语义 id，不绑定某家的标记词表；`image` 同日由 ADR 0054
+升格：`{ url, width, height, fit? }` 三键齐才有效，`url` 存**文件 src**（相对路径或 data:），
+尺寸存**显示尺寸** —— 尺寸即内容，不存它下次打开就是内核的默认猜值）。
 具体用哪个内核仍未定（见 `docs/decisions/` 的待决项），因此本节刻意只固定最小骨架 ——
 一旦绑定某家的完整 schema，换内核就等于让用户的文件失效。
 
@@ -237,7 +239,8 @@ simple-mind-map、自研）都有的最小公因式，`style` / `layout` / `note
 | `collapsed` | `expanded` | **改名，不是两个语义**（互为反义）。**只有一个方向写值**：`expanded === false` → `collapsed: true`。反过来不写 —— 内核的默认就是展开，写出来是噪声，还会给「打开 → 保存」平白加一次 diff |
 | `id` / `topic` / `children` / `note` / `style` | 同名 | 直通。`note` 与 `style` 为空时不写（空串 / 空对象与「没有」等价） |
 | `icons` | 同名 | **正字段（ADR 0053 升格，2026-10-12）**。`string[]`，存标记的显示字形本身（`"1️⃣"`、`"⭐"` …），不存语义 id。空数组 `[]` **照写** —— 那是「全清过」的如实记录，不是「没有」。类型不对时整值转 `extra`（§7.1.1 第 3 条） |
-| 节点的其它键 | 同名 | 走该节点的 `extra`。`hyperLink` / `tags` / `image` / `metadata` / `branchColor` / `dangerouslySetInnerHTML` … 我们**一个都不解释，也一个都不丢** |
+| `image` | 同名 | **正字段（ADR 0054 升格，2026-10-12）**。`{ url, width, height, fit? }`：`url` 是**文件里的 src**（相对路径或 data:，内核上屏前经外壳 `resolveImageUrl` 解析），`width` / `height` 是显示尺寸（正有限数，粘贴时按最长边 320 缩好），`fit` 可省（`fill` / `contain` / `cover`）。**整对象照收**：`image` 里我们不认识的子键原样跟着走 —— 尺寸之外我们不解释别人的内容。类型不对（不是对象、`url` 非非空字符串、尺寸非正数、`fit` 不在枚举里）时**整值转 `extra`** |
+| 节点的其它键 | 同名 | 走该节点的 `extra`。`hyperLink` / `tags` / `metadata` / `branchColor` / `dangerouslySetInnerHTML` … 我们**一个都不解释，也一个都不丢** |
 | 顶层的 `arrows` / `summaries` / `meta` | 同名 | 走顶层 `extra`。少了这一步，用户画的箭头与摘要是「存得住但看不见」 |
 | 顶层的其它键 | — | 走顶层 `extra`（§5）。**注意顶层与节点不同**：内核的 `getData()` 返回的是一个写死的字段列表，我们展开到它上面的自定义顶层键会原样消失，所以顶层必须从上一份信封继承 |
 
