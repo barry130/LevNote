@@ -101,11 +101,16 @@ function createEmptyDocument(): MindmapDocument {
 
 type KernelTopic = ReturnType<MindElixirInstance['findEle']>;
 
-/** 一次查找命中的位置。**偏移是段内的**（相对那个节点的 topic），不是整篇的。 */
+/**
+ * 一次查找命中的位置。**偏移是段内的**（相对那个节点的那一段文字），不是整篇的。
+ * `field` 说的是命中落在哪段 —— `replace` 靠它把写回送到正确的通道
+ * （topic 走 setNodeTopic，note 走 reshapeNode，ADR 0058）。
+ */
 interface TopicHit {
   id: string;
   from: number;
   to: number;
+  field: 'topic' | 'note';
 }
 
 function findNodeById(root: MindmapNode, id: string): MindmapNode | null {
@@ -141,28 +146,33 @@ function findTopicPath(root: MindmapNode, target: { id?: string; level: number; 
 }
 
 /**
- * 在所有节点的 `topic` 里查找。
+ * 在所有节点的 `topic` 和 `note` 里查找（note 自 ADR 0058 起一并搜）。
  *
  * ## 为什么逐节点查找，而不是拼成一篇大文本再查
  *
  * 拼成一篇会**产生跨节点的匹配**：「A 结尾的字符 + B 开头的字符」会被当成一处命中，
  * 而那一处在界面上根本不存在（两个节点之间隔着连线和留白）。
- * 逐节点查还顺带解决了偏移映射 —— 每个匹配的偏移天然就是它所属节点的段内偏移，
- * 不需要维护一张「段起点表」（那张表在 topic 里含换行时还会算错）。
+ * 逐节点查还顺带解决了偏移映射 —— 每个匹配的偏移天然就是它所属节点、
+ * 所属字段的段内偏移，不需要维护一张「段起点表」。
  *
- * ## 只搜 `topic`
+ * ## topic 先、note 后（同一节点内）
  *
- * `note` 不搜（ADR 0056 之后它**看得见**了 —— 备注徽章就是为这个画的，
- * 但这里仍不搜）：`TopicHit` 的 `from / to` 是 **topic 段内偏移**，
- * `replace` 拿这对偏移去改 topic —— 把 note 的命中塞进同一张表，
- * 替换就会按备注的偏移去改主题文字。搜得到却换不了是半成品，
- * 整体不搜、写进 ADR 的重审条件，是如实的边界而不是遗漏。
+ * 两条命中的偏移各自以自己那段文字为基准，塞进同一张表也没关系 ——
+ * 前提是 `replace` 按 `field` 把写回分开路由（topic 走 setNodeTopic、
+ * note 走 reshapeNode）。ADR 0056 只搜 topic 时登记的边界，本轮补的就是
+ * 路由这一半：搜得到也换得了，才不是半成品。导航顺序仍是文档顺序
+ * （先序遍历，节点内 topic 命中排在它的 note 命中前面）。
  */
 function collectHits(root: MindmapNode, options: FindOptions): TopicHit[] {
   const hits: TopicHit[] = [];
   const walk = (node: MindmapNode): void => {
     for (const match of findInText(node.topic, options)) {
-      hits.push({ id: node.id, from: match.from, to: match.to });
+      hits.push({ id: node.id, from: match.from, to: match.to, field: 'topic' });
+    }
+    if (typeof node.note === 'string' && node.note !== '') {
+      for (const match of findInText(node.note, options)) {
+        hits.push({ id: node.id, from: match.from, to: match.to, field: 'note' });
+      }
     }
     for (const child of node.children) walk(child);
   };
@@ -902,6 +912,21 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
           if (node === null) return;
           node.topic = topic;
         },
+        patchNote: (id, note) => {
+          const node = findNodeById(document.root, id);
+          if (node === null) return;
+          if (note === undefined) delete node.note;
+          else node.note = note;
+        },
+        showNote: (id, note) => {
+          const el = mind.findEle(id) as KernelTopic | undefined;
+          if (el == null) return;
+          const rect = el.getBoundingClientRect();
+          openNotePopover(id, note, rect.left, rect.bottom + 8);
+        },
+        hideNote: () => {
+          setNotePopover(null);
+        },
         mind,
       });
 
@@ -1243,7 +1268,10 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         <LinkPopover state={linkPopover} onSave={saveLink} onRemove={removeLink} onClose={closeLinkPopover} />
       )}
       {notePopover !== null && (
-        <NotePopover state={notePopover} readOnly={readOnly === true} onSave={saveNote} onRemove={removeNote} onClose={closeNotePopover} />
+        // key 挂节点 id：弹层草稿只在挂载时播种（useState 初值），
+        // 键盘流 reveal 换节点时没有 mousedown 外点那一下自愈 ——
+        // 不换挂载点就会把上一个节点的陈旧草稿端出来（ADR 0058）。
+        <NotePopover key={notePopover.nodeId} state={notePopover} readOnly={readOnly === true} onSave={saveNote} onRemove={removeNote} onClose={closeNotePopover} />
       )}
       {tagPopover !== null && (
         <TagPopover state={tagPopover} onAdd={addTag} onRemove={removeTag} onClose={closeTagPopover} />
@@ -1698,6 +1726,12 @@ function NotePopover({ state, readOnly, onSave, onRemove, onClose }: NotePopover
 interface TopicSearchDeps {
   readDocument: () => MindmapDocument;
   patchTopic: (id: string, topic: string) => void;
+  /** 信封侧同步写回 note（`undefined` = 清空即移除，0056 纪律）—— 同 `patchTopic` 的理由。 */
+  patchNote: (id: string, note: string | undefined) => void;
+  /** 把某节点的备注弹层亮出来 —— `reveal` 走到 note 命中时用（ADR 0058）。 */
+  showNote: (id: string, note: string) => void;
+  /** 关掉备注弹层 —— 任何写回都不该让陈旧弹层赖在屏上（ADR 0058）。 */
+  hideNote: () => void;
   mind: MindElixirInstance;
 }
 
@@ -1705,10 +1739,10 @@ interface TopicSearchDeps {
  * 导图里的查找替换。
  *
  * 与代码内核那份的差别只有「匹配在哪里找」：代码内核在**一篇文本**里找，
- * 这里在**每个节点的 topic** 里各找一遍（理由见 `collectHits`）。
+ * 这里在**每个节点的 topic 和 note** 里各找一遍（理由见 `collectHits`）。
  * 导航顺序同样是文档顺序（先序遍历），因为契约要求「顺序即导航顺序」。
  */
-function createTopicSearch({ readDocument, patchTopic, mind }: TopicSearchDeps): EditorSearch {
+function createTopicSearch({ readDocument, patchTopic, patchNote, showNote, hideNote, mind }: TopicSearchDeps): EditorSearch {
   let hits: TopicHit[] = [];
   let options: FindOptions | null = null;
   let pattern: RegExp | null = null;
@@ -1738,6 +1772,14 @@ function createTopicSearch({ readDocument, patchTopic, mind }: TopicSearchDeps):
       const hit = hits[index];
       if (!hit) return;
       focusHit(hit);
+      // note 命中要把弹层亮出来 —— 命中落在弹层里，不亮就等于没定位到；
+      // topic 命中把上一个亮着的弹层收掉，别让旧内容赖在屏上（ADR 0058）。
+      if (hit.field === 'note') {
+        const note = findNodeById(readDocument().root, hit.id)?.note ?? '';
+        showNote(hit.id, note);
+      } else {
+        hideNote();
+      }
     },
 
     replace: (index, replacement) => {
@@ -1746,6 +1788,21 @@ function createTopicSearch({ readDocument, patchTopic, mind }: TopicSearchDeps):
       const node = findNodeById(readDocument().root, hit.id);
       const el = focusHit(hit);
       if (node === null || el === null) return hits.length;
+
+      if (hit.field === 'note') {
+        // note 路径：偏移是 note 段内的，写回走 reshapeNode —— 与备注弹层
+        // 同一条路（ADR 0056）。替换到空串 = 清空即移除，空串不留在文件里。
+        // 弹层必须关：它的草稿只在挂载时播种，note 被改后留着就是陈旧输入框。
+        const current = node.note ?? '';
+        const matched = current.slice(hit.from, hit.to);
+        const insert = options.regex && pattern !== null ? matched.replace(new RegExp(pattern.source, pattern.flags.replace('g', '')), replacement) : replacement;
+        const updated = current.slice(0, hit.from) + insert + current.slice(hit.to);
+        const note = updated === '' ? undefined : updated;
+        patchNote(hit.id, note);
+        void mind.reshapeNode(el, { note });
+        hideNote();
+        return refind();
+      }
 
       const current = node.topic;
       const matched = current.slice(hit.from, hit.to);
@@ -1768,45 +1825,67 @@ function createTopicSearch({ readDocument, patchTopic, mind }: TopicSearchDeps):
 
       if (options.regex) {
         // 正则模式下 `$1` 要展开，而捕获组信息在逐条替换时拿不到 ——
-        // 对每个节点整段替换一次，语义最准（与代码内核那边同一条理由）。
-        const targets = new Map<string, string>();
+        // 对每个节点**每段**（topic / note）整段替换一次，语义最准
+        // （与代码内核那边同一条理由）。topic 与 note 是两段独立文本，
+        // 必须分开键控：同一节点的两段各有各的命中，混作一段会互相踩。
+        const count = hits.length;
+        const targets = new Map<string, { field: TopicHit['field']; id: string; text: string }>();
         for (const hit of hits) {
           const node = findNodeById(readDocument().root, hit.id);
           if (node === null) continue;
-          const source = targets.get(hit.id) ?? node.topic;
-          targets.set(hit.id, replaceInText(source, options, replacement).text);
+          const key = `${hit.field}:${hit.id}`;
+          const source = targets.get(key)?.text ?? (hit.field === 'topic' ? node.topic : node.note ?? '');
+          targets.set(key, { field: hit.field, id: hit.id, text: replaceInText(source, options, replacement).text });
         }
-        for (const [id, topic] of targets) {
-          patchTopic(id, topic);
+        for (const { field, id, text } of targets.values()) {
           const el = mind.findEle(id) as KernelTopic | undefined;
-          if (el) void mind.setNodeTopic(el, topic);
+          if (field === 'topic') {
+            patchTopic(id, text);
+            if (el) void mind.setNodeTopic(el, text);
+          } else {
+            const note = text === '' ? undefined : text;
+            patchNote(id, note);
+            if (el) void mind.reshapeNode(el, { note });
+          }
         }
+        hideNote();
         hits = [];
-        return targets.size;
+        // 返回值是「替换掉的个数」—— 按命中数报：一条 topic 和一条 note
+        // 是两处替换。旧版只数节点，topic/note 分家后这个语义才说得通。
+        return count;
       }
 
-      // 字面替换：按**节点**分组，组内**倒序**处理。
-      // 倒序是必须的 —— 同一条 topic 上有两处命中时，先替换前面那处会让
+      // 字面替换：按**节点 + 字段**分组，组内**倒序**处理。
+      // 倒序是必须的 —— 同一段文字里有两处命中时，先替换前面那处会让
       // 后面那处的偏移失效（替换文本长度一变，后面的下标就全错了）。
-      const byNode = new Map<string, TopicHit[]>();
+      // topic 与 note 的偏移各算各的，分开分组才不会串线。
+      const bySegment = new Map<string, { field: TopicHit['field']; id: string; list: TopicHit[] }>();
       for (const hit of hits) {
-        const list = byNode.get(hit.id);
-        if (list === undefined) byNode.set(hit.id, [hit]);
-        else list.push(hit);
+        const key = `${hit.field}:${hit.id}`;
+        const group = bySegment.get(key);
+        if (group === undefined) bySegment.set(key, { field: hit.field, id: hit.id, list: [hit] });
+        else group.list.push(hit);
       }
 
       const count = hits.length;
-      for (const [id, list] of byNode) {
+      for (const { field, id, list } of bySegment.values()) {
         const node = findNodeById(readDocument().root, id);
         if (node === null) continue;
-        let topic = node.topic;
+        let text = field === 'topic' ? node.topic : node.note ?? '';
         for (const hit of [...list].sort((a, b) => b.from - a.from)) {
-          topic = topic.slice(0, hit.from) + replacement + topic.slice(hit.to);
+          text = text.slice(0, hit.from) + replacement + text.slice(hit.to);
         }
-        patchTopic(id, topic);
         const el = mind.findEle(id) as KernelTopic | undefined;
-        if (el) void mind.setNodeTopic(el, topic);
+        if (field === 'topic') {
+          patchTopic(id, text);
+          if (el) void mind.setNodeTopic(el, text);
+        } else {
+          const note = text === '' ? undefined : text;
+          patchNote(id, note);
+          if (el) void mind.reshapeNode(el, { note });
+        }
       }
+      hideNote();
       hits = [];
       return count;
     },

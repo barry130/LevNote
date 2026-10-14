@@ -261,6 +261,133 @@ describe('可选能力', () => {
 });
 
 /**
+ * 备注也搜得到（ADR 0058）。`collectHits` 每个节点先搜 `topic` 后搜 `note`，
+ * `EditorSearch` 契约（索引制）零改动 —— 命中表是内核私有的，外壳只见计数。
+ * 这族用例要么整体成立要么整体不成立（换掉的是同一张命中表），不拆。
+ */
+describe('查找也搜备注（ADR 0058）', () => {
+  /** 根主题带一条含「分支」的备注，子分支 n2 的 topic 也叫「分支」—— 一处 topic 一处 note。 */
+  const noteSearchFile = (): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '根主题',
+          note: '根主题的备注；分支也写在这里',
+          children: [{ id: 'n2', topic: '分支' }],
+        },
+      },
+      null,
+      2,
+    )}\n`;
+
+  /** 整段备注就是查询词本身 —— 替换成空串应当把 `note` 键整条摘掉（清空即移除）。 */
+  const wholeNoteFile = (): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '根主题',
+          note: '分支',
+          children: [{ id: 'n2', topic: '分支' }],
+        },
+      },
+      null,
+      2,
+    )}\n`;
+
+  const settleKernel = async (): Promise<void> => {
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+  };
+
+  const lastChange = (changes: readonly string[]): string => changes[changes.length - 1] ?? '';
+
+  it('备注里的词计入总数，topic 与 note 各算一处', async () => {
+    const { handle } = await mountReady({ initialValue: noteSearchFile() });
+    const count = handle.search?.find({ ...DEFAULT_FIND_OPTIONS, query: '分支' }) ?? 0;
+    expect(count).toBe(2);
+
+    const noteOnly = handle.search?.find({ ...DEFAULT_FIND_OPTIONS, query: '备注' }) ?? 0;
+    expect(noteOnly).toBe(1);
+  });
+
+  it('同一节点的命中 topic 在前 note 在后；定位到 note 时弹层要开着、回到 topic 时关掉', async () => {
+    const { handle } = await mountReady({ initialValue: noteSearchFile() });
+    const count = handle.search?.find({ ...DEFAULT_FIND_OPTIONS, query: '根主题' }) ?? 0;
+    expect(count).toBe(2);
+
+    // 第一处是 n1 自己的 topic —— 弹层不该赖在屏上
+    act(() => {
+      handle.search?.reveal(0);
+    });
+    expect(container.querySelector('.mm-note-popover')).toBeNull();
+
+    // 第二处是 n1 的备注 —— 打开弹层把整条备注端出来（jsdom 里 rect 全 0，弹层照样渲染）
+    act(() => {
+      handle.search?.reveal(1);
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-note-popover');
+    expect(popover).not.toBeNull();
+    expect(popover?.querySelector<HTMLTextAreaElement>('.mm-note-input')?.value).toBe('根主题的备注；分支也写在这里');
+  });
+
+  it('替换命中改的是备注那一段，弹层跟着关上', async () => {
+    const { handle, changes } = await mountReady({ initialValue: noteSearchFile() });
+    handle.search?.find({ ...DEFAULT_FIND_OPTIONS, query: '分支' });
+
+    // 命中表是 [n1 note, n2 topic]，第 0 处是备注
+    const remaining = handle.search?.replace(0, '换好了') ?? -1;
+    expect(container.querySelector('.mm-note-popover')).toBeNull();
+
+    await settleKernel();
+    expect(lastChange(changes)).toContain('"note"');
+    expect(lastChange(changes)).toContain('换好了');
+    // n2 的 topic 还有一处「分支」，重找的计数就是剩下的那处
+    expect(remaining).toBe(1);
+  });
+
+  it('把整条备注替换成空串 = 清空即移除，note 键不再出现在文件里', async () => {
+    const { handle, changes } = await mountReady({ initialValue: wholeNoteFile() });
+    handle.search?.find({ ...DEFAULT_FIND_OPTIONS, query: '分支' });
+
+    handle.search?.replace(0, '');
+    await settleKernel();
+    expect(lastChange(changes)).not.toContain('"note"');
+    // n2 的 topic 还是完整的「分支」—— 被摘掉的只有备注
+    expect(lastChange(changes)).toContain('"topic": "分支"');
+  });
+
+  it('replaceAll 一把换掉 topic 与 note 两处，报数按命中数不按节点数', async () => {
+    const { handle, changes } = await mountReady({ initialValue: noteSearchFile() });
+    handle.search?.find({ ...DEFAULT_FIND_OPTIONS, query: '分支' });
+
+    const done = handle.search?.replaceAll('改字') ?? -1;
+    expect(done).toBe(2);
+    expect(container.querySelector('.mm-note-popover')).toBeNull();
+
+    // 备注那段是 reshapeNode → operation，当场就发；topic 那段是 setNodeTopic
+    // → linkDiv 兜底，要等 300ms 的去抖过去才到（ADR 0056 同款路径）。
+    await act(async () => {
+      await new Promise((r) => {
+        setTimeout(r, 350);
+      });
+    });
+    expect(lastChange(changes)).toContain('改字也写在这里');
+    expect(lastChange(changes)).toContain('"topic": "改字"');
+  });
+});
+
+/**
  * 内核**自己**画的那些字：右键菜单十一条 + 新节点的占位文字。
  *
  * 单独一个 describe 的理由：这一族要么整体成立要么整体不成立（内核在安装那一刻
