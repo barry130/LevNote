@@ -430,3 +430,105 @@
   border-color: var(--vermilion);
   color: var(--vermilion);
 }
+
+/* 主题样式弹层（ADR 0059）：色块 / 字号 / 加粗三行 + 一枚「清除」。
+   与标记调色盘同一族 —— 内核自有 UI，画在内核容器之外（类名 mm-style-* 归我们），
+   不进内核 DOM，也不进导出：导出器按选择器挑元素，认不出这些类名
+   （导出的是文件内容，弹层是编辑器部件，与右键菜单同理）。 */
+.mm-style-popover {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 244px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+
+.mm-style-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mm-style-label {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.7;
+}
+
+/* flex + 固定宽度而不是网格：三行的列数不一样（8 / 8 / 4 / 1），
+   网格要三份列定义，而这里只要「排不下就换行」。 */
+.mm-style-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mm-style-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mm-style-chip {
+  flex: none;
+  min-width: 30px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mm-style-bold {
+  font-weight: 700;
+}
+
+.mm-style-swatch:hover,
+.mm-style-chip:hover {
+  border-color: var(--accent);
+}
+
+/* 「当前挂着这个值」的亮法：**外圈**一道强调色，不动色块本身的颜色 ——
+   色块的颜色就是它的语义，盖掉之后用户就没法拿它跟别的色对比了。 */
+.mm-style-swatch.active,
+.mm-style-chip.active {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.mm-style-clear {
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mm-style-clear:hover {
+  border-color: var(--vermilion);
+  color: var(--vermilion);
+}

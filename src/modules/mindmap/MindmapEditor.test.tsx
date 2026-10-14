@@ -1585,3 +1585,310 @@ describe('备注（ADR 0056）', () => {
     expect(popover?.querySelector('.mm-note-remove')).toBeNull();
   });
 });
+
+describe('主题样式（ADR 0059）', () => {
+  /**
+   * 与前面几族不同的一条事实（先说清楚再写用例）：`style` 是格式层
+   * **早已存在的正字段**（`KNOWN_NODE_KEYS` 里就有它，适配层双向直通、
+   * 空对象不写），内核也照原样渲染（`Se` 把每个键塞给 CSSOM）。
+   * 本轮补的是「改得了」：右键「样式…」弹层，词表住内核模块
+   * （`node-style.ts`），落盘走 `reshapeNode` → `operation` → 既有 emit
+   * 主通道 —— 标脏 / 保存 / undo 都不用单独伺候。
+   *
+   * 两条只有读过内核源码才知道的事，都在下面钉死：
+   * ① `reshapeNode` 是**同步**的（`Xt`，`MindElixir.js:507-515` 里没有 await），
+   *    `operation` 监听器同步跑完 `emit()` —— 补丁交出去的那一刻 `onChange`
+   *    已经跑完了，所以摘键必须在补丁里就干净（值置 `undefined`，靠 JSON
+   *    丢掉它），而不是交个空串等 300ms 兜底通道来补；
+   * ② 数字字号 CSSOM 不认（无单位的非零长度按无效值忽略），编辑器里那一半
+   *    靠 `linkDiv` 兜底补 `px`，而导出侧要的**正是数字**。
+   */
+
+  /** 根主题带可选 `style` 的规范文件；子分支 n2 恒不带（对照用）。 */
+  const styleFile = (root: Record<string, unknown>): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '根主题',
+          children: [{ id: 'n2', topic: '分支' }],
+          ...root,
+        },
+      },
+      null,
+      2,
+    )}\n`;
+
+  /** 根主题的 `me-tpc` —— 内核把 `style` 写成的内联样式就在它身上。 */
+  const rootTpc = (): HTMLElement | null => container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+
+  /** 右键菜单里那条「样式…」。 */
+  const styleMenuEntry = (): HTMLLIElement | null => {
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    return items.find((li) => li.textContent === '样式…') ?? null;
+  };
+
+  /** 右键根主题 → 点「样式…」→ 拿到弹层。 */
+  const openStyleViaMenu = async (): Promise<HTMLElement> => {
+    const topic = rootTpc();
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    const entry = styleMenuEntry();
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-style-popover');
+    expect(popover).not.toBeNull();
+    return popover as HTMLElement;
+  };
+
+  /** 文字色色块（按色值取 —— `title` 就是色值）。 */
+  const textSwatch = (popover: HTMLElement, hex: string): HTMLButtonElement | null =>
+    popover.querySelector<HTMLButtonElement>(`.mm-style-swatch-text[title="${hex}"]`);
+
+  /** 底色色块。 */
+  const fillSwatch = (popover: HTMLElement, hex: string): HTMLButtonElement | null =>
+    popover.querySelector<HTMLButtonElement>(`.mm-style-swatch-fill[title="${hex}"]`);
+
+  /** 字号档位按钮（加粗那枚也带 `.mm-style-chip`，按类名排掉）。 */
+  const sizeChip = (popover: HTMLElement, size: number): HTMLButtonElement | null =>
+    [...popover.querySelectorAll<HTMLButtonElement>('.mm-style-chip:not(.mm-style-bold)')].find(
+      (button) => button.textContent === String(size),
+    ) ?? null;
+
+  const isActive = (button: HTMLButtonElement | null): boolean => button?.classList.contains('active') === true;
+
+  /** 等内核把重画跑完（`reshapeNode` 同步，但重画链上的同步回调排在 act 之后）。 */
+  const settleKernel = async (): Promise<void> => {
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+  };
+
+  const TEXT_HEX = '#2f5f8f';
+  const FILL_HEX = '#e3ecf3';
+
+  it('★ 右键菜单末尾有「样式…」，点开是弹层 —— 三行词表全在（词表住内核模块）', async () => {
+    await mountReady({ initialValue: styleFile({}) });
+
+    const popover = await openStyleViaMenu();
+    // 8 个文字色 + 8 个底色 + 4 档字号 + 加粗 + 清除
+    expect(popover.querySelectorAll('.mm-style-swatch-text')).toHaveLength(8);
+    expect(popover.querySelectorAll('.mm-style-swatch-fill')).toHaveLength(8);
+    expect(popover.querySelectorAll('.mm-style-chip:not(.mm-style-bold)')).toHaveLength(4);
+    expect(popover.querySelector('.mm-style-bold')).not.toBeNull();
+    expect(popover.querySelector('.mm-style-clear')).not.toBeNull();
+    // 一个样式都没有：一块都不亮（默认外观不是「某一档」）
+    expect(popover.querySelectorAll('.mm-style-swatch.active')).toHaveLength(0);
+    expect(popover.querySelectorAll('.mm-style-chip.active')).toHaveLength(0);
+  });
+
+  it('点一个文字色：落盘走 reshapeNode → operation → onChange，弹层不关、色块亮起', async () => {
+    const { handle, changes } = await mountReady({ initialValue: styleFile({}) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      textSwatch(popover, TEXT_HEX)?.click();
+    });
+    await settleKernel();
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain(`"color": "${TEXT_HEX}"`);
+    expect(handle.getValue()).toContain(`"color": "${TEXT_HEX}"`);
+    // 点色块不关弹层：一次配好几样是正常用法（标记调色盘同款）
+    expect(container.querySelector('.mm-style-popover')).not.toBeNull();
+    expect(isActive(textSwatch(popover, TEXT_HEX))).toBe(true);
+    expect(isActive(textSwatch(popover, '#333333'))).toBe(false);
+  });
+
+  it('再点同一个色块 = 摘掉：最后一个键也摘掉时，文件里连 "style" 都不留', async () => {
+    const { handle } = await mountReady({ initialValue: styleFile({ style: { color: TEXT_HEX } }) });
+
+    const popover = await openStyleViaMenu();
+    // 文件里已经有这个颜色：打开就亮着（快照来自内核的 nodeObj）
+    expect(isActive(textSwatch(popover, TEXT_HEX))).toBe(true);
+
+    act(() => {
+      textSwatch(popover, TEXT_HEX)?.click();
+    });
+    await settleKernel();
+
+    // 整份空了 → 整个字段撤掉（不是留下 `"style": {}`）
+    expect(handle.getValue()).not.toContain('"style"');
+    expect(container.querySelector('.mm-style-popover')).not.toBeNull();
+    expect(isActive(textSwatch(popover, TEXT_HEX))).toBe(false);
+  });
+
+  it('摘一个键不碰另一个：色 + 字号都在时摘掉颜色，字号原样留着', async () => {
+    const { handle } = await mountReady({ initialValue: styleFile({}) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      textSwatch(popover, TEXT_HEX)?.click();
+    });
+    await settleKernel();
+    act(() => {
+      sizeChip(popover, 20)?.click();
+    });
+    await settleKernel();
+
+    let text = handle.getValue();
+    expect(text).toContain(`"color": "${TEXT_HEX}"`);
+    expect(text).toContain('"fontSize": 20');
+
+    act(() => {
+      textSwatch(popover, TEXT_HEX)?.click();
+    });
+    await settleKernel();
+
+    text = handle.getValue();
+    expect(text).not.toContain('"color"');
+    expect(text).toContain('"fontSize": 20');
+    // 亮着的档位跟着走：字号那一档还亮着，颜色那一行灭了
+    expect(isActive(sizeChip(popover, 20))).toBe(true);
+    expect(isActive(textSwatch(popover, TEXT_HEX))).toBe(false);
+  });
+
+  it('底色走的是 background 键，与文字色互不干扰 —— 两行各查各的', async () => {
+    const { handle } = await mountReady({ initialValue: styleFile({}) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      fillSwatch(popover, FILL_HEX)?.click();
+    });
+    await settleKernel();
+
+    expect(handle.getValue()).toContain(`"background": "${FILL_HEX}"`);
+    expect(isActive(fillSwatch(popover, FILL_HEX))).toBe(true);
+    expect(isActive(textSwatch(popover, FILL_HEX))).toBe(false);
+  });
+
+  it('字号写进文件的是**数字**，而屏幕上补出了 px —— 导出侧要数字、CSSOM 要单位', async () => {
+    const { handle, changes } = await mountReady({ initialValue: styleFile({}) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      sizeChip(popover, 20)?.click();
+    });
+    await settleKernel();
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain('"fontSize": 20');
+    // 不能写成 `"20px"`：内核导出按 `${v}px` 拼，字符串会被拼成 `20pxpx` 那样的非法值
+    expect(last).not.toContain('px');
+    expect(handle.getValue()).not.toContain('px');
+    // 编辑器这一半：`Se` 把数字交给 CSSOM 时被当无效值忽略，靠 linkDiv 兜底补 px
+    expect(rootTpc()?.style.fontSize).toBe('20px');
+  });
+
+  it('加粗就是 fontWeight: bold；再点一次摘掉', async () => {
+    const { handle } = await mountReady({ initialValue: styleFile({}) });
+
+    const popover = await openStyleViaMenu();
+    const bold = popover.querySelector<HTMLButtonElement>('.mm-style-bold');
+    act(() => {
+      bold?.click();
+    });
+    await settleKernel();
+    expect(handle.getValue()).toContain('"fontWeight": "bold"');
+    expect(isActive(bold)).toBe(true);
+
+    act(() => {
+      bold?.click();
+    });
+    await settleKernel();
+    expect(handle.getValue()).not.toContain('"style"');
+  });
+
+  it('词表外的键照原样保留（§5）：单键编辑不碰它，只有「清除」才整份撤掉', async () => {
+    const { handle } = await mountReady({ initialValue: styleFile({ style: { borderColor: '#ff0000' } }) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      textSwatch(popover, TEXT_HEX)?.click();
+    });
+    await settleKernel();
+
+    let text = handle.getValue();
+    expect(text).toContain('"borderColor": "#ff0000"');
+    expect(text).toContain(`"color": "${TEXT_HEX}"`);
+
+    // 「清除」的语义是「回到默认外观」—— 用户显式要的，词表外的键也一并撤掉
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-style-clear')?.click();
+    });
+    await settleKernel();
+
+    text = handle.getValue();
+    expect(text).not.toContain('"style"');
+    expect(text).not.toContain('borderColor');
+  });
+
+  it('点弹层外面就关 —— 但点色块不关（一次配好几样是正常用法）', async () => {
+    await mountReady({ initialValue: styleFile({}) });
+    const popover = await openStyleViaMenu();
+
+    act(() => {
+      textSwatch(popover, TEXT_HEX)?.click();
+    });
+    expect(container.querySelector('.mm-style-popover')).not.toBeNull();
+
+    act(() => {
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    });
+    expect(container.querySelector('.mm-style-popover')).toBeNull();
+  });
+
+  it('只读时右键没有菜单，更没有弹层 —— 改样式是编辑，不悄悄放行', async () => {
+    await mountReady({ initialValue: styleFile({ style: { color: TEXT_HEX } }), readOnly: true });
+
+    expect(container.querySelector('.context-menu')).toBeNull();
+    await act(async () => {
+      rootTpc()?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    expect(styleMenuEntry()).toBeNull();
+    expect(container.querySelector('.mm-style-popover')).toBeNull();
+  });
+
+  it('undo 把样式找回来：内核走 refresh(prev) 不发 operation，补丁靠 linkDiv 重放', async () => {
+    const { handle } = await mountReady({ initialValue: styleFile({ style: { fontSize: 20 } }) });
+    // 挂载时补丁就该在：文件里的数字字号在屏幕上是有单位的
+    expect(rootTpc()?.style.fontSize).toBe('20px');
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      sizeChip(popover, 20)?.click();
+    });
+    await settleKernel();
+    expect(handle.getValue()).not.toContain('"style"');
+    expect(rootTpc()?.style.fontSize).toBe('');
+
+    // 内核的 undo（Kn 插件监听 .map-container 的 keydown：Ctrl+Z）走 refresh(prev)
+    // —— 它不发 operation，重建会把内联样式整份抹掉，靠 linkDiv 上的补丁重放。
+    const map = container.querySelector<HTMLElement>('.map-container');
+    expect(map).not.toBeNull();
+    await act(async () => {
+      map?.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 350);
+      });
+    });
+
+    expect(handle.getValue()).toContain('"fontSize": 20');
+    expect(rootTpc()?.style.fontSize).toBe('20px');
+  });
+});

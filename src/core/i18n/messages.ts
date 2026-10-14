@@ -770,6 +770,15 @@ export const zhCN = {
   'ui.mindmap.notePlaceholder': '写点什么……（Ctrl+Enter 保存）',
   'ui.mindmap.noteSave': '保存',
   'ui.mindmap.noteRemove': '移除备注',
+  // 节点样式（ADR 0059）：右键「样式…」弹层。可编辑的四个键与取值词表住
+  // modules/mindmap/node-style.ts —— 那是界面知识，格式层一个字都不解释
+  'ui.mindmap.styleMenu': '样式…',
+  'ui.mindmap.styleTitle': '主题样式',
+  'ui.mindmap.styleText': '文字颜色',
+  'ui.mindmap.styleFill': '背景',
+  'ui.mindmap.styleSize': '字号',
+  'ui.mindmap.styleBold': '加粗',
+  'ui.mindmap.styleClear': '清除这个主题上的全部样式',
   // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
   'ui.mindmap.exportPngImagesExternal':
     '有 {n} 张节点图片引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
@@ -1625,6 +1634,16 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.notePlaceholder': 'Write something… (Ctrl+Enter to save)',
   'ui.mindmap.noteSave': 'Save',
   'ui.mindmap.noteRemove': 'Remove note',
+  // Node styles (ADR 0059): the right-click「Style…」popover. The four editable
+  // keys and their value vocabulary live in modules/mindmap/node-style.ts —
+  // that is UI knowledge; the format layer explains none of it
+  'ui.mindmap.styleMenu': 'Style…',
+  'ui.mindmap.styleTitle': 'Topic style',
+  'ui.mindmap.styleText': 'Text color',
+  'ui.mindmap.styleFill': 'Fill',
+  'ui.mindmap.styleSize': 'Font size',
+  'ui.mindmap.styleBold': 'Bold',
+  'ui.mindmap.styleClear': 'Clear all styles on this topic',
   // Honest kernel-side notes when exporting an image (ADR 0050): external images
   // are not self-contained, and the two formats fail in different ways
   'ui.mindmap.exportPngImagesExternal':

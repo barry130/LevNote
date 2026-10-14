@@ -276,7 +276,8 @@ lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，所以「`tsc` 通过」不等于
 > 与 **导图节点可以挂链接与标签（2026-10-12，ADR 0055：`hyperLink` 与 `tags` 同步升格，右键弹层挂取、🔗 单击即走交给外壳分类打开）**、
 > 与 **导图节点备注看得见（2026-10-13，ADR 0056：内核零渲染，📝 徽章 + 右键「备注…」双入口自建可见性，清空即移除、撤销找得回来、大纲有 📝 指示）**、
 > **markdown 内核画的字也跟着语言走（2026-10-13，ADR 0057：代码块标签 / 图区纸条 / 图片占位三机制，重画不重建，别人的话不翻）**、
-> **导图查找也搜备注（2026-10-14，ADR 0058：`TopicHit.field` 分诊，`collectHits` 主题先备注后、`reveal` 亮/收弹层、`replace` 分通道、`replaceAll` 分段键控报命中数、`NotePopover` 挂 `key`）**。
+> **导图查找也搜备注（2026-10-14，ADR 0058：`TopicHit.field` 分诊，`collectHits` 主题先备注后、`reveal` 亮/收弹层、`replace` 分通道、`replaceAll` 分段键控报命中数、`NotePopover` 挂 `key`）**、
+> **导图节点样式改得了（2026-10-14，ADR 0059：文字色 / 底色 / 字号 / 加粗，右键「样式…」弹层；格式层与适配层零改动 —— `style` 早就是正字段、内核也一直在渲染，缺的只是「写」）**。
 > 0041 清点出来的两类都属于「用户的动作没有任何反馈」：一是命令失败被 `console.warn`
 > 吞掉（四个入口各自抄了一遍，所以修一处会漏三处），二是拖入多个文件只开第一个
 > （静默丢掉用户的选择）。
@@ -994,6 +995,30 @@ jsdom 没有布局引擎，`getBoundingClientRect()` 全是 0。
 > 节点」分段键控、组内倒序、报命中数；`NotePopover` 挂 `key={nodeId}`
 > （草稿挂载播种，键盘流切节点不端陈旧草稿）；大纲与导出不伺候（照 0056 旧例）。
 > 测试：1,842 → **1,847 条前端**（MindmapEditor 备注搜索 describe +5）。
+>
+> 2026-10-14（ADR 0059）补第十二句：自派的第十轮需求 —— 导图节点的**样式**
+> 改得了（对标 XMind 主题样式面板第一屏：文字色 / 底色 / 字号 / 加粗）。
+> 这一轮与 0053–0056 性质不同：**格式层与适配层零改动** —— `style` 早就是
+> 格式层的正字段（`types.ts:152-153` 不透明直通、`KNOWN_NODE_KEYS` 里有它、
+> 适配层 `NON_EXTRA_NODE_KEYS` 里有它、`Object.keys().length > 0` 才写出），
+> 内核也**一直在渲染**它（`Se` 把每个键原样塞 CSSOM）—— 缺的只是「写」。
+> 风险因此全在「怎么写才不留脏值」上，本轮实测出两条只有读内核源码才知道的事：
+> ① **`reshapeNode` 是同步的**（`Xt` 通篇无 `await`，`operation` 在函数体里
+> 同步 fire ⇒ 补丁交出去的那一刻文本已经写出去了）⇒ 摘键必须在补丁里就干净，
+> 不能交个空串等 300ms 的 `scheduleVerify` 兜底（那会留下把 `"color": ""`
+> 写进文件的窗口）；② 内核**导出侧只认四样**（`LayoutSsr.js:45-47` 只拼
+> `color` / `background` / `font-size: ${v}px` / `font-weight`）⇒ 词表必须恰好
+> 是这四个键，多一个就是「编辑器里画得出、导出的图里没有」（0050 的落差）。
+> 补丁三种形状：设值 `{style:{[k]:v}}`、摘一键 `{style:{...rest,[k]:undefined}}`
+> （`Object.assign` 是加/改语义、`JSON.stringify` 丢 `undefined`）、摘最后一键或
+> 「清除」走 `{style: undefined}` —— 逐键置 `undefined` 会留下 `"style": {}`
+> 空壳（适配层的 `length > 0` 守卫拦不住）。`fontSize` 存**数字**（导出要数字）、
+> 屏幕上由 `syncStyleFontSizes` 挂 `linkDiv` 补 `px`（CSSOM 忽略无单位长度；
+> 同一条路覆盖 undo/redo 的 `refresh` 不发 operation 那条），DOM 擦除用
+> `removeProperty(cssPropertyName(key))`（只认 CSS 属性名，camelCase 静默不删）。
+> 词表外的键照 §5 原样保留，只有用户显式「清除」才整份撤掉；`branchColor`
+> 刻意不做（它住 `extra` 桶，可编辑 = 一次升格，该单独一轮）。
+> 测试：1,847 → **1,875 条前端**（`node-style` 纯函数 17 + MindmapEditor 样式 describe 11）。
 
 主包 1,872.79 → **1,886.68 kB**（+13.89，gzip 624.53）。检索面板、store、图标、
 样式全是首屏就要用的，没有懒加载余地。新增依赖两个（`ignore` / `regex`，

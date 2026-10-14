@@ -63,6 +63,16 @@ import { directionOf, fromKernelData, toKernelData } from './adapter.js';
 import { mindmapLangPack } from './lang-pack.js';
 import { applyMarkerToggle, MINDMAP_MARKER_GROUPS, MINDMAP_MARKERS } from './markers.js';
 import {
+  activeFontSize,
+  activeSwatchIndex,
+  isBold,
+  STYLE_FILL_COLORS,
+  STYLE_FONT_SIZES,
+  STYLE_TEXT_COLORS,
+  type StyleKey,
+  type StyleValues,
+} from './node-style.js';
+import {
   bytesToDataUrl,
   clampDisplaySize,
   collectImageNodeIds,
@@ -295,6 +305,40 @@ function syncNoteBadges(nodes: HTMLElement, open: (nodeId: string, note: string,
   }
 }
 
+/**
+ * 数字字号的内联补丁（ADR 0059）。
+ *
+ * 内核渲染把 `style` 每个键**原样**塞给 CSSOM（`Se`，`MindElixir.js:344-347`），
+ * 而 CSSOM 对**无单位的非零长度**按无效值忽略 —— 文件里存的
+ * `"fontSize": 20` 因此在编辑器里画不出来；可内核的导出侧偏偏要的就是数字
+ * （`LayoutSsr.js:47` 拼 `font-size: ${v}px`，字符串会被拼成非法值）。
+ * 两头都要对，只能在这里补一次 `px`。
+ *
+ * 时机与备注徽章同一条（ADR 0056）：内核每次重画都会把内联样式重来一遍
+ * （`refresh` 重建元素、`reshapeNode` 重跑 `Se`），所以挂在 `linkDiv` 上重放
+ * —— 初始化一次 + 每次重画一次。带单位的字符串值（别的工具写的 `'20px'`）
+ * 内核自己画得对，这里不碰。
+ */
+function syncStyleFontSizes(nodes: HTMLElement): void {
+  for (const tpc of Array.from(nodes.querySelectorAll('me-tpc'))) {
+    const topic = tpc as KernelTopic;
+    const style = topic.nodeObj.style as Record<string, unknown> | undefined;
+    const size = style?.fontSize;
+    if (typeof size === 'number' && Number.isFinite(size)) topic.style.fontSize = `${size}px`;
+  }
+}
+
+/**
+ * camelCase 的样式键 → CSS 属性名。
+ *
+ * `removeProperty` 只认 CSS 属性名（`font-size`），不认 IDL 属性名（`fontSize`）
+ * —— 拿 camelCase 去删会**静默什么都不删**。同一条转换内核自己也写了一遍
+ * （`LayoutSsr.js:62` 给标签样式用）。
+ */
+function cssPropertyName(key: string): string {
+  return key.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
+}
+
 function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, resolveImageUrl, onImagePaste, onLinkClick }: EditorMountProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
 
@@ -390,6 +434,15 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
    */
   const [notePopover, setNotePopover] = useState<NotePopoverState | null>(null);
   const noteApplyRef = useRef<((nodeId: string, note: string | undefined) => boolean) | null>(null);
+
+  /**
+   * 样式弹层（ADR 0059），与前四条内核自有 UI 同一条纪律：不进 `EditorHandle`。
+   * 落盘 ref 在 effect 里装、闭住当前内核，cleanup 下岗；两个出口都返回
+   * **新的样式快照**供弹层回显（连挂多键是正常用法，亮着的色块必须跟着走）。
+   */
+  const [stylePopover, setStylePopover] = useState<StylePopoverState | null>(null);
+  const styleApplyRef = useRef<((nodeId: string, key: StyleKey, value: string | number) => StyleValues | null) | null>(null);
+  const styleClearRef = useRef<((nodeId: string) => StyleValues | null) | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -565,6 +618,26 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       };
 
       /**
+       * 右键菜单「样式…」的 handler（ADR 0059），与前五个同构：藏菜单 / 记节点 /
+       * 传坐标。`style` 是**打开那一刻的快照**，只负责弹层里「亮哪个」；
+       * 真正落盘在 ref 通道里从内核的 `nodeObj` 现取现算（`markerApplyRef`
+       * 的先例），快照过期也不会写错。
+       */
+      const openStylePopover = (event: MouseEvent): void => {
+        const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
+        if (menu !== null) menu.setAttribute('hidden', '');
+        const topic = mind.currentNode;
+        if (topic == null) return;
+        const raw = topic.nodeObj.style as Record<string, unknown> | undefined;
+        setStylePopover({
+          x: event.clientX,
+          y: event.clientY,
+          nodeId: topic.nodeObj.id,
+          style: { ...(raw ?? {}) },
+        });
+      };
+
+      /**
        * 粘贴图片（ADR 0054）。内核的 paste 监听先吃「复制的节点」那份 magic
        * JSON（`MindElixir.js:1016-1027`），吃不下才把**原始事件**交到这里 ——
        * 所以节点复制粘贴的既有行为一个字节都不受影响。
@@ -644,6 +717,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
                   { name: t('ui.mindmap.linkMenu'), onclick: openLinkPopover },
                   { name: t('ui.mindmap.tagMenu'), onclick: openTagPopover },
                   { name: t('ui.mindmap.noteMenu'), onclick: openNotePopoverMenu },
+                  { name: t('ui.mindmap.styleMenu'), onclick: openStylePopover },
                 ],
               },
           keypress: !readOnlyRef.current,
@@ -861,6 +935,91 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         }
       };
 
+      // --- 样式弹层的落盘通道（ADR 0059） ---------------------------------------
+      /**
+       * 两件事决定了这个补丁长什么样，都不是风格问题：
+       *
+       * 1. **`reshapeNode` 是同步的**（`Xt = function(e,t){…}`，`MindElixir.js:507-515`
+       *    里一个 `await` 都没有）：它同步合并、同步 `Se` 重画、同步
+       *    `bus.fire('operation')` —— 而 `operation` 监听器**同步**跑完
+       *    `emit()`（`getData()` → 适配层 → 序列化 → `onChange`）。
+       *    也就是说**补丁交出去的那一刻就已经落盘了**，事后再补一刀数据侧
+       *    来不及 —— 补丁本身必须是干净的最终形态。
+       * 2. **合并是「加 / 改」语义**：`t.style = Object.assign(o.style, t.style)`
+       *    （同处）—— 把某个键从补丁里**去掉**摘不掉它，`o.style` 里那份会
+       *    原样留下。摘键只有一条路：**把值置成 `undefined`**（`Object.assign`
+       *    照抄 `undefined`，`getData()` 走 JSON 时值为 `undefined` 的键被整个
+       *    丢掉）—— 于是文件里不会出现 `"color": ""` 这种半句话，也不必等
+       *    300ms 的兜底通道来补。
+       *
+       * 摘掉**最后一个**键时走的是 `{ style: undefined }` 而不是逐键置
+       * `undefined`：后者留下的对象 `Object.keys` 仍然数得出键，适配层的
+       * 「空对象不写」挡的是 `{}`、挡不住它，文件里就会留下一句
+       * `"style": {}`（规范 §7.1 说它与「没有」等价，但等价不等于该写）。
+       *
+       * DOM 侧这一半内核修不了：`Se` 把每个键原样塞给 CSSOM
+       * （`MindElixir.js:344-347`），CSSOM 对 `undefined` 赋值按**无效值忽略**
+       * —— 旧样式会赖在元素上。所以摘除后自己 `removeProperty` 收尾，
+       * 与 `syncStyleFontSizes` 补 px 是同一种分工：内核做不到的那一点点，
+       * 由知道真实形状的我们补上。
+       */
+      styleApplyRef.current = (nodeId, key, value) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return null;
+          const current = el.nodeObj.style as Record<string, unknown> | undefined;
+          // 再点一次 = 摘掉。判据是**内核的真值**（不是弹层快照）：
+          // 快照只负责「亮哪个」，写的那一刻现问（`markerApplyRef` 的先例）。
+          const remove = current !== undefined && current[key] === value;
+
+          if (!remove) {
+            void mind.reshapeNode(el, { style: { [key]: value } });
+            return { ...((el.nodeObj.style as Record<string, unknown> | undefined) ?? {}) };
+          }
+
+          const rest: Record<string, unknown> = { ...(current ?? {}) };
+          delete rest[key];
+          const emptied = Object.keys(rest).length === 0;
+          void mind.reshapeNode(el, emptied ? { style: undefined } : { style: { ...rest, [key]: undefined } });
+          // 内联样式的收尾（见上第 2 段）：内核不会替我们摘。
+          el.style.removeProperty(cssPropertyName(key));
+          // 合并出来那份里还留着 `key: undefined`（JSON 会丢掉它、文件是干净的），
+          // 但留着会让 `Object.keys` 数得出一个「其实没有」的键 —— 顺手删掉，
+          // 让内存里的形状与文件一致。这一步在 `emit()` **之后**，不影响落盘。
+          if (!emptied) delete (el.nodeObj.style as Record<string, unknown>)[key];
+          return rest;
+        } catch {
+          // `findEle` 对看不见的节点会 throw（ADR 0052 那条）：弹层开着时节点
+          // 被折叠 / 删除都够不成正常路径，抓一个「改不进去」比白屏诚实。
+          return null;
+        }
+      };
+
+      /**
+       * 清除 = **整个 `style` 字段撤掉**（`{ style: undefined }`，理由见上）。
+       *
+       * 语义是「回到默认外观」：词表之外的键（别的工具写的 `borderColor`
+       * 一类）也一并清掉 —— 这是用户**显式**要的，§5 的「不丢未知键」防的是
+       * 我们悄悄动它，不是拦用户自己清。已知边界与重审条件写进 ADR 0059。
+       */
+      styleClearRef.current = (nodeId) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return null;
+          const style = el.nodeObj.style as Record<string, unknown> | undefined;
+          if (style === undefined) return {};
+          const keys = Object.keys(style);
+          if (keys.length === 0) return {};
+          void mind.reshapeNode(el, { style: undefined });
+          // `Se` 因为 `t.style` 是假值整段跳过 —— 旧内联样式全都赖在元素上，
+          // 逐个清掉（键名取自这一刀之前的快照，那时还没被撤掉）。
+          for (const key of keys) el.style.removeProperty(cssPropertyName(key));
+          return {};
+        } catch {
+          return null;
+        }
+      };
+
       // --- 备注徽章（ADR 0056） -------------------------------------------------
       // `note` 内核零渲染：数据里有、界面上一个字都不画（Se 只画
       // text/icons/image/hyperLink/tags 五样）。徽章是它唯一看得见的形态：
@@ -876,6 +1035,15 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       };
       mind.bus.addListener('linkDiv', syncBadges);
       syncBadges();
+
+      // --- 数字字号的渲染补丁（ADR 0059） ---------------------------------------
+      // 与徽章同一条兜底时机：内核每次重画都把内联样式重来一遍，数字字号那一半
+      // 它画不出来（CSSOM 忽略无单位长度），所以挂在 `linkDiv` 上重放。
+      const syncStyles = (): void => {
+        syncStyleFontSizes(mind.nodes);
+      };
+      mind.bus.addListener('linkDiv', syncStyles);
+      syncStyles();
 
       // --- 链接的点击激活（ADR 0055） -------------------------------------------
       // 内核只画 🔗、不给锚点挂任何监听（grep 全库只有渲染 `:366` 与导出
@@ -1131,17 +1299,21 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         tagAddRef.current = null;
         tagRemoveRef.current = null;
         noteApplyRef.current = null;
+        styleApplyRef.current = null;
+        styleClearRef.current = null;
         setMarkerPalette(null);
         setImagePopover(null);
         setLinkPopover(null);
         setTagPopover(null);
         setNotePopover(null);
+        setStylePopover(null);
         host.removeEventListener('click', onHyperLinkClick, true);
         mind.bus.removeListener('operation', onOperation);
         mind.bus.removeListener('expandNode', emit);
         mind.bus.removeListener('changeDirection', emit);
         mind.bus.removeListener('linkDiv', scheduleVerify);
         mind.bus.removeListener('linkDiv', syncBadges);
+        mind.bus.removeListener('linkDiv', syncStyles);
         mind.destroy();
       };
     };
@@ -1255,6 +1427,25 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
     setNotePopover(null);
   }, []);
 
+  /** 样式弹层的三个出口，引用稳定的理由同上面几族。 */
+  const closeStylePopover = useCallback((): void => {
+    setStylePopover(null);
+  }, []);
+
+  const applyStyle = useCallback((nodeId: string, key: StyleKey, value: string | number): void => {
+    // `null` = 这一下没落进去（节点已经够不着了）：快照不动，界面如实停在那里。
+    const next = styleApplyRef.current?.(nodeId, key, value) ?? null;
+    if (next === null) return;
+    setStylePopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, style: next } : state));
+  }, []);
+
+  const clearStyle = useCallback((nodeId: string): void => {
+    // `null` = 没清成（节点已经够不着了）：快照不动，界面如实停在那里。
+    const next = styleClearRef.current?.(nodeId) ?? null;
+    if (next === null) return;
+    setStylePopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, style: next } : state));
+  }, []);
+
   return (
     <>
       <div ref={hostRef} className="qm-mindmap" tabIndex={-1} />
@@ -1275,6 +1466,9 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       )}
       {tagPopover !== null && (
         <TagPopover state={tagPopover} onAdd={addTag} onRemove={removeTag} onClose={closeTagPopover} />
+      )}
+      {stylePopover !== null && (
+        <StylePopover state={stylePopover} onApply={applyStyle} onClear={clearStyle} onClose={closeStylePopover} />
       )}
     </>
   );
@@ -1719,6 +1913,148 @@ function NotePopover({ state, readOnly, onSave, onRemove, onClose }: NotePopover
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** 样式弹层要显示的东西：位置、目标节点、打开那一刻的样式快照。 */
+interface StylePopoverState {
+  readonly x: number;
+  readonly y: number;
+  readonly nodeId: string;
+  /**
+   * 打开那一刻的样式快照，之后由每次落盘的**返回值**刷新 —— 一个主题常常
+   * 连配几样（颜色 + 字号 + 加粗），亮着的色块必须跟着走。它只负责
+   * 「亮哪个」：真正「再点一次是不是摘掉」在落盘通道里从内核现问
+   * （`markerApplyRef` 的先例），快照过期也写不错。
+   */
+  readonly style: StyleValues;
+}
+
+interface StylePopoverProps {
+  readonly state: StylePopoverState;
+  readonly onApply: (nodeId: string, key: StyleKey, value: string | number) => void;
+  readonly onClear: (nodeId: string) => void;
+  readonly onClose: () => void;
+}
+
+/** 估尺寸，只用来把弹层夹在视口里（jsdom 没有布局，不能问元素自己）。 */
+const STYLE_EST_WIDTH = 244;
+const STYLE_EST_HEIGHT = 292;
+
+/**
+ * 主题样式弹层（ADR 0059 —— 对标 XMind 的样式面板第一屏）。
+ *
+ * 与标记调色盘（0053）同一条纪律：画在**内核容器之外**（React 画的兄弟节点），
+ * 不碰内核的 DOM，两边只通过 `reshapeNode` 这一个公开 API 说话。
+ *
+ * 关闭 = 点外面 / Escape。**点色块不关**：一个主题常常一次配颜色、一次配字号、
+ * 一次加粗，关了再开是折磨；摘掉也走同一下（再点一次 = 取消，XMind 同款）。
+ *
+ * 亮不亮一律由 `node-style.ts` 的纯函数判（词表外的值不亮也不假装摘得掉）。
+ */
+function StylePopover({ state, onApply, onClear, onClose }: StylePopoverProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent): void => {
+      if (rootRef.current === null) return;
+      if (event.target instanceof Node && rootRef.current.contains(event.target)) return;
+      onClose();
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  const left = Math.min(state.x, Math.max(8, window.innerWidth - STYLE_EST_WIDTH - 8));
+  const top = Math.min(state.y, Math.max(8, window.innerHeight - STYLE_EST_HEIGHT - 8));
+
+  const textIndex = activeSwatchIndex(STYLE_TEXT_COLORS, state.style, 'color');
+  const fillIndex = activeSwatchIndex(STYLE_FILL_COLORS, state.style, 'background');
+  const size = activeFontSize(state.style);
+  const bold = isBold(state.style);
+
+  return (
+    <div ref={rootRef} className="mm-style-popover" style={{ left, top }} role="dialog" aria-label={t('ui.mindmap.styleTitle')}>
+      <div className="mm-style-row">
+        <div className="mm-style-label">{t('ui.mindmap.styleText')}</div>
+        <div className="mm-style-choices">
+          {STYLE_TEXT_COLORS.map((hex, index) => (
+            <button
+              key={hex}
+              type="button"
+              className={index === textIndex ? 'mm-style-swatch mm-style-swatch-text active' : 'mm-style-swatch mm-style-swatch-text'}
+              // 文字色用「那个颜色的 A」示意，不刷底色 —— 刷了就成了「背景」那一行的同款，
+              // 两行看起来一模一样，用户只能靠读标签分辨。
+              style={{ color: hex }}
+              title={hex}
+              aria-label={`${t('ui.mindmap.styleText')} ${hex}`}
+              aria-pressed={index === textIndex}
+              onClick={() => onApply(state.nodeId, 'color', hex)}
+            >
+              A
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mm-style-row">
+        <div className="mm-style-label">{t('ui.mindmap.styleFill')}</div>
+        <div className="mm-style-choices">
+          {STYLE_FILL_COLORS.map((hex, index) => (
+            <button
+              key={hex}
+              type="button"
+              className={index === fillIndex ? 'mm-style-swatch mm-style-swatch-fill active' : 'mm-style-swatch mm-style-swatch-fill'}
+              style={{ background: hex }}
+              title={hex}
+              aria-label={`${t('ui.mindmap.styleFill')} ${hex}`}
+              aria-pressed={index === fillIndex}
+              onClick={() => onApply(state.nodeId, 'background', hex)}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="mm-style-row">
+        <div className="mm-style-label">{t('ui.mindmap.styleSize')}</div>
+        <div className="mm-style-choices">
+          {STYLE_FONT_SIZES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={value === size ? 'mm-style-chip active' : 'mm-style-chip'}
+              aria-pressed={value === size}
+              onClick={() => onApply(state.nodeId, 'fontSize', value)}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mm-style-row">
+        <div className="mm-style-label">{t('ui.mindmap.styleBold')}</div>
+        <div className="mm-style-choices">
+          <button
+            type="button"
+            className={bold ? 'mm-style-chip mm-style-bold active' : 'mm-style-chip mm-style-bold'}
+            title={t('ui.mindmap.styleBold')}
+            aria-label={t('ui.mindmap.styleBold')}
+            aria-pressed={bold}
+            onClick={() => onApply(state.nodeId, 'fontWeight', 'bold')}
+          >
+            B
+          </button>
+        </div>
+      </div>
+      <button type="button" className="mm-style-clear" onClick={() => onClear(state.nodeId)}>
+        {t('ui.mindmap.styleClear')}
+      </button>
     </div>
   );
 }
