@@ -780,6 +780,13 @@ export const zhCN = {
   'ui.mindmap.styleBold': '加粗',
   'ui.mindmap.styleBranch': '连线',
   'ui.mindmap.styleClear': '清除这个主题上的全部样式',
+  // 边框三行（ADR 0062）：颜色 / 粗细 / 线型。导出警告一句照 0050 的管道说清落差。
+  'ui.mindmap.styleBorder': '边框',
+  'ui.mindmap.styleBorderWidth': '粗细',
+  'ui.mindmap.styleBorderLine': '线型',
+  'ui.mindmap.borderSolid': '实线',
+  'ui.mindmap.borderDashed': '虚线',
+  'ui.mindmap.exportBorderDashed': '有 {n} 个主题的虚线边框在导出的图里画成了实线 —— 导出的节点框不映射线型',
   // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
   'ui.mindmap.exportPngImagesExternal':
     '有 {n} 张节点图片引用的是外部文件，PNG 里画不出来（转换时不去读它们）',
@@ -1646,6 +1653,13 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.styleBold': 'Bold',
   'ui.mindmap.styleBranch': 'Branch line',
   'ui.mindmap.styleClear': 'Clear all styles on this topic',
+  'ui.mindmap.styleBorder': 'Border',
+  'ui.mindmap.styleBorderWidth': 'Thickness',
+  'ui.mindmap.styleBorderLine': 'Line style',
+  'ui.mindmap.borderSolid': 'Solid',
+  'ui.mindmap.borderDashed': 'Dashed',
+  'ui.mindmap.exportBorderDashed':
+    'Dashed borders on {n} topic(s) are exported as solid lines — the exported node boxes do not carry line styles',
   // Honest kernel-side notes when exporting an image (ADR 0050): external images
   // are not self-contained, and the two formats fail in different ways
   'ui.mindmap.exportPngImagesExternal':

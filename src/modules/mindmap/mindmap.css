@@ -514,6 +514,18 @@
   border-bottom-width: 3px;
 }
 
+/* 边框色格（ADR 0062）：格子的四边框就是色值本身（StylePopover 只把 hex
+   交给 borderColor），加粗二档让浅色系也认得出 —— 空心框与「背景」的
+   实心格、「文字」的 A、「连线」的底边线是四种不同的示意。 */
+.mm-style-swatch-border {
+  border-width: 2px;
+}
+
+/* 线型 chip（ADR 0062）：「虚线」自己的边框就是虚线 —— 示意即语义。 */
+.mm-style-line-dashed {
+  border-style: dashed;
+}
+
 .mm-style-swatch:hover,
 .mm-style-chip:hover {
   border-color: var(--accent);

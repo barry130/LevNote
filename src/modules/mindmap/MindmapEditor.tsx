@@ -67,7 +67,11 @@ import {
   activeFontSize,
   activeSwatchIndex,
   BRANCH_COLORS,
+  countDashedBorders,
   isBold,
+  STYLE_BORDER_COLORS,
+  STYLE_BORDER_LINE_STYLES,
+  STYLE_BORDER_WIDTHS,
   STYLE_FILL_COLORS,
   STYLE_FONT_SIZES,
   STYLE_TEXT_COLORS,
@@ -1247,6 +1251,14 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
               ),
             );
           }
+          // 虚线边框的导出落差（ADR 0062）：导出的节点矩形只映射 borderColor /
+          // borderWidth / borderRadius 三个计算样式，没有 stroke-dasharray ——
+          // 数出来交给 warnings 说一句，不静默（硬约束 2）。信封数据现读，
+          // 不扫 DOM（数据面是导出行为的真相源）。
+          const dashed = countDashedBorders(document.root);
+          if (dashed > 0) {
+            warnings.push(msg('ui.mindmap.exportBorderDashed', { n: dashed }));
+          }
           // 换底色 → 画 → 还原。`exportPng` 内部**先同步**调 `exportSvg` 拿到 SVG 串
           // 才开始异步转换（读过内核源码），所以还原不会抢在「画」之前发生。
           const previousTheme = mind.theme;
@@ -2013,8 +2025,8 @@ interface StylePopoverProps {
 
 /** 估尺寸，只用来把弹层夹在视口里（jsdom 没有布局，不能问元素自己）。 */
 const STYLE_EST_WIDTH = 244;
-/** 加了「连线」一行（ADR 0060）：行高 ~44px + 清除按钮下移。根上少一行、夹取更宽松。 */
-const STYLE_EST_HEIGHT = 336;
+/** 加了边框三行（ADR 0062）后的估高：原五行的 336 + 3 × 44。「连线」行根上少一行、夹取更宽松。 */
+const STYLE_EST_HEIGHT = 468;
 
 /**
  * 主题样式弹层（ADR 0059 —— 对标 XMind 的样式面板第一屏）。
@@ -2054,6 +2066,9 @@ function StylePopover({ state, onApply, onApplyBranch, onClear, onClose }: Style
   const fillIndex = activeSwatchIndex(STYLE_FILL_COLORS, state.style, 'background');
   const size = activeFontSize(state.style);
   const bold = isBold(state.style);
+  const borderIndex = activeSwatchIndex(STYLE_BORDER_COLORS, state.style, 'borderColor');
+  const borderWidthIndex = activeSwatchIndex(STYLE_BORDER_WIDTHS, state.style, 'borderWidth');
+  const borderLineIndex = activeSwatchIndex(STYLE_BORDER_LINE_STYLES, state.style, 'borderStyle');
   const branchIndex = activeBranchIndex(BRANCH_COLORS, state.branchColor);
 
   return (
@@ -2103,7 +2118,7 @@ function StylePopover({ state, onApply, onApplyBranch, onClear, onClose }: Style
             <button
               key={value}
               type="button"
-              className={value === size ? 'mm-style-chip active' : 'mm-style-chip'}
+              className={value === size ? 'mm-style-chip mm-style-size active' : 'mm-style-chip mm-style-size'}
               aria-pressed={value === size}
               onClick={() => onApply(state.nodeId, 'fontSize', value)}
             >
@@ -2125,6 +2140,70 @@ function StylePopover({ state, onApply, onApplyBranch, onClear, onClose }: Style
           >
             B
           </button>
+        </div>
+      </div>
+      <div className="mm-style-row">
+        <div className="mm-style-label">{t('ui.mindmap.styleBorder')}</div>
+        <div className="mm-style-choices">
+          {STYLE_BORDER_COLORS.map((hex, index) => (
+            <button
+              key={hex}
+              type="button"
+              className={index === borderIndex ? 'mm-style-swatch mm-style-swatch-border active' : 'mm-style-swatch mm-style-swatch-border'}
+              // 边框色格子画的是「一个带边框的空框」：格子的四边框就是色值本身
+              //（实现在 mindmap.css 的 .mm-style-swatch-border 加粗二档），
+              // 与「背景」的实心格、「文字」的 A 字、「连线」的底边线天然可辨
+              //（0059 的四行可辨性问题，边框行是第五种示意）。
+              style={{ borderColor: hex }}
+              title={hex}
+              aria-label={`${t('ui.mindmap.styleBorder')} ${hex}`}
+              aria-pressed={index === borderIndex}
+              onClick={() => onApply(state.nodeId, 'borderColor', hex)}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="mm-style-row">
+        <div className="mm-style-label">{t('ui.mindmap.styleBorderWidth')}</div>
+        <div className="mm-style-choices">
+          {STYLE_BORDER_WIDTHS.map((value, index) => (
+            <button
+              key={value}
+              type="button"
+              className={index === borderWidthIndex ? 'mm-style-chip mm-style-width active' : 'mm-style-chip mm-style-width'}
+              // 粗细词表存的是带单位字符串（塞 CSSOM 必须要单位，见 node-style.ts
+              // 文件头第三条）—— 但给用户看的是「多粗」，不是字符串本身。
+              aria-pressed={index === borderWidthIndex}
+              onClick={() => onApply(state.nodeId, 'borderWidth', value)}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mm-style-row">
+        <div className="mm-style-label">{t('ui.mindmap.styleBorderLine')}</div>
+        <div className="mm-style-choices">
+          {STYLE_BORDER_LINE_STYLES.map((value, index) => (
+            <button
+              key={value}
+              type="button"
+              // 「虚线」chip 自己的边框就是虚线（示意即语义）；「实线」是词表里的
+              // 一个档位 —— 再点一次 = 摘键，不是「设成默认」（文件里留下显式
+              // borderStyle: 'solid' 与「没设过」是两个状态，摘掉才是干净）。
+              className={
+                index === borderLineIndex
+                  ? `mm-style-chip mm-style-line-${value} active`
+                  : `mm-style-chip mm-style-line-${value}`
+              }
+              title={value === 'dashed' ? t('ui.mindmap.borderDashed') : t('ui.mindmap.borderSolid')}
+              aria-label={value === 'dashed' ? t('ui.mindmap.borderDashed') : t('ui.mindmap.borderSolid')}
+              aria-pressed={index === borderLineIndex}
+              onClick={() => onApply(state.nodeId, 'borderStyle', value)}
+            >
+              {value === 'dashed' ? t('ui.mindmap.borderDashed') : t('ui.mindmap.borderSolid')}
+            </button>
+          ))}
         </div>
       </div>
       {state.canBranch && (

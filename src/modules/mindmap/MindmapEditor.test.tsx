@@ -1659,9 +1659,9 @@ describe('主题样式（ADR 0059）', () => {
   const fillSwatch = (popover: HTMLElement, hex: string): HTMLButtonElement | null =>
     popover.querySelector<HTMLButtonElement>(`.mm-style-swatch-fill[title="${hex}"]`);
 
-  /** 字号档位按钮（加粗那枚也带 `.mm-style-chip`，按类名排掉）。 */
+  /** 字号档位按钮（ADR 0062 起 chip 行有正向类，不再靠 `:not()` 排除法认）。 */
   const sizeChip = (popover: HTMLElement, size: number): HTMLButtonElement | null =>
-    [...popover.querySelectorAll<HTMLButtonElement>('.mm-style-chip:not(.mm-style-bold)')].find(
+    [...popover.querySelectorAll<HTMLButtonElement>('.mm-style-chip.mm-style-size')].find(
       (button) => button.textContent === String(size),
     ) ?? null;
 
@@ -1683,10 +1683,10 @@ describe('主题样式（ADR 0059）', () => {
     await mountReady({ initialValue: styleFile({}) });
 
     const popover = await openStyleViaMenu();
-    // 8 个文字色 + 8 个底色 + 4 档字号 + 加粗 + 清除
+    // 8 个文字色 + 8 个底色 + 4 档字号 + 加粗 + 清除（边框三行是 ADR 0062 自己的用例）
     expect(popover.querySelectorAll('.mm-style-swatch-text')).toHaveLength(8);
     expect(popover.querySelectorAll('.mm-style-swatch-fill')).toHaveLength(8);
-    expect(popover.querySelectorAll('.mm-style-chip:not(.mm-style-bold)')).toHaveLength(4);
+    expect(popover.querySelectorAll('.mm-style-chip.mm-style-size')).toHaveLength(4);
     expect(popover.querySelector('.mm-style-bold')).not.toBeNull();
     expect(popover.querySelector('.mm-style-clear')).not.toBeNull();
     // 一个样式都没有：一块都不亮（默认外观不是「某一档」）
@@ -2325,5 +2325,236 @@ describe('关系线与概括括号（ADR 0061）', () => {
 
     expect(handle.getValue()).not.toContain('"arrows"');
     expect(arrowLabels()).toHaveLength(0);
+  });
+});
+
+describe('节点边框（ADR 0062）', () => {
+  /**
+   * 边框三键（borderColor / borderWidth / borderStyle）住 `style` 桶里 ——
+   * 落盘通道、摘键补丁、清除语义全是 0059 已铺好的（`styleApplyRef` 对
+   * 键名泛型），本轮真正要钉死的是**边框自己的三件事**：
+   *
+   * ① `borderWidth` 存**带单位字符串**（`'2px'`），塞 CSSOM 直接成立 ——
+   *    不像数字字号需要 `syncStyleFontSizes` 的 linkDiv 兜底（node-style.ts
+   *    文件头第三条），这条不对称是 0059 教训「CSSOM 要单位」的正面用法；
+   * ② 边框色 / 粗细 / 虚线在编辑器里画得出来（`Se` 逐键塞 CSSOM，无白名单），
+   *    而导出侧对 rect 是**专门通道**（computedStyle 现读 stroke）—— 与文本
+   *    四键的白名单约束**不是同一回事**，0059 的「恰好四键」适用面收窄了；
+   * ③ 唯一的导出落差是虚线：导出的 rect 没有 stroke-dasharray 映射 ——
+   *    `exportImage` 用 `countDashedBorders` 数出来交给 warnings 说一句，
+   *    不静默（硬约束 2、ADR 0050 的管道）。
+   */
+
+  /** 根主题带可选 `style` 的规范文件（同 0059 那份的形状）。 */
+  const borderFile = (root: Record<string, unknown>): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '根主题',
+          children: [{ id: 'n2', topic: '分支' }],
+          ...root,
+        },
+      },
+      null,
+      2,
+    )}\n`;
+
+  const rootTpc = (): HTMLElement | null => container.querySelector<HTMLElement>('[data-nodeid="men1"]');
+
+  const styleMenuEntry = (): HTMLLIElement | null => {
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    return items.find((li) => li.textContent === '样式…') ?? null;
+  };
+
+  const openStyleViaMenu = async (): Promise<HTMLElement> => {
+    const topic = rootTpc();
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    const entry = styleMenuEntry();
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-style-popover');
+    expect(popover).not.toBeNull();
+    return popover as HTMLElement;
+  };
+
+  /** 边框色格子（按色值取，title 就是色值）。 */
+  const borderSwatch = (popover: HTMLElement, hex: string): HTMLButtonElement | null =>
+    popover.querySelector<HTMLButtonElement>(`.mm-style-swatch-border[title="${hex}"]`);
+
+  /** 粗细档位按钮（显示的是档位序号 1/2/3，不是 `'2px'` 字符串）。 */
+  const widthChip = (popover: HTMLElement, n: number): HTMLButtonElement | null =>
+    [...popover.querySelectorAll<HTMLButtonElement>('.mm-style-chip.mm-style-width')].find(
+      (button) => button.textContent === String(n),
+    ) ?? null;
+
+  /** 线型档位按钮（「实线」/「虚线」）。 */
+  const lineChip = (popover: HTMLElement, label: string): HTMLButtonElement | null =>
+    [...popover.querySelectorAll<HTMLButtonElement>('.mm-style-chip.mm-style-line-solid, .mm-style-chip.mm-style-line-dashed')].find(
+      (button) => button.textContent === label,
+    ) ?? null;
+
+  const isActive = (button: HTMLButtonElement | null): boolean => button?.classList.contains('active') === true;
+
+  const settleKernel = async (): Promise<void> => {
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+  };
+
+  const BORDER_HEX = '#8f3b2c';
+
+  it('★ 弹层三行俱在：8 个边框色格 + 3 档粗细 + 2 档线型，默认一块不亮', async () => {
+    await mountReady({ initialValue: borderFile({}) });
+
+    const popover = await openStyleViaMenu();
+    expect(popover.querySelectorAll('.mm-style-swatch-border')).toHaveLength(8);
+    expect(popover.querySelectorAll('.mm-style-chip.mm-style-width')).toHaveLength(3);
+    expect(popover.querySelectorAll('.mm-style-chip.mm-style-line-solid, .mm-style-chip.mm-style-line-dashed')).toHaveLength(2);
+    // 没设过边框：格子和档位全不亮（默认外观不是「某一档」）
+    expect(popover.querySelectorAll('.mm-style-swatch-border.active')).toHaveLength(0);
+    expect(popover.querySelectorAll('.mm-style-chip.mm-style-width.active, .mm-style-chip.mm-style-line-solid.active, .mm-style-chip.mm-style-line-dashed.active')).toHaveLength(0);
+  });
+
+  it('点边框色：borderColor 落盘走 operation → onChange，弹层不关、格子亮起', async () => {
+    const { handle, changes } = await mountReady({ initialValue: borderFile({}) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      borderSwatch(popover, BORDER_HEX)?.click();
+    });
+    await settleKernel();
+
+    const last = changes[changes.length - 1] ?? '';
+    expect(last).toContain(`"borderColor": "${BORDER_HEX}"`);
+    expect(handle.getValue()).toContain(`"borderColor": "${BORDER_HEX}"`);
+    // 一次配好几样是正常用法：弹层不关（文字色行同款）
+    expect(container.querySelector('.mm-style-popover')).not.toBeNull();
+    expect(isActive(borderSwatch(popover, BORDER_HEX))).toBe(true);
+  });
+
+  it('点粗细：borderWidth 落盘的是带单位字符串 —— 塞 CSSOM 直接成立，不需要 linkDiv 兜底', async () => {
+    const { handle } = await mountReady({ initialValue: borderFile({}) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      widthChip(popover, 2)?.click();
+    });
+    await settleKernel();
+
+    // 数据面：词表值原样进文件（'2px'，不是数字 2 —— 导出侧现读 computedStyle，带单位两边都成立）
+    expect(handle.getValue()).toContain('"borderWidth": "2px"');
+    // 渲染面：`Se` 把 '2px' 塞给 CSSOM 直接过（数字字号那关它过不了，这里没有那一关）
+    expect(rootTpc()?.style.borderWidth).toContain('2px');
+    expect(isActive(widthChip(popover, 2))).toBe(true);
+  });
+
+  it('点虚线：borderStyle 落盘、弹层里虚线档亮起 —— 编辑器里画得出虚线', async () => {
+    const { handle } = await mountReady({ initialValue: borderFile({}) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      lineChip(popover, '虚线')?.click();
+    });
+    await settleKernel();
+
+    expect(handle.getValue()).toContain('"borderStyle": "dashed"');
+    expect(isActive(lineChip(popover, '虚线'))).toBe(true);
+    expect(isActive(lineChip(popover, '实线'))).toBe(false);
+  });
+
+  it('三键各摘各的：色 + 粗细都在时再点粗细，只摘 borderWidth —— borderColor 原样留着', async () => {
+    const { handle } = await mountReady({
+      initialValue: borderFile({ style: { borderColor: BORDER_HEX, borderWidth: '2px' } }),
+    });
+
+    const popover = await openStyleViaMenu();
+    expect(isActive(borderSwatch(popover, BORDER_HEX))).toBe(true);
+    expect(isActive(widthChip(popover, 2))).toBe(true);
+
+    act(() => {
+      widthChip(popover, 2)?.click(); // 再点一次 = 摘掉（内核真值判据，不是弹层快照）
+    });
+    await settleKernel();
+
+    const value = handle.getValue();
+    expect(value).not.toContain('"borderWidth"');
+    expect(value).toContain(`"borderColor": "${BORDER_HEX}"`);
+    // 内联样式的收尾是 0059 的补丁族在伺候（cssPropertyName('borderWidth') → 'border-width'）
+    expect(rootTpc()?.style.borderWidth).toBe('');
+    expect(isActive(borderSwatch(popover, BORDER_HEX))).toBe(true);
+    expect(isActive(widthChip(popover, 2))).toBe(false);
+  });
+
+  it('「清除」把边框三键与其他 style 键一并撤掉，内联边框也擦干净', async () => {
+    const { handle } = await mountReady({
+      initialValue: borderFile({ style: { borderColor: BORDER_HEX, borderStyle: 'dashed' } }),
+    });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-style-clear')?.click();
+    });
+    await settleKernel();
+
+    const value = handle.getValue();
+    expect(value).not.toContain('"style"');
+    // 内联样式不会自己走（Se 对假值整段跳过），0059 的 removeProperty 收尾连边框键一起伺候
+    expect(rootTpc()?.style.borderColor).toBe('');
+    expect(rootTpc()?.style.borderStyle).toBe('');
+  });
+
+  it('虚线在导出的图里画成实线 —— exportImage 如实点名（warnings 管道，不静默）', async () => {
+    const { handle } = await mountReady({ initialValue: borderFile({ style: { borderStyle: 'dashed' } }) });
+
+    const image = await handle.exportImage?.('svg');
+    expect(image).not.toBeNull();
+    const keys = image?.warnings.map((w) => w.key) ?? [];
+    expect(keys).toContain('ui.mindmap.exportBorderDashed');
+    // 点名带个数：一棵树里一个虚线节点
+    expect(image?.warnings.find((w) => w.key === 'ui.mindmap.exportBorderDashed')?.params).toMatchObject({ n: 1 });
+  });
+
+  it('实线 / 没设过线型：导出不多说这一句 —— 点名只留给真的会画错的', async () => {
+    // mountReady 是一次挂载（container 单例），对照用例各挂各的
+    const solid = await mountReady({ initialValue: borderFile({ style: { borderStyle: 'solid' } }) });
+    const solidImage = await solid.handle.exportImage?.('svg');
+    expect(solidImage?.warnings).toEqual([]);
+  });
+
+  it('undo 把边框找回来：内核走 refresh(prev) 不发 operation，键靠 Se 重塞', async () => {
+    const { handle } = await mountReady({ initialValue: borderFile({ style: { borderWidth: '3px' } }) });
+
+    const popover = await openStyleViaMenu();
+    act(() => {
+      widthChip(popover, 3)?.click(); // 摘掉唯一的键
+    });
+    await settleKernel();
+    expect(handle.getValue()).not.toContain('"style"');
+
+    const map = container.querySelector<HTMLElement>('.map-container');
+    expect(map).not.toBeNull();
+    await act(async () => {
+      map?.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 350);
+      });
+    });
+
+    expect(handle.getValue()).toContain('"borderWidth": "3px"');
+    expect(rootTpc()?.style.borderWidth).toContain('3px');
   });
 });

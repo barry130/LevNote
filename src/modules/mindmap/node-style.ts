@@ -10,26 +10,47 @@
  * `borderColor` 一类）照样原样往返 —— 词表是界面知识，不是格式语义，
  * 与 `markers.ts` 同一条纪律。
  *
- * ## 为什么恰好是这四个键
+ * ## 词表的范围（0059 的「恰好四键」在 0062 修过适用面）
  *
- * `color` / `background` / `fontSize` / `fontWeight` —— 这是内核**导出侧**
- * 认得的全部（`LayoutSsr.js:45-47` 只把这四样拼进独立 SVG 的内联样式，
- * 其余键导出时静默丢）。词表若超出这个范围，编辑器里画得出、导出的
- * 图里没有，正是 ADR 0050「导出画出来的样子」要拦的落差。
+ * 文本类键（`color` / `background` / `fontSize` / `fontWeight`）受**导出白名单**
+ * 约束：`LayoutSsr.js` 的 `foreignObject` 只拼 `font-family / font-size /
+ * font-weight / color` 四样（:2607），多一个键就是「编辑器画得出、导出的图里
+ * 没有」（ADR 0050 要拦的落差）。
  *
- * ## `fontSize` 为什么是数字
+ * **边框类键不受这个约束**（ADR 0062 探针）：导出侧对节点矩形是
+ * **专门通道** —— `Xo` / `se`（`MindElixir.js:2611-2635`）把 `getComputedStyle`
+ * 的 `borderColor → stroke`、`borderWidth → stroke-width`、
+ * `borderRadius → rx/ry` **现读**到 SVG `rect` 上，**没有白名单**，DOM 上
+ * 长什么样（无论谁写上去的）导出就长什么样。唯一的例外是
+ * `borderStyle`：导出的 rect **没有** `stroke-dasharray` 映射 —— 编辑器里
+ * 画的虚线，导出的图里是实线。这个落差不静默：`countDashedBorders`
+ * 数出来交给 `exportImage` 的 `warnings`（0050 的管道）。
+ *
+ * ## `fontSize` 为什么是数字（`borderWidth` 为什么是带单位字符串）
  *
  * 内核导出时按 `font-size: ${v}px` 拼接 —— 值必须是数字才拼得对；
  * 而内核渲染侧把 `style` 每个键原样塞给 CSSOM（`MindElixir.js:344-347`），
  * CSSOM 对无单位的非零长度按**无效值忽略**（规范行为），数字字号在
  * 编辑器里反而画不出来 —— 这个缺口由 `MindmapEditor` 的 `linkDiv`
  * 兜底同步补一次 `n + 'px'`（同 0056 徽章的同步时机）。
- * 带单位的字符串（别的工具写的 `'20px'`）渲染侧没问题、导出侧会被
+ * `borderWidth` 走的是另一条路：导出**现读** computedStyle（不拼字符串），
+ * 带不带单位导出都吃得下，而渲染侧塞 CSSOM **必须要单位** —— 所以
+ * 词表存 `'2px'` 这样的带单位字符串，两边都成立，不需要任何同步器。
+ * 带单位的字符串字号（别的工具写的 `'20px'`）渲染侧没问题、导出侧会被
  * 拼成非法值 —— 已知边界，如实保留，不替别人改写。
  */
 
-/** 弹层可编辑的键 —— 与内核导出侧的映射范围逐字对齐（见文件头第二条）。 */
-export type StyleKey = 'color' | 'background' | 'fontSize' | 'fontWeight';
+import type { MindmapNode } from '../../core/mindmap/types.js';
+
+/** 弹层可编辑的键 —— 文本类四键见文件头（导出白名单），边框类三键见同上（导出专门通道）。 */
+export type StyleKey =
+  | 'color'
+  | 'background'
+  | 'fontSize'
+  | 'fontWeight'
+  | 'borderColor'
+  | 'borderWidth'
+  | 'borderStyle';
 
 /** 样式对象的形状：文件层是不透明的 `Record<string, unknown>`，这里同名同形。 */
 export type StyleValues = Readonly<Record<string, unknown>>;
@@ -69,6 +90,53 @@ export const STYLE_FILL_COLORS: readonly string[] = [
 
 /** 字号档位。内核默认正文是 16px（`.map-container` 的字体大小），16 在表里、不亮就是「没设过」。 */
 export const STYLE_FONT_SIZES: readonly number[] = [14, 16, 20, 26];
+
+/**
+ * 边框颜色（ADR 0062）。**复用文字色那张表、不另抄一份**（名单只有一份的纪律）：
+ * 八个偏墨色同样适合描边 —— 边框要压得住浅底，与文字「在浅色纸面上读得清」
+ * 是同一条判据。弹层里「边框」行的格子画的是**空心框**（`border` 即色值，
+ * 见 `mindmap.css` 的 `.mm-style-swatch-border`），与「背景」的实心格、
+ * 「文字」的 A 字、「连线」的横线天然可辨（0059 的四行可辨性问题五）。
+ */
+export const STYLE_BORDER_COLORS: readonly string[] = STYLE_TEXT_COLORS;
+
+/**
+ * 边框粗细档位。存**带单位字符串**：渲染侧 `Se` 原样塞 CSSOM，无单位长度
+ * 被规范忽略（同 `fontSize` 的教训），而导出侧现读 computedStyle、带不带单位
+ * 都吃得下 —— 带单位是两边都成立的唯一形状，**不需要** `syncStyleFontSizes`
+ * 那样的 linkDiv 兜底（见文件头第三条）。
+ */
+export const STYLE_BORDER_WIDTHS: readonly string[] = ['1px', '2px', '3px'];
+
+/**
+ * 边框线型档位。`solid` 在表里、再点一次 = 摘键（不是「设成默认」—— 文件里
+ * 留下显式的 `borderStyle: 'solid'` 与「没设过」是两个状态，摘掉才是干净）。
+ * 虚线的导出边界见 `countDashedBorders`。
+ */
+export const STYLE_BORDER_LINE_STYLES: readonly string[] = ['solid', 'dashed'];
+
+/**
+ * 数「导出图里虚线会画成实线」的节点（ADR 0062）。导出的节点矩形
+ * （`Xo` / `se`，`MindElixir.js:2611-2635`）只映射 `borderColor / borderWidth /
+ * borderRadius` 三个计算样式，**没有 `stroke-dasharray`** —— `borderStyle`
+ * 在编辑器里画得出来、导出图里静默变成实线。这个落差不静默（硬约束 2）：
+ * `exportImage` 调它数个数，交给 `warnings` 说一句（0050 的管道）。
+ *
+ * **词表外的值照数**（`'dotted'`、`'double'` 一类别的工具写的）：导出丢线型
+ * 对它们同样成立，按「实际会画成实线」的判据数，不按「是不是词表写的」数。
+ */
+export function countDashedBorders(root: MindmapNode): number {
+  let count = 0;
+  const visit = (node: MindmapNode): void => {
+    // 只数「编辑器里真的画成了虚线」的节点：非字符串 / 空串在 CSSOM 赋值那一步
+    // 就被忽略（规范行为），导出图里本来就没有那条线，数上就是虚报。
+    const borderStyle = node.style?.borderStyle;
+    if (typeof borderStyle === 'string' && borderStyle !== 'solid' && borderStyle !== '') count += 1;
+    for (const child of node.children) visit(child);
+  };
+  visit(root);
+  return count;
+}
 
 /**
  * 分支连线颜色（ADR 0060）。**与主题的主分支取色环是同一张表、且名单只有
