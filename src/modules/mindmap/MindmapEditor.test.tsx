@@ -2106,3 +2106,224 @@ describe('连线颜色（ADR 0060）', () => {
     expect(strokes('.lines')).toEqual([BRANCH_HEX]);
   });
 });
+
+/**
+ * 关系线与概括括号（ADR 0061）。这一轮的结论是「缺口不存在」——两个能力
+ * 全链路都是内核原生的（右键菜单入口、clickTips 引导、就地气泡编辑 label、
+ * Delete 删除、operation → emit 主通道落盘、`linkDiv` 里 `renderArrow` /
+ * `renderSummary` 全量重画、`exportSvg` 克隆 `.topiclinks` / `.summary`），
+ * 适配层的顶层 extra 双向直通从 0007 时代就有测试钉着。
+ * 这组用例的职责是**把接缝钉死**：内核升级弄断任何一环（菜单项不再挂、
+ * operation 不再报、getData 不再交 arrows）都会在这里当场爆。
+ *
+ * jsdom 两个已知盲区（ADR 0061 已登记，真机冒烟覆盖）：
+ * - **概括括号的创建**：`createSummary` 吃框选出的 `currentNodes`（兄弟段），
+ *   框选要算矩形命中，jsdom 没有布局引擎 ⇒ 创建链路无法从 UI 驱动，
+ *   这里只钉「菜单项在」与「手写的 summaries 能回填重画」；
+ * - **像素观感**（线型、括号弧度）照例不进 jsdom。
+ */
+describe('关系线与概括括号（ADR 0061）', () => {
+  /** 根 n1 → n2 分支甲 / n3 分支乙（两个兄弟分支，箭头与括号都要成对出现才有意义）。 */
+  const relateFile = (extra: Record<string, unknown> = {}): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '根主题',
+          children: [
+            { id: 'n2', topic: '分支甲', children: [] },
+            { id: 'n3', topic: '分支乙', children: [] },
+          ],
+        },
+        ...extra,
+      },
+      null,
+      2,
+    )}\n`;
+
+  /** 某节点的 `me-tpc` —— 内核把 data-nodeid 挂在 me-tpc 本身上（:396-397）。 */
+  const topicOf = (id: string): HTMLElement | null => container.querySelector<HTMLElement>(`[data-nodeid="me${id}"]`);
+
+  /** 右键某节点把菜单点开（内核 200ms 才弹，真等 —— 0059 同款）。 */
+  const rightClickOn = async (id: string): Promise<void> => {
+    const topic = topicOf(id);
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+  };
+
+  /** 菜单里某条目（textContent 全等 —— 「连接」与「双向连接」必须分得开）。 */
+  const menuEntry = (label: string): HTMLLIElement | null => {
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    return items.find((li) => li.textContent === label) ?? null;
+  };
+
+  /** 画布上关系线的 label 气泡 —— 内核自己的选择器合同（:2393）。 */
+  const arrowLabels = (): Element[] => [...container.querySelectorAll('.svg-label[data-type="arrow"]')];
+
+  /** 等内核把重画链上的同步回调跑完。 */
+  const settleKernel = async (): Promise<void> => {
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+  };
+
+  /** 走完「右键 → 连接/双向连接 → 点目标」整条内核链路，交回落盘前的等待。 */
+  const drawArrowFromTo = async (id: string, targetId: string, bidirectional: boolean): Promise<void> => {
+    await rightClickOn(id);
+    const entry = menuEntry(bidirectional ? '双向连接' : '连接');
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    // clickTips 气泡出现 —— 引导语是内核用 innerText 写的，jsdom 的 innerText
+    // setter 是空操作（0055 记过的盲区），文案断言不了，只断气泡挂出来了
+    expect(container.querySelector('.tips')).not.toBeNull();
+    await act(async () => {
+      topicOf(targetId)?.click();
+    });
+    await settleKernel();
+  };
+
+  it('菜单三项俱在：link: true 开出「连接」「双向连接」，「概要」无条件挂', async () => {
+    await mountReady({ initialValue: relateFile() });
+    await rightClickOn('n2');
+
+    // MindmapEditor 传 contextMenu.link = true ⇒ 内核把 m/x 两项都挂上（:1396）；
+    // 概括项 y 无条件 append —— 没有开关，一直在（内核 :1396）。
+    expect(menuEntry('连接')).not.toBeNull();
+    expect(menuEntry('双向连接')).not.toBeNull();
+    expect(menuEntry('概要')).not.toBeNull();
+  });
+
+  it('关系线创建全链路：右键 → 连接 → 引导气泡 → 点目标 → operation 落盘，画布上有线', async () => {
+    const { handle, changes } = await mountReady({ initialValue: relateFile() });
+
+    await drawArrowFromTo('n2', 'n3', false);
+
+    // operation → onChange → emit 主通道：内核把 arrows 现读交出（getData 含 arrows）
+    expect(changes.length).toBeGreaterThan(0);
+    const text = handle.getValue();
+    expect(text).toContain('"arrows"');
+    expect(text).toContain('"from": "n2"');
+    expect(text).toContain('"to": "n3"');
+    // 已知边界如实断言：内核默认 label 是写死的英文 "Custom Link"（:2295）——
+    // 不替内核发明默认值（改了升级就丢），用户可就地气泡编辑改掉
+    expect(text).toContain('"Custom Link"');
+    expect(arrowLabels()).toHaveLength(1);
+  });
+
+  it('点「连接」后点空白画布 = 取消：一次性监听消费掉，箭头不建、数据不落', async () => {
+    const { handle } = await mountReady({ initialValue: relateFile() });
+
+    await rightClickOn('n2');
+    const entry = menuEntry('连接');
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    expect(container.querySelector('.tips')).not.toBeNull();
+
+    // 点 map 自身 —— target 不是 me-tpc 的祖先链（parentElement 不是 ME-PARENT/ME-ROOT），
+    // 内核判定不通过；once 监听已消费，箭头不建
+    const canvas = container.querySelector<HTMLElement>('.map-canvas');
+    expect(canvas).not.toBeNull();
+    await act(async () => {
+      canvas?.click();
+    });
+    await settleKernel();
+
+    expect(handle.getValue()).not.toContain('"arrows"');
+    expect(arrowLabels()).toHaveLength(0);
+  });
+
+  it('双向连接落盘 bidirectional: true（同一条 createArrow 链，D() 带上开关）', async () => {
+    const { handle } = await mountReady({ initialValue: relateFile() });
+
+    await drawArrowFromTo('n2', 'n3', true);
+
+    expect(handle.getValue()).toContain('"bidirectional": true');
+    expect(arrowLabels()).toHaveLength(1);
+  });
+
+  it('手写的关系线能回填重画：mount 后线就在画布上，round-trip 不丢', async () => {
+    const { handle, errors } = await mountReady({
+      initialValue: relateFile({ arrows: [{ id: 'a1', label: '依赖', from: 'n2', to: 'n3' }] }),
+    });
+
+    expect(errors).toEqual([]);
+    // 适配层把顶层 extra 的 arrows 回填给内核（toKernelData :198），
+    // init 的 linkDiv 里 renderArrow 把它画出来（:1353）
+    expect(arrowLabels()).toHaveLength(1);
+    expect(handle.getValue()).toContain('"label": "依赖"');
+    expect(handle.getValue()).toContain('"from": "n2"');
+  });
+
+  it('手写的概括括号能回填：数据不丢、画布上有元素（创建链路的 jsdom 盲区见 describe 头）', async () => {
+    const { handle, errors } = await mountReady({
+      initialValue: relateFile({ summaries: [{ id: 's1', label: '这一段', parent: 'n1', start: 0, end: 1 }] }),
+    });
+
+    expect(errors).toEqual([]);
+    const text = handle.getValue();
+    expect(text).toContain('"summaries"');
+    expect(text).toContain('"parent": "n1"');
+    // 画布层：summarySvg 挂在 nodes 尾部（:2552）；class 是 exportSvg 认的 .summary
+    // （:2679 —— 两侧选择器必须同名，否则「编辑器画得出、导出没有」）
+    expect(container.querySelector('.summary')).not.toBeNull();
+  });
+
+  it('linkDiv 重画后关系线还在：插入子主题触发全量重建，renderArrow 把线画回来', async () => {
+    const { handle } = await mountReady({
+      initialValue: relateFile({ arrows: [{ id: 'a1', label: '依赖', from: 'n2', to: 'n3' }] }),
+    });
+    expect(arrowLabels()).toHaveLength(1);
+
+    // 加一个子节点 —— 布局变化走 layout + linkDiv，箭头必须跟着全量重画（:1353）
+    await rightClickOn('n2');
+    // addChild 项带快捷键列（li 里两个 span：文案 + "Tab"），全等匹配不上，
+    // 用前缀找 —— 其余用例的全等匹配是「连接」与「双向连接」必须分得开的同一条
+    const entry =
+      [...container.querySelectorAll<HTMLLIElement>('.context-menu li')].find((li) =>
+        li.textContent?.startsWith('插入子主题'),
+      ) ?? null;
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    await settleKernel();
+
+    expect(arrowLabels()).toHaveLength(1);
+    expect(handle.getValue()).toContain('"label": "依赖"');
+  });
+
+  it('undo 把关系线撤掉：Kn 的快照含 arrows，refresh 后 renderArrow 画空', async () => {
+    const { handle } = await mountReady({ initialValue: relateFile() });
+
+    await drawArrowFromTo('n2', 'n3', false);
+    expect(handle.getValue()).toContain('"arrows"');
+
+    // 内核 undo（.map-container 的 keydown: Ctrl+Z）走 refresh(prev) 不发 operation
+    // —— 但 linkDiv 会跟着跑，renderArrow 按恢复后的空 arrows 画空
+    const map = container.querySelector<HTMLElement>('.map-container');
+    expect(map).not.toBeNull();
+    await act(async () => {
+      map?.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 350);
+      });
+    });
+
+    expect(handle.getValue()).not.toContain('"arrows"');
+    expect(arrowLabels()).toHaveLength(0);
+  });
+});

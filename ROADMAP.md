@@ -278,7 +278,8 @@ lint 跑在 TS 6 上，`tsc` 跑在 TS 7 上，所以「`tsc` 通过」不等于
 > **markdown 内核画的字也跟着语言走（2026-10-13，ADR 0057：代码块标签 / 图区纸条 / 图片占位三机制，重画不重建，别人的话不翻）**、
 > **导图查找也搜备注（2026-10-14，ADR 0058：`TopicHit.field` 分诊，`collectHits` 主题先备注后、`reveal` 亮/收弹层、`replace` 分通道、`replaceAll` 分段键控报命中数、`NotePopover` 挂 `key`）**、
 > **导图节点样式改得了（2026-10-14，ADR 0059：文字色 / 底色 / 字号 / 加粗，右键「样式…」弹层；格式层与适配层零改动 —— `style` 早就是正字段、内核也一直在渲染，缺的只是「写」）**、
-> **导图分支连线颜色改得了（2026-11-07，ADR 0060：`branchColor` 从 `extra` 桶升格为正字段，样式弹层第五行「连线」；连线是每次全量重建的 SVG，摘键无需 DOM 收尾；子树继承是内核合同；根没有线不渲染该行；词表 = 默认轮转表一份，摘掉即回轮转）**。
+> **导图分支连线颜色改得了（2026-11-07，ADR 0060：`branchColor` 从 `extra` 桶升格为正字段，样式弹层第五行「连线」；连线是每次全量重建的 SVG，摘键无需 DOM 收尾；子树继承是内核合同；根没有线不渲染该行；词表 = 默认轮转表一份，摘掉即回轮转）**、
+> **导图关系线与概括括号钉住了（2026-11-07，ADR 0061：验证钉死轮 —— 探针证实两能力全链路内核原生，此前「已透传零 UI」是拿 0055 旧印象当新事实；创建菜单全开（`link: true` 开两项、「概要」无条件挂）、label 就地气泡编辑、Delete 删除、`linkDiv` 全量重画、导出克隆 `.topiclinks`/`.summary`；8 条集成测试钉死接缝，生产代码零改动）**。
 > 0041 清点出来的两类都属于「用户的动作没有任何反馈」：一是命令失败被 `console.warn`
 > 吞掉（四个入口各自抄了一遍，所以修一处会漏三处），二是拖入多个文件只开第一个
 > （静默丢掉用户的选择）。
@@ -1038,6 +1039,27 @@ jsdom 没有布局引擎，`getBoundingClientRect()` 全是 0。
 > 同一次 `reshapeNode` 里撤掉 —— 一步 undo 一起回来。
 > 测试：1,875 → **1,893 条前端**（parse / serialize / adapter / node-style +9、
 > MindmapEditor 连线 describe +9）。
+>
+> 2026-11-07（ADR 0061）补第十四句：**关系线与概括括号不是缺口**。候选清单里
+> 它顶着「arrows / summaries 已透传零 UI」排队 —— 本轮探针内核逐段核实后发现
+> **全链路内核原生早已通**：「连接」「双向连接」受 `contextMenu.link` 开关
+> （`MindmapEditor` 一直传 `link: true`），「概要」**无条件挂**（没有开关）；
+> 点「连接」→ `clickTips` 引导气泡（语言包四键 0049 已覆盖）→ `map` 上一次性
+> click 监听 → 目标 `me-tpc` 判定 → `createArrow`；label 编辑是**就地
+> contenteditable 气泡**（Enter/Tab 收尾、blur 提交、空值回退 —— 全库无
+> `prompt()`/`confirm()`，Tauri 缺原生对话框那族问题不存在）；删除走 Delete 键
+> （`currentArrow`/`currentSummary` 分诊，菜单无删除项）；`operation` 归
+> `type:"arrow"`/`type:"summary"` 走既有主通道，`getData()` 现读交出两个数组
+> （适配层 0007 顶层 extra 直通早有测试）；**重画随布局**（`linkDiv` 先
+> `renderArrow()+renderSummary()` 再 fire —— 节点动后不悬空）；`exportSvg`
+> 克隆 `.topiclinks`/`.summary`，导出侧零改动。**「零 UI」错在**：0055 那句
+> 说的是 `hyperLink`/`tags`，把同族印象套到了这对上 —— 不先探针就写结论 =
+> 拿旧印象当新事实排队。本轮产出 = 生产代码零改动的 8 条集成测试（菜单三项 /
+> 创建全链路落盘 / 点空白取消 / 双向 / 手写 arrows 回填重画 / 手写 summaries
+> 回填 / `linkDiv` 重建后箭头仍在 / undo 撤掉）+ 边界登记：默认 label 是内核
+> 写死的英文 `"Custom Link"`（不替内核改）、概括括号创建需框选（jsdom 无布局，
+> 创建链留真机冒烟）。XMind 对标清单上「关系线」「概括括号」两项关闭。
+> 测试：1,893 → **1,901 条前端**（MindmapEditor「关系线与概括括号」describe +8）。
 
 主包 1,872.79 → **1,886.68 kB**（+13.89，gzip 624.53）。检索面板、store、图标、
 样式全是首屏就要用的，没有懒加载余地。新增依赖两个（`ignore` / `regex`，
