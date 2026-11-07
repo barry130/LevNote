@@ -778,6 +778,7 @@ export const zhCN = {
   'ui.mindmap.styleFill': '背景',
   'ui.mindmap.styleSize': '字号',
   'ui.mindmap.styleBold': '加粗',
+  'ui.mindmap.styleBranch': '连线',
   'ui.mindmap.styleClear': '清除这个主题上的全部样式',
   // 导出图片时内核如实报出的实话（ADR 0050）：外链图片不自包含，两种格式的后果不同
   'ui.mindmap.exportPngImagesExternal':
@@ -1643,6 +1644,7 @@ export const en: Record<MessageKey, string> = {
   'ui.mindmap.styleFill': 'Fill',
   'ui.mindmap.styleSize': 'Font size',
   'ui.mindmap.styleBold': 'Bold',
+  'ui.mindmap.styleBranch': 'Branch line',
   'ui.mindmap.styleClear': 'Clear all styles on this topic',
   // Honest kernel-side notes when exporting an image (ADR 0050): external images
   // are not self-contained, and the two formats fail in different ways

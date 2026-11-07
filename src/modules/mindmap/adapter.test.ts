@@ -102,13 +102,12 @@ describe('节点字段的映射', () => {
   });
 
   it('内核认识的字段走 extra 往返，一个都不丢', () => {
-    // `icons` / `image` / `hyperLink` / `tags` 曾在或本可出现在这一排里 ——
-    // ADR 0053 / 0054 / 0055 陆续升格为正字段，搬进下面各条
+    // `icons` / `image` / `hyperLink` / `tags` / `branchColor` 曾在或本可出现在
+    // 这一排里 —— ADR 0053 / 0054 / 0055 / 0060 陆续升格为正字段，搬进下面各条
     const data = kernel({
       id: 'n1',
       topic: '根',
       children: [],
-      branchColor: '#ff0000',
       metadata: { owner: 'me' },
       // hyperLinkHref / tagList 是**谁都不认识**的键（NodeObj 里没有）——
       // spread 一个 Record 绕过字面量的 excess check，测的才是真「未知键」
@@ -117,7 +116,6 @@ describe('节点字段的映射', () => {
     const back = fromKernelData(doc(), data);
 
     expect(back.root.extra).toEqual({
-      branchColor: '#ff0000',
       metadata: { owner: 'me' },
       hyperLinkHref: 'https://example.com',
       tagList: ['重要'],
@@ -128,6 +126,21 @@ describe('节点字段的映射', () => {
     expect(round.nodeData.hyperLinkHref).toBe('https://example.com');
     expect(round.nodeData.tagList).toEqual(['重要']);
     expect(round.nodeData.metadata).toEqual({ owner: 'me' });
+  });
+
+  it('branchColor 是正字段（ADR 0060）：文件 ↔ 内核同名直通，不进 extra', () => {
+    const withColor = doc({ root: { id: 'n1', topic: '根', children: [], branchColor: '#e2603f', extra: {} } });
+    expect(toKernelData(withColor).nodeData.branchColor).toBe('#e2603f');
+
+    const back = fromKernelData(doc(), kernel({ id: 'n1', topic: '根', children: [], branchColor: '#209fb5' }));
+    expect(back.root.branchColor).toBe('#209fb5');
+    // 关键回归点：升格之前它掉在 extra 里；掉在 extra 里会与正字段重复写键
+    expect(back.root.extra).toEqual({});
+
+    // undefined 不交（没这回事）—— 摘键后 getData() 带回来的树里没有它
+    const plain = fromKernelData(doc(), kernel({ id: 'n1', topic: '根', children: [] }));
+    expect(plain.root.branchColor).toBeUndefined();
+    expect(plain.root.extra).toEqual({});
   });
 
   it('icons 是正字段（ADR 0053）：文件 ↔ 内核同名直通，不进 extra、空数组照带', () => {

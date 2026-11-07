@@ -504,6 +504,16 @@
   font-weight: 700;
 }
 
+/* 连线色块（ADR 0060）：格子里只画「一段线」—— 底边框即色值本身，
+   其余三边保持中性（色块只把 hex 交给 borderColor，见 StylePopover）。
+   实心方块会和「背景」行长得一模一样（文字色用 A 字符是同一个理由）。 */
+.mm-style-swatch-branch {
+  border-top-color: var(--line-strong);
+  border-left-color: var(--line-strong);
+  border-right-color: var(--line-strong);
+  border-bottom-width: 3px;
+}
+
 .mm-style-swatch:hover,
 .mm-style-chip:hover {
   border-color: var(--accent);

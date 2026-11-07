@@ -355,6 +355,16 @@ export function parseMindmap(text: string, options: ParseMindmapOptions = {}): P
     if (isUnknownArray(rawTags) && rawTags.every(isTagEntry)) node.tags = rawTags;
     else if (rawTags !== undefined) badField('tags', rawTags);
 
+    /**
+     * 分支连线颜色（ADR 0060）：只认「非空字符串」—— 内核对假值 `||`
+     * 回落轮转色（`MindElixir.js:1347`），`""` 是画不出来的颜色；
+     * 与 `hyperLink` 同一条纪律。词表（`node-style.ts` 的
+     * `BRANCH_COLORS`）是界面知识，格式层一个色值都不解释。
+     */
+    const rawBranchColor = value.branchColor;
+    if (typeof rawBranchColor === 'string' && rawBranchColor !== '') node.branchColor = rawBranchColor;
+    else if (rawBranchColor !== undefined) badField('branchColor', rawBranchColor);
+
     // --- children ------------------------------------------------------------
     const rawChildren = value.children;
     if (rawChildren === undefined) {

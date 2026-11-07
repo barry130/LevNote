@@ -16,7 +16,8 @@
  * 1. **键顺序固定**（与 §4 给 `doc-block` 定的同一条理由）：
  *    同一份内容永远产出同样的文本，git diff 才有意义。
  *    顺序是 `format` → `version` → `layout` → 顶层未识别键（按读进来的顺序）→ `root`；
- *    节点是 `id` → `topic` → `note` → `collapsed` → `style` → 未识别键 → `children`。
+ *    节点是 `id` → `topic` → `note` → `collapsed` → `style` → `icons` → `image` →
+ *    `hyperLink` → `tags` → `branchColor` → 未识别键 → `children`。
  * 2. **未识别键保持读进来的相对顺序**：`parseMindmap` 按源文件的键顺序建 `extra`，
  *    而 JS 对象对字符串键保持插入顺序，所以往返不会打乱它们。
  *
@@ -130,6 +131,14 @@ function nodeToJson(node: MindmapNode): Record<string, unknown> {
   if (node.tags !== undefined) {
     entries.push(['tags', node.tags]);
     taken.add('tags');
+  }
+  /**
+   * 分支连线颜色（ADR 0060）：`undefined` 不写（没这回事）。键序：`tags`
+   * 之后、`extra` 之前 —— 与 §7.1.2 的表一致；解析时同序读入，往返稳定。
+   */
+  if (node.branchColor !== undefined) {
+    entries.push(['branchColor', node.branchColor]);
+    taken.add('branchColor');
   }
 
   for (const [key, value] of Object.entries(node.extra)) {

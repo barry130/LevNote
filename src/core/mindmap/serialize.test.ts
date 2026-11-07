@@ -32,7 +32,7 @@ describe('serializeMindmap · 确定性', () => {
     expect(keys).toEqual(['format', 'version', 'layout', 'zzz', 'aaa', 'root']);
   });
 
-  it('节点键顺序固定：id → topic → note → collapsed → style → icons → image → hyperLink → tags → 未识别键 → children', () => {
+  it('节点键顺序固定：id → topic → note → collapsed → style → icons → image → hyperLink → tags → branchColor → 未识别键 → children', () => {
     const text = serializeMindmap(
       doc({
         root: node({
@@ -45,6 +45,7 @@ describe('serializeMindmap · 确定性', () => {
           image: { url: 'a.png', width: 10, height: 20 },
           hyperLink: 'https://example.com/a',
           tags: ['重要'],
+          branchColor: '#e2603f',
           extra: { future: 1 },
           children: [node({ id: 'n2', topic: '子' })],
         }),
@@ -61,6 +62,7 @@ describe('serializeMindmap · 确定性', () => {
       'image',
       'hyperLink',
       'tags',
+      'branchColor',
       'future',
       'children',
     ]);
@@ -112,6 +114,15 @@ describe('serializeMindmap · 确定性', () => {
     );
     const root = (JSON.parse(mixed) as { root: { tags?: unknown[] } }).root;
     expect(root.tags).toEqual(['重要', { text: '风险', className: 'mm-x' }]);
+  });
+
+  it('branchColor：有则原样写出，undefined 不写（ADR 0060）', () => {
+    const without = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根' }) }));
+    expect(without).not.toContain('"branchColor"');
+
+    const withColor = serializeMindmap(doc({ root: node({ id: 'n1', topic: '根', branchColor: '#209fb5' }) }));
+    const root = (JSON.parse(withColor) as { root: { branchColor?: string } }).root;
+    expect(root.branchColor).toBe('#209fb5');
   });
 
   it('同一份文档序列化两次得到完全一样的文本', () => {

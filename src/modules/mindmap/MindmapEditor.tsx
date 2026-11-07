@@ -63,8 +63,10 @@ import { directionOf, fromKernelData, toKernelData } from './adapter.js';
 import { mindmapLangPack } from './lang-pack.js';
 import { applyMarkerToggle, MINDMAP_MARKER_GROUPS, MINDMAP_MARKERS } from './markers.js';
 import {
+  activeBranchIndex,
   activeFontSize,
   activeSwatchIndex,
+  BRANCH_COLORS,
   isBold,
   STYLE_FILL_COLORS,
   STYLE_FONT_SIZES,
@@ -199,12 +201,14 @@ function collectHits(root: MindmapNode, options: FindOptions): TopicHit[] {
  * 这个文件里永远不需要出现 `#rrggbb`。
  *
  * `type` 只是未覆盖变量的兜底底色（内核会在它之上叠 `cssVar`）；
- * `palette` 是主分支的取色环，用轻笺的品牌色。
+ * `palette` 是主分支的取色环 —— 从 `BRANCH_COLORS` 取（ADR 0060：它与
+ * 样式弹层的连线词表是**同一张表、名单只有一份** —— 抄第二份的下场是
+ * 「弹层给的颜色」与「摘掉后回到的默认轮转色」对不上）。
  */
 const LEVNOTE_THEME = {
   name: 'LevNote',
   type: 'light' as const,
-  palette: ['#2e7d6a', '#3f6ea8', '#8a5a86', '#e2603f', '#7a8690', '#b4d4c6', '#16302a', '#209fb5'],
+  palette: [...BRANCH_COLORS],
   cssVar: {
     '--bgcolor': 'var(--surface)',
     '--color': 'var(--ink)',
@@ -436,13 +440,24 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
   const noteApplyRef = useRef<((nodeId: string, note: string | undefined) => boolean) | null>(null);
 
   /**
-   * 样式弹层（ADR 0059），与前四条内核自有 UI 同一条纪律：不进 `EditorHandle`。
-   * 落盘 ref 在 effect 里装、闭住当前内核，cleanup 下岗；两个出口都返回
-   * **新的样式快照**供弹层回显（连挂多键是正常用法，亮着的色块必须跟着走）。
+   * 样式弹层（ADR 0059 / 0060），与前四条内核自有 UI 同一条纪律：不进 `EditorHandle`。
+   * 落盘 ref 在 effect 里装、闭住当前内核，cleanup 下岗；`styleApplyRef` /
+   * `styleClearRef` 返回**新的样式快照**供弹层回显（连挂多键是正常用法，
+   * 亮着的色块必须跟着走）。`branchApplyRef`（ADR 0060）**独立成族**：
+   * `branchColor` 是节点顶层键、不是 `style` 的子键 —— 混进同一条补丁通道
+   * 会让「style 对象补丁」的语义带上一个顶层键，两族数据一条通道正是
+   * 0053 双写教训的温床。
    */
   const [stylePopover, setStylePopover] = useState<StylePopoverState | null>(null);
   const styleApplyRef = useRef<((nodeId: string, key: StyleKey, value: string | number) => StyleValues | null) | null>(null);
-  const styleClearRef = useRef<((nodeId: string) => StyleValues | null) | null>(null);
+  const styleClearRef = useRef<((nodeId: string) => { style: StyleValues; branchColor: unknown } | null) | null>(null);
+  /**
+   * 返回值是**三态**的结果对象而不是裸 `string | undefined`：
+   * `{ hex }` 落了值 / `{}` 摘掉了 / `null` 没落进去。直接用 `undefined`
+   * 表示「摘掉」会在出口处被 `?.() ?? null` 误折成失败 —— 快照漏刷新，
+   * 亮着的格子不知道自己被摘了（写测试时当场抓住过）。
+   */
+  const branchApplyRef = useRef<((nodeId: string, hex: string) => { hex?: string } | null) | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -618,10 +633,16 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       };
 
       /**
-       * 右键菜单「样式…」的 handler（ADR 0059），与前五个同构：藏菜单 / 记节点 /
-       * 传坐标。`style` 是**打开那一刻的快照**，只负责弹层里「亮哪个」；
-       * 真正落盘在 ref 通道里从内核的 `nodeObj` 现取现算（`markerApplyRef`
-       * 的先例），快照过期也不会写错。
+       * 右键菜单「样式…」的 handler（ADR 0059 / 0060），与前五个同构：藏菜单 /
+       * 记节点 / 传坐标。`style` 与 `branchColor` 都是**打开那一刻的快照**，
+       * 只负责弹层里「亮哪个」；真正落盘在 ref 通道里从内核的 `nodeObj`
+       * 现取现算（`markerApplyRef` 的先例），快照过期也不会写错。
+       *
+       * `canBranch` = 不是根：根没有连线（内核只对根的子节点读
+       * `branchColor`，ADR 0060 判据 5），给根刷一个画不出来的颜色是骗人
+       * —— 弹层整行不渲染（0052「根不展开」同族的例外）。root 判定走
+       * **活信封**而不是内核的 `nodeData`：专注模式会把后者换成子树
+       * （`goToOutlineItem` 注释同一条理由）。
        */
       const openStylePopover = (event: MouseEvent): void => {
         const menu = event.target instanceof Element ? event.target.closest('.context-menu') : null;
@@ -634,6 +655,8 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
           y: event.clientY,
           nodeId: topic.nodeObj.id,
           style: { ...(raw ?? {}) },
+          branchColor: topic.nodeObj.branchColor,
+          canBranch: topic.nodeObj.id !== document.root.id,
         });
       };
 
@@ -996,26 +1019,58 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
       };
 
       /**
-       * 清除 = **整个 `style` 字段撤掉**（`{ style: undefined }`，理由见上）。
+       * 清除 = **整个 `style` 字段与 `branchColor` 一并撤掉**（`{ style: undefined,
+       * branchColor: undefined }`；`style` 那半的理由见上）。
        *
-       * 语义是「回到默认外观」：词表之外的键（别的工具写的 `borderColor`
-       * 一类）也一并清掉 —— 这是用户**显式**要的，§5 的「不丢未知键」防的是
-       * 我们悄悄动它，不是拦用户自己清。已知边界与重审条件写进 ADR 0059。
+       * 语义是「回到默认外观」，连线也在其中（ADR 0060 取舍 ④）—— 这同时给了
+       * 词表外的 branchColor（弹层里没有格子代表它）一条**显式**的摘除路径。
+       * 两刀并在同一次 `reshapeNode` 里：一次 `operation`、一步 undo。
+       * 词表之外的 style 键（别的工具写的 `borderColor` 一类）也一并清掉 ——
+       * 这是用户**显式**要的，§5 的「不丢未知键」防的是我们悄悄动它，
+       * 不是拦用户自己清。已知边界与重审条件写进 ADR 0059 / 0060。
        */
       styleClearRef.current = (nodeId) => {
         try {
           const el = mind.findEle(nodeId) as KernelTopic | undefined;
           if (el == null) return null;
           const style = el.nodeObj.style as Record<string, unknown> | undefined;
-          if (style === undefined) return {};
-          const keys = Object.keys(style);
-          if (keys.length === 0) return {};
-          void mind.reshapeNode(el, { style: undefined });
+          const branch = el.nodeObj.branchColor;
+          const keys = style === undefined ? [] : Object.keys(style);
+          if (keys.length === 0 && branch === undefined) return { style: {}, branchColor: undefined };
+          void mind.reshapeNode(el, { style: undefined, branchColor: undefined });
           // `Se` 因为 `t.style` 是假值整段跳过 —— 旧内联样式全都赖在元素上，
           // 逐个清掉（键名取自这一刀之前的快照，那时还没被撤掉）。
+          // 连线那一半不用收尾：每次重画都从数据现解析（ADR 0060 判据 3）。
           for (const key of keys) el.style.removeProperty(cssPropertyName(key));
-          return {};
+          return { style: {}, branchColor: undefined };
         } catch {
+          return null;
+        }
+      };
+
+      /**
+       * 分支连线颜色的落盘通道（ADR 0060），与 `styleApplyRef` 同构但不合流
+       * （不合流的理由见组件里 `branchApplyRef` 的注释）。再点一次 = 摘掉，
+       * 判据是**内核的真值**（不是弹层快照，`markerApplyRef` 的先例）。
+       *
+       * 摘掉的形状是 `{ branchColor: undefined }` —— `Object.assign` 照抄
+       * `undefined`、`linkDiv` 的 `||` 让位给轮转色、`JSON.stringify` 丢键，
+       * 一次写干净（`{ note: undefined }` 是 0056 已验证的同一条）。连线无需
+       * DOM 收尾、无需 `linkDiv` 监听：它与内联样式是两种渲染模型 ——
+       * 内联样式是「赖在元素上的状态」，摘键后内核不擦（0059 要我们擦）；
+       * 连线是「每次全量重建的 SVG」，重画那一刻自动回到数据
+       * （ADR 0060 判据 3，也是这一轮比 0059 少一层补丁的原因）。
+       */
+      branchApplyRef.current = (nodeId, hex) => {
+        try {
+          const el = mind.findEle(nodeId) as KernelTopic | undefined;
+          if (el == null) return null;
+          const remove = el.nodeObj.branchColor === hex;
+          void mind.reshapeNode(el, { branchColor: remove ? undefined : hex });
+          return remove ? {} : { hex };
+        } catch {
+          // `findEle` 对看不见的节点会 throw（ADR 0052 那条）：弹层开着时节点
+          // 被折叠 / 删除都够不成正常路径，抓一个「改不进去」比白屏诚实。
           return null;
         }
       };
@@ -1301,6 +1356,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         noteApplyRef.current = null;
         styleApplyRef.current = null;
         styleClearRef.current = null;
+        branchApplyRef.current = null;
         setMarkerPalette(null);
         setImagePopover(null);
         setLinkPopover(null);
@@ -1443,7 +1499,15 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
     // `null` = 没清成（节点已经够不着了）：快照不动，界面如实停在那里。
     const next = styleClearRef.current?.(nodeId) ?? null;
     if (next === null) return;
-    setStylePopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, style: next } : state));
+    setStylePopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, style: next.style, branchColor: next.branchColor } : state));
+  }, []);
+
+  /** 连线色块的出口（ADR 0060），引用稳定的理由同上。 */
+  const applyBranch = useCallback((nodeId: string, hex: string): void => {
+    // `null` = 这一下没落进去（节点已经够不着了）：快照不动，界面如实停在那里。
+    const next = branchApplyRef.current?.(nodeId, hex) ?? null;
+    if (next === null) return;
+    setStylePopover((state) => (state !== null && state.nodeId === nodeId ? { ...state, branchColor: next.hex } : state));
   }, []);
 
   return (
@@ -1468,7 +1532,7 @@ function MindmapEditor({ initialValue, onChange, onReady, onError, readOnly, res
         <TagPopover state={tagPopover} onAdd={addTag} onRemove={removeTag} onClose={closeTagPopover} />
       )}
       {stylePopover !== null && (
-        <StylePopover state={stylePopover} onApply={applyStyle} onClear={clearStyle} onClose={closeStylePopover} />
+        <StylePopover state={stylePopover} onApply={applyStyle} onApplyBranch={applyBranch} onClear={clearStyle} onClose={closeStylePopover} />
       )}
     </>
   );
@@ -1929,18 +1993,28 @@ interface StylePopoverState {
    * （`markerApplyRef` 的先例），快照过期也写不错。
    */
   readonly style: StyleValues;
+  /**
+   * 分支连线颜色（ADR 0060）的快照，刷新机制同 `style`。**与根节点例外
+   * 写在一起**：`canBranch === false`（根）时弹层不渲染「连线」行 ——
+   * 内核不给根画连线（判据 5），给根刷一个画不出来的颜色是骗人
+   * （0052「根不展开」同族的例外）。
+   */
+  readonly branchColor: unknown;
+  readonly canBranch: boolean;
 }
 
 interface StylePopoverProps {
   readonly state: StylePopoverState;
   readonly onApply: (nodeId: string, key: StyleKey, value: string | number) => void;
+  readonly onApplyBranch: (nodeId: string, hex: string) => void;
   readonly onClear: (nodeId: string) => void;
   readonly onClose: () => void;
 }
 
 /** 估尺寸，只用来把弹层夹在视口里（jsdom 没有布局，不能问元素自己）。 */
 const STYLE_EST_WIDTH = 244;
-const STYLE_EST_HEIGHT = 292;
+/** 加了「连线」一行（ADR 0060）：行高 ~44px + 清除按钮下移。根上少一行、夹取更宽松。 */
+const STYLE_EST_HEIGHT = 336;
 
 /**
  * 主题样式弹层（ADR 0059 —— 对标 XMind 的样式面板第一屏）。
@@ -1953,7 +2027,7 @@ const STYLE_EST_HEIGHT = 292;
  *
  * 亮不亮一律由 `node-style.ts` 的纯函数判（词表外的值不亮也不假装摘得掉）。
  */
-function StylePopover({ state, onApply, onClear, onClose }: StylePopoverProps) {
+function StylePopover({ state, onApply, onApplyBranch, onClear, onClose }: StylePopoverProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -1980,6 +2054,7 @@ function StylePopover({ state, onApply, onClear, onClose }: StylePopoverProps) {
   const fillIndex = activeSwatchIndex(STYLE_FILL_COLORS, state.style, 'background');
   const size = activeFontSize(state.style);
   const bold = isBold(state.style);
+  const branchIndex = activeBranchIndex(BRANCH_COLORS, state.branchColor);
 
   return (
     <div ref={rootRef} className="mm-style-popover" style={{ left, top }} role="dialog" aria-label={t('ui.mindmap.styleTitle')}>
@@ -2052,6 +2127,29 @@ function StylePopover({ state, onApply, onClear, onClose }: StylePopoverProps) {
           </button>
         </div>
       </div>
+      {state.canBranch && (
+        <div className="mm-style-row">
+          <div className="mm-style-label">{t('ui.mindmap.styleBranch')}</div>
+          <div className="mm-style-choices">
+            {BRANCH_COLORS.map((hex, index) => (
+              <button
+                key={hex}
+                type="button"
+                className={index === branchIndex ? 'mm-style-swatch mm-style-swatch-branch active' : 'mm-style-swatch mm-style-swatch-branch'}
+                // 连线色块示意「一段线」：格子里只画一条 3px 的横线
+                //（`border-bottom`，实现在 mindmap.css）—— 实心方块会让它
+                // 和「背景」那一行长得一模一样，用户只能靠读标签分辨
+                //（「文字颜色」行用 A 字符是同一个理由，0059）。
+                style={{ borderColor: hex }}
+                title={hex}
+                aria-label={`${t('ui.mindmap.styleBranch')} ${hex}`}
+                aria-pressed={index === branchIndex}
+                onClick={() => onApplyBranch(state.nodeId, hex)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
       <button type="button" className="mm-style-clear" onClick={() => onClear(state.nodeId)}>
         {t('ui.mindmap.styleClear')}
       </button>

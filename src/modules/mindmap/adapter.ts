@@ -22,11 +22,12 @@
  *
  * ## 两条映射规则
  *
- * 1. **内核认识的键，原样进出。** `hyperLink` / `tags` / `icons` / `image` /
- *    `metadata` / `branchColor` / `dangerouslySetInnerHTML` … 我们一个都不解释，
- *    但一个都不丢 —— 它们从节点的 `extra` 展开进内核，又被内核带回来。
- *    §7.1 的骨架刻意只固定最小公因式（`id` / `topic` / `children`），
- *    而「最小公因式」**不等于**「只许有这些」。
+ * 1. **内核认识的键，原样进出。** `metadata` / `dangerouslySetInnerHTML` …
+ *    我们一个都不解释，但一个都不丢 —— 它们从节点的 `extra` 展开进内核，
+ *    又被内核带回来。§7.1 的骨架刻意只固定最小公因式
+ *    （`id` / `topic` / `children`），而「最小公因式」**不等于**「只许有这些」。
+ *    （`icons` / `image` / `hyperLink` / `tags` / `branchColor` 曾住在这条
+ *    规则里，0053–0055 / 0060 升格后走正字段直通 —— 见 `NON_EXTRA_NODE_KEYS`。）
  * 2. **折叠状态是改名，不是两个语义。** 我们写 `collapsed`，内核写 `expanded`，
  *    两者互为反义。**只有一个方向会写出值**：`expanded === false` → `collapsed: true`。
  *    反过来 `expanded === true` 不写 —— 内核的默认就是展开，写出来只是噪声，
@@ -86,6 +87,7 @@ const DEFAULT_DIRECTION: Direction = 2;
  *   走了就是同一个键两个来源，`serialize` 的重复键守卫会当场抛错。
  * - `image`：节点插图（ADR 0054），同上。
  * - `hyperLink` / `tags`：节点超链接与标签（ADR 0055），同上。
+ * - `branchColor`：分支连线颜色（ADR 0060），同上。
  *
  * 其余「我们不认识」的键全部走 `extra`。
  */
@@ -100,6 +102,7 @@ const NON_EXTRA_NODE_KEYS: ReadonlySet<string> = new Set([
   'image',
   'hyperLink',
   'tags',
+  'branchColor',
   'parent',
   'expanded',
 ]);
@@ -163,6 +166,13 @@ function toKernelNode(node: MindmapNode): NodeObj {
    */
   if (node.hyperLink !== undefined) out.hyperLink = node.hyperLink;
   if (node.tags !== undefined) out.tags = node.tags;
+  /**
+   * 分支连线颜色（ADR 0060）：直通，不校验 —— 方向同 `hyperLink`：内核的
+   * `NodeObj.branchColor`（`dist/types/types/index.d.ts:194`）是纯字符串，
+   * 与我们的形状一致，正字段的待遇；`undefined` 不交（没这回事）。
+   * 渲染合同（值优先 / 子树继承 / 根无连线）写在那时的 ADR，这里只搬运。
+   */
+  if (node.branchColor !== undefined) out.branchColor = node.branchColor;
   if (node.collapsed === true) out.expanded = false;
 
   return out;
@@ -230,6 +240,9 @@ function fromKernelNode(node: NodeObj): MindmapNode {
    * （文件头注释）。
    */
   if (node.tags !== undefined) out.tags = node.tags as MindmapTag[];
+  // 分支连线颜色（ADR 0060）：同上，纯字符串直通 —— `getData()` 带回来的
+  // 只可能是我们交进去或文件里读来的字符串，正字段的待遇。
+  if (node.branchColor !== undefined) out.branchColor = node.branchColor;
   if (node.expanded === false) out.collapsed = true;
 
   return out;

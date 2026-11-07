@@ -97,6 +97,7 @@ export const KNOWN_NODE_KEYS: ReadonlySet<string> = new Set([
   'image',
   'hyperLink',
   'tags',
+  'branchColor',
   'children',
 ]);
 
@@ -199,6 +200,20 @@ export interface MindmapNode {
    * 正是「假装读进来了」）。
    */
   tags?: MindmapTag[];
+  /**
+   * 分支连线颜色（ADR 0060 升格）：**一个字符串** —— 与内核的
+   * `NodeObj.branchColor`（`dist/types/types/index.d.ts:194`）同形。
+   *
+   * 内核的渲染合同（写进 ADR 0060 判据 1）：节点有值时它的连线用这个色、
+   * **整棵子树无值的子孙继承它**；无值时按兄弟序号轮转 `theme.palette`；
+   * 根节点没有连线，根上的值不渲染（照存）。
+   *
+   * 要求**非空串**：内核对假值 `||` 回落轮转色（`MindElixir.js:1347`），
+   * `""` 是画不出来的颜色，装作读进来了就是另一种静默丢内容
+   * （与 `hyperLink` 同一条纪律）。类型不对或为空 ⇒ 整值转 `extra`
+   * （一个不丢）。
+   */
+  branchColor?: string;
   /**
    * 这个节点上**没认出来**的字段，原样保留（§5）。
    *

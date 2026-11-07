@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  activeBranchIndex,
   activeFontSize,
   activeSwatchIndex,
+  BRANCH_COLORS,
   isBold,
   STYLE_FILL_COLORS,
   STYLE_FONT_SIZES,
@@ -44,6 +46,11 @@ describe('样式词表 · 自洽', () => {
 
   it('色值一律是具体的小写十六进制 —— 不能是 `var(...)`（独立 SVG 里解析不出来，ADR 0050）', () => {
     for (const hex of [...STYLE_TEXT_COLORS, ...STYLE_FILL_COLORS]) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it('连线词表同一条十六进制纪律（ADR 0060）—— 与默认轮转同源，摘掉即回到轮转', () => {
+    for (const hex of BRANCH_COLORS) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
+    expect(new Set(BRANCH_COLORS).size).toBe(BRANCH_COLORS.length);
   });
 
   it('文字色够暗、底色够淡 —— 「淡彩底 + 墨色字」那句注释的可测代理', () => {
@@ -103,6 +110,24 @@ describe('activeFontSize · 字号亮哪一档', () => {
     expect(activeFontSize({ fontSize: Number.NaN })).toBeNull();
     expect(activeFontSize({ fontSize: Number.POSITIVE_INFINITY })).toBeNull();
     expect(activeFontSize({ fontSize: null })).toBeNull();
+  });
+});
+
+describe('activeBranchIndex · 连线亮哪一格（ADR 0060）', () => {
+  it('词表内的值：给回它的位置（弹层据此点亮）', () => {
+    expect(activeBranchIndex(BRANCH_COLORS, BRANCH_COLORS[3])).toBe(3);
+    expect(activeBranchIndex(BRANCH_COLORS, BRANCH_COLORS[0])).toBe(0);
+  });
+
+  it('词表外的色值不亮 —— 没有格子代表它，也不假装摘得掉（§5 原样保留）', () => {
+    expect(activeBranchIndex(BRANCH_COLORS, '#123456')).toBe(-1);
+  });
+
+  it('没设过 / 形状不对 / 空串：-1，且不抛 —— 这个函数面对任意文件内容', () => {
+    expect(activeBranchIndex(BRANCH_COLORS, undefined)).toBe(-1);
+    expect(activeBranchIndex(BRANCH_COLORS, null)).toBe(-1);
+    expect(activeBranchIndex(BRANCH_COLORS, 42)).toBe(-1);
+    expect(activeBranchIndex(BRANCH_COLORS, '')).toBe(-1);
   });
 });
 

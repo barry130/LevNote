@@ -70,6 +70,35 @@ export const STYLE_FILL_COLORS: readonly string[] = [
 /** 字号档位。内核默认正文是 16px（`.map-container` 的字体大小），16 在表里、不亮就是「没设过」。 */
 export const STYLE_FONT_SIZES: readonly number[] = [14, 16, 20, 26];
 
+/**
+ * 分支连线颜色（ADR 0060）。**与主题的主分支取色环是同一张表、且名单只有
+ * 一份**：`MindmapEditor` 的 `LEVNOTE_THEME.palette` 从这里取（不抄第二份 ——
+ * 名单出现两份的下场是「弹层给的颜色」与「摘掉后回到的默认轮转色」对不上）。
+ *
+ * 语义因此自洽：再点一次 = 摘掉 = **回到默认轮转**，而默认轮转恰好就是
+ * 这张表。这八个品牌色本就是画连线用的（中等饱和、细线在深浅画布上都可见），
+ * 不存在 0059 那样的「导出侧词表」约束 —— 导出克隆的是已渲染的连线
+ * SVG，任何色值都带得走（ADR 0060 判据 2）。
+ */
+export const BRANCH_COLORS: readonly string[] = [
+  '#2e7d6a',
+  '#3f6ea8',
+  '#8a5a86',
+  '#e2603f',
+  '#7a8690',
+  '#b4d4c6',
+  '#16302a',
+  '#209fb5',
+];
+
+/** 分支连线亮哪一格：只有**非空字符串且在词表内**才亮 ——
+ * 词表外的色值（别的工具写的自定义色）没有格子代表它，不亮、也不假装摘得掉
+ * （摘除照样能摘，走「清除」的显式一刀，ADR 0060 取舍 ④）。 */
+export function activeBranchIndex(colors: readonly string[], branchColor: unknown): number {
+  if (typeof branchColor !== 'string' || branchColor === '') return -1;
+  return colors.indexOf(branchColor);
+}
+
 /** 「当前挂着这个值吗」—— 词表外的值（自定义色、`'20px'` 字符串字号）不亮：
  * 亮的是界面能一键摘掉的状态，摘不掉的不假装认识。 */
 export function activeSwatchIndex(

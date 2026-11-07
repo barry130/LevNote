@@ -1892,3 +1892,217 @@ describe('主题样式（ADR 0059）', () => {
     expect(rootTpc()?.style.fontSize).toBe('20px');
   });
 });
+
+describe('连线颜色（ADR 0060）', () => {
+  /**
+   * 与 style 那一族不同的三条事实，写用例前先说清楚，不然断言会选错层：
+   *
+   * - `branchColor` 是**节点顶层的正字段**（不是 `style` 的子键）：落盘通道
+   *   独立（`branchApplyRef`，同一弹层里的两族数据不合流），「清除」把它与
+   *   `style` 并在**同一次** `reshapeNode` 里撤掉 —— 一步 undo。
+   * - 连线是**每次全量重建的 SVG**（`Wn`/linkDiv，`MindElixir.js:1331-1367`）：
+   *   主支线在 `.lines`、更深的在 `.subLines`，颜色烤在 path 的 `stroke`
+   *   **属性**上。`reshapeNode` 内部就是 `Se → linkDiv → fire("operation")`
+   *   —— 线的重画与补丁落盘同一次同步调用，摘键后无需任何 DOM 收尾
+   *   （style 那族「内联样式赖在元素上」的问题这一族天然没有）。
+   * - 根没有线（linkDiv 只遍历 `me-main` 里的子节点），弹层对根**不渲染**
+   *   「连线」行 —— 给根刷一个画不出来的颜色是骗人（0052「根不展开」同族）。
+   */
+
+  /** 根 → 分支甲（n2）→ 孙（n3）：主支线在 `.lines`，孙的线在 `.subLines`。 */
+  const branchFile = (
+    root: Record<string, unknown> = {},
+    branch: Record<string, unknown> = {},
+    grand: Record<string, unknown> = {},
+  ): string =>
+    `${JSON.stringify(
+      {
+        format: MINDMAP_FORMAT,
+        version: MINDMAP_VERSION,
+        layout: 'logicalStructure',
+        root: {
+          id: 'n1',
+          topic: '根主题',
+          children: [
+            { id: 'n2', topic: '分支甲', children: [{ id: 'n3', topic: '孙', children: [], ...grand }], ...branch },
+          ],
+          ...root,
+        },
+      },
+      null,
+      2,
+    )}\n`;
+
+  /** 某节点的 `me-tpc`（右键入口挂它身上）。 */
+  const topicOf = (id: string): HTMLElement | null => container.querySelector<HTMLElement>(`[data-nodeid="me${id}"]`);
+
+  /** 右键某节点 → 点「样式…」→ 拿到弹层。 */
+  const openStyleOn = async (id: string): Promise<HTMLElement> => {
+    const topic = topicOf(id);
+    expect(topic).not.toBeNull();
+    await act(async () => {
+      topic?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, button: 2 }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
+    });
+    const items = [...container.querySelectorAll<HTMLLIElement>('.context-menu li')];
+    const entry = items.find((li) => li.textContent === '样式…') ?? null;
+    expect(entry).not.toBeNull();
+    await act(async () => {
+      entry?.click();
+    });
+    const popover = container.querySelector<HTMLElement>('.mm-style-popover');
+    expect(popover).not.toBeNull();
+    return popover as HTMLElement;
+  };
+
+  /** 连线色块（按色值取 —— `title` 就是色值）。 */
+  const branchSwatch = (popover: HTMLElement, hex: string): HTMLButtonElement | null =>
+    popover.querySelector<HTMLButtonElement>(`.mm-style-swatch-branch[title="${hex}"]`);
+
+  /** 某一层连线全部 path 的 stroke —— 颜色烤在属性上，jsdom 量得出。 */
+  const strokes = (layer: string): string[] =>
+    [...container.querySelectorAll(`${layer} path`)].map((path) => path.getAttribute('stroke') ?? '');
+
+  /** 等内核把重画链上的同步回调跑完（0059 同款）。 */
+  const settleKernel = async (): Promise<void> => {
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+  };
+
+  /** LEVNOTE_THEME.palette 的第一色 —— 摘掉之后主支线回到的默认轮转色。 */
+  const PALETTE_FIRST = '#2e7d6a';
+  const BRANCH_HEX = '#e2603f';
+
+  it('★ 根的弹层没有「连线」行 —— 内核不给根画线；手写在根上的值照存不丢', async () => {
+    const { handle } = await mountReady({ initialValue: branchFile({ branchColor: BRANCH_HEX }) });
+
+    const popover = await openStyleOn('n1');
+    expect(popover.querySelector('.mm-style-swatch-branch')).toBeNull();
+    // 已知边界如实记录：根上若有手写的 branchColor，存得住（文件内容），
+    // 但没有线也不给入口 —— 不替用户发明一个画不出来的颜色
+    expect(handle.getValue()).toContain(`"branchColor": "${BRANCH_HEX}"`);
+  });
+
+  it('分支的弹层八格俱在；默认（轮转色）不是某一档，一块不亮', async () => {
+    await mountReady({ initialValue: branchFile() });
+
+    const popover = await openStyleOn('n2');
+    expect(popover.querySelectorAll('.mm-style-swatch-branch')).toHaveLength(8);
+    expect(popover.querySelectorAll('.mm-style-swatch-branch.active')).toHaveLength(0);
+    // 没设过 branchColor：主支线此刻就是默认轮转的第一色
+    expect(strokes('.lines')).toEqual([PALETTE_FIRST]);
+  });
+
+  it('点一格：branchColor 落盘走 operation → onChange，线当场变色，弹层不关、格子亮起', async () => {
+    const { handle, changes } = await mountReady({ initialValue: branchFile() });
+
+    const popover = await openStyleOn('n2');
+    act(() => {
+      branchSwatch(popover, BRANCH_HEX)?.click();
+    });
+    await settleKernel();
+
+    expect(handle.getValue()).toContain(`"branchColor": "${BRANCH_HEX}"`);
+    expect(changes[changes.length - 1] ?? '').toContain(`"branchColor": "${BRANCH_HEX}"`);
+    expect(strokes('.lines')).toEqual([BRANCH_HEX]);
+    // 点色块不关弹层（连配几样是正常用法）；亮着的正是这一格
+    expect(container.querySelector('.mm-style-popover')).not.toBeNull();
+    expect(branchSwatch(popover, BRANCH_HEX)?.classList.contains('active')).toBe(true);
+  });
+
+  it('再点同一格 = 摘掉：键干净消失（不是空串），线回到默认轮转', async () => {
+    const { handle } = await mountReady({ initialValue: branchFile({}, { branchColor: BRANCH_HEX }) });
+    // 挂载即生效：文件里的连线色在初次重画时烤进 stroke
+    expect(strokes('.lines')).toEqual([BRANCH_HEX]);
+
+    const popover = await openStyleOn('n2');
+    act(() => {
+      branchSwatch(popover, BRANCH_HEX)?.click();
+    });
+    await settleKernel();
+
+    expect(handle.getValue()).not.toContain('branchColor');
+    expect(strokes('.lines')).toEqual([PALETTE_FIRST]);
+    expect(popover.querySelectorAll('.mm-style-swatch-branch.active')).toHaveLength(0);
+  });
+
+  it('子树继承：分支甲的连线色落到孙辈的线上（`dt` 把 `n` 往下传）', async () => {
+    await mountReady({ initialValue: branchFile({}, { branchColor: '#3f6ea8' }) });
+
+    expect(strokes('.lines')).toEqual(['#3f6ea8']);
+    expect(strokes('.subLines')).toEqual(['#3f6ea8']);
+  });
+
+  it('孙自己有值时盖过继承 —— 各管各的线', async () => {
+    await mountReady({
+      initialValue: branchFile({}, { branchColor: '#3f6ea8' }, { branchColor: BRANCH_HEX }),
+    });
+
+    expect(strokes('.lines')).toEqual(['#3f6ea8']);
+    expect(strokes('.subLines')).toEqual([BRANCH_HEX]);
+  });
+
+  it('词表外的连线色照读照写（§5）：格子不亮也不假装摘得掉，「清除」是唯一出口', async () => {
+    const { handle } = await mountReady({ initialValue: branchFile({}, { branchColor: '#123456' }) });
+
+    expect(handle.getValue()).toContain('"branchColor": "#123456"');
+    expect(strokes('.lines')).toEqual(['#123456']);
+
+    const popover = await openStyleOn('n2');
+    expect(popover.querySelectorAll('.mm-style-swatch-branch.active')).toHaveLength(0);
+
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-style-clear')?.click();
+    });
+    await settleKernel();
+
+    expect(handle.getValue()).not.toContain('branchColor');
+    expect(strokes('.lines')).toEqual([PALETTE_FIRST]);
+  });
+
+  it('「清除」把 style 与 branchColor 一并撤掉 —— 同一次 reshapeNode，一步 undo 能一起回来', async () => {
+    const { handle } = await mountReady({
+      initialValue: branchFile({}, { branchColor: BRANCH_HEX, style: { color: '#2f5f8f' } }),
+    });
+
+    const popover = await openStyleOn('n2');
+    act(() => {
+      popover.querySelector<HTMLButtonElement>('.mm-style-clear')?.click();
+    });
+    await settleKernel();
+
+    const text = handle.getValue();
+    expect(text).not.toContain('"style"');
+    expect(text).not.toContain('branchColor');
+  });
+
+  it('undo 把连线色找回来：内核走 refresh(prev) 不发 operation，线靠 linkDiv 的全量重建重画', async () => {
+    const { handle } = await mountReady({ initialValue: branchFile({}, { branchColor: BRANCH_HEX }) });
+
+    const popover = await openStyleOn('n2');
+    act(() => {
+      branchSwatch(popover, BRANCH_HEX)?.click(); // 摘掉
+    });
+    await settleKernel();
+    expect(strokes('.lines')).toEqual([PALETTE_FIRST]);
+
+    // 内核的 undo（Kn 插件监听 .map-container 的 keydown：Ctrl+Z）走 refresh(prev)
+    // —— 不发 operation、onChange 不来（0056 那条），但 linkDiv 会跟着重画。
+    const map = container.querySelector<HTMLElement>('.map-container');
+    expect(map).not.toBeNull();
+    await act(async () => {
+      map?.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 350);
+      });
+    });
+
+    expect(handle.getValue()).toContain(`"branchColor": "${BRANCH_HEX}"`);
+    expect(strokes('.lines')).toEqual([BRANCH_HEX]);
+  });
+});

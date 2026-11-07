@@ -189,6 +189,23 @@ describe('parseMindmap · 正常路径', () => {
     const again = mustParse(text);
     expect(again.document.root.tags).toEqual([]);
   });
+
+  it('branchColor 升格为正字段（ADR 0060）：非空字符串读进类型，键序在 tags 之后、children 之前', () => {
+    const body = minimalBody();
+    body.root = { id: 'n1', topic: '根', tags: ['A'], branchColor: '#e2603f', children: [] };
+    const first = mustParse(file(body));
+    expect(first.issues).toEqual([]);
+    expect(first.document.root.branchColor).toBe('#e2603f');
+    expect(first.document.root.extra).toEqual({});
+
+    // 词表外的色值（别的工具写的自定义色）不在格式层的解释范围 —— 照收照写
+    const text = serializeMindmap(first.document);
+    expect(text.indexOf('"tags"')).toBeLessThan(text.indexOf('"branchColor"'));
+    expect(text.indexOf('"branchColor"')).toBeLessThan(text.indexOf('"children"'));
+    const again = mustParse(text);
+    expect(again.document.root.branchColor).toBe('#e2603f');
+    expect(again.document.root.extra).toEqual({});
+  });
 });
 
 describe('parseMindmap · 向前兼容（§5 的透传桶）', () => {
@@ -261,6 +278,10 @@ describe('parseMindmap · 类型不对的字段一个都不丢', () => {
     // hyperLink 只认非空串：内核对假值不渲染，`""` 是画不出来的链接（ADR 0055）
     { key: 'hyperLink', bad: 42, normalizesTo: 42 },
     { key: 'hyperLink', bad: '', normalizesTo: '' },
+    // branchColor 同一条纪律：内核对假值 `||` 回落轮转色（`MindElixir.js:1347`），
+    // `""` 是画不出来的颜色（ADR 0060）
+    { key: 'branchColor', bad: 42, normalizesTo: 42 },
+    { key: 'branchColor', bad: '', normalizesTo: '' },
     // tags 不逐项过滤：混进一个坏形状整条转 extra，防「悄悄只留好的一半」（ADR 0055）
     { key: 'tags', bad: '重要', normalizesTo: '重要' },
     { key: 'tags', bad: ['重要', 2], normalizesTo: ['重要', 2] },
