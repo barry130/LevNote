@@ -1,0 +1,32 @@
+Fresh context GLM protocol/worker owner. Root plans/reviews only. Do not spawn
+children; compact before200K tokens. Workspace F:\AIproject\LevNote, PowerShell,
+danger-full-access, approval never, do not set sandbox_permissions.
+
+ACTIVATED2026-11-09: Root accepted marker release17E014EB6F61E671... and read
+your completed design review. The seven protocol points are resolved in
+handoffs/markdown-worker-contract.md, which is now ACTIVE WITH STAGED OWNERSHIP.
+Implement/test only core/engineipc/** and cmd/levnote-markdown-export/**. Publish
+the agreed actual constants/types/signatures first, then focused evidence in
+handoffs/markdown-worker-protocol.md. Old owners have NO ownership. No full
+suite/build/packaging. You may run your focused package tests/vet via wrapper.
+Do not wait for app implementation. No changes to existing parser/UI/runtime.
+
+The initial read-only task below is now completed and superseded:
+
+Read native/handoffs/markdown-worker-contract.md (QUEUED), supporting
+markdown-worker-runtime-proposal.md pure protocol section, and current
+formats/markdown/{parser,export,types,outline}.go. Give concise material protocol
+findings <=1page in handoffs/markdown-worker-protocol-review.md. No product
+edits, tests/build/launch. The root contract will control implementation after
+separate explicit activation following marker artifact acceptance.
+
+Future ownership if activated: only new core/engineipc/** and
+cmd/levnote-markdown-export/**, stdlib-only framing and own Markdown worker.
+API and bounds are in contract. JSON must be exact/duplicate-safe/UTF8-safe;
+request/result raw framed payload,8MiBsource,64MiBpost-render output cap,
+Partial refuses. No file paths/network/UI/script engines or executable SDK.
+Existing pure parser/export stays frozen unless root approves demonstrated bug.
+Go via native/scripts/go.ps1 wrapper1.27.3 only. Preserve old artifacts, each
+test/evidence attempt fresh path, no fabricated streams or approval records.
+
+Send brief ACK promptly; identify concrete risks rather than long design prose.

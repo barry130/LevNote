@@ -1,0 +1,32 @@
+=== RUN   TestEnginePackagePoisonRefusesTransitionsButLeavesInspectionAvailable
+--- PASS: TestEnginePackagePoisonRefusesTransitionsButLeavesInspectionAvailable (0.02s)
+=== RUN   TestEnginePackagePanelCaptures
+    engine_packages_capture_test.go:17: set LEVNOTE_ENGINE_PACKAGE_SCREENSHOT_DIR for engine panel visual acceptance
+--- SKIP: TestEnginePackagePanelCaptures (0.00s)
+=== RUN   TestEnginePackageTransitionJoinsOldLaneAndPreservesWritableDraft
+--- PASS: TestEnginePackageTransitionJoinsOldLaneAndPreservesWritableDraft (0.01s)
+=== RUN   TestEnginePackageTransitionPreservesRealPendingNativeDraft
+    engine_packages_lifecycle_test.go:95: tag control "展开标签面板" bounds={X:969 Y:511.0298 W:198 H:30} disabled=false
+    engine_packages_lifecycle_test.go:96: tag control "新标签（单行，最多512字节）" bounds={X:970 Y:568 W:196 H:48} disabled=false
+    engine_packages_lifecycle_test.go:111: tag control "新标签（单行，最多512字节）" bounds={X:970 Y:568 W:196 H:48} disabled=false
+--- PASS: TestEnginePackageTransitionPreservesRealPendingNativeDraft (0.04s)
+=== RUN   TestEnginePackageTransitionDropsStaleReadyExportWithoutReleasingNewReservation
+--- PASS: TestEnginePackageTransitionDropsStaleReadyExportWithoutReleasingNewReservation (0.02s)
+=== RUN   TestEnginePackageTransitionRefreshesReadonlySceneWithoutRewritingDraft
+--- PASS: TestEnginePackageTransitionRefreshesReadonlySceneWithoutRewritingDraft (0.02s)
+=== RUN   TestEnginePackageCleanupPoisonRemainsVisibleAndBlocksNextTransition
+--- PASS: TestEnginePackageCleanupPoisonRemainsVisibleAndBlocksNextTransition (0.01s)
+=== RUN   TestEnginePackageStaleModalAndGenerationDoNotReplaceCurrentWork
+--- PASS: TestEnginePackageStaleModalAndGenerationDoNotReplaceCurrentWork (0.09s)
+=== RUN   TestEnginePackageShutdownJoinsWithoutUIDispatch
+--- PASS: TestEnginePackageShutdownJoinsWithoutUIDispatch (0.02s)
+=== RUN   TestEnginePackageCloseRefusalLeavesPackageWorkAlive
+--- PASS: TestEnginePackageCloseRefusalLeavesPackageWorkAlive (0.09s)
+=== RUN   TestEnginePackageStoreImportActivateResetAndRestart
+--- PASS: TestEnginePackageStoreImportActivateResetAndRestart (0.28s)
+=== RUN   TestEnginePackageStoreListReturnsHealthyPackagesAndCorruption
+--- PASS: TestEnginePackageStoreListReturnsHealthyPackagesAndCorruption (0.16s)
+=== RUN   TestEnginePackageStoreCorruptStateStaysBlockedUntilRepairRetainsPackage
+--- PASS: TestEnginePackageStoreCorruptStateStaysBlockedUntilRepairRetainsPackage (0.10s)
+PASS
+ok  	levnote.local/native/app	2.679s

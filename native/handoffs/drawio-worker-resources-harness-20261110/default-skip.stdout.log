@@ -1,0 +1,4 @@
+FAIL	levnote.local/native/core/engineruntime [build failed]
+# levnote.local/native/core/engineruntime [levnote.local/native/core/engineruntime.test]
+core\engineruntime\drawio_worker_resources_test.go:371:26: undefined: io
+FAIL

@@ -1,0 +1,52 @@
+[
+  {
+    "File": "aggregate.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "baseline.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "delivery-lib.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "initialize-context.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "invoke-stage.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "run-host-smoke.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "run-managed-smoke.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "run-package.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "run-stage.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  },
+  {
+    "File": "source-scope.ps1",
+    "ParseErrorCount": 0,
+    "ParseErrors": []
+  }
+]

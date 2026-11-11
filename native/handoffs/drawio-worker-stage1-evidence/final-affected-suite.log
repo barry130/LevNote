@@ -1,0 +1,12 @@
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./core/enginecatalog','./core/engineipc','./core/engineruntime','./formats/drawio','./cmd/levnote-markdown-export','./cmd/levnote-mindmap-svg','./cmd/levnote-mindmap-preview','./cmd/levnote-drawio-svg')
+WORKDIR: F:\AIproject\LevNote
+
+ok  	levnote.local/native/core/enginecatalog	(cached)
+ok  	levnote.local/native/core/engineipc	(cached)
+ok  	levnote.local/native/core/engineruntime	38.381s
+ok  	levnote.local/native/formats/drawio	(cached)
+ok  	levnote.local/native/cmd/levnote-markdown-export	1.445s
+ok  	levnote.local/native/cmd/levnote-mindmap-svg	0.744s
+ok  	levnote.local/native/cmd/levnote-mindmap-preview	1.224s
+ok  	levnote.local/native/cmd/levnote-drawio-svg	(cached)
+EXIT_CODE=0

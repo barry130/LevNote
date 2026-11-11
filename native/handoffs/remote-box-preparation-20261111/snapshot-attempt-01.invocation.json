@@ -1,0 +1,9 @@
+{
+    "StartedUtc":  "2026-11-11T02:42:09.5687575Z",
+    "FinishedUtc":  "2026-11-11T02:42:20.6741035Z",
+    "Command":  "powershell.exe -NoLogo -NoProfile -NonInteractive -File prepare-snapshot-01.ps1",
+    "Purpose":  "ordinary copy/archive/hash only",
+    "ExitCode":  0,
+    "Stdout":  "snapshot-attempt-01.stdout.txt",
+    "Stderr":  "snapshot-attempt-01.stderr.txt"
+}

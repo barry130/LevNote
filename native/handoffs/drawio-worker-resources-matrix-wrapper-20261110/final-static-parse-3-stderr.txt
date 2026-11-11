@@ -1,0 +1,7 @@
+At F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-20261110\final-static-parse.ps1:40 char:
+2
++ 
+Missing closing ')' in subexpression.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingEndParenthesisInSubexpression
+ 

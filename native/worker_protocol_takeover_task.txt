@@ -1,0 +1,23 @@
+Root explicit ownership transfer2026-11-09 00:37local. Protocol GLM published
+handoffs/markdown-worker-protocol.md but no engineipc/worker source or progress
+after repeated root/peer requests. Root interrupted it; no ownership/restart.
+
+Sole replacement /root/astra_marker_view now owns core/engineipc/** and
+cmd/levnote-markdown-export/** IN ADDITION to its completed-in-progress runtime
+and packaging files. Keep published API stable; don't invent stubs to get tests
+green. Read controlling handoffs/markdown-worker-contract.md review resolutions
+and existing protocol seam. Implement pure package/worker first, then focused
+protocol/worker tests/vet and runtime tests/vet. Actual wire validation and
+worker parity mandatory; frames/EOF/UTF8/JSON duplicates/types/surrogates/limits,
+error enum, exact ASCII version, partial export refusal, bounded errors. No
+parser edits unless demonstrating a bug and root assigns it.
+
+App owner remains /root/read_native_worker_app_implementation_task_txt DeepSeek.
+Coordinate with it; no app/editor/view edits. Root reviews and plans only. All
+focused commands via Go wrapper, fresh evidence per attempt, capture actual
+streams/exits. Runtime helper children allowed; full-suite/release packaging and
+actual bundled host acceptance wait root gate. Existing accepted executable and
+artifact hashes immutable. Update protocol handoff attribution/evidence.
+
+Root can assign an independent read-only reviewer after source is available;
+do not block implementation on an inactive agent. No subdelegation.

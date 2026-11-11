@@ -1,0 +1,2 @@
+$ .\native\scripts\go.ps1 -GoArguments @("fmt","./app")
+EXIT_CODE=0

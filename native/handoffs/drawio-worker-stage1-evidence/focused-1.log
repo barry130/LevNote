@@ -1,0 +1,31 @@
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./core/enginecatalog','./core/engineipc','./cmd/levnote-drawio-svg','./formats/drawio')
+WORKDIR: F:\AIproject\LevNote
+ok  	levnote.local/native/core/enginecatalog	0.576s
+ok  	levnote.local/native/core/engineipc	0.729s
+--- FAIL: TestDrawioWorkerExportsExactSecondPageAndPreservesSource (0.00s)
+    main_test.go:54: success metadata: {Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:ok Warnings:[{Code:UNSUPPORTED_ELEMENT Message:page 1 cell 0: mxCell is neither a vertex nor an edge and is not rendered Start:0 End:516} {Code:UNSUPPORTED_ELEMENT Message:page 1 cell 1: mxCell is neither a vertex nor an edge and is not rendered Start:0 End:516}] Error:<nil>}
+--- FAIL: TestDrawioWorkerWarningOrderAndScope (0.00s)
+    main_test.go:74: warning success metadata={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3e67ac3f4be0} svg=0
+--- FAIL: TestDrawioWorkerInvalidPageIDAndIndexRefuseWithoutPayload (0.00s)
+    main_test.go:122: page={Index:1 ID:only} meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3e67ac3f4e40} payload=[]
+--- FAIL: TestDrawioWorkerCompressedReadOnlySuccess (0.00s)
+    main_test.go:147: compressed warning=[{Code:UNSUPPORTED_ELEMENT Message:page 0 cell 0: mxCell is neither a vertex nor an edge and is not rendered Start:0 End:252} {Code:UNSUPPORTED_ELEMENT Message:page 0 cell 1: mxCell is neither a vertex nor an edge and is not rendered Start:0 End:252} {Code:COMPRESSED_READ_ONLY Message:page 0: compressed diagram is rendered read-only because its outer base64/deflate payload is preserved verbatim Start:0 End:252}]
+--- FAIL: TestDrawioWorkerOutputAndWarningLimitsReturnNilPayload (0.00s)
+    main_test.go:159: output-limit meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3e67ac3f52c0} payload=[]
+--- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent (0.00s)
+    --- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent/truncated (0.00s)
+        main_test.go:216: protocol error meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3e67ac3f54c0} payload=[]
+    --- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent/utf8 (0.00s)
+        main_test.go:216: protocol error meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3e67ac3f5540} payload=[]
+    --- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent/extra (0.00s)
+        main_test.go:216: protocol error meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3e67ac3f55c0} payload=[]
+--- FAIL: TestDrawioWorkerForeignRequestDoesNotReadPayload (0.00s)
+    main_test.go:248: foreign request meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3e67ac3f5640} payload=[] reads=2 remaining="source"
+FAIL
+FAIL	levnote.local/native/cmd/levnote-drawio-svg	1.114s
+--- FAIL: TestMxFileIssuesUseDocumentScopeWithoutRelabelingPageIssues (0.00s)
+    issue_scope_test.go:38: issue "unsupported <pageZero> inside diagram" page=-999 present=false, want 0; issues=[{Severity:warning Code:UNSUPPORTED_ELEMENT Message:non-whitespace text inside mxfile is preserved Page:-1 CellID:} {Severity:warning Code:UNSUPPORTED_ELEMENT Message:unknown mxfile child <documentOnly> is preserved Page:-1 CellID:} {Severity:warning Code:UNSUPPORTED_ELEMENT Message:mxCell is neither a vertex nor an edge and is not rendered Page:0 CellID:0} {Severity:warning Code:UNSUPPORTED_ELEMENT Message:mxCell is neither a vertex nor an edge and is not rendered Page:0 CellID:1} {Severity:warning Code:UNSUPPORTED_ELEMENT Message:cell wrapper <pageZero> is preserved but not rendered Page:0 CellID:} {Severity:warning Code:UNSUPPORTED_ELEMENT Message:mxCell is neither a vertex nor an edge and is not rendered Page:1 CellID:0} {Severity:warning Code:UNSUPPORTED_ELEMENT Message:mxCell is neither a vertex nor an edge and is not rendered Page:1 CellID:1} {Severity:warning Code:UNSUPPORTED_ELEMENT Message:cell wrapper <pageOne> is preserved but not rendered Page:1 CellID:}]
+FAIL
+FAIL	levnote.local/native/formats/drawio	1.231s
+FAIL
+EXIT_CODE=1

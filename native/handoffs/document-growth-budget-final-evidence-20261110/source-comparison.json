@@ -1,0 +1,62 @@
+{
+  "VerifiedUtc": "2026-11-10T11:07:41.9525615Z",
+  "Count": 11,
+  "AllUnchanged": true,
+  "Files": [
+    {
+      "Path": "core/text/buffer.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "core/text/growth_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "core/document/document.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "core/document/growth_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "core/search/find.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "core/search/growth_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "ui/editor/editor.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "ui/editor/growth_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "modules/markdownview/growth_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "modules/graphview/growth_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "app/document_growth_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    }
+  ]
+}

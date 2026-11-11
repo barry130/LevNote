@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "version": "native-worker.20261110.26",
+  "goos": "windows",
+  "goarch": "amd64",
+  "goamd64": "v1",
+  "excludes": [
+    "release-manifest.json"
+  ],
+  "scope": "Every shipped file except this manifest; local integrity fingerprints, not signatures or acceptance evidence.",
+  "configuration": "%APPDATA%/LevNoteNative",
+  "files": [
+    {
+      "path": "attribution/dependency-patches-README.md",
+      "size": 5883,
+      "sha256": "1c80925aa016227990b0838831e22fd33bd787788fb3856f390014a6116c98f7"
+    },
+    {
+      "path": "attribution/mygo-README.md",
+      "size": 3812,
+      "sha256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2"
+    },
+    {
+      "path": "attribution/mygo-v0.8.3-bitmap-dispose.patch",
+      "size": 47176,
+      "sha256": "995d5505c3b5b1bd869547df3f1ad5954c2dd57f1c9f32e53554851b5db0d4d1"
+    },
+    {
+      "path": "attribution/mygo-v0.8.3-no-startup-cleanup.patch",
+      "size": 516,
+      "sha256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a"
+    },
+    {
+      "path": "attribution/purego-README.md",
+      "size": 5505,
+      "sha256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99"
+    },
+    {
+      "path": "attribution/SOURCE_THIRD_PARTY_NOTICES.txt",
+      "size": 7018,
+      "sha256": "e168a7d8d0235483dc43c908c2b8998a25a244f25a9814a3710fcf064e556d64"
+    },
+    {
+      "path": "engines/drawio-svg/levnote-drawio-svg.exe",
+      "size": 3124736,
+      "sha256": "6c584758b4f411f59cf3828239e1281b89e0f1804f539293df0b753792599804"
+    },
+    {
+      "path": "engines/drawio-svg/manifest.json",
+      "size": 327,
+      "sha256": "9b9cd73b2da7f89dd238ab51119f961808f44d50d8e80c2790327b8d447e8c3b"
+    },
+    {
+      "path": "engines/markdown-export/levnote-markdown-export.exe",
+      "size": 3311616,
+      "sha256": "c23db05652fd86648abf05fe5509e9556176e41d17a52ef88291c805756900d4"
+    },
+    {
+      "path": "engines/markdown-export/manifest.json",
+      "size": 338,
+      "sha256": "a799b2abc9e5729b105ea82d7dbddcb4da0ad39b7864f1614da0de19e517442b"
+    },
+    {
+      "path": "engines/mindmap-preview/levnote-mindmap-preview.exe",
+      "size": 3140608,
+      "sha256": "932d899ed9007ff09fe192227ab199902d5bbd747fbb5c7c9704a334c4989be8"
+    },
+    {
+      "path": "engines/mindmap-preview/manifest.json",
+      "size": 350,
+      "sha256": "2b1e5cf89691514dced2ee2e493d8b6a6038c03847c29e6182ca258678d9e39e"
+    },
+    {
+      "path": "engines/mindmap-svg/levnote-mindmap-svg.exe",
+      "size": 3126272,
+      "sha256": "7b47120b60104e843230ac93bcf3dfdd03ee440a4cdea98385d501b356c8aa27"
+    },
+    {
+      "path": "engines/mindmap-svg/manifest.json",
+      "size": 329,
+      "sha256": "f628075d6ea09ff2865c189222a1e48e1bf35fe7ca2b00b99736032e6f3b33e8"
+    },
+    {
+      "path": "levnote-native.exe",
+      "size": 14455808,
+      "sha256": "b219024b7c5b444da0307579c1500821a6b24fdcdd9b4d47e0fc14e863a51b67"
+    },
+    {
+      "path": "LICENSE",
+      "size": 1092,
+      "sha256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b"
+    },
+    {
+      "path": "licenses/Go-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/go-text-typesetting.txt",
+      "size": 3006,
+      "sha256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca"
+    },
+    {
+      "path": "licenses/mygo-MIT.txt",
+      "size": 1074,
+      "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4"
+    },
+    {
+      "path": "licenses/purego-Apache-2.0.txt",
+      "size": 11357,
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "path": "licenses/x-image-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/x-net-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/x-text-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "README.md",
+      "size": 16687,
+      "sha256": "beb184ed5e52b9b2e309b1d6f046379dc378b7760578f124f53a050ed70b1ff9"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "size": 7489,
+      "sha256": "19444ad521168e748d59075c55c2ef09af9686231e2dd8c0a46ddb633d630e36"
+    }
+  ]
+}

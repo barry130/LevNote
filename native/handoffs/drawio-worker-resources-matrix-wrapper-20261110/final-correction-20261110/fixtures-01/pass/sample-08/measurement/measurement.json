@@ -1,0 +1,65 @@
+{
+  "FixtureOnly": true,
+  "schema": 1,
+  "status": "PASS",
+  "matrixPosition": 8,
+  "fixture": "MetadataHeavy",
+  "version": "native-worker.20261110.20",
+  "ordinal": 1,
+  "sourceSHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+  "expectedSourceSHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+  "sourceBytes": 93639,
+  "tester": {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+    "SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+    "Bytes": 7528448
+  },
+  "actualSVGBytes": 598,
+  "actualSVGSHA256": "3f990a4aac3209bafad94f44026bf14f3cec27ea44bdbd3169555947936472bf",
+  "actualWarnings": [
+    {
+      "code": "UNSUPPORTED_ELEMENT",
+      "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+      "start": 0,
+      "end": 93639
+    },
+    {
+      "code": "UNSUPPORTED_ELEMENT",
+      "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+      "start": 0,
+      "end": 93639
+    }
+  ],
+  "admissionCalls": 1,
+  "verifyCalls": 1,
+  "startCalls": 1,
+  "waitCalls": 1,
+  "failures": null,
+  "limitations": [
+    "FIXTURE ONLY: incomplete lifetime peak coverage"
+  ],
+  "exportElapsedNs": 108,
+  "sampleIntervalNs": 2000000,
+  "maxAttempts": 20000,
+  "probe": {
+    "Summary": {
+      "Attempts": 3,
+      "FailedReads": 0,
+      "SampledMaxWorkingSetBytes": 1024,
+      "SampledMaxPrivateUsageBytes": 2048,
+      "ObservedOSPeakWorkingSetBytes": 4096,
+      "ObservedOSPeakPagefileBytes": 8192,
+      "FinalMemoryReadOK": true,
+      "FinalCPUReadOK": true,
+      "LifetimePeakCountersComplete": false,
+      "PeakCoverage": "fixture only"
+    },
+    "FinalTimes": {
+      "Times": {
+        "Kernel100ns": 0,
+        "User100ns": 20,
+        "LifetimeNS": 300
+      }
+    }
+  }
+}

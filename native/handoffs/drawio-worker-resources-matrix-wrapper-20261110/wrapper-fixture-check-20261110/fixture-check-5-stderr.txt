@@ -1,0 +1,9 @@
+F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-20261110\summarize-matrix.ps1 : The propert
+y 'stdout' cannot be found on this object. Verify that the property exists.
+At F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-20261110\wrapper-fixture-check-20261110\
+fixture-check.ps1:104 char:1
++ & $summarizer -MatrixOutputRoot $passRoot | Out-Null
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [summarize-matrix.ps1], PropertyNotFoundException
+    + FullyQualifiedErrorId : PropertyNotFoundStrict,summarize-matrix.ps1
+ 

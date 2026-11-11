@@ -1,0 +1,47 @@
+[
+  {
+    "Path": "app/app.go",
+    "Length": 38935,
+    "Sha256": "0AC7FB907C83DC3C2B7642B197441492274CBB1CBC75E6688264D577D995ADB4"
+  },
+  {
+    "Path": "app/reopen_closed.go",
+    "Length": 7895,
+    "Sha256": "BFCA75BA0E2A878483133ECE43530742C424623CBE6B8809F1285C9E04C62E92"
+  },
+  {
+    "Path": "app/binary.go",
+    "Length": 10170,
+    "Sha256": "AE2F059F0E91C812A82FFE3F0317EAFE7E2F0B0CE9AEB3AA5056F713C555226D"
+  },
+  {
+    "Path": "app/binary_actions.go",
+    "Length": 10173,
+    "Sha256": "D9DB7FAA2CF674ED3428F67479D6377B4901ED7C7A14C404F0536F325A9609BB"
+  },
+  {
+    "Path": "app/view.go",
+    "Length": 23002,
+    "Sha256": "195AFA3D82E7612A0CDBEC6A9D0F0432777F492CAB4D94596B0C6F2329C83456"
+  },
+  {
+    "Path": "app/workspace.go",
+    "Length": 6715,
+    "Sha256": "B1492575D6C64673BF02E633C0D7049F47BF151391B4CA58F58F3779599AF259"
+  },
+  {
+    "Path": "app/state.go",
+    "Length": 13647,
+    "Sha256": "7F3F8E338E5619241FA3D0ACC72BA791778F1CE2A328272CBAED12E40B9400FD"
+  },
+  {
+    "Path": "app/reopen_closed_test.go",
+    "Length": 28867,
+    "Sha256": "3D160E6CCA9602F285D1F0A19A1DC450EE8109F5E3B81DEDDC33C6DF037B2C0B"
+  },
+  {
+    "Path": "app/live_tab_admission_test.go",
+    "Length": 20902,
+    "Sha256": "285244AD5A24FFB927F57CDA28A8AD2F5CDB7F09FE7A52960EDDBD74BAA8766D"
+  }
+]

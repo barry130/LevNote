@@ -1,0 +1,18 @@
+{
+  "name": "captures1",
+  "step": "captures",
+  "goArguments": [
+    "test",
+    "./app",
+    "-run",
+    "^TestNativeImageCaptures$",
+    "-count=1",
+    "-v"
+  ],
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\captures1.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\captures1.output.txt",
+  "startedUtc": "2026-11-10T04:31:41.2496221+00:00",
+  "finishedUtc": "2026-11-10T04:31:46.5515430+00:00",
+  "durationSeconds": 5.302,
+  "exitCode": 0
+}

@@ -1,0 +1,10 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^(TestFindKeyboardEnterRetainsFocusAfterFailedFlush|TestFindKeyboardStaleEditorBufferCallbackRejected|TestReplaceCurrentRejectsIdentityChangingFlush)$","-count=1","-v")
+=== RUN   TestFindKeyboardEnterRetainsFocusAfterFailedFlush
+--- PASS: TestFindKeyboardEnterRetainsFocusAfterFailedFlush (0.41s)
+=== RUN   TestFindKeyboardStaleEditorBufferCallbackRejected
+--- PASS: TestFindKeyboardStaleEditorBufferCallbackRejected (0.02s)
+=== RUN   TestReplaceCurrentRejectsIdentityChangingFlush
+--- PASS: TestReplaceCurrentRejectsIdentityChangingFlush (0.01s)
+PASS
+ok  	levnote.local/native/app	1.967s
+EXIT_CODE=0

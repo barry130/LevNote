@@ -1,0 +1,40 @@
+View resource acceptance — Astra, after session checkpoint
+
+Do not interrupt the session correction to start this. Once focused session
+tests/API handoff and Markdown Partial/checked-export integration are done,
+measure the remaining native preview/render paths. Root reviews; you run
+measurements and implement within owned view/editor/scripts files. Do not
+spawn agents or edit parser/app/vendor ownership.
+
+Observed source paths requiring evidence:
+- markdownview.Draw currently builds every parsed block inside ui.Scroll;
+  BlockList also builds every item. A bounded parser can still produce
+  thousands of native rows. Existing 32KiB placeholder is per block only.
+- graphview.drawMindmap iterates every scene node and calls drawNodeBox,
+  which calls ui.ShapeText each frame. drawDiagram constructs two maps of all
+  nodes each frame (one appears unused) then shapes every label. Painter clip
+  does not itself avoid the application doing that shaping/allocation.
+
+1. Establish deliberately bounded headless workloads: e.g. 2000 short
+   Markdown headings, one 1000-item list, 500/2000 simple graph nodes. Measure
+   cold parse/layout separately from repeated unchanged view frames and pan.
+   Report actual built rows/shaped labels/allocated bytes. No OOM stress.
+2. Correct material repeated-frame overhead if confirmed. Markdown can use
+   MyGo ordinary ui.List with stable block identity and a bounded visible
+   strategy for list items. Preserve real double-click/edit/IME, draft focus,
+   source rebasing, scroll and conflict recovery; do not hide an active draft.
+   Do not hold a pending draft at a stale reused block index.
+3. Graph labels should have bounded retained geometry or viewport culling,
+   with correct invalidation for content, dimensions/font/zoom, themes where
+   relevant, page/saved buffer changes, and Release. Avoid shaping a huge
+   single topic: cap display work with explicit source-preservation guidance,
+   keeping the independent label editor able to reach the complete text.
+   Edge/node clipping must keep visible crossing edges and hit testing correct.
+   Prefer a small maintainable cache and visible clipping before spatial trees.
+4. Test the meaningful user behavior and resource bounds, compare same
+   workloads before/after, and update handoffs/view-resources.md. Tell DeepSeek
+   when it can run the refreshed full suite/build. New outline/table/metadata
+   features stay queued until this resource checkpoint and docs complete.
+
+Do not claim headless allocations as OS peak RSS or Tauri comparison. The
+existing full app screenshots and real OS IME limits remain in effect.

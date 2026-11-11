@@ -1,0 +1,36 @@
+{
+  "completedAtUtc": "2026-11-10T06:48:53.6982122Z",
+  "verifiedClosedInventory": true,
+  "totalFiles": 167,
+  "totalBytes": 55791441,
+  "artifacts": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-reading-release24-20261110\\aggregate.json",
+      "Bytes": 51028,
+      "SHA256": "D512E569D75D5250F69A6F358D9455BB48E56A8444A439BA53D4B93233E3DA9E",
+      "LastWriteUtcTicks": 639298899345815278
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-reading-release24-20261110\\aggregate-attempts\\attempt-2\\aggregate.json",
+      "Bytes": 50345,
+      "SHA256": "9D87F05088AE7C83FF740C526C65039AE19FCFCDD3566B571FE84F9E8DF7F705",
+      "LastWriteUtcTicks": 639298899344153451
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-reading-release24-20261110\\aggregate-attempts\\attempt-2\\validator.json",
+      "Bytes": 10605,
+      "SHA256": "07ACBC85744DA61AC6348D156294F7226B6026D148BBE637047B1DC282FFF77F",
+      "LastWriteUtcTicks": 639298899342026095
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-reading-release24-20261110-closed-inventory.json",
+      "Bytes": 73016,
+      "SHA256": "D9FA85BBC0F9906FF75874B1851ACD0E1046256CD5B5FB99D29976F2CE94328C",
+      "LastWriteUtcTicks": 639298901096733341
+    }
+  ],
+  "closedInventoryCommand": "pwsh -NoLogo -NoProfile -File native/handoffs/native-reading-release24-close-inventory.ps1",
+  "initialClosedInventoryExit": 0,
+  "metadataCorrection": "Preserved external attempt1 then corrected footer totals using saved per-root records; no aggregate/product rerun.",
+  "finalReadOnlyVerificationExit": 0
+}

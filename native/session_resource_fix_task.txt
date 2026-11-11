@@ -1,0 +1,47 @@
+Session resource correction — Astra owner, supersedes prior ownership
+
+Root interrupted GLM at a tool boundary before transferring core/session/**.
+You may now implement there alongside core/text and view packages. No further
+session edits by GLM. Finish QA note then fix these demonstrated defects.
+The raw app aggregate guard exists, but an encoded helper must be integrated.
+
+1. Preflight without draft-length copies
+- Rune-counting Save(string) must not convert the whole string to []byte.
+- Buffer preflight should use a streaming StringWriter or equivalent so
+  io.WriteString does not allocate a []byte per text piece and then turn it
+  back into a string. A small immutable piece descriptor snapshot is fine;
+  no full draft copy before encoded-budget rejection.
+- Account actual JSON string escapes including backspace/formfeed, <>&,
+  U+2028/U+2029 and quotes, without overcharging ordinary text.
+- Preflight ALL serialized metadata/preferences as well as draft contents;
+  a 16MiB+ Theme or path/title must not get marshalled merely to learn length.
+  Validate preference shapes and finite numbers. No arbitrary 1MiB reserve
+  masking omitted metadata in the estimate.
+
+2. Fallible builder must be transactional
+- nil document/buffer must return an error rather than panic.
+- Failed AddDocument must not consume tab or byte budgets; update only after
+  all fallible validation succeeds. Repeated invalid encoding attempts must
+  not make a later valid draft fail.
+- Give DeepSeek one concrete API that supports app's saved/discarded records,
+  view metadata, selected index, and preferences without duplicating counting.
+  Communicate API immediately; DeepSeek owns integration and app tests.
+- Preserve prior snapshot on any capture/persist failure. Returned snapshot
+  mutation must not corrupt builder bookkeeping if API promises reuse.
+
+3. Verify meaningful resource behavior
+- Reuse bounded qa_probe workloads for before/after: rejected 3MiB NUL raw
+  draft, huge Theme, poisoned-builder sequence, nil input. Report allocation
+  counts/bytes and conditions. Add focused regressions for real failures.
+- Failed close/normal quit semantics and retained/discarded drafts must keep
+  passing after DeepSeek integrates. Follow existing compatibility behavior.
+
+4. Build patch guard
+- Independently verified vendor refresh is working. Add a small check in
+  owned scripts/go.ps1 for build/run/install/test so a missing startup safety
+  patch fails clearly, unless refreshing via dependency-patches/refresh.ps1.
+  Coordinate with DeepSeek; do not edit vendor files. Keep ordinary standard
+  go build vendor behavior and do not change machine/global Go settings.
+
+Write handoffs/session.md; focused tests/vet then send checkpoint to root and
+DeepSeek. Do not re-run full integration concurrently with DeepSeek.

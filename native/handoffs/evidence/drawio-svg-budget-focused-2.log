@@ -1,0 +1,16 @@
+=== RUN   TestHostileInputsAndLimits
+=== RUN   TestHostileInputsAndLimits/doctype
+=== RUN   TestHostileInputsAndLimits/unknown_entity
+=== RUN   TestHostileInputsAndLimits/duplicate_cell_id
+=== RUN   TestHostileInputsAndLimits/byte_limit
+=== RUN   TestHostileInputsAndLimits/element_limit
+=== RUN   TestHostileInputsAndLimits/depth_limit
+--- PASS: TestHostileInputsAndLimits (0.00s)
+    --- PASS: TestHostileInputsAndLimits/doctype (0.00s)
+    --- PASS: TestHostileInputsAndLimits/unknown_entity (0.00s)
+    --- PASS: TestHostileInputsAndLimits/duplicate_cell_id (0.00s)
+    --- PASS: TestHostileInputsAndLimits/byte_limit (0.00s)
+    --- PASS: TestHostileInputsAndLimits/element_limit (0.00s)
+    --- PASS: TestHostileInputsAndLimits/depth_limit (0.00s)
+PASS
+ok  	levnote.local/native/formats/drawio	0.553s

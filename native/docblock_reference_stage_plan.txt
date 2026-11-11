@@ -1,0 +1,81 @@
+Active finite stage — native Markdown embedded-reference safety
+
+RELEASE ACCEPTED. Root read full test stdout, aggregate, executable metadata,
+12/12 evidence validation and isolated hidden smoke evidence. Accepted binary:
+13,298,176B; SHA256
+DF911A7F2C37E5548CDC6BF6E92D0FE93CB45283277D010020C267095A3D5D82;
+UTC2026-11-08T11:20:17.6539304Z. All test/vet/build/smoke exits0. WM_CLOSE
+closed ownedPID35788, fixtures and sentinels preserved. Evidence directory:
+artifacts/acceptance/docblock-reference-20261108-192000 and corresponding
+startup-smoke-docblock-reference-20261108-192100. No process-resource rerun.
+The following focused/integration plan is retained as stage history.
+
+FOCUSED GATE ACCEPTED. Parser/view/app focused evidence, narrow screenshots and
+GLM's final no-findings review are accepted by root. Product source is frozen.
+DeepSeek app owner alone is authorized for one full test/vet/release build and
+isolated hidden native startup/WM_CLOSE integration sequence. Preserve the
+18:17 accepted executable, record actual logs/exits/binary identity, and protect
+unrelated sentinels. No resource resampling or benchmarks. Final artifact
+acceptance follows root review of the captured evidence. Product docs remain
+with the app owner. Table work remains design-only pending that acceptance.
+
+ACTIVE after root acceptance of the mindmap field release13,274,624B, SHA256
+F06ABEF11653EF93F03D3017A62215CACD8364536E9EDF900242DC9283950A6C.
+The final contract is handoffs/docblock-reference-contract.md and supersedes
+the tentative design wording below. Focused results/source/visual review must
+precede one full integration sequence. No process-resource rerun.
+
+Root found
+two concrete current seams while planning the next usability work:
+- formats/markdown/docblock.go malformed-header panic/nonexclusive next cursor;
+  the minimal parser correction is ALREADY assigned to GLM in the current stage.
+- modules/markdownview/blocks.go BlockDocBlock renders `打开引用` as a fixed
+  native button which calls Host.OpenReference(ref.Src) without view-level
+  source identity or Flush validation. The app's later Flush cannot establish
+  the identity of the target chosen before it. This is the next finite stage.
+
+Purpose: make the existing embedded-reference entry as reliable as the accepted
+inline links. No embedded editor, image/network loading, parser grammar growth,
+table implementation or new framework in this step. Host.OpenReference remains
+the only path classifier/opener. Keep source/unknown headers/payload unchanged.
+
+Exclusive owners:
+- DeepSeek reference-view owner (Astra capacity replacement): modules/markdownview/** exact captured native action, bounded display
+  metadata and existing reference button; focused input/lifecycle regressions.
+- DeepSeek: app/** actual registered-adapter reference/Flush/tab-switch tests,
+  and final integration after root review. Shell edits only demonstrated issue.
+- GLM: small parser metadata seam in formats/markdown/{types,docblock}.go,
+  focused regressions/API handoff, then independent current-view source review.
+
+Astra completed prior artifact docs, then repeatedly hit capacity before product
+edits and is stopped. Only root reassigns/restarts agents. New view owner reads
+the final contract and existing links/tasks/view code plus app failure handoff;
+do not weaken those real stale-gesture/overlong tests. No subdelegation.
+
+Required design before implementation:
+1. Capture Buffer identity, source version, exact enclosing doc-block UTF16
+   range and original bounded src when the native pointer/key gesture begins.
+   Do not activate a newly rendered target from a reused fixed-key button.
+2. Flush then map the captured range via the existing edit journal and parse
+   current bounded complete source. Verify same doc-block construct and exact
+   complete target. Node IDs/titles are not unique source identity. New fences,
+   overlap, deletion, Buffer replacement, expired history or Partial refuse
+   visibly. Preserve any failed draft. Unrelated insertions may rebase safely.
+3. Full destinations above4096UTF8bytes cannot activate; labels/tooltips must
+   remain bounded and rune-safe. Never turn a shortened string into another
+   destination or keep a tiny substring retaining an arbitrarily large source.
+   Existing32KiB block display protection still applies. Exact source retained.
+4. Use ordinary button pointer/Enter/Space semantics if consistent with MyGo.
+   A read-only reference may navigate; pure open cannot dirty/add undo history.
+   Call Host.OpenReference once and return safely through synchronous Release
+   during current List construction, keeping per-frame snapshots valid.
+5. Missing/invalid/ambiguous reference header must remain visibly diagnosable.
+   Current parser normalizes header strings. Do not claim exact raw-path bytes
+   if parser trimming is the existing grammar; document actual recognized src.
+   Any parser-contract change requires a small separately reviewed proposal.
+
+Acceptance: native pointer/keyboard and actual app route, same-title/ID blocks,
+source insertion/rewrite before activation, pending Compose success/conflict,
+literal local filename/fileURL/refusal, readonly/no-op exact source, overbound
+href, callback Release and narrow layout. Reuse existing input/list tests and
+budgets, no redundant general framework or process-memory matrix.

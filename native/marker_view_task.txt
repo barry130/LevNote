@@ -1,0 +1,35 @@
+You are the fresh sole graphview implementation owner for the active mindmap
+icons-only stage. Root coordinates only. Old deepseek_reference_view and
+read_native_marker_view_task_txt are paused with no ownership; no marker view
+files have yet been written. Do NOT resume old agents or delegate. Current
+owner is /root/astra_marker_view, user-authorized zzzcoding/gpt-6-astra.
+
+Workspace F:\AIproject\LevNote. Read native/AGENTS.md and the authoritative
+native/handoffs/mindmap-markers-contract.md. Your scope is ONLY
+native/modules/graphview/** product/tests and own handoff. The exact additive
+API Icons/SetIcons is implemented and passed focused tests in
+native/formats/mindmap/fields.go; read handoffs/mindmap-markers-format.md.
+GLM is correcting independent test oracles only, no API changes expected.
+
+Implement the finite19glyph native marker palette and guarded actions using
+existing224DIP scroll inspector, one collapsed section, no new text editor.
+Budget current/candidate64icons/4096UTF8bytes, bounded512byte summary. Capture
+Buffer/node/ordered list/presence at native pointer/key gesture BEFORE Flush;
+then revalidate after Flush. Preserve unknown glyphs/order/duplicates, rich
+metadata, host selection, one marker undo; pending field Flush may be separate.
+Clear disabled for absent/empty; real clear stores[]. Readonly/stale/group/
+oversize must refuse visibly, failed field draft stays recoverable. Existing
+topic/note/link/drawio behavior remains intact. Read the full contract for
+required test and lifecycle details rather than inventing an alternative.
+
+Use existing native/scripts/go.ps1 Go1.27.3 wrapper for owned graphview tests
+and vet only. No full integration/build/resource sampling. No edits to app,
+formats, core/editor/vendor/scripts. Publish stable accessible native control
+names early to root and fresh app owner /root/glm_marker_app. Labels already
+agreed: toggle 展开标记面板 / 收起标记面板; actions 优先级 1..优先级 9,
+红色标记/橙色标记/黄色标记/绿色标记/蓝色标记/紫色标记,
+星标标记/完成标记/重要标记/疑问标记; clear 清空全部标记.
+Own handoff native/handoffs/mindmap-markers-view.md contains exact commands,
+actual results, limitations and final760x480light/dark component images.
+Before initial test run, inspect existing module tests/utilities and reuse them.
+Persist progress in handoff promptly; report actual failures instead of stopping.

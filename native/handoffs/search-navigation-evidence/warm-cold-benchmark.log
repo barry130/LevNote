@@ -1,0 +1,10 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^$","-bench","^BenchmarkSearchNavigationCacheWarmCold$","-benchtime=20x","-benchmem","-count=1")
+goos: windows
+goarch: amd64
+pkg: levnote.local/native/app
+cpu: AMD Ryzen 7 6800H with Radeon Graphics         
+BenchmarkSearchNavigationCacheWarmCold/warm-16         	      20	        30.00 ns/op	       0 B/op	       0 allocs/op
+BenchmarkSearchNavigationCacheWarmCold/cold-16         	      20	   2468115 ns/op	 1063316 B/op	    4137 allocs/op
+PASS
+ok  	levnote.local/native/app	1.894s
+EXIT_CODE=0

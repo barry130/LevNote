@@ -1,0 +1,9 @@
+New-Item : An item with the specified name F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-
+20261110\wrapper-fixture-check-20261110\layout\sample-01 already exists.
+At F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-20261110\wrapper-fixture-check-20261110\
+fixture-check.ps1:33 char:1
++ New-Item -ItemType Directory -Path $sampleRoot | Out-Null
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ResourceExists: (F:\AIproject\Le...ayout\sample-01:String) [New-Item], IOException
+    + FullyQualifiedErrorId : DirectoryExist,Microsoft.PowerShell.Commands.NewItemCommand
+ 

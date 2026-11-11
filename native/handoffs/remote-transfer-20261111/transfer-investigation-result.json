@@ -1,0 +1,99 @@
+{
+  "schema": "levnote.remote-transfer-investigation.v1",
+  "date": "2026-11-11",
+  "taskId": "task-2",
+  "taskOwner": "remote-transfer",
+  "originalCodexSession": "01a1b6b1-3caf-76b1-81e2-183c090b7b86",
+  "status": "blocked-no-authorized-local-byte-bridge",
+  "auxiliaryInvestigationComplete": true,
+  "transferred": false,
+  "transferOperationsAttempted": 0,
+  "remoteInboxCreatedByTask": false,
+  "target": {
+    "server": "box",
+    "boxId": "{{SECRET_htygbg2l}}",
+    "name": "main",
+    "state": "running",
+    "image": "sbxdesk:v15",
+    "mcpUrl": "https://mcp.box.simular.ai/mcp/{{SECRET_htygbg2l}}",
+    "observedBy": "box_list and explicit box_status"
+  },
+  "localChecks": [
+    {
+      "path": "native/handoffs/remote-box-preparation-20261111/levnote-source-inputs-20261111-02.zip",
+      "bytes": 5227577,
+      "sha256": "457503deecbcf0a534cc3240027048454bdf758076e0ee8d3a0a64f7773db7f9",
+      "matchesManifest02": true,
+      "remotePath": null,
+      "remoteBytes": null,
+      "remoteSha256": null
+    },
+    {
+      "path": "native/handoffs/remote-box-preparation-20261111/inputs-02.json",
+      "bytes": 244715,
+      "sha256": "a51734c0e9b40051ad1ba06ad4b5e0acc4d92ef1a3de5261259fa435b5df2e51",
+      "matchesManifest02": true,
+      "remotePath": null,
+      "remoteBytes": null,
+      "remoteSha256": null
+    },
+    {
+      "path": "native/handoffs/remote-box-preparation-20261111/linux-guarded-validation-02.py",
+      "bytes": 33772,
+      "sha256": "7d53c6b7374a52c9d3e6749e423449d073778ac1c33c49888a121b97d43e17d7",
+      "matchesManifest02": true,
+      "remotePath": null,
+      "remoteBytes": null,
+      "remoteSha256": null
+    }
+  ],
+  "localCheckMethod": "ops_stat SHA-256 revision and original byte count; no payload output",
+  "officialEvidence": [
+    {
+      "url": "https://box.simular.ai/#tools",
+      "observation": "The public shell/files inventory names shell/read_file/write_file/edit_file/list_dir, operating on the box; no local-path upload is listed."
+    },
+    {
+      "url": "https://box.simular.ai/docs/llms.txt",
+      "observation": "The current docs index has no file-transfer guide; this is not proof that the whole product lacks transfer features."
+    },
+    {
+      "url": "https://box.simular.ai/docs/mcp.md",
+      "observedUtc": "2026-11-11T03:25:17.167667+00:00",
+      "httpStatus": 200,
+      "bodyBytes": 12901,
+      "bodySha256": "66d92ffbb888017d57497a1cc79a6b7e0de84d0941ddc70e104281fdb06131c9",
+      "remoteReadCommandExit": 0,
+      "observation": "Official box MCP connection and authorization documentation; no local byte-upload-to-inbox operation found. No setup or auth command was executed."
+    },
+    {
+      "url": "https://platform.simular.ai/documentation/api-reference/upload",
+      "discoveredFrom": "https://platform.simular.ai/documentation/quickstart",
+      "observedUtc": "2026-11-11T03:26:02.469025+00:00",
+      "httpStatus": 200,
+      "bodyBytes": 68358,
+      "bodySha256": "57c89008c5b954ed5e344e2d1a26f5e4a92ba3224b691c0b037c7eebe3015c18",
+      "remoteReadCommandExit": 0,
+      "observation": "Sai raw-body POST /v1/agents/upload requires SAI_API_KEY bearer authorization and x-filename (25 MB max); response is an attachment for POST /message. No specified box/inbox binding documented. API was not invoked."
+    }
+  ],
+  "nativeCapabilityDiscovery": {
+    "result": "No allowed, implemented capability matched.",
+    "scope": "This session eligible capability pool, not a global product inventory"
+  },
+  "missingInterface": "An already-authorized callable opaque-byte local-path bridge using the existing box connector, exact cb-698f697fed7c binding, create-only fresh /home/user inbox and real remote byte-count/full-SHA256 verification.",
+  "textToolsInsufficient": "Local text/hex/stat tools expose no opaque-byte forwarding handle; remote write_file accepts text and shell accepts commands, not local file paths or binary streams.",
+  "notPerformed": [
+    "New local shell or retry of Lead EXECUTOR_UNAVAILABLE command",
+    "Credential/env/auth-file or token reading",
+    "ZIP or large manifest payload output",
+    "Token misuse, source upload or service startup",
+    "Box/plugin/global configuration change",
+    "Toolchain download/install, guard prepare or syntax check",
+    "Go/test/vet/build/product/worker/measurement",
+    "Source, Codex preparation or historical evidence modification"
+  ],
+  "report": "native/handoffs/remote-transfer-20261111/transfer-investigation-report.md",
+  "nextOwner": "lead / original Codex session",
+  "captureNote": "Structured transcription of tool observations and public HTTP body identities; not raw binary process streams or a remote transfer receipt."
+}

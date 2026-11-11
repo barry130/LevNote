@@ -1,0 +1,6 @@
+{
+  "StartedUtc": "2026-11-10T11:07:24.7043468Z",
+  "FinishedUtc": "2026-11-10T11:07:25.9977153Z",
+  "GoExitCode": 0,
+  "ExitSource": "scripts/go.ps1 exits with captured native go.exe LASTEXITCODE"
+}

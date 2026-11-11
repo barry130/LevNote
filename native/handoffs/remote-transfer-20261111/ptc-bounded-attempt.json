@@ -1,0 +1,24 @@
+{
+  "schema": "levnote.ptc-bounded-transfer-attempt.v1",
+  "date": "2026-11-11",
+  "status": "baseline-recorded-before-change",
+  "authorization": "User selected 允许临时切换并验证 for existing PTC execution components; restore original settings afterward; no package installation, credentials, frozen input changes or local product tests.",
+  "boxId": "{{SECRET_htygbg2l}}",
+  "originalCodexThread": "01a1b6b1-3caf-76b1-81e2-183c090b7b86",
+  "baseline": [
+    {"entryId": "include:ptc-runtime", "enabled": true, "fiberPhase": "active"},
+    {"entryId": "include:tool-executor-native", "enabled": true, "fiberPhase": "active"},
+    {"entryId": "include:tool-executor-ptc", "enabled": false, "fiberPhase": null},
+    {"entryId": "include:workflow-ptc", "enabled": false, "fiberPhase": null},
+    {"entryId": "include:tool-workflow", "enabled": false, "fiberPhase": null}
+  ],
+  "plannedChange": {"action": "set_plugin", "target": "include:tool-executor-ptc", "enabled": true},
+  "restore": {"action": "set_plugin", "target": "include:tool-executor-ptc", "enabled": false},
+  "otherSettings": "Leave Native, PTC runtime and workflow settings unchanged; no fallback executor or cache maintenance.",
+  "bounds": "One bounded activation and capability validation. Only forward pinned inputs through documented authorized APIs without payloads in model context; otherwise restore and report.",
+  "configurationChangeApplied": false,
+  "transferOperationsAttempted": 0,
+  "transferred": false,
+  "productOperationsAttempted": 0,
+  "restorationVerified": false
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "Path": "core/text/buffer.go",
+    "Length": 23353,
+    "Sha256": "D02837C2AD8EC739E8058B4ECFC479A3C537B85233653902C4E1069079ECE057"
+  },
+  {
+    "Path": "ui/editor/editor.go",
+    "Length": 24397,
+    "Sha256": "B5D98594BF9213C0D2B0EF2B69C1C00040ED5E365FF133A11BF813AABFD9366A"
+  },
+  {
+    "Path": "core/text/composition_test.go",
+    "Length": 12624,
+    "Sha256": "C57A16E814798699705F7C3F1062967E6E37E4434C80603E133E3C792F88A3B3"
+  },
+  {
+    "Path": "ui/editor/composition_test.go",
+    "Length": 7948,
+    "Sha256": "CDACCCD4EBDE965CD3CCD2B8366B843FD483FDFB39B94AC8EB63B87D39ACFF7D"
+  }
+]

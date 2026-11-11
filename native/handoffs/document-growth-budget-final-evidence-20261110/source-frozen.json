@@ -1,0 +1,57 @@
+[
+  {
+    "Path": "core/text/buffer.go",
+    "Length": 18700,
+    "Sha256": "0AF9281A6051B8715854665043CBCC3EA9DFBB89BA5D028BA719B312B244FB21"
+  },
+  {
+    "Path": "core/text/growth_test.go",
+    "Length": 5660,
+    "Sha256": "D7284C8285BD48061BB31224C6DF1596C1580F413164192F80883D2A3A518F38"
+  },
+  {
+    "Path": "core/document/document.go",
+    "Length": 12537,
+    "Sha256": "6859017748C8884DD9CC84B185A405C0A78089AA0D84F191024489CB24C11219"
+  },
+  {
+    "Path": "core/document/growth_test.go",
+    "Length": 3318,
+    "Sha256": "0E8E8803FA22EEE748897F59FCEE148F16E4D920E98991A5CA0640BCDE847E45"
+  },
+  {
+    "Path": "core/search/find.go",
+    "Length": 4677,
+    "Sha256": "D3D7EDD2D2A2CD47C1D362A225387566D3F8709A24D92A479CCD57207645A4F5"
+  },
+  {
+    "Path": "core/search/growth_test.go",
+    "Length": 2966,
+    "Sha256": "6C0DEBA2F982F0A4A10D5F7288C13F9BE4030CAEF6BDA44EDAD0DF9AA5D64D3D"
+  },
+  {
+    "Path": "ui/editor/editor.go",
+    "Length": 23437,
+    "Sha256": "09BEA640C8F1953E615B43088A7F58FA25AA8342B59694CC4023CBD36A885EBD"
+  },
+  {
+    "Path": "ui/editor/growth_test.go",
+    "Length": 9109,
+    "Sha256": "21FB5BCC2464AFEA0D5E5FC76236B5FF4CB4AF110370E0F55E756CCD00F775A8"
+  },
+  {
+    "Path": "modules/markdownview/growth_test.go",
+    "Length": 2892,
+    "Sha256": "1F45BCE17706E8CEE44C26727C920B2AE08F68A1605B627954B80A436F9B0990"
+  },
+  {
+    "Path": "modules/graphview/growth_test.go",
+    "Length": 1903,
+    "Sha256": "0F14DE124EB3108FC07F5913A29A9512EAE892DD9DDC7BC6FBC53BD4AB594119"
+  },
+  {
+    "Path": "app/document_growth_test.go",
+    "Length": 7026,
+    "Sha256": "613446886000151828C5DB505A24CD9B3CD9A2617B080E67B82D55C705F7B47D"
+  }
+]

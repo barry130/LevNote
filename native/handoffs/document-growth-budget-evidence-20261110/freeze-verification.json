@@ -1,0 +1,25 @@
+{
+  "VerifiedUtc": "2026-11-10T11:02:16.4161269Z",
+  "SourceFiles": 11,
+  "AllIdentitiesMatch": true,
+  "Runs": [
+    {
+      "Run": "01-focused",
+      "ExitCode": 1,
+      "StdoutBytes": 1196,
+      "StderrBytes": 0
+    },
+    {
+      "Run": "02-focused-correction",
+      "ExitCode": 0,
+      "StdoutBytes": 80,
+      "StderrBytes": 0
+    },
+    {
+      "Run": "03-existing-seams",
+      "ExitCode": 0,
+      "StdoutBytes": 230,
+      "StderrBytes": 0
+    }
+  ]
+}

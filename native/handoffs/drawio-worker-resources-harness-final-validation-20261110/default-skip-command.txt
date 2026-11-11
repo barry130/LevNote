@@ -1,0 +1,1 @@
+& 'F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-harness-final-validation-20261110\drawio-resources.test.exe' @('-test.run','^(TestDrawioWorkerResourcesHarnessPreflight|TestDrawioWorkerResourceMeasurement)$','-test.count=1','-test.v')

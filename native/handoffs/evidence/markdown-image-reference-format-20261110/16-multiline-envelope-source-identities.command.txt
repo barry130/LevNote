@@ -1,0 +1,1 @@
+PowerShell Get-FileHash -Algorithm SHA256 for six authorized source files

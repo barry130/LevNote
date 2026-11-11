@@ -1,0 +1,8 @@
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./core/engineruntime','-run','TestRuntimeDrawio|TestRuntimeInvalidDrawio|TestPackageStateSchema|TestPackageStateLoadWithout|TestPackageStoreFourEnginesExact')
+WORKDIR: F:\AIproject\LevNote
+--- FAIL: TestPackageStateSchemaOneMigrationAndSchemaTwoPersistence (0.02s)
+    package_store_test.go:258: schema1 accepted drawio in place of legacy preview: [{Engine: Source: Version: Digest:} {Engine: Source: Version: Digest:} {Engine: Source: Version: Digest:} {Engine: Source: Version: Digest:}] export engine integrity: 引擎包选择状态格式无效
+FAIL
+FAIL	levnote.local/native/core/engineruntime	1.777s
+FAIL
+EXIT_CODE=1

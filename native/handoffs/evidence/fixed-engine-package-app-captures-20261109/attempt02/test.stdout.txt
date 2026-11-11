@@ -1,0 +1,8 @@
+--- FAIL: TestEnginePackagePanelCaptures (0.18s)
+    --- FAIL: TestEnginePackagePanelCaptures/light (0.10s)
+        engine_packages_capture_test.go:48: final selection and status were not visible
+    --- FAIL: TestEnginePackagePanelCaptures/dark (0.08s)
+        engine_packages_capture_test.go:48: final selection and status were not visible
+FAIL
+FAIL	levnote.local/native/app	1.840s
+FAIL

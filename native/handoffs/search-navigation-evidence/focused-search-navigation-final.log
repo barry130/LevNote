@@ -1,0 +1,7 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^(TestFind|TestReplaceCurrentInvalidatesNavigationCacheAndFindsFreshText|TestShutdownClearsFindCache)","-count=1")
+--- FAIL: TestFindAbandonsResultsWhenActiveTabChangesDuringScan (0.01s)
+    search_navigation_test.go:328: search selection = text.Range{Anchor:6, Head:6}, want ordered bounds [0,0)
+FAIL
+FAIL	levnote.local/native/app	1.745s
+FAIL
+EXIT_CODE=1

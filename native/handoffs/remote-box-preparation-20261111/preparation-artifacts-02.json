@@ -1,0 +1,153 @@
+{
+    "Schema":  1,
+    "RecordedUtc":  "2026-11-11T03:02:34.3028498Z",
+    "Scope":  "All top-level regular preparation files present at closure, excluding this self-referential inventory. Expanded snapshot directories are covered by inputs-01/02.json and snapshot reconciliation. External final result is separately identified.",
+    "Files":  29,
+    "Artifacts":  [
+                      {
+                          "Path":  "archive-members-01.json",
+                          "Length":  245791,
+                          "Sha256":  "6D624B8F19A907B5A0F47378572A84FC18FB773DB7B642988B0991C2F2C492EC"
+                      },
+                      {
+                          "Path":  "archive-members-02.json",
+                          "Length":  244715,
+                          "Sha256":  "A51734C0E9B40051AD1BA06AD4B5E0ACC4D92EF1A3DE5261259FA435B5DF2E51"
+                      },
+                      {
+                          "Path":  "inputs-01.json",
+                          "Length":  245791,
+                          "Sha256":  "6D624B8F19A907B5A0F47378572A84FC18FB773DB7B642988B0991C2F2C492EC"
+                      },
+                      {
+                          "Path":  "inputs-02.json",
+                          "Length":  244715,
+                          "Sha256":  "A51734C0E9B40051AD1BA06AD4B5E0ACC4D92EF1A3DE5261259FA435B5DF2E51"
+                      },
+                      {
+                          "Path":  "levnote-source-inputs-20261111-01.zip",
+                          "Length":  5332912,
+                          "Sha256":  "C7454F4F727F7514258D8C41761BA6C9DA755744434E35CEA5D70FE9EBD3B0D9"
+                      },
+                      {
+                          "Path":  "levnote-source-inputs-20261111-02.zip",
+                          "Length":  5227577,
+                          "Sha256":  "457503DEECBCF0A534CC3240027048454BDF758076E0EE8D3A0A64F7773DB7F9"
+                      },
+                      {
+                          "Path":  "linux-guarded-validation-01.py",
+                          "Length":  28459,
+                          "Sha256":  "5D4873954B46A9F1D9A4CAFA88D411AD1F419299A05672A6CC3A76A671C90EBD"
+                      },
+                      {
+                          "Path":  "linux-guarded-validation-02.py",
+                          "Length":  33772,
+                          "Sha256":  "7D53C6B7374A52C9D3E6749E423449D073778AC1C33C49888A121B97D43E17D7"
+                      },
+                      {
+                          "Path":  "origin-after-01.json",
+                          "Length":  245791,
+                          "Sha256":  "6D624B8F19A907B5A0F47378572A84FC18FB773DB7B642988B0991C2F2C492EC"
+                      },
+                      {
+                          "Path":  "origin-after-02.json",
+                          "Length":  244715,
+                          "Sha256":  "A51734C0E9B40051AD1BA06AD4B5E0ACC4D92EF1A3DE5261259FA435B5DF2E51"
+                      },
+                      {
+                          "Path":  "origin-before-01.json",
+                          "Length":  245791,
+                          "Sha256":  "6D624B8F19A907B5A0F47378572A84FC18FB773DB7B642988B0991C2F2C492EC"
+                      },
+                      {
+                          "Path":  "origin-before-02.json",
+                          "Length":  244715,
+                          "Sha256":  "A51734C0E9B40051AD1BA06AD4B5E0ACC4D92EF1A3DE5261259FA435B5DF2E51"
+                      },
+                      {
+                          "Path":  "preparation-task.md",
+                          "Length":  6112,
+                          "Sha256":  "EDECE56599E6DF754004773B78BF63CDB25CF7A94DDE39F3E7045EA34DA60FC1"
+                      },
+                      {
+                          "Path":  "prepare-snapshot-01.ps1",
+                          "Length":  10029,
+                          "Sha256":  "F0799FC9CF599174BD03023C53321A9C1625F9D60B8A9D61DD4EA56D036B2003"
+                      },
+                      {
+                          "Path":  "prepare-snapshot-02.ps1",
+                          "Length":  10355,
+                          "Sha256":  "42BC39386DB3C31FA001C25972348CDBB5D5E3271B43AC29DE4B0E0E062F6512"
+                      },
+                      {
+                          "Path":  "progress.md",
+                          "Length":  1789,
+                          "Sha256":  "AFF93DC605E42DA4358507AD100BF6E249C432A46F0A22EB95F28F1B70A754B3"
+                      },
+                      {
+                          "Path":  "remote-runbook-02.md",
+                          "Length":  5754,
+                          "Sha256":  "468A22CA4299805C2CA56F62D08DAAE4F1480786CF39B7DF7EA0E0C2126EE5CE"
+                      },
+                      {
+                          "Path":  "root-input-review-02.json",
+                          "Length":  3915,
+                          "Sha256":  "EAAC8793CBFD773DD200286D731615644CB3FA116DFAA1D4654AD50BE2D9E7C0"
+                      },
+                      {
+                          "Path":  "scope-correction-02.json",
+                          "Length":  1823,
+                          "Sha256":  "FEABAD2C1D62CF348E1390B721E22939F30B8B5BF9D909E25DC40E583F741199"
+                      },
+                      {
+                          "Path":  "scope-review-02.md",
+                          "Length":  7429,
+                          "Sha256":  "AEFE369D8096A88893BAFAAE8EBC6BAD19E83B000FAA0CDAB249E5DA9EC897CF"
+                      },
+                      {
+                          "Path":  "snapshot-attempt-01.invocation.json",
+                          "Length":  382,
+                          "Sha256":  "00916F4387255B3530601CFE9206AA5F43E2361328442DD659C2EF21559CBF0A"
+                      },
+                      {
+                          "Path":  "snapshot-attempt-01.stderr.txt",
+                          "Length":  0,
+                          "Sha256":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                      },
+                      {
+                          "Path":  "snapshot-attempt-01.stdout.txt",
+                          "Length":  5610,
+                          "Sha256":  "44B2635465A65C67AA6FFBD10C86E75B9CD218483EC1D1335D88F4B733F74ED8"
+                      },
+                      {
+                          "Path":  "snapshot-attempt-02.invocation.json",
+                          "Length":  523,
+                          "Sha256":  "06F2618C7548B141A851E0C8DDA39AD7073514D9D967912A385AB48DE3E7B92F"
+                      },
+                      {
+                          "Path":  "snapshot-attempt-02.stderr.txt",
+                          "Length":  0,
+                          "Sha256":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                      },
+                      {
+                          "Path":  "snapshot-attempt-02.stdout.txt",
+                          "Length":  5908,
+                          "Sha256":  "941F9EA4E3944BB86EFD097099164E0540B194BE731E4B4BD4ACBBD583A7DEC8"
+                      },
+                      {
+                          "Path":  "snapshot-verification-01.json",
+                          "Length":  2803,
+                          "Sha256":  "4A278F0FC0AAB0C2D07B6BBB878FAE2635870DCC7AF92772188EB6412972B640"
+                      },
+                      {
+                          "Path":  "snapshot-verification-02.json",
+                          "Length":  2952,
+                          "Sha256":  "32E3152F29DFCA0D77446D23B1CFD8E61FFEC205E2305E9E42A5875FAC7AA100"
+                      },
+                      {
+                          "Path":  "transfer-files-02.json",
+                          "Length":  541,
+                          "Sha256":  "B2549001E4FB37204409BA9CDC845E79527F3CA78B3E0101E8399186D1E68F03"
+                      }
+                  ]
+}

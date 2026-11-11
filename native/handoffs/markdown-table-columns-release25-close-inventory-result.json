@@ -1,0 +1,6 @@
+{
+  "Command": "& 'C:/Users/canace/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe' -NoLogo -NoProfile -File 'native/handoffs/markdown-table-columns-release25-close-inventory.ps1'",
+  "StartedAtUtc": "2026-11-10T07:38:48.6852825+00:00",
+  "FinishedAtUtc": "2026-11-10T07:38:49.8454376+00:00",
+  "ExitCode": 0
+}

@@ -1,0 +1,12 @@
+{
+  "correction": "The original commands.txt test line is the first no-tests invocation, not the successful gate.",
+  "originalTestCommand": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\go.ps1 test -run '^TestPackageInventory$' ./core/engineruntime",
+  "originalTestOutcome": "exit 0; [no tests to run]; preserved under failed-attempts/",
+  "successfulTestCommand": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\go.ps1 test -run ^TestPackageInventory ./core/engineruntime",
+  "successfulTestOutcome": "exit 0; ok levnote.local/native/core/engineruntime 0.725s",
+  "vetCommand": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\go.ps1 vet ./core/engineruntime",
+  "vetOutcome": "exit 0",
+  "successfulTestStartedUTC": "2026-11-09T05:16:50.4508555Z",
+  "completedUTC": "2026-11-09T05:16:53.7429657Z",
+  "commandsRerunForCorrection": false
+}

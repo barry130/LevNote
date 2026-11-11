@@ -1,0 +1,20 @@
+COMMAND: .\native\scripts\go.ps1 -GoArguments @("test","./core/document","-run","^$","-bench","^BenchmarkUTF8Output","-benchmem","-benchtime=10x","-count=1","-v")
+goos: windows
+goarch: amd64
+pkg: levnote.local/native/core/document
+cpu: AMD Ryzen 7 6800H with Radeon Graphics         
+BenchmarkUTF8Output1MiB
+    utf8_save_benchmark_test.go:57: fixture_bytes=1048576 fixture_sha256=79dc3c40b1efac3f8af6dc91cafbed8f4a5afd307594194f9be07a9ba98b9db7
+BenchmarkUTF8Output1MiB/full-buffer/size=1048576
+BenchmarkUTF8Output1MiB/full-buffer/size=1048576-16         	      10	   1447240 ns/op	 2105398 B/op	       4 allocs/op
+BenchmarkUTF8Output1MiB/streaming/size=1048576
+BenchmarkUTF8Output1MiB/streaming/size=1048576-16           	      10	    523690 ns/op	   33131 B/op	       8 allocs/op
+BenchmarkUTF8Output8MiB
+    utf8_save_benchmark_test.go:57: fixture_bytes=8388608 fixture_sha256=008cb89935cb613c5939e6b6fa7631711cd3c38eec57eb06dc57e30c1057c266
+BenchmarkUTF8Output8MiB/full-buffer/size=8388608
+BenchmarkUTF8Output8MiB/full-buffer/size=8388608-16         	      10	  10399770 ns/op	16785478 B/op	       4 allocs/op
+BenchmarkUTF8Output8MiB/streaming/size=8388608
+BenchmarkUTF8Output8MiB/streaming/size=8388608-16           	      10	   4556580 ns/op	   33139 B/op	       8 allocs/op
+PASS
+ok  	levnote.local/native/core/document	0.840s
+EXITCODE: 0

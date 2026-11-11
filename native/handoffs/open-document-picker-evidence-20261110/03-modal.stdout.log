@@ -1,0 +1,12 @@
+=== RUN   TestOpenDocumentsModalKeyboardAndOpener
+--- PASS: TestOpenDocumentsModalKeyboardAndOpener (0.04s)
+=== RUN   TestOpenDocumentsModalQueryComposition
+=== RUN   TestOpenDocumentsModalQueryComposition/commit
+=== RUN   TestOpenDocumentsModalQueryComposition/cancel
+--- PASS: TestOpenDocumentsModalQueryComposition (0.05s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/commit (0.03s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/cancel (0.02s)
+=== RUN   TestOpenDocumentsSinglePointerSelect
+--- PASS: TestOpenDocumentsSinglePointerSelect (0.02s)
+PASS
+ok  	levnote.local/native/app	2.102s

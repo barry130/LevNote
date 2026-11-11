@@ -1,0 +1,30 @@
+{
+  "label": "focused-source-retention-1",
+  "command": [
+    "native/scripts/go.ps1",
+    "-GoArguments",
+    "test",
+    "./formats/drawio",
+    "-run",
+    "^TestSourceRetention",
+    "-count=1"
+  ],
+  "workingDirectory": "F:\\AIproject\\LevNote",
+  "startedAtUtc": "2026-11-09T20:22:30.7568292+00:00",
+  "finishedAtUtc": "2026-11-09T20:22:32.5427433+00:00",
+  "exitCode": 1,
+  "sourceSha256Before": {
+    "formats/drawio/parse.go": "98A0620AF1F87ECEF1D761EB6AEDD507269DEF34C5530D412D7CEBFBE3E1DA34",
+    "formats/drawio/edit.go": "9BD482BEAE8088D340BC8070B48610E841B2E602A11328470196E1B1B7C81DEA",
+    "formats/drawio/types.go": "233025C35D1A6C33832E47D8782A07A367954F1EEF70754FB83A5BE436C7D845",
+    "formats/drawio/source_retention_benchmark_test.go": "58CE35C69B79FFADBC1BCBF619F63516D7BECD5ABA2A5F47D1AF5E0033D93493"
+  },
+  "sourceSha256After": {
+    "formats/drawio/parse.go": "98A0620AF1F87ECEF1D761EB6AEDD507269DEF34C5530D412D7CEBFBE3E1DA34",
+    "formats/drawio/edit.go": "9BD482BEAE8088D340BC8070B48610E841B2E602A11328470196E1B1B7C81DEA",
+    "formats/drawio/types.go": "233025C35D1A6C33832E47D8782A07A367954F1EEF70754FB83A5BE436C7D845",
+    "formats/drawio/source_retention_benchmark_test.go": "58CE35C69B79FFADBC1BCBF619F63516D7BECD5ABA2A5F47D1AF5E0033D93493"
+  },
+  "stdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-source-retention-evidence\\focused-source-retention-1.stdout.log",
+  "stderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-source-retention-evidence\\focused-source-retention-1.stderr.log"
+}

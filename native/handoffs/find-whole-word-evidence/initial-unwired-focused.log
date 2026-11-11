@@ -1,0 +1,15 @@
+# levnote.local/native/app [levnote.local/native/app.test]
+app\find_whole_word_test.go:24:8: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\find_whole_word_test.go:78:41: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\find_whole_word_test.go:99:29: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\find_whole_word_test.go:110:29: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\find_whole_word_test.go:129:29: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\find_whole_word_test.go:144:29: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\find_whole_word_test.go:169:4: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\findbar_layout_test.go:165:8: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\findbar_layout_test.go:250:5: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\search_navigation_test.go:181:4: a.WholeWord undefined (type *App has no field or method WholeWord)
+app\search_navigation_test.go:181:4: too many errors
+FAIL	levnote.local/native/app [build failed]
+FAIL
+EXIT_CODE=1

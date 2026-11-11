@@ -1,0 +1,32 @@
+Next-stage design review only — no implementation, 2026-11-08
+
+The user's central requirement is to make supported file formats plugins in
+a native MyGo application, with independently written engines. Current code
+supports compiled-in format adapters plus locally installable declarative
+syntax metadata. This is an honest subset, not a universal installable format
+engine SDK. Outline implementation remains the active delivery; do not expand
+or edit its ownership. Do not spawn agents.
+
+GLM: inspect actual core/plugins, editor Adapter/Host, modules wiring, file
+fallback and resource/lifecycle boundaries. Produce a concrete next finite
+stage plan in handoffs/plugin-evolution-plan.md. No source or docs edits and
+no tests/builds/network research in this design-only assignment.
+
+Compare only technically feasible Windows/native options: compiled format
+modules with explicit capability factories/lazy instances; declarative native
+format schemas rendered by a small safe host; local process protocol engines;
+or another practical approach supported by current dependencies. Go's package
+plugin does not solve Windows native distribution. Do not promise arbitrary
+native UI hot-loading or zero overhead. Clarify trusted builtin code versus
+untrusted installed data and memory/disposal/error recovery tradeoffs.
+
+Recommend one next small implementation that increases actual format-plugin
+capability without introducing a web runtime, reusing third-party document
+engines, permitting silent file/network effects or inventing a huge SDK.
+State user-visible behavior, API changes, format preservation, low-resource
+constraints, compatibility and substantive acceptance checks. Mark future
+possibilities as future; do not claim the user's entire plugin goal delivered.
+
+Root will use the recommendation after outline acceptance. When called back
+for independent code review, finish this bounded note and switch to that task;
+review of the active deliverable takes priority.

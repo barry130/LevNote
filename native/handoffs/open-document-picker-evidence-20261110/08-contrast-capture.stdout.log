@@ -1,0 +1,4 @@
+=== RUN   TestOpenDocumentsMinimumWindowCapture
+--- PASS: TestOpenDocumentsMinimumWindowCapture (0.04s)
+PASS
+ok  	levnote.local/native/app	1.655s

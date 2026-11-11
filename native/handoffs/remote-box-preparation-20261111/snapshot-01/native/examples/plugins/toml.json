@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "id": "toml",
+  "name": "TOML",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "extensions": [
+    ".toml"
+  ],
+  "lineComment": "#",
+  "keywords": [
+    "true",
+    "false"
+  ]
+}

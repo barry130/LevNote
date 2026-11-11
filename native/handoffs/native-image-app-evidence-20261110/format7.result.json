@@ -1,0 +1,30 @@
+{
+  "name": "format7",
+  "step": "format",
+  "goArguments": [
+    "run",
+    "cmd/gofmt",
+    "-w",
+    "app/app.go",
+    "app/binary.go",
+    "app/binary_lane.go",
+    "app/binary_actions.go",
+    "app/binary_test.go",
+    "app/state.go",
+    "app/view.go",
+    "app/plugins.go",
+    "app/reference.go",
+    "app/workspace.go",
+    "app/workers.go",
+    "app/export.go",
+    "app/export_worker.go",
+    "app/search_navigation.go",
+    "app/outline.go"
+  ],
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\format7.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\format7.output.txt",
+  "startedUtc": "2026-11-10T04:50:15.0035706+00:00",
+  "finishedUtc": "2026-11-10T04:50:15.8474457+00:00",
+  "durationSeconds": 0.844,
+  "exitCode": 0
+}

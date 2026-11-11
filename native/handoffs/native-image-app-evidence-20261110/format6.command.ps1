@@ -1,0 +1,3 @@
+Set-Location -LiteralPath 'F:\AIproject\LevNote'
+& 'F:\AIproject\LevNote\native\scripts\go.ps1' -GoArguments @('run', 'cmd/gofmt', '-w', 'app/app.go', 'app/binary.go', 'app/binary_lane.go', 'app/binary_actions.go', 'app/binary_test.go', 'app/state.go', 'app/view.go', 'app/plugins.go', 'app/reference.go', 'app/workspace.go', 'app/workers.go', 'app/export.go', 'app/export_worker.go', 'app/search_navigation.go', 'app/outline.go')
+exit $LASTEXITCODE

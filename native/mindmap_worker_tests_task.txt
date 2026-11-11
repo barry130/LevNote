@@ -1,0 +1,28 @@
+Finish the Mindmap SVG command gate. Owner read_mindmap_worker_tests_task.
+Read native/AGENTS.md and native/handoffs/mindmap-engine-worker-task.md.
+
+The previous DeepSeek command owner is now interrupted and no longer owns edits.
+Its main.go exists and was independently reviewed with no finding. Hash is
+7207D0BBD20F218ADEE8215ADC56F4D9919C8583FE30FA2777A4FF057F3B687E.
+There is currently no main_test.go. Your task is finite implementation/test
+completion, not more architecture analysis. No child agents; context<200K.
+
+Own only native/cmd/levnote-mindmap-svg/main_test.go, narrow main.go correction
+ONLY if a real defect is exposed, native/handoffs/mindmap-engine-worker.md and
+a new evidence directory. Add meaningful tests against actual serve wire for:
+independent literal SVG/XML/labels/geometry/escaping (pure parity secondary),
+exact nonmutation, deterministic warnings with whole-source ranges including
+hidden metadata, default/unknown layout, icons/tags/color/image disclosures,
+invalid/deep source, excessive count/long warning refusal, escaped-label tiny
+SVG output-cap refusal, foreign request unread payload, broken/short writer.
+Avoid huge allocations for cap header checks. Reuse prior parser limit coverage.
+
+IPC is accepted/frozen; no dependency wait. Use native/scripts/go.ps1 test
+./cmd/levnote-mindmap-svg -count=1 -v and scoped vet. Preserve real commands,
+streams, exit/time and owned/dependency before/after hashes. Do not build an
+executable, invoke worker subprocess, run full suite, or alter other sources.
+The served command in unit tests runs in-process only. Preserve failed attempts.
+
+Write the test file promptly then execute/repair finite owned gates. Send a
+brief checkpoint after writing it. Publish concise final handoff with actual
+evidence; root will read tests and logs before .6 packaging is activated.

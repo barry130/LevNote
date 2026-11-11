@@ -1,0 +1,2 @@
+# levnote.local/native/app [levnote.local/native/app.test]
+app\export_drawio_worker_test.go:145:25: undefined: text.History

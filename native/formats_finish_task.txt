@@ -1,0 +1,61 @@
+Current checkpoint order and ownership supersede all historical items below:
+1. Finish parser_resource_fix_task.txt focused compile/test and publish result
+   plus exact immutable cancellable DiskToken/CheckDisk API to DeepSeek.
+2. Finish search_resource_review_task.txt; then documentation below.
+3. DO NOT EDIT core/session, markdownview or graphview; all are Astra-owned.
+No feature expansion until the resource checkpoint and documentation complete.
+
+Ownership: native/formats/** except formats/code/**,
+native/core/document/**,
+native/core/search/**, native README/docs, migration ADR and root roadmap/
+changelog/index updates. Do not modify app, editor or plugins. No child agents.
+Root only plans/reviews. Compact before 200K. Use native/handoffs/formats.md.
+Read native/handoffs/plan.md for cross-owner contracts and review findings.
+Graphview ownership transferred to Astra after your acknowledged checkpoint;
+graph-specific items below now belong to native/graph_safety_task.txt.
+Markdown view ownership also transferred to Astra at a stopped tool boundary;
+view items below now belong to native/markdown_view_safety_task.txt.
+
+First address data safety and lifecycle with tests:
+- Markdown draft currently mirrors host Buffer but Release silently drops a
+  stale block draft after split/source edits. Use version/range validation,
+  fallible Flush() barrier and explicit retained draft/conflict recovery.
+  Coordinate View contract with editor owner and app owner via handoff files.
+- Save/recovery must include latest block edits and Chinese composition.
+  Test direct block edits/save, IME, split edit conflicts, switch/release, undo.
+- Graph Release must actually free parsed model/layout caches. Preserve
+  selection/page/pan/zoom preferences and authoritative Buffer/history.
+  Label/metadata drafts must not silently disappear on switch or save.
+- Change graph adapter IDs to mindmap/drawio; registry owns extensions.
+- Avoid duplicate warning displays; readonly permits format previews.
+- Add document.WriteNewFile(path,data), atomic exclusive publish using
+  existing writeAtomic(create=true), for app export. Notify app owner.
+- Review consequential document/session/search issues, preserve original
+  bytes/unknown data and avoid unrelated refactoring.
+
+Next add useful, tested native format capabilities:
+Prioritize Markdown task toggles, basic tables with safe source-range edits,
+local/anchor link activation via Host.OpenReference, outline data/activation,
+and graph notes/links/tags/icons metadata controls already present in model.
+Local images only through bounded host APIs; parsers/views no direct filesystem.
+Math/Mermaid/unsupported drawio shapes must remain readable as source with
+explicit warnings. Do not invent capability claims or copy other engine code.
+
+Documentation:
+- native/README.md with verified build/run, local plugin model and capability/
+  limitation matrix. Measured executable footprint only.
+- Architecture/contracts and comparison to mature apps' public workflows,
+  used as behavior inspiration, not copying proprietary/GPL implementations.
+- Inspect ADR index; add 0063 if free, update index/ROADMAP/CHANGELOG for native
+  migration, milestones completed and real remaining gaps.
+- Licenses/provenance: independent implementation is not a guarantee against
+  copyright claims; MyGo/runtime/font-shaping dependencies need their notices.
+  Do not bundle legacy third-party editor assets.
+- Do not overwrite native/AGENTS.md coordination ownership.
+
+Run owned module/core/format tests, vet and gofmt. Write progress/API requests/
+results to native/handoffs/formats.md; message transport may be unreadable.
+2026-11-08 continuation: after bounded-search corrections, read
+native/docs_acceptance_review_task.txt for current API/doc and disk-test review
+findings. Root acceptance requires factual, user-facing documentation.
+

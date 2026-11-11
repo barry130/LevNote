@@ -1,0 +1,100 @@
+# 原生版第三方来源与许可声明
+
+本页针对 `native/` 的 Go/MyGo 路径，依据 2026-11-08 的 `go.mod`、
+`vendor/modules.txt`、实际 vendor 文件及 Windows 构建依赖图整理。
+LevNote 自有代码的许可见根目录 [LICENSE](../LICENSE)。第三方作品继续
+遵循各自许可，不能用项目 MIT 许可替代它们的条件。
+
+本目录 [licenses](licenses/) 保存了下列许可原文的逐字节副本；分发原生
+程序时应将本页及这些文本一起提供。`scripts/package-markdown-worker.ps1`
+将当前宿主/worker与本页本地链接版本、完整许可及来源补丁材料组装到全新
+运行目录，构建证据另放到指定的全新目录；不制作安装器或把文档嵌进exe。
+源码中的版权与来源注释也应保留。
+
+2026-11-09的`bin/levnote-native-worker-20261109.1/`是本次人工核对的干净
+运行目录：包含当时已验收宿主/worker、项目LICENSE、本页便携路径版本和全部
+`licenses/`原文，保留不改写。当前脚本已自动提供相同类型的交付资产，生成
+成功仍不代表新产物已验收。便携版声明仅调整本地引用，原始声明逐字节保存在其
+`attribution/SOURCE_THIRD_PARTY_NOTICES.txt`，许可文本未改写。
+
+| 来源与固定版本 | 当前用途/范围 | 许可原文 |
+|---|---|---|
+| `github.com/egoist/mygo v0.8.3` | 原生窗口、Surface UI、平台输入、字体排版与绘制；有下述本地补丁 | [MIT](licenses/mygo-MIT.txt)，Copyright (c) 2026 MyGo contributors |
+| `github.com/ebitengine/purego v0.11.1` | MyGo 平台调用依赖 | [Apache-2.0](licenses/purego-Apache-2.0.txt)；**部分 Go 派生文件另适用下述 BSD 文本** |
+| `github.com/go-text/typesetting v0.3.5` | 当前 Windows 图使用 language、segmenter、unicodedata 包 | [Unlicense OR BSD-3-Clause](licenses/go-text-typesetting.txt)，Copyright 2021 The go-text authors |
+| `golang.org/x/image v0.46.0` | 图像格式、颜色表等 | [BSD-3-Clause](licenses/x-image-BSD-3-Clause.txt)，Copyright 2009 The Go Authors |
+| `golang.org/x/net v0.59.0` | MyGo 间接依赖中的 publicsuffix | [BSD-3-Clause](licenses/x-net-BSD-3-Clause.txt)，Copyright 2009 The Go Authors |
+| `golang.org/x/text v0.43.0` | 编码转换、语言等 | [BSD-3-Clause](licenses/x-text-BSD-3-Clause.txt)，Copyright 2009 The Go Authors |
+| Go 1.27.3 工具链/运行时 | 构建工具及程序运行时；项目内下载的工具链不等同于用户程序 | [Go BSD-3-Clause](licenses/Go-BSD-3-Clause.txt)，从已验证工具链 `LICENSE` 复制 |
+
+## purego 中的 Go 派生代码
+
+purego 自带 [README 的 External Code 段](vendor/github.com/ebitengine/purego/README.md)
+明确记录来自 Go runtime/runtime-cgo 的代码。实际 vendor 中保留的
+`abi_*.h`、`internal/fakecgo/abi_*.h`、`asm_*.s`、`callbacks.go`、`iscgo.go`、
+`setenv.go`、各系统的 `go_*.go`、`linux.go` 等文件有 Go Authors 来源头。
+README 还列举上游文件；列举本身不意味着该文件都在本次 vendor 或 Windows
+构建中。例如本次 vendor 中没有它提到的 `wincallback.go`。
+
+本次扫描保留的逐文件版权年份为 2009、2010、2011、2012、2014、2015、
+2016、2020、2021、2022、2023、2026。头部形式为
+`Copyright <year> The Go Authors. All rights reserved.`，不将这些文件
+笼统改标为 Apache-2.0。对应的完整 BSD 条款已经实际复制到
+[Go-BSD-3-Clause.txt](licenses/Go-BSD-3-Clause.txt)，不是只有许可证名称。
+
+## 其他已查到的派生来源
+
+- vendored typesetting 的 `bidi/core.go`、`bidi/bracket.go` 记载它们是
+  Unicode Bidi Reference Java / Bidi Parentheses Algorithm 参考实现的
+  移植，`bidi/bidi.go` 说明 API 参考 x/text/unicode/bidi；保留这些来源
+  注释。本次 Windows `go list -deps` 没有列出 typesetting/bidi。
+- typesetting 的 Unicode 表保留生成器及 Unicode 17.0.0 来源注释，
+  x/text 的语言表保留 CLDR 32 生成来源。
+- x/net/publicsuffix 的源码说明数据来自 publicsuffix.org；`table.go`
+  记录快照 `d6c92f1bbb7433e5db7b8405c25d4035fb8ff376`
+  （2026-02-06T07:36:33Z）。这些来源注释随 vendor 保留，不能因为模块
+  LICENSE 统一而将派生数据宣称为 LevNote 原创。
+
+当前 vendor 没有 typesetting/harfbuzz 子目录；模块下载缓存中的完整
+typesetting 分发含有 HarfBuzz 等额外内容，但缓存不是本次程序的分发清单。
+MyGo 的 Linux 文本实现还引用系统 Pango/HarfBuzz 动态库；其他平台的打包
+需另行核对其系统库与分发资产，不能套用 Windows 的依赖图。本文不基于
+缓存内容推断当前 Windows 程序运行了 HarfBuzz 或着色器编译器。
+
+## MyGo 本地修改
+
+保留 MyGo v0.8.3 的原许可证与 README。LevNote 启动补丁是
+[mygo-v0.8.3-no-startup-cleanup.patch](dependency-patches/mygo-v0.8.3-no-startup-cleanup.patch)：
+从 `Application.Run()` 移除自动调用 `cleanUpdateLeftovers()` 的一行，
+原清理 helper 保持原样。原因是该 helper 会删除可执行文件
+旁匹配 `.*.old-*` 的条目，而 LevNote 未启用更新器，这些条目可能属于用户。
+源码有 `LEVNOTE PATCH` 标记；刷新与回归方法见
+[补丁说明](dependency-patches/README.md)。它是对上游授权代码的修改，
+不是独立重写的工具包。
+
+[mygo-v0.8.3-bitmap-dispose.patch](dependency-patches/mygo-v0.8.3-bitmap-dispose.patch)
+增加主线程 `Bitmap.Dispose() bool`、内部图片终态和独立渲染器退役通知，
+修改 CPU、D3D11、Metal、GL/WebGL 的图片及派生画布/效果缓存生命周期，
+并包含针对实际函数的回归测试。Canvas 的借用位图拒绝 Dispose；旧场景
+中的退役输入透明，不再解码。GPU 资源在下次可绘制帧或 Release 时释放
+工具包所有权，在途命令仍可保留引用。该补丁由 LevNote 对 MIT 授权的
+MyGo v0.8.3 源码作本地修改，未声明上游已合并，也不代表即时 VRAM 回收。
+
+## 如何解释构建依赖图
+
+在 Windows amd64 上执行以下只读命令核对：
+
+```powershell
+.\native\scripts\go.ps1 -GoArguments @('list','-deps','-f','{{if not .Standard}}{{.ImportPath}}{{end}}','./cmd/levnote')
+```
+
+该图列出本文六个第三方模块的包，也包括 MyGo 的
+`internal/webview2`、`internal/update`、`netproxy` 等包。
+**包参与编译、最终链接器保留哪些符号、程序运行时启用了哪些服务是三个
+不同问题。** vendor 还包含其他平台源码；不能把目录存在当成运行时启用
+的证据。LevNote 当前界面入口使用原生 Surface，未创建网页编辑界面或
+启用更新器；这条事实来自入口代码与调用路径。
+
+本页提供可核查的归属、许可文本与修改记录，不构成第三方权利不存在或
+全部法律风险消失的保证。升级依赖、引入新资产或发布其他平台时，应按
+实际分发内容更新记录，不能只沿用模块根许可证列表。

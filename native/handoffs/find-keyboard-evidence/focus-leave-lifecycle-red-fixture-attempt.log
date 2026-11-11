@@ -1,0 +1,19 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboardFocusLeaveReconcilesComposition$","-count=1","-v")
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/query_to_source
+    find_keyboard_lifecycle_test.go:32: source focus left stale query composition: composing=true query="needle" focused-query=false
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_source
+    find_keyboard_lifecycle_test.go:89: source focus left stale replacement composition: composing=true replacement="match" focused-replacement=false
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/query_to_tab
+    find_keyboard_lifecycle_test.go:161: ui: no element shows "second-source.txt"
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_and_show
+    find_keyboard_lifecycle_test.go:227: plugin hide did not clear only transient query state: plugins=true find=true composing=true query="needle" replacement="match" case=true regex=false
+--- FAIL: TestFindKeyboardFocusLeaveReconcilesComposition (0.12s)
+    --- FAIL: TestFindKeyboardFocusLeaveReconcilesComposition/query_to_source (0.09s)
+    --- FAIL: TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_source (0.01s)
+    --- FAIL: TestFindKeyboardFocusLeaveReconcilesComposition/query_to_tab (0.01s)
+    --- FAIL: TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_and_show (0.01s)
+FAIL
+FAIL	levnote.local/native/app	1.719s
+FAIL
+EXIT_CODE=1

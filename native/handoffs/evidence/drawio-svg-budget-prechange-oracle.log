@@ -1,0 +1,4 @@
+=== RUN   TestDumpPreChangeSVGOracle
+--- PASS: TestDumpPreChangeSVGOracle (0.01s)
+PASS
+ok  	levnote.local/native/formats/drawio	0.737s

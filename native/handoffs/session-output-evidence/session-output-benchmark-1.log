@@ -1,0 +1,19 @@
+goos: windows
+goarch: amd64
+pkg: levnote.local/native/core/session
+cpu: AMD Ryzen 7 6800H with Radeon Graphics         
+BenchmarkSessionOutput
+BenchmarkSessionOutput/one-draft-1MiB
+    output_benchmark_test.go:46: fixture_sha256=8c8daeb37bf681a3bdb852a99e41c988e839d60d96f774c5e8db5ff48a883a88 emitted_bytes=1048701 tabs=1
+BenchmarkSessionOutput/one-draft-1MiB/marshal-discard
+BenchmarkSessionOutput/one-draft-1MiB/marshal-discard-16         	      10	   1655100 ns/op	 1057653 B/op	       3 allocs/op
+BenchmarkSessionOutput/one-draft-1MiB/exact-writer-discard
+BenchmarkSessionOutput/one-draft-1MiB/exact-writer-discard-16    	      10	   1457250 ns/op	  106197 B/op	       4 allocs/op
+BenchmarkSessionOutput/eight-tabs-1MiB
+    output_benchmark_test.go:46: fixture_sha256=fe7ac1833c52576d91a2a516c4b024b544a0e5ecff26fe65ef55f2fa14dbb7a7 emitted_bytes=1049114 tabs=8
+BenchmarkSessionOutput/eight-tabs-1MiB/marshal-discard
+BenchmarkSessionOutput/eight-tabs-1MiB/marshal-discard-16        	      10	   1646570 ns/op	 1469992 B/op	       5 allocs/op
+BenchmarkSessionOutput/eight-tabs-1MiB/exact-writer-discard
+BenchmarkSessionOutput/eight-tabs-1MiB/exact-writer-discard-16   	      10	   1432250 ns/op	     471 B/op	       3 allocs/op
+PASS
+ok  	levnote.local/native/core/session	0.726s

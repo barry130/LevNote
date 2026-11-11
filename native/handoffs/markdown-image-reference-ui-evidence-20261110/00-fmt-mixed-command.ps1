@@ -1,0 +1,1 @@
+& 'native/scripts/go.ps1' -GoArguments @('fmt','./modules/markdownview/links.go','./modules/markdownview/blocks.go','./modules/markdownview/view.go','./modules/markdownview/links_test.go','./modules/markdownview/image_reference_test.go','./app/markdown_image_reference_app_test.go')

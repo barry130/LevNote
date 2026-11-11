@@ -1,0 +1,13 @@
+diff --git a/vendor/github.com/egoist/mygo/app.go b/vendor/github.com/egoist/mygo/app.go
+--- a/vendor/github.com/egoist/mygo/app.go
++++ b/vendor/github.com/egoist/mygo/app.go
+@@ -119,7 +119,8 @@ func (a *Application) Run() error {
+ 	}
+ 	a.running = true
+ 	a.mu.Unlock()
+-	go cleanUpdateLeftovers()
++	// LEVNOTE PATCH: this app does not enable MyGo updates, so startup must
++	// never scan or remove updater-shaped paths beside the executable.
+ 
+ 	b := backend()
+ 	if err := b.Init(appHandler{}, platform.AppOptions{

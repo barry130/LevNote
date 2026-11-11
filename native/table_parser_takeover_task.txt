@@ -1,0 +1,59 @@
+Root authorized ownership takeover after interrupting GLM at a tool boundary.
+
+DeepSeek app owner alone now owns formats/markdown/** parser/export/tests until
+focused acceptance; its already-written app tests wait. Current partial parser
+is unaccepted and known incorrect. GLM may read/review but must not edit product.
+View owner owns modules/markdownview only. Root plans/reviews, all implementation
+and tests stay delegated. No child agents. Preserve final shared API.
+
+Read handoffs/markdown-tables-contract.md; final grammar/limits unchanged.
+First unblock three real positives with explicit cell/range oracles:
+- leading outer: | A | B | + | --- | --- | with EOF/no extra newline;
+- no outer: A | B + --- | --- + one | two;
+- one column: | | + |---| + ||, plus bare| and ||| cases.
+
+Known current parser defects from root read (inspect latest code):
+- scanner rejects no-leading one structural separator, though that is2cells;
+- leading/trailing boundary arithmetic manufactures empty cells or loses cells;
+- whitespace-only range oracle and trailing optional pipe need correct handling;
+- invalid/overlimit header/delimiter returns not-handled before recognized
+  fallback; malformed dash shape not recognized separately from valid delimiter;
+- >3indent handling, whole candidate fallback, paragraph interruption incomplete;
+- earlier EOF forced invalid branch reportedly corrected; verify with tests;
+- current grammar source has remnants/dead helpers; simplify rather than patch
+  around conflicting branch logic. Bounded fixed separator tracking/counts.
+
+Scanner guidance (not code): find indentation and last non-padding byte; count
+structural pipes with backslash parity, retain only bounded separator metadata;
+remove optional leading and trailing outer markers from the logical boundaries;
+split internal separators, append final segment including empty; one-column
+requires leading outer, bare-leading-pipe is an empty segment. Preserve complete
+Range (padding) and trimmed TextRange; trailing outside-outer padding remains
+row bytes, no copied strings. No negative/EOF indexing. Invalid rows collect no
+unbounded descriptors; recognized bad candidate consumed once to normal boundary.
+
+Known existing table_test.go oracle mistakes (do not rewrite product to match):
+-255body iterations expects256; correct explicit counts and test256/257;
+- tiny repeated tables need blank separators, otherwise one contiguous table;
+  use8column zero-body tables to exercise16384descriptor budget below8192blocks;
+- unescaped pipe inside backtick is structural, hostile literal valid fixture
+  must escape it or avoid it; separately test unsupported shape;
+- one-column table followed without blank by a2column pipe row must all fallback;
+- CRLF full block includes row ending; all-space TextRange is empty at right edge;
+- headings export an id attribute; compare actual expected semantic structure,
+  do not demand obsolete <h1> bare output;
+- valid basic tables no longer trigger unsupported-table; change old warning
+  fixture to actually malformed example, keep warning tests meaningful.
+
+Export shared builder Reset defect already routed; latest code replaced it with
+prevalidation. Ensure all counts/ranges/alignments validated BEFORE output; known
+Problem fallback appends escaped raw without false 'invalid descriptor' warning.
+Validate hostile literal source, corruption after existing heading/prose, and
+empty row/zero-body shape. No source rewrites.
+
+Publish three-positive actual stdout/exit first so view can run. Then complete
+per-cap/cap+1, aggregate budget, malformed/fallback/block-boundary/paragraph and
+export tests. Run full owned markdown package + vet once after fixes, write
+handoffs/markdown-tables-format.md (replace overclaimed old checkpoint), send
+root/view status. Root/GLM review before full integration. Return to app acceptance
+once parser focused evidence is solid. No resource matrix or unrelated edits.

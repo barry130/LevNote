@@ -1,0 +1,62 @@
+[
+  {
+    "Path": "native/modules/markdownview/links.go",
+    "Bytes": 11353,
+    "SHA256": "6F3283C9B0C36861A327713996FC10561EF2F0DF37292AE0C903E8480CC6D293"
+  },
+  {
+    "Path": "native/modules/markdownview/blocks.go",
+    "Bytes": 3247,
+    "SHA256": "1C1BBCD0282C97E5608E51D2380C50ED791BF27F6D727AB46127183E9B3E3821"
+  },
+  {
+    "Path": "native/modules/markdownview/view.go",
+    "Bytes": 19104,
+    "SHA256": "A720F9D028755DD3EBDEFC16B212C9A19BFA4283B69C238C38816CADDE9268DE"
+  },
+  {
+    "Path": "native/modules/markdownview/links_test.go",
+    "Bytes": 24226,
+    "SHA256": "6264D1490C4E225DCD61329D3FC0B910843F1621857B0AD6A4E54C8A6566A54F"
+  },
+  {
+    "Path": "native/modules/markdownview/image_reference_test.go",
+    "Bytes": 16963,
+    "SHA256": "9EF851FA5A414E0F0F26512822CC4E63AD62F128C9CC9E271A1C6C44E57000BC"
+  },
+  {
+    "Path": "native/app/markdown_image_reference_app_test.go",
+    "Bytes": 7929,
+    "SHA256": "A5CBA2E870AEBBDFD3CD4F9F0C41E1D60962278BCC542DE8C6973C944ABBB0AC"
+  },
+  {
+    "Path": "native/formats/markdown/types.go",
+    "Bytes": 3347,
+    "SHA256": "0FAC32ECA5CD9E8FA49565610700F57AFAF848E16EC05CCE6647FAE9423E1029"
+  },
+  {
+    "Path": "native/formats/markdown/inline.go",
+    "Bytes": 13928,
+    "SHA256": "AA793A782D35BAAB4F27A62AB000BD4B77E4718C36C68C8721167EFBFDB7F070"
+  },
+  {
+    "Path": "native/formats/markdown/export.go",
+    "Bytes": 12453,
+    "SHA256": "F9918914B182EC19DCAC47BB7533F6A44614D8FF9E84D530C4E012F4E7EA6DB6"
+  },
+  {
+    "Path": "native/formats/markdown/image_test.go",
+    "Bytes": 11686,
+    "SHA256": "CE11258B0A1E71BB2B7EA15EBDEA26D298558ED63A9FF43BD492578E8B6A90F5"
+  },
+  {
+    "Path": "native/formats/markdown/markdown_test.go",
+    "Bytes": 12783,
+    "SHA256": "B31BA61545754D39FC80961C3803DBEA891792C2D4FBB7C3EFA15936B71684C9"
+  },
+  {
+    "Path": "native/cmd/levnote-markdown-export/image_reference_test.go",
+    "Bytes": 1700,
+    "SHA256": "8DDA439D04322CDCAF742D3BE37CC7D8855DD05C066CD59DC1076209D0D3D9CB"
+  }
+]

@@ -1,0 +1,4 @@
+command: .\\native\\scripts\\go.ps1 -GoArguments @('test','./app','-run','^TestLiveTabAdmission','-count=1')
+exit_code: 0
+stdout: native\handoffs\live-tab-admission-evidence-20261110\002-admission-focused.stdout.txt
+stderr: native\handoffs\live-tab-admission-evidence-20261110\002-admission-focused.stderr.txt

@@ -1,0 +1,29 @@
+{
+    "Schema":  1,
+    "CreatedAtUtc":  "2026-11-10T01:35:12.7598037Z",
+    "FixtureOnly":  true,
+    "Scope":  "No-process wrapper fixture checks only: path arithmetic, null-array preflight admission, absent child output layout, and synthetic partial-record summary behavior. No tester, worker, host, build, preflight, or product execution.",
+    "Pass":  true,
+    "Checks":  [
+                   {
+                       "Name":  "repository root arithmetic and markers",
+                       "Pass":  true,
+                       "Detail":  "repositoryRoot=F:\\AIproject\\LevNote"
+                   },
+                   {
+                       "Name":  "successful null-array preflight admission",
+                       "Pass":  true,
+                       "Detail":  "jsonNull=False, normalized=0, nullWrapped=0"
+                   },
+                   {
+                       "Name":  "absent measurement child output layout",
+                       "Pass":  true,
+                       "Detail":  "sampleRoot=F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\layout-06\\sample-01, measurementRoot=F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\layout-06\\sample-01\\measurement"
+                   },
+                   {
+                       "Name":  "partial-record summary preserves pass, failure, limitation, and units",
+                       "Pass":  true,
+                       "Detail":  "pass=1, fail=1, limitationCount=1"
+                   }
+               ]
+}

@@ -1,0 +1,1 @@
+F:\AIproject\LevNote\native\scripts\go.ps1 -GoArguments @('test','-c','-o','F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-harness-final-validation-20261110\drawio-resources.test.exe','./core/engineruntime')

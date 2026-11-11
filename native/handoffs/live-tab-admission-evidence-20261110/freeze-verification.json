@@ -1,0 +1,87 @@
+{
+  "VerifiedAtUtc": "2026-11-10T09:56:19.9174179Z",
+  "Correction": "Unretained pre-evidence release-order check is reported history; current agent did not run it and no original log exists.",
+  "AllMatch": true,
+  "UnionFiles": 9,
+  "UnionBytes": 160306.0,
+  "ManifestBytes": 1348,
+  "ManifestSha256": "940C698E0B0195258649E6A0747A8F1EBAF1F754BAE05E6539B790B023098DAF",
+  "ResultBytes": 5437,
+  "ResultSha256": "0FB57F63FC2C7A69536E1C04E32DB2EC62113F7F4C32BDF6B0E3F535C047DBA4",
+  "EvidenceReadmeBytes": 2439,
+  "EvidenceReadmeSha256": "B6D7588B6EFA5C3D8E2F0622CB671C5ED64CB719653E36CCB892E05BCF706986",
+  "Files": [
+    {
+      "Path": "app/app.go",
+      "ExpectedLength": 38935,
+      "ActualLength": 38935,
+      "ExpectedSha256": "0AC7FB907C83DC3C2B7642B197441492274CBB1CBC75E6688264D577D995ADB4",
+      "ActualSha256": "0AC7FB907C83DC3C2B7642B197441492274CBB1CBC75E6688264D577D995ADB4",
+      "Match": true
+    },
+    {
+      "Path": "app/reopen_closed.go",
+      "ExpectedLength": 7895,
+      "ActualLength": 7895,
+      "ExpectedSha256": "BFCA75BA0E2A878483133ECE43530742C424623CBE6B8809F1285C9E04C62E92",
+      "ActualSha256": "BFCA75BA0E2A878483133ECE43530742C424623CBE6B8809F1285C9E04C62E92",
+      "Match": true
+    },
+    {
+      "Path": "app/binary.go",
+      "ExpectedLength": 10170,
+      "ActualLength": 10170,
+      "ExpectedSha256": "AE2F059F0E91C812A82FFE3F0317EAFE7E2F0B0CE9AEB3AA5056F713C555226D",
+      "ActualSha256": "AE2F059F0E91C812A82FFE3F0317EAFE7E2F0B0CE9AEB3AA5056F713C555226D",
+      "Match": true
+    },
+    {
+      "Path": "app/binary_actions.go",
+      "ExpectedLength": 10173,
+      "ActualLength": 10173,
+      "ExpectedSha256": "D9DB7FAA2CF674ED3428F67479D6377B4901ED7C7A14C404F0536F325A9609BB",
+      "ActualSha256": "D9DB7FAA2CF674ED3428F67479D6377B4901ED7C7A14C404F0536F325A9609BB",
+      "Match": true
+    },
+    {
+      "Path": "app/view.go",
+      "ExpectedLength": 23002,
+      "ActualLength": 23002,
+      "ExpectedSha256": "195AFA3D82E7612A0CDBEC6A9D0F0432777F492CAB4D94596B0C6F2329C83456",
+      "ActualSha256": "195AFA3D82E7612A0CDBEC6A9D0F0432777F492CAB4D94596B0C6F2329C83456",
+      "Match": true
+    },
+    {
+      "Path": "app/workspace.go",
+      "ExpectedLength": 6715,
+      "ActualLength": 6715,
+      "ExpectedSha256": "B1492575D6C64673BF02E633C0D7049F47BF151391B4CA58F58F3779599AF259",
+      "ActualSha256": "B1492575D6C64673BF02E633C0D7049F47BF151391B4CA58F58F3779599AF259",
+      "Match": true
+    },
+    {
+      "Path": "app/state.go",
+      "ExpectedLength": 13647,
+      "ActualLength": 13647,
+      "ExpectedSha256": "7F3F8E338E5619241FA3D0ACC72BA791778F1CE2A328272CBAED12E40B9400FD",
+      "ActualSha256": "7F3F8E338E5619241FA3D0ACC72BA791778F1CE2A328272CBAED12E40B9400FD",
+      "Match": true
+    },
+    {
+      "Path": "app/reopen_closed_test.go",
+      "ExpectedLength": 28867,
+      "ActualLength": 28867,
+      "ExpectedSha256": "3D160E6CCA9602F285D1F0A19A1DC450EE8109F5E3B81DEDDC33C6DF037B2C0B",
+      "ActualSha256": "3D160E6CCA9602F285D1F0A19A1DC450EE8109F5E3B81DEDDC33C6DF037B2C0B",
+      "Match": true
+    },
+    {
+      "Path": "app/live_tab_admission_test.go",
+      "ExpectedLength": 20902,
+      "ActualLength": 20902,
+      "ExpectedSha256": "285244AD5A24FFB927F57CDA28A8AD2F5CDB7F09FE7A52960EDDBD74BAA8766D",
+      "ActualSha256": "285244AD5A24FFB927F57CDA28A8AD2F5CDB7F09FE7A52960EDDBD74BAA8766D",
+      "Match": true
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+COMMAND: .\native\scripts\go.ps1 -GoArguments @("test","./core/document","-run","^$","-count=1")
+# levnote.local/native/core/document [levnote.local/native/core/document.test]
+core\document\document_test.go:12:2: "levnote.local/native/core/text" imported and not used
+FAIL	levnote.local/native/core/document [build failed]
+FAIL
+EXITCODE: 1

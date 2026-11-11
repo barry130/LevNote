@@ -1,0 +1,35 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T08:38:25.3482129Z",
+  "Files": [
+    {
+      "Name": "delivery-lib.ps1",
+      "OriginalPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\delivery-lib.ps1",
+      "ArchivePath": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-image-reference-release26-helper-originals-20261110\\delivery-lib.ps1",
+      "Bytes": 29289,
+      "SHA256": "CF4CF4F46767393635B286378DDE694FBA768ADCAEF1E26D8C8F84FCCDE3419E"
+    },
+    {
+      "Name": "run-host-smoke.ps1",
+      "OriginalPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\run-host-smoke.ps1",
+      "ArchivePath": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-image-reference-release26-helper-originals-20261110\\run-host-smoke.ps1",
+      "Bytes": 32892,
+      "SHA256": "6521E27A1139927D9878E7FC3F6CA868A33B393B720E503FCDD5A7562AEEB9FF"
+    },
+    {
+      "Name": "aggregate.ps1",
+      "OriginalPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\aggregate.ps1",
+      "ArchivePath": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-image-reference-release26-helper-originals-20261110\\aggregate.ps1",
+      "Bytes": 33235,
+      "SHA256": "36E9B002FEBEEBAF90B812E6D69B74284CE303AF6AAE2EA7502329B5FC5C285D"
+    },
+    {
+      "Name": "close-inventory.ps1",
+      "OriginalPath": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-image-reference-release26-close-inventory.ps1",
+      "ArchivePath": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-image-reference-release26-helper-originals-20261110\\close-inventory.ps1",
+      "Bytes": 3842,
+      "SHA256": "B04A72C88843D129316D524EBF77764E059F16053C168B78CE74C5D2FD988342"
+    }
+  ],
+  "Scope": "Exact pre-repair helper copies archived before the root-authorized .26 metadata repair."
+}

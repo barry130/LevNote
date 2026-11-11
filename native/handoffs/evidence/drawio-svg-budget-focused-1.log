@@ -1,0 +1,4 @@
+FAIL	levnote.local/native/formats/drawio [build failed]
+# levnote.local/native/formats/drawio [levnote.local/native/formats/drawio.test]
+formats\drawio\svg.go:298:16: assignment mismatch: 2 variables but xml.EscapeText returns 1 value
+FAIL

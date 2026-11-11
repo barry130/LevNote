@@ -1,0 +1,7 @@
+=== RUN   TestDrawioWorkerResourcesHarnessPreflight
+    drawio_worker_resources_test.go:127: draw.io worker resource harness requires explicit LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS=1
+--- SKIP: TestDrawioWorkerResourcesHarnessPreflight (0.00s)
+=== RUN   TestDrawioWorkerResourceMeasurement
+    drawio_worker_resources_test.go:341: draw.io worker resource measurement requires explicit LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT=1
+--- SKIP: TestDrawioWorkerResourceMeasurement (0.00s)
+PASS

@@ -1,0 +1,38 @@
+=== RUN   TestTableAlignmentNarrowBoundsAndRecovery
+=== RUN   TestTableAlignmentNarrowBoundsAndRecovery/265
+=== RUN   TestTableAlignmentNarrowBoundsAndRecovery/760
+--- PASS: TestTableAlignmentNarrowBoundsAndRecovery (0.05s)
+    --- PASS: TestTableAlignmentNarrowBoundsAndRecovery/265 (0.04s)
+    --- PASS: TestTableAlignmentNarrowBoundsAndRecovery/760 (0.01s)
+=== RUN   TestTableAlignmentRapidContinuationAndHeldRepeat
+=== RUN   TestTableAlignmentRapidContinuationAndHeldRepeat/rapid-pointer
+    table_alignment_test.go:254: rapid oracle must intersect alignment button: point=203.5,253.49825 bounds={X:169 Y:265.00537 W:46 H:26}
+=== RUN   TestTableAlignmentRapidContinuationAndHeldRepeat/held-key
+--- FAIL: TestTableAlignmentRapidContinuationAndHeldRepeat (0.06s)
+    --- FAIL: TestTableAlignmentRapidContinuationAndHeldRepeat/rapid-pointer (0.02s)
+    --- PASS: TestTableAlignmentRapidContinuationAndHeldRepeat/held-key (0.04s)
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder/265
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder/300
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder/760
+--- PASS: TestTableColumnsNarrowGeometryAndFocusOrder (0.09s)
+    --- PASS: TestTableColumnsNarrowGeometryAndFocusOrder/265 (0.02s)
+    --- PASS: TestTableColumnsNarrowGeometryAndFocusOrder/300 (0.04s)
+    --- PASS: TestTableColumnsNarrowGeometryAndFocusOrder/760 (0.03s)
+=== RUN   TestTableColumnsBoundaryDisabledAndReadonly
+=== RUN   TestTableColumnsBoundaryDisabledAndReadonly/1
+=== RUN   TestTableColumnsBoundaryDisabledAndReadonly/8
+--- PASS: TestTableColumnsBoundaryDisabledAndReadonly (0.03s)
+    --- PASS: TestTableColumnsBoundaryDisabledAndReadonly/1 (0.02s)
+    --- PASS: TestTableColumnsBoundaryDisabledAndReadonly/8 (0.01s)
+=== RUN   TestTableColumnsRapidPointerCannotDeleteThroughNewPanel
+--- PASS: TestTableColumnsRapidPointerCannotDeleteThroughNewPanel (0.03s)
+=== RUN   TestTableRowsRapidClickContinuationCannotDeleteReopenedCell
+--- PASS: TestTableRowsRapidClickContinuationCannotDeleteReopenedCell (0.02s)
+FAIL
+FAIL	levnote.local/native/modules/markdownview	1.750s
+=== RUN   TestMarkdownColumnsRealAdapterBOMCRLFSaveReopen
+--- PASS: TestMarkdownColumnsRealAdapterBOMCRLFSaveReopen (0.12s)
+PASS
+ok  	levnote.local/native/app	2.131s
+FAIL

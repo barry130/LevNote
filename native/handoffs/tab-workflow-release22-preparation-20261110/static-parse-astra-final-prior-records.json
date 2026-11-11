@@ -1,0 +1,80 @@
+[
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-final.exit.txt",
+    "Bytes": 0,
+    "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "LastWriteUtcTicks": 639298575309073816
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-final.stderr.log",
+    "Bytes": 0,
+    "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "LastWriteUtcTicks": 639298577406993236
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-final.stdout.log",
+    "Bytes": 3163,
+    "SHA256": "5E2FB4103385DDF730E8099FD47E17E56C5BE7762D279C65A8B8B3B1866A5A3F",
+    "LastWriteUtcTicks": 639298577408105692
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-first-attempt.json",
+    "Bytes": 3162,
+    "SHA256": "A346419E4CD0739962C53839D0C75A208444B5CBEF6B9778B666D7096545ED93",
+    "LastWriteUtcTicks": 639298572603813899
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-first-attempt.stderr.log",
+    "Bytes": 0,
+    "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "LastWriteUtcTicks": 639298572602800107
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-first-attempt.stdout.log",
+    "Bytes": 3163,
+    "SHA256": "C59038A6243ED5BF9A3D74C042D5A92DEDE5F12C669D1BA6F249F9CE987EB8D8",
+    "LastWriteUtcTicks": 639298572603833920
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-schema-fix-attempt.json",
+    "Bytes": 3162,
+    "SHA256": "8CEFFD50E040FE92D8C75B43E40C4940494287CD018D36FEB8092AB21F9EB3BB",
+    "LastWriteUtcTicks": 639298575308943818
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-schema-fix-attempt.stderr.log",
+    "Bytes": 0,
+    "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "LastWriteUtcTicks": 639298575307874964
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-schema-fix-attempt.stdout.log",
+    "Bytes": 3163,
+    "SHA256": "2B0A807F8D603AF1CDCB3C09A5C610F16D1D3DD7CCB6782D83EDF0980E5314B8",
+    "LastWriteUtcTicks": 639298575308953823
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse.exit.txt",
+    "Bytes": 0,
+    "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "LastWriteUtcTicks": 639298572603873989
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse.json",
+    "Bytes": 3162,
+    "SHA256": "A9D9BBE0BB421C4CFF2CFECFBB1BE9A5809C6E1A6EB04B2EE4320811DE417EB4",
+    "LastWriteUtcTicks": 639298577408010910
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse.stderr.log",
+    "Bytes": 0,
+    "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "LastWriteUtcTicks": 639298572602800107
+  },
+  {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse.stdout.log",
+    "Bytes": 3163,
+    "SHA256": "C59038A6243ED5BF9A3D74C042D5A92DEDE5F12C669D1BA6F249F9CE987EB8D8",
+    "LastWriteUtcTicks": 639298572603833920
+  }
+]

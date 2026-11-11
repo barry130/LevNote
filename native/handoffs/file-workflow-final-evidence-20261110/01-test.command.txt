@@ -1,0 +1,2 @@
+WorkingDirectory: F:\AIproject\LevNote
+Command: & '.\native\scripts\go.ps1' -GoArguments @('test','./app','-count=1')

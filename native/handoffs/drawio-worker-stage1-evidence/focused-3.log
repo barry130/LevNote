@@ -1,0 +1,6 @@
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./core/engineipc','./cmd/levnote-drawio-svg','./formats/drawio')
+WORKDIR: F:\AIproject\LevNote
+ok  	levnote.local/native/core/engineipc	0.702s
+ok  	levnote.local/native/cmd/levnote-drawio-svg	0.770s
+ok  	levnote.local/native/formats/drawio	(cached)
+EXIT_CODE=0

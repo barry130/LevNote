@@ -1,0 +1,10 @@
+{
+  "schema": 3,
+  "id": "task-notes",
+  "name": "任务笔记",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "extensions": [".taskmd"],
+  "nativeRoute": "builtin.markdown",
+  "lineComment": "#"
+}

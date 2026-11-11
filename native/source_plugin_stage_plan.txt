@@ -1,0 +1,76 @@
+Accepted finite stage — installed source-format outlines
+
+ACCEPTED by root at14:43: full tests/vet/build/native smoke and image review.
+Current executable13,201,920 bytes; SHA256
+4F9145A3E09AA2731F0FD365502CADE53E755467A376AC45BCAE610542848B8F.
+Evidence: handoffs/integration.md and
+artifacts/acceptance/source-plugin-20261108-144035/result.json.
+The plan below records the implementation scope; no unfinished design gate.
+
+Root accepted the native Markdown/mindmap outline checkpoint at14:03. The
+DeepSeek-to-GLM core/plugins freeze/transfer is recorded in handoffs/outline.md.
+Root approved the exact sourceoutline.Scan(io.Reader, []Rule), neutral Config,
+and sourceview.NewOutline(editor.Host, Config) signatures in the contract.
+All three owners are ACTIVE; no further user decision or design gate is needed.
+
+Goal: make a locally installed JSON format plugin supply an actual native
+source-navigation capability in addition to extension matching/highlighting.
+Schema2 line rules provide outlines for simple INI/config/heading-style text.
+This remains a bounded source-format plugin, not an arbitrary rich renderer SDK.
+No extra process, web runtime, DLL/script execution or network. Plaintext
+fallback and exact file contents remain unchanged by listing/navigation.
+
+Exclusive active owners:
+- GLM: core/plugins schema2 validation/load/copy tests and sample manifests.
+  Transfer only after DeepSeek explicitly freezes plugin code. No app edits.
+- Astra: generic independent source-outline engine/provider and focused tests;
+  shared additive APIs only if needed; source identity and resource boundaries.
+- DeepSeek: app/modules wiring, source-only capability UI, lifecycle integration,
+  real install/enable/disable/fallback tests, final integration/build.
+
+Proposed schema2 adds optional outline array, with <=8 rules. Each rule has
+prefix (required1..16 valid UTF8 bytes), suffix (optional0..16 bytes) and
+level (1..6). Reject unknown fields, duplicate rule signatures, invalid UTF8,
+NUL/CR/LF/control markers, malformed fields, invalid types. Schema1 remains
+strictly compatible and does not accept new fields. Existing64KiB manifest,
+installed-count, safe-install/no-overwrite/symlink protections stay unchanged.
+Copy nested rule slices from all public manager results. Version/API behavior
+must be documented, not silently upgraded. Do not add uninstall in this stage.
+
+Literal line semantics, not a programming-language parser:
+- Only leading horizontal ASCII spaces/tabs may precede prefix.
+- Prefix/suffix are exact literals. Optional suffix must end the line except
+  trailing horizontal spaces/tabs. First declared matching rule wins; examples
+  order more-specific prefixes before broader ones.
+- Label is between markers, trimmed only at horizontal boundaries. Empty
+  labels skipped. Offset is source line syntax start in UTF16 (document exact
+  definition). ID binds buffer identity/original range/version AND ruleset so
+  plugin refresh cannot reinterpret a captured target.
+- No inferred multiline comment/string state. The existing per-line lexer
+  cannot safely supply that guarantee. State prominently that literal rules
+  can match text inside multiline code/string/comment constructs. Avoid regex,
+  whole-language parsing or silently skipping unrelated source lines.
+- AnchorID empty. Only source editor reveal; no rich preview/export controls.
+
+Use bounded buffer scanning:2MiB processed source budget,65,536 lines,2048
+items,512-byte display labels. A pathological physical line must not allocate
+its whole content merely to reject/clip it; use bounded slices/streaming.
+Above scan budget report partial/use source guidance; preserve whole buffer.
+Use one incremental UTF16 cursor, no repeated full-prefix scans. On unchanged
+frame reuse snapshot; release inactive descriptors. No second full raw string
+held by labels. Resolve old identity through64-edit journal and current rule
+match; edited target/history expiry/changed rules visibly reject.
+
+Composition and app integration must use existing Flush/revalidate/resolve
+path. An installed source-only adapter has no Create; it must never be sent to
+preview, export or split routes that assume one exists. Agree the minimal
+contract/factory wiring in handoffs/source-plugin-contract.md before changes.
+App must stay independent of concrete renderer internals. Specific builtins
+still outrank installed rules; user may disable builtins explicitly.
+
+Acceptance: install a schema2 sample from local file, edit/save exact source,
+open outline/navigate far/Unicode/duplicates/CRLF, pending Compose, failed Flush,
+refresh rules while ID captured, disable/re-enable and fallback, schema1
+compatibility, strict schema errors, bounded huge-line2MiB workload/cache reuse,
+only visible list rows and narrow/dark UI. Update capability text honestly.
+One final full test/vet/build after focused checks and independent review.

@@ -1,0 +1,8 @@
+=== RUN   TestMarkdownImageReferenceRealAdapterOpenPreservesSource
+=== RUN   TestMarkdownImageReferenceRealAdapterOpenPreservesSource/PNG
+    markdown_image_reference_app_test.go:90: existing image selection failed: tabs=2 active=0 current=0x1d41354883c0 source=0x1d41354883c0 image=0x1d41354885a0 currentPath="C:\\Users\\canace\\AppData\\Local\\Temp\\TestMarkdownImageReferenceRealAdapterOpenPreservesSourcePNG2404579961\\001\\images.md" message="已打开 原%20图.png"
+--- FAIL: TestMarkdownImageReferenceRealAdapterOpenPreservesSource (0.04s)
+    --- FAIL: TestMarkdownImageReferenceRealAdapterOpenPreservesSource/PNG (0.04s)
+FAIL
+FAIL	levnote.local/native/app	1.718s
+FAIL

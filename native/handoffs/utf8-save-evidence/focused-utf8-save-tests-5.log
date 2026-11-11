@@ -1,0 +1,28 @@
+COMMAND: .\native\scripts\go.ps1 -GoArguments @("test","./core/document","-run","^TestUTF8StreamingSave","-count=1","-v")
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen/plain-lf
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen/bom-crlf-unicode
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen/multi-piece-boundary
+--- PASS: TestUTF8StreamingSaveExactBytesAndReopen (0.02s)
+    --- PASS: TestUTF8StreamingSaveExactBytesAndReopen/plain-lf (0.01s)
+    --- PASS: TestUTF8StreamingSaveExactBytesAndReopen/bom-crlf-unicode (0.01s)
+    --- PASS: TestUTF8StreamingSaveExactBytesAndReopen/multi-piece-boundary (0.01s)
+=== RUN   TestUTF8StreamingSavePreservesHistorySelectionAndBaseline
+--- PASS: TestUTF8StreamingSavePreservesHistorySelectionAndBaseline (0.01s)
+=== RUN   TestUTF8StreamingSaveUntouchedDoesNotRewrite
+--- PASS: TestUTF8StreamingSaveUntouchedDoesNotRewrite (0.00s)
+=== RUN   TestUTF8StreamingSaveRejectsWrongDigestWithoutStateChange
+--- PASS: TestUTF8StreamingSaveRejectsWrongDigestWithoutStateChange (0.00s)
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-final-flush
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-full-buffer
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-final-flush
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-full-buffer
+--- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile (0.01s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-final-flush (0.00s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-full-buffer (0.00s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-final-flush (0.00s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-full-buffer (0.00s)
+PASS
+ok  	levnote.local/native/core/document	0.661s
+EXITCODE: 0

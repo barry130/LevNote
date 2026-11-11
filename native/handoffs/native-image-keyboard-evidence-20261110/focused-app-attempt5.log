@@ -1,0 +1,6 @@
+--- FAIL: TestNativeImageKeyboardByteAndTabBoundaries (0.06s)
+    binary_keyboard_test.go:54: readonly byte editor did not retain text-input authority
+FAIL
+FAIL	levnote.local/native/app	2.375s
+FAIL
+EXIT=1

@@ -1,0 +1,4 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","./core/search","-count=1")
+ok  	levnote.local/native/app	16.286s
+ok  	levnote.local/native/core/search	0.716s
+EXIT_CODE=0

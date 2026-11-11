@@ -1,0 +1,27 @@
+[
+  {
+    "Path": "app/open_documents.go",
+    "Length": 13882,
+    "Sha256": "BF1789ACC0A9B885F358CD46F62251C5E2971A6DD351AC5209A3C82BC15B7DA6"
+  },
+  {
+    "Path": "app/open_documents_test.go",
+    "Length": 30122,
+    "Sha256": "A70444047DED384477F2DFDE2E83FE98AC53F06304633F4F65304A19CCC5444C"
+  },
+  {
+    "Path": "app/app.go",
+    "Length": 39003,
+    "Sha256": "FAD0EDE4C480E0C8F5C56F4E81CF2499BEF0007BA6EAE877FC516623BFFEA050"
+  },
+  {
+    "Path": "app/view.go",
+    "Length": 23425,
+    "Sha256": "64DCDC194510C6426112A7B6AAFE57A84DDE68E630A20D53C994D77CC34102C0"
+  },
+  {
+    "Path": "app/workspace.go",
+    "Length": 6739,
+    "Sha256": "7A9ACA4F8E807D7A0563B5595976839AA7DED706EFDC5171B259079D68A16DA4"
+  }
+]

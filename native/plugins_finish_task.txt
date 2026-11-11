@@ -1,0 +1,43 @@
+Ownership: native/core/plugins/**, native/app/**, native/cmd/levnote/**,
+native/modules/modules.go, native/modules/codeview/**, native/formats/code/**,
+native/examples/plugins/**.
+Root only plans/reviews; GLM editor and formats agents own the other areas.
+No child agents. Use native/handoffs/plugins.md for progress and API requests.
+Read native/handoffs/plan.md for cross-owner contracts and review findings.
+
+First finish/test robust local data-only plugin management:
+- Disabled builtins/installed plugins must not match; keep them listed for
+  reenabling. Add Enabled(id). Failed persistence must not mutate live state.
+- Surface duplicate/load errors. Bound manifest/settings reads; validate IDs,
+  regular files and symlinks. Safe InstallFile(path) rejects existing IDs/files.
+- Preserve definitions and expose Syntax(id)(SyntaxManifest,bool).
+- No executable plugins, scripts, dynamic libraries, or runtime networking.
+- Use document.WritePrivateState for application-owned settings.
+
+Then integrate the native application with substantive integration tests:
+- Register graph adapters, IDs mindmap/drawio. Formats agent changes those
+  IDs; plugin Manager is sole extension/priority authority.
+- NewDocument uses adapter templates, not duplicate literals.
+- Disabled rich plugin falls back to always-available source editing.
+  File readonly still permits previews; byte inspector bypasses rich parsing.
+- Wire first-party highlighting and installed syntax to Editor.Highlight.
+  Preserve text and handle multiline syntax deliberately.
+- Implement concise local plugin install/enable/disable settings.
+- Open multiple files in request order, continue after failed paths, reuse
+  duplicate tabs. Apply workspace-search reveal after asynchronous open.
+- Window-close cancellation must not have already removed tabs; gather
+  save/discard/cancel before removing workspace. Persist tab changes and do not
+  restore drafts explicitly discarded by the user.
+- Save/Reload/Export must flush current format editing first. Coordinate
+  fallible Flush() with formats/editor agents. Never discard stale block draft.
+- Use atomic exclusive publish for exports; formats agent adds
+  document.WriteNewFile(path,data). Avoid partial output.
+- Disclose tree/search/issue-history limits. Persist theme/font/line-number/
+  soft-wrap preferences. Review command routes and actionable failures.
+
+Validation: after editor is ready run app/plugin tests, then full go test/vet/
+build. Save runnable binary in native/bin/levnote-native.exe. Render source,
+Markdown, mindmap, drawio, light and dark screenshots via MyGo ui.NewTester
+under native/artifacts, with behavior tests too. Native tester screenshots
+are not equivalent to a real OS IME/input test; state evidence accurately.
+No full parity claims while unsupported features remain.

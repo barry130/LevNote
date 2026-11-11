@@ -1,0 +1,5 @@
+COMMAND: [System.Management.Automation.Language.Parser]::ParseFile(native/scripts/package-markdown-worker.ps1)
+WORKDIR: F:\AIproject\LevNote
+PARSE_ERRORS=
+0
+EXIT_CODE=0

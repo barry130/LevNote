@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "frozenUtc": "2026-11-10T03:32:00.8953284+00:00",
+  "files": [
+    {
+      "path": "native/core/document/binary.go",
+      "bytes": 12921,
+      "sha256": "b60483712068daa13e0293dd70873b5e132df183e59c05599680efa18ecc427e",
+      "role": "frozen implementation"
+    },
+    {
+      "path": "native/core/document/binary_copy.go",
+      "bytes": 7389,
+      "sha256": "51117335de9a7c5d95b85f2c1e603b05d3414f79e4a22987ebeef63c6ab85fa2",
+      "role": "frozen implementation"
+    },
+    {
+      "path": "native/core/document/binary_test.go",
+      "bytes": 38628,
+      "sha256": "4a462ccd2c0f0611c9928347fee9de928d3e2d91a5db16f1ce6c4cdf5e6ebcb9",
+      "role": "frozen implementation"
+    },
+    {
+      "path": "native/core/document/atomic.go",
+      "bytes": 3516,
+      "sha256": "33d45a65253972d8547a5dc7acd1ac9fa04c0540ef11dd3de207676801a232cc",
+      "role": "unchanged dependency"
+    }
+  ]
+}

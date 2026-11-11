@@ -1,0 +1,4 @@
+Conversion from JSON failed with error: Invalid JavaScript property identifier character: -. Path '', line 1, position 8.
+Matrix output directory must be absent: F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-20261110\final-correction-20261110\fixtures-01
+Run the matrix wrapper from the repository root: F:\AIproject\LevNote
+Matrix output cannot be inside a protected package.

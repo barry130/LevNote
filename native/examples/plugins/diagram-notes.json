@@ -1,0 +1,9 @@
+{
+  "schema": 3,
+  "id": "diagram-notes",
+  "name": "图表笔记",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "extensions": [".diagramnote"],
+  "nativeRoute": "builtin.drawio"
+}

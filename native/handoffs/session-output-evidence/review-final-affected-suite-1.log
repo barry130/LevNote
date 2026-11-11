@@ -1,0 +1,7 @@
+COMMAND=.\native\scripts\go.ps1 -GoArguments @("test","./core/document","./core/session","./app","-count=1")
+OUTPUT_BEGIN
+ok  	levnote.local/native/core/document	0.894s
+ok  	levnote.local/native/core/session	1.646s
+ok  	levnote.local/native/app	17.571s
+OUTPUT_END
+EXIT_CODE=0

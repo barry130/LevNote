@@ -1,0 +1,116 @@
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf8.txt
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/bom.txt
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf16.txt
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/bytes.bin
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/legacy.txt
+--- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes (0.10s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf8.txt (0.02s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/bom.txt (0.02s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf16.txt (0.02s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/bytes.bin (0.02s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/legacy.txt (0.02s)
+=== RUN   TestReopenClosedDoesNotRememberLegacyEncoding
+--- PASS: TestReopenClosedDoesNotRememberLegacyEncoding (0.03s)
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority/1
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority/2
+--- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority (0.05s)
+    --- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority/1 (0.04s)
+    --- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority/2 (0.01s)
+=== RUN   TestReopenClosedFailedCloseNeverRecords
+=== RUN   TestReopenClosedFailedCloseNeverRecords/cancel
+=== RUN   TestReopenClosedFailedCloseNeverRecords/flush
+=== RUN   TestReopenClosedFailedCloseNeverRecords/save
+=== RUN   TestReopenClosedFailedCloseNeverRecords/persistence
+=== RUN   TestReopenClosedFailedCloseNeverRecords/slot-reentry
+--- PASS: TestReopenClosedFailedCloseNeverRecords (0.08s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/cancel (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/flush (0.02s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/save (0.02s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/persistence (0.02s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/slot-reentry (0.01s)
+=== RUN   TestReopenClosedBoundDedupAndShutdownClearBacking
+--- PASS: TestReopenClosedBoundDedupAndShutdownClearBacking (0.19s)
+=== RUN   TestReopenClosedUnusualPathsAndBoundedLabels
+--- PASS: TestReopenClosedUnusualPathsAndBoundedLabels (0.04s)
+=== RUN   TestReopenClosedMissingTopRetainedMenuOpensOlder
+--- PASS: TestReopenClosedMissingTopRetainedMenuOpensOlder (0.04s)
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition/false
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition/true
+--- PASS: TestReopenClosedSyntheticSourceAndRichComposition (0.06s)
+    --- PASS: TestReopenClosedSyntheticSourceAndRichComposition/false (0.03s)
+    --- PASS: TestReopenClosedSyntheticSourceAndRichComposition/true (0.03s)
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/query
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/replacement
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/goto
+--- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus (0.09s)
+    --- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/query (0.03s)
+    --- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/replacement (0.03s)
+    --- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/goto (0.03s)
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/newer
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/reclose
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/evict
+--- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction (0.17s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/newer (0.03s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/reclose (0.03s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/evict (0.11s)
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/false
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/true
+--- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal (0.05s)
+    --- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/false (0.02s)
+    --- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/true (0.03s)
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/text
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/existing
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/png
+--- PASS: TestReopenClosedSynchronousRecoveryDuringFlush (0.07s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/text (0.02s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/existing (0.02s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/png (0.03s)
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/modal
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/restoring
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/query
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/replacement
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/goto
+--- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit (0.12s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/modal (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/restoring (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/query (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/replacement (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/goto (0.03s)
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/lookup-timeout
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/adoption-timeout
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/shutdown
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/window-close
+--- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks (0.18s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/lookup-timeout (0.07s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/adoption-timeout (0.07s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/shutdown (0.02s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/window-close (0.02s)
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/success
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/flush
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/duplicate
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/cancel
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/timeout
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/shutdown
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/modal-preedit
+--- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout (0.29s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/success (0.03s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/flush (0.03s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/duplicate (0.04s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/cancel (0.03s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/timeout (0.08s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/shutdown (0.03s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/modal-preedit (0.06s)
+=== RUN   TestReopenClosedMenuGeometryAndEmptyState
+--- PASS: TestReopenClosedMenuGeometryAndEmptyState (0.07s)
+PASS
+ok  	levnote.local/native/app	3.144s

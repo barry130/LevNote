@@ -1,0 +1,94 @@
+{
+  "Schema": 1,
+  "PowerShell": "7.6.9",
+  "AcceptedCases": 3,
+  "RejectedCases": 16,
+  "Pass": true,
+  "Checks": [
+    {
+      "Name": "raw-null",
+      "Pass": true,
+      "Kind": "Null",
+      "Count": 0,
+      "Json": "[]"
+    },
+    {
+      "Name": "raw-empty-array",
+      "Pass": true,
+      "Kind": "Array",
+      "Count": 0,
+      "Json": "[]"
+    },
+    {
+      "Name": "normalized-array",
+      "Pass": true,
+      "Kind": "Array",
+      "Count": 0,
+      "Json": "[]"
+    },
+    {
+      "Name": "nonempty-array",
+      "Pass": true
+    },
+    {
+      "Name": "scalar-number",
+      "Pass": true
+    },
+    {
+      "Name": "scalar-string",
+      "Pass": true
+    },
+    {
+      "Name": "object",
+      "Pass": true
+    },
+    {
+      "Name": "null-element",
+      "Pass": true
+    },
+    {
+      "Name": "missing-property",
+      "Pass": true
+    },
+    {
+      "Name": "duplicate-property",
+      "Pass": true
+    },
+    {
+      "Name": "case-mismatch-lower",
+      "Pass": true
+    },
+    {
+      "Name": "case-mismatch-upper",
+      "Pass": true
+    },
+    {
+      "Name": "normalized-nonempty-array",
+      "Pass": true
+    },
+    {
+      "Name": "normalized-scalar-number",
+      "Pass": true
+    },
+    {
+      "Name": "normalized-scalar-string",
+      "Pass": true
+    },
+    {
+      "Name": "normalized-object",
+      "Pass": true
+    },
+    {
+      "Name": "normalized-null-element",
+      "Pass": true
+    },
+    {
+      "Name": "wrong-root",
+      "Pass": true
+    },
+    {
+      "Name": "malformed-json",
+      "Pass": true
+    }
+  ]
+}

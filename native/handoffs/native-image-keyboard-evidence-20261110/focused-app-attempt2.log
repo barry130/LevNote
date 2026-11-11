@@ -1,0 +1,6 @@
+--- FAIL: TestNativeImageKeyboardByteAndTabBoundaries (0.03s)
+    binary_keyboard_test.go:48: focused image canvas did not consume the keyboard zoom: []string{"轻笺", "新建", "打开", "文件夹", "保存", "查找", "插件", "设置", "工作区", "切换文件树与文档大纲", "大纲", "刷新文件树", "↻", "打开一个文件夹，\n把资料放在一起。", "打开文件夹", "新建文档", "Markdown", "纯文本", "思维导图", "图纸", "• 未命名.txt", "关闭 未命名.txt", "×", "keyboard.png", "关闭 keyboard.png", "×", "图片 · 只读", "图片", "字节视图", "另存副本", "重新载入", "适合窗口", "适合窗口", "按百分之百显示", "100%", "减小图片显示", "减小", "当前缩放比例", "增大图片显示", "增大", "图片元数据", "查看只读字节", "查看字节", "图片查看区域", "已打开 keyboard.png"}
+FAIL
+FAIL	levnote.local/native/app	1.958s
+FAIL
+EXIT=1

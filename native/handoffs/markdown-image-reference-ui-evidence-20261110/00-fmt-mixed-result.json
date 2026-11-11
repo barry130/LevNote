@@ -1,0 +1,4 @@
+{
+  "ExitCode": 1,
+  "Note": "Exact command and output preserved after initial tool call. Go fmt rejected files from two directories; no files changed by that call."
+}

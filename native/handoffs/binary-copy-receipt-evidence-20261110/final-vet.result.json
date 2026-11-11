@@ -1,0 +1,13 @@
+{
+  "step": "final-vet",
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\final-vet.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\final-vet.output.txt",
+  "goArguments": [
+    "vet",
+    "./core/document"
+  ],
+  "startedUtc": "2026-11-10T03:29:27.8731196+00:00",
+  "finishedUtc": "2026-11-10T03:29:29.0916822+00:00",
+  "durationSeconds": 1.219,
+  "exitCode": 0
+}

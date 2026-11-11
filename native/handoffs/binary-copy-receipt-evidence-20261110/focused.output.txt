@@ -1,0 +1,44 @@
+=== RUN   TestBinaryCopyWorkerPublicationAndReboundSnapshot
+--- PASS: TestBinaryCopyWorkerPublicationAndReboundSnapshot (0.01s)
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_receipt
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_owner
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_snapshot
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_snapshot
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_snapshot
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_owner
+--- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt (0.01s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_receipt (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_owner (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_snapshot (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_snapshot (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_snapshot (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_owner (0.00s)
+=== RUN   TestBinaryCopyPendingReceiptStaleAfterAnotherAdoption
+--- PASS: TestBinaryCopyPendingReceiptStaleAfterAnotherAdoption (0.01s)
+=== RUN   TestBinaryCopySamePathNoRewriteAndReplay
+--- PASS: TestBinaryCopySamePathNoRewriteAndReplay (0.01s)
+=== RUN   TestBinaryCopyOwnerReloadsWhileWorkerPublishes
+--- PASS: TestBinaryCopyOwnerReloadsWhileWorkerPublishes (0.01s)
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/cancel_before_publication
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/cancel_after_commit
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/directory_sync
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/changed_before_verify
+--- PASS: TestBinaryCopyFailureReceiptsCannotAdopt (0.03s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/cancel_before_publication (0.01s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/cancel_after_commit (0.01s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/directory_sync (0.01s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/changed_before_verify (0.01s)
+=== RUN   TestBinaryCopyHeldSnapshotAfterSourceDeletion
+--- PASS: TestBinaryCopyHeldSnapshotAfterSourceDeletion (0.01s)
+=== RUN   TestBinaryCopyReceiptRetainsExclusiveRaceOutcome
+--- PASS: TestBinaryCopyReceiptRetainsExclusiveRaceOutcome (0.01s)
+=== RUN   TestBinaryCopyAdoptionObservesPublicationTimeIdentity
+=== RUN   TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_change
+=== RUN   TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_deletion
+--- PASS: TestBinaryCopyAdoptionObservesPublicationTimeIdentity (0.01s)
+    --- PASS: TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_change (0.01s)
+    --- PASS: TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_deletion (0.01s)
+PASS
+ok  	levnote.local/native/core/document	0.553s

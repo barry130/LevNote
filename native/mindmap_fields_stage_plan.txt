@@ -1,0 +1,86 @@
+Completed finite stage — native mindmap note and local-link fields
+
+ROOT RELEASE ACCEPTED. Full test9.738s/vet2.358s/build3.207s and isolated hidden
+startup+ownedPID WM_CLOSE3.882s all exited0. Artifact13,274,624B; SHA256
+F06ABEF11653EF93F03D3017A62215CACD8364536E9EDF900242DC9283950A6C;
+UTC2026-11-08T10:17:14.9536389Z. Evidence:
+artifacts/acceptance/mindmap-fields-20261108-181628/result.json and
+artifacts/acceptance/startup-smoke-mindmap-fields-20261108-181739/result.json.
+No resource resampling or visible-GPU/OS-IME claim. Docs are finalized against
+this binary. docblock_reference_stage_plan.txt is now active.
+
+Historical assignment:
+
+ROOT FOCUSED GATE ACCEPTED. Parser/view/app owner results, independent review,
+actual native input coverage and narrow images reviewed. Product frozen; only
+DeepSeek final full test/vet/release build/isolated hidden startup acceptance is
+authorized now. Astra docs-only, GLM read-only design. Keep all current raw
+outputs and previous executable. No resource resampling. Next stage queued.
+
+ACTIVE: root accepted the links release and bounded resource checkpoint with
+its recorded limitation. Implement the final handoffs/mindmap-fields-contract.md
+now. Root plans/reviews; children implement and run focused verification. No full
+release build until focused evidence and root review. Do not rerun resource work.
+
+User value: a mindmap node already has preserved note and hyperLink fields,
+but the inspector only shows a short note and an open-link button. Let users
+read and edit those existing fields in the same native workspace, keeping the
+simple inspector and a single active independent field draft. No new engine,
+network, browser, rich note format, image integration, tags or icons in this
+finite stage. Existing topic editing and drawio label editing must keep working.
+
+Current exclusive owners:
+- GLM: formats/mindmap/** small pure Note/HyperLink mutators, precise optional
+  state and no-op/serialization/unknown field regressions; public API contract
+  before dependent view work. No parser grammar expansion.
+- Astra: modules/graphview/** native inspector field selection (text/note/link),
+  single independent editable field at a time, safe Flush/recovery/lifecycle,
+  bounded display, native input and narrow/readonly tests, final feature docs.
+- DeepSeek: app/** actual adapter save/open/mode/tab/readonly acceptance,
+  existing Host.OpenReference route, final integration after focused review.
+Root can assign independent review after a child finishes its owned work.
+
+Required design decisions before implementation:
+1. Exact optional-field semantics. Existing absent note vs explicit empty note
+   stay unchanged on no-op. Clearing a nonempty note may store explicit empty
+   string; an empty hyperlink must remove that optional key because the current
+   format requires a nonempty string when present. Never trim/normalize authored
+   strings silently. Mutators mark dirty only on semantic change and preserve
+   unknown/raw metadata; rejected input cannot partially mutate the document.
+2. Field identity includes buffer+node+field+original value AND presence, not
+   only current selected node. Source edits in a different field may merge;
+   same-field edits/deletion/Buffer replacement conflict, retaining draft. No
+   close/switch/Release silently drops a failed draft. RecoverDraft must identify
+   the field and original node and keep exact text in an unsaved separate copy.
+3. Choose a field first, then edit with the existing self-authored editor. A
+   field switch Flushes before replacing the one active draft and refuses on
+   conflict. Native Compose then save/mode/tab/field switch must commit once or
+   preserve the conflict. Avoid three always-live editors per selected node.
+4. Notes remain literal plain text. No Markdown parser/remote content on notes.
+   Existing editor ShapeLimit and bounded inspector viewport must apply. Long
+   existing fields stay readable/editable through the normal segmented path,
+   not silently shortened into the stored value. Pick a justified finite bound
+   for copied hyperlink button metadata; source stays complete and over-budget
+   targets are visibly unavailable, never shortened to another destination.
+5. Opening a link must Flush the active draft, validate current source node/field
+   identity, and call the existing Host.OpenReference exactly once. Do not route
+   through OS URL APIs or a second path classifier. Literal relative/file URL
+   policy and readonly navigation stay consistent with Markdown. If Flush edited
+   the hyperlink itself, choose/document safe exact activation semantics rather
+   than navigating to a stale captured target. Pending conflict blocks opening.
+6. No-op field selection/read/open/export/save should not dirty/reformat source.
+   A real field edit is a single appropriate undo transaction; untouched unknown
+   fields survive. Document the existing JSON reserialization boundary after
+   edits. UI copy should clearly label plain note/local link and unsupported URL
+   refusal. No new dialogs or decorations without a workflow purpose.
+
+Acceptance must use actual native field selection and Compose interactions,
+including Unicode/CRLF text, absent/empty values, unrelated split-source edit,
+same-field conflict, node deletion, readonly and recovery, exact no-op save,
+undo/redo, source switch and link refusal. Cover a narrow760x480 app inspector
+and light/dark/read-only field geometry. Do not repeat unrelated large parser
+matrices. No full release build until owner focused evidence and root review.
+
+Read-only feasibility is complete. GLM now publishes the implemented pure-format
+seam first; Astra can implement the native draft/UI path in parallel. DeepSeek
+tests actual registered-adapter composition when that implementation is ready.

@@ -1,0 +1,16 @@
+{
+  "name": "08-corrected-final-test",
+  "step": "final",
+  "goArguments": [
+    "test",
+    "./app",
+    "./modules/imageview",
+    "-count=1"
+  ],
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-autosave-evidence-20261110\\08-corrected-final-test.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-autosave-evidence-20261110\\08-corrected-final-test.output.txt",
+  "startedUtc": "2026-11-10T06:22:59.0240489+00:00",
+  "finishedUtc": "2026-11-10T06:23:26.7965535+00:00",
+  "durationSeconds": 27.773,
+  "exitCode": 0
+}

@@ -1,0 +1,1 @@
+Synthetic wrapper verification. Start-Process is mocked. No tester, worker, host, Go test, build, or preflight execution.

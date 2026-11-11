@@ -1,0 +1,1037 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T08:33:23.6020727Z",
+  "Status": "PACKAGE-FAILED-NO-HOST",
+  "Failure": "Portable authored local-link validation interpreted the inline README example as a link to 目标.",
+  "FailureDefinition": {
+    "Path": "F:\\AIproject\\LevNote\\native\\scripts\\portable-package-lib.ps1",
+    "Line": 87,
+    "Regex": "\\]\\(([^)]+)\\)",
+    "Target": "目标"
+  },
+  "ReadmeSource": {
+    "Path": "F:\\AIproject\\LevNote\\native\\portable\\README.md",
+    "Bytes": 16673,
+    "SHA256": "66066F3E032BC7CB13B132C1E540A88437CE463AA116C01B40AAD444680FCE7A",
+    "LastWriteUtcTicks": 639298956877778746
+  },
+  "CandidateReadmeBeforeRepair": {
+    "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\README.md",
+    "Bytes": 16687,
+    "SHA256": "BEB184ED5E52B9B2E309B1D6F046379DC378B7760578F124F53A050ED70B1FF9",
+    "LastWriteUtcTicks": 639298961480524154
+  },
+  "CandidateManifestBeforeRepair": {
+    "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\release-manifest.json",
+    "Bytes": 4674,
+    "SHA256": "6BF61E468A87169987976F15D696C75B38C7C39BE2A115A0F084CC087D177290",
+    "LastWriteUtcTicks": 639298961481730672
+  },
+  "PackageEvidenceKeyFiles": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-package-invocation.json",
+      "Bytes": 1050,
+      "SHA256": "0DDACC59ECD5DF9B0FCA7E132A4016DE87A8D092542699C7288423F00170C59B",
+      "LastWriteUtcTicks": 639298961489608702
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-package.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961323709584
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-package.stderr.log",
+      "Bytes": 382,
+      "SHA256": "95000DE89448CF46ED6419F9CE71E775B3015CE4A7DF211B7E93C55356E0CE9B",
+      "LastWriteUtcTicks": 639298961488526321
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-package-invocation.json",
+      "Bytes": 1091,
+      "SHA256": "16EF406256E04781812E5C65FB78CA3081C28C2C25C294DE54BEFA50889A4135",
+      "LastWriteUtcTicks": 639298961490885654
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-package.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961317744560
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-package.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961317744560
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package-command.json",
+      "Bytes": 1506,
+      "SHA256": "DF6D640A523CC642330C52E26FEECC2AF531CFB67018834FF8972E51A6F568C0",
+      "LastWriteUtcTicks": 639298961485851800
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package-invoke.ps1",
+      "Bytes": 362,
+      "SHA256": "37B2AA8166E7C74752C1F1420F4AEC1AA9EFCF98352200B08F8EE440FCB89768",
+      "LastWriteUtcTicks": 639298961338272983
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961338565301
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package.stderr.log",
+      "Bytes": 337,
+      "SHA256": "214319C4C7C7DF3290C4A8CD66F0C15F6E3ABE7FF28A754929D6243D19BCD367",
+      "LastWriteUtcTicks": 639298961484701064
+    }
+  ],
+  "BuildRecords": [
+    {
+      "Name": "worker-markdown",
+      "RecordPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown-build.json",
+      "Record": {
+        "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown-build.json",
+        "Bytes": 893,
+        "SHA256": "88252AC06A67DAA3E5609D70C5066E2BC173B7CE5BEB2502B4B83E360802EEF3",
+        "LastWriteUtcTicks": 639298961362906459
+      },
+      "ExitCode": 0,
+      "StartedAtUtc": "11/10/2026 08:28:54",
+      "FinishedAtUtc": "11/10/2026 08:28:56",
+      "WallSeconds": 1.5774024,
+      "StdoutBytes": 0,
+      "StderrBytes": 0
+    },
+    {
+      "Name": "worker-drawio",
+      "RecordPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio-build.json",
+      "Record": {
+        "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio-build.json",
+        "Bytes": 872,
+        "SHA256": "10BFBBC0DF3BD07A049ED104C539B99ACAF294F65EB941366E73C9B674945605",
+        "LastWriteUtcTicks": 639298961446861755
+      },
+      "ExitCode": 0,
+      "StartedAtUtc": "11/10/2026 08:29:03",
+      "FinishedAtUtc": "11/10/2026 08:29:04",
+      "WallSeconds": 1.2736399,
+      "StdoutBytes": 0,
+      "StderrBytes": 0
+    },
+    {
+      "Name": "worker-mindmap",
+      "RecordPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-build.json",
+      "Record": {
+        "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-build.json",
+        "Bytes": 878,
+        "SHA256": "8AA8075D2D9B08BEB7B5385374550BE689F7E913D51D4371801118E3012E055D",
+        "LastWriteUtcTicks": 639298961418745578
+      },
+      "ExitCode": 0,
+      "StartedAtUtc": "11/10/2026 08:28:56",
+      "FinishedAtUtc": "11/10/2026 08:29:01",
+      "WallSeconds": 5.5043322,
+      "StdoutBytes": 0,
+      "StderrBytes": 0
+    },
+    {
+      "Name": "worker-mindmap-preview",
+      "RecordPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview-build.json",
+      "Record": {
+        "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview-build.json",
+        "Bytes": 914,
+        "SHA256": "5AB257BAFB6B720D6A985C878D9A133F340877F58883F463BCC2B1011554F275",
+        "LastWriteUtcTicks": 639298961433924808
+      },
+      "ExitCode": 0,
+      "StartedAtUtc": "11/10/2026 08:29:01",
+      "FinishedAtUtc": "11/10/2026 08:29:03",
+      "WallSeconds": 1.4973239,
+      "StdoutBytes": 0,
+      "StderrBytes": 0
+    },
+    {
+      "Name": "host",
+      "RecordPath": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host-build.json",
+      "Record": {
+        "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host-build.json",
+        "Bytes": 761,
+        "SHA256": "E5AB1C9437D916B11CC7CCCA86226346B0DE6784A12775800909AD9D26CD8648",
+        "LastWriteUtcTicks": 639298961478510073
+      },
+      "ExitCode": 0,
+      "StartedAtUtc": "11/10/2026 08:29:04",
+      "FinishedAtUtc": "11/10/2026 08:29:07",
+      "WallSeconds": 3.1494444,
+      "StdoutBytes": 0,
+      "StderrBytes": 0
+    }
+  ],
+  "GuiBuildRecordCount": 5,
+  "GuiBuildSuccessCount": 5,
+  "SourceBuildBaseline": {
+    "Count": 389,
+    "TotalBytes": 4225288,
+    "Identity": "1683D74C781794BDFD92FC05A83B4B84610C73287A4963BEC2E8A3856FFB8BC3",
+    "PortableSourceReadmeFingerprint": {
+      "Path": "F:\\AIproject\\LevNote\\native\\portable\\README.md",
+      "Bytes": 16673,
+      "SHA256": "66066F3E032BC7CB13B132C1E540A88437CE463AA116C01B40AAD444680FCE7A",
+      "LastWriteUtcTicks": 639298956877778746
+    }
+  },
+  "Candidate": {
+    "FileCount": 26,
+    "TotalBytes": 27281485,
+    "InventoryIdentity": "3D850B1327916119ED051AEFFC93C10F6475DB8CDC0432225A8BC5B011B55F8D"
+  },
+  "DirectEvidence": {
+    "FileCount": 72,
+    "TotalBytes": 531525,
+    "InventoryIdentity": "D46188C39F28BB4AEE567F5F1CA6552E95C2E9AE54A3FF5C2D3834B7F57948F2"
+  },
+  "PackageEvidence": {
+    "FileCount": 20,
+    "TotalBytes": 6304,
+    "InventoryIdentity": "6D02D97602600321E7A4E67A124FF8925B2DC948CA363995BF42C15DAE4A0FE0"
+  },
+  "CandidateFiles": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\attribution\\dependency-patches-README.md",
+      "Bytes": 5883,
+      "SHA256": "1C80925AA016227990B0838831E22FD33BD787788FB3856F390014A6116C98F7",
+      "LastWriteUtcTicks": 639298749329656158,
+      "RelativePath": "attribution/dependency-patches-README.md"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\attribution\\mygo-README.md",
+      "Bytes": 3812,
+      "SHA256": "F213EBBAFA038865225762FF811DB40EC8747A8A72968D3873EE22AB82BC6AC2",
+      "LastWriteUtcTicks": 639297061491349506,
+      "RelativePath": "attribution/mygo-README.md"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\attribution\\mygo-v0.8.3-bitmap-dispose.patch",
+      "Bytes": 47176,
+      "SHA256": "995D5505C3B5B1BD869547DF3F1AD5954C2DD57F1C9F32E53554851B5DB0D4D1",
+      "LastWriteUtcTicks": 639298756078100595,
+      "RelativePath": "attribution/mygo-v0.8.3-bitmap-dispose.patch"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+      "Bytes": 516,
+      "SHA256": "1DD7D35B0E6CFD66510F9CF0D82F703AD7656C740BC682CCF1D0C21E0F8B110A",
+      "LastWriteUtcTicks": 639297052228931926,
+      "RelativePath": "attribution/mygo-v0.8.3-no-startup-cleanup.patch"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\attribution\\purego-README.md",
+      "Bytes": 5505,
+      "SHA256": "87AF3EB64F293F458BEAFEA09181676680A17E6B0FF4491CF4A07F97B5474B99",
+      "LastWriteUtcTicks": 639297061490355774,
+      "RelativePath": "attribution/purego-README.md"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+      "Bytes": 7018,
+      "SHA256": "E168A7D8D0235483DC43C908C2B8998A25A244F25A9814A3710FCF064E556D64",
+      "LastWriteUtcTicks": 639298747962852067,
+      "RelativePath": "attribution/SOURCE_THIRD_PARTY_NOTICES.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\drawio-svg\\levnote-drawio-svg.exe",
+      "Bytes": 3124736,
+      "SHA256": "6C584758B4F411F59CF3828239E1281B89E0F1804F539293DF0B753792599804",
+      "LastWriteUtcTicks": 639298961445972261,
+      "RelativePath": "engines/drawio-svg/levnote-drawio-svg.exe"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\drawio-svg\\manifest.json",
+      "Bytes": 327,
+      "SHA256": "9B9CD73B2DA7F89DD238AB51119F961808F44D50D8E80C2790327B8D447E8C3B",
+      "LastWriteUtcTicks": 639298961446960458,
+      "RelativePath": "engines/drawio-svg/manifest.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\markdown-export\\levnote-markdown-export.exe",
+      "Bytes": 3311616,
+      "SHA256": "C23DB05652FD86648ABF05FE5509E9556176E41D17A52EF88291C805756900D4",
+      "LastWriteUtcTicks": 639298961360470521,
+      "RelativePath": "engines/markdown-export/levnote-markdown-export.exe"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\markdown-export\\manifest.json",
+      "Bytes": 338,
+      "SHA256": "A799B2ABC9E5729B105EA82D7DBDDCB4DA0AD39B7864F1614DA0DE19E517442B",
+      "LastWriteUtcTicks": 639298961363518788,
+      "RelativePath": "engines/markdown-export/manifest.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+      "Bytes": 3140608,
+      "SHA256": "932D899ED9007FF09FE192227AB199902D5BBD747FBB5C7C9704A334C4989BE8",
+      "LastWriteUtcTicks": 639298961432228519,
+      "RelativePath": "engines/mindmap-preview/levnote-mindmap-preview.exe"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\mindmap-preview\\manifest.json",
+      "Bytes": 350,
+      "SHA256": "2B1E5CF89691514DCED2EE2E493D8B6A6038C03847C29E6182CA258678D9E39E",
+      "LastWriteUtcTicks": 639298961434042584,
+      "RelativePath": "engines/mindmap-preview/manifest.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+      "Bytes": 3126272,
+      "SHA256": "7B47120B60104E843230AC93BCF3DFDD03EE440A4CDEA98385D501B356C8AA27",
+      "LastWriteUtcTicks": 639298961415623441,
+      "RelativePath": "engines/mindmap-svg/levnote-mindmap-svg.exe"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\engines\\mindmap-svg\\manifest.json",
+      "Bytes": 329,
+      "SHA256": "F628075D6EA09FF2865C189222A1E48E1BF35FE7CA2B00B99736032E6F3B33E8",
+      "LastWriteUtcTicks": 639298961418871594,
+      "RelativePath": "engines/mindmap-svg/manifest.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\levnote-native.exe",
+      "Bytes": 14455808,
+      "SHA256": "B219024B7C5B444DA0307579C1500821A6B24FDCDD9B4D47E0FC14E863A51B67",
+      "LastWriteUtcTicks": 639298961476359706,
+      "RelativePath": "levnote-native.exe"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\LICENSE",
+      "Bytes": 1092,
+      "SHA256": "8FDA1768825826229BA67B0708C8D5B6E5250411E039FCE4549072C40A4BFB7B",
+      "LastWriteUtcTicks": 639271142777669716,
+      "RelativePath": "LICENSE"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\licenses\\Go-BSD-3-Clause.txt",
+      "Bytes": 1453,
+      "SHA256": "911F8F5782931320F5B8D1160A76365B83AEA6447EE6C04FA6D5591467DB9DAD",
+      "LastWriteUtcTicks": 639280164360000000,
+      "RelativePath": "licenses/Go-BSD-3-Clause.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\licenses\\go-text-typesetting.txt",
+      "Bytes": 3006,
+      "SHA256": "6B1BF94C77D7FAA0CE94F8745595BFAF4C404F8B3873F5C2CE55CA15F8E44ECA",
+      "LastWriteUtcTicks": 639297061496823043,
+      "RelativePath": "licenses/go-text-typesetting.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\licenses\\mygo-MIT.txt",
+      "Bytes": 1074,
+      "SHA256": "F0B56F4AB53BEB6E18C5E155219C2E2B6000B5475C0AE3DDB3AF3894FD9349B4",
+      "LastWriteUtcTicks": 639297061491344266,
+      "RelativePath": "licenses/mygo-MIT.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\licenses\\purego-Apache-2.0.txt",
+      "Bytes": 11357,
+      "SHA256": "B40930BBCF80744C86C46A12BC9DA056641D722716C378F5659B9E555EF833E1",
+      "LastWriteUtcTicks": 639297061490350418,
+      "RelativePath": "licenses/purego-Apache-2.0.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\licenses\\x-image-BSD-3-Clause.txt",
+      "Bytes": 1453,
+      "SHA256": "911F8F5782931320F5B8D1160A76365B83AEA6447EE6C04FA6D5591467DB9DAD",
+      "LastWriteUtcTicks": 639297061497522048,
+      "RelativePath": "licenses/x-image-BSD-3-Clause.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\licenses\\x-net-BSD-3-Clause.txt",
+      "Bytes": 1453,
+      "SHA256": "911F8F5782931320F5B8D1160A76365B83AEA6447EE6C04FA6D5591467DB9DAD",
+      "LastWriteUtcTicks": 639297061497805018,
+      "RelativePath": "licenses/x-net-BSD-3-Clause.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\licenses\\x-text-BSD-3-Clause.txt",
+      "Bytes": 1453,
+      "SHA256": "911F8F5782931320F5B8D1160A76365B83AEA6447EE6C04FA6D5591467DB9DAD",
+      "LastWriteUtcTicks": 639297061497869539,
+      "RelativePath": "licenses/x-text-BSD-3-Clause.txt"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\README.md",
+      "Bytes": 16687,
+      "SHA256": "BEB184ED5E52B9B2E309B1D6F046379DC378B7760578F124F53A050ED70B1FF9",
+      "LastWriteUtcTicks": 639298961480524154,
+      "RelativePath": "README.md"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\release-manifest.json",
+      "Bytes": 4674,
+      "SHA256": "6BF61E468A87169987976F15D696C75B38C7C39BE2A115A0F084CC087D177290",
+      "LastWriteUtcTicks": 639298961481730672,
+      "RelativePath": "release-manifest.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.26\\THIRD_PARTY_NOTICES.md",
+      "Bytes": 7489,
+      "SHA256": "19444AD521168E748D59075C55C2EF09AF9686231E2DD8C0A46DDB633D630E36",
+      "LastWriteUtcTicks": 639298961480557976,
+      "RelativePath": "THIRD_PARTY_NOTICES.md"
+    }
+  ],
+  "DirectEvidenceFiles": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\aggregate.ps1",
+      "Bytes": 33235,
+      "SHA256": "36E9B002FEBEEBAF90B812E6D69B74284CE303AF6AAE2EA7502329B5FC5C285D",
+      "LastWriteUtcTicks": 639298958530328495,
+      "RelativePath": "aggregate.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\architecture-acceptances-before.json",
+      "Bytes": 830,
+      "SHA256": "2BC997C95DAA85632672A561AF6CB1444A3C3A232C5B147EC7A08D701BB3EF3E",
+      "LastWriteUtcTicks": 639298961102089803,
+      "RelativePath": "architecture-acceptances-before.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\baseline-result.json",
+      "Bytes": 5528,
+      "SHA256": "5114D181D5222BEE247A066A9FB38035EF7364598138499940F5605359D79B4C",
+      "LastWriteUtcTicks": 639298961102364226,
+      "RelativePath": "baseline-result.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\baseline.ps1",
+      "Bytes": 8987,
+      "SHA256": "4E7EC4401166298E75D75470594B2D7D525D5D91326838269816F4BBBF951AFF",
+      "LastWriteUtcTicks": 639298951909982286,
+      "RelativePath": "baseline.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\commands.json",
+      "Bytes": 656,
+      "SHA256": "07D0D458F06C4B39709F5339EFE5858DD2A24F85F4FAD9B97CCA1C996F5AB672",
+      "LastWriteUtcTicks": 639298960866548226,
+      "RelativePath": "commands.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\context.json",
+      "Bytes": 107797,
+      "SHA256": "11DF39EB8459AE39E8AB20F0DA14D83611627A96AAAFC2968B99448ADF0BBB80",
+      "LastWriteUtcTicks": 639298960866530660,
+      "RelativePath": "context.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\copied-helper-provenance.json",
+      "Bytes": 7943,
+      "SHA256": "7FCB37885B0B49ADBA226242E39F1AD59F7F534E8124AB0A03BC853CFA40A02F",
+      "LastWriteUtcTicks": 639298959812953000,
+      "RelativePath": "copied-helper-provenance.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\correction-parse-command.ps1",
+      "Bytes": 321,
+      "SHA256": "1935039E18D0709AB507E09E44DF950DF01EE4470F108CC062B63D832CF6214B",
+      "LastWriteUtcTicks": 639298960007660004,
+      "RelativePath": "correction-parse-command.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\correction-parse-invocation.json",
+      "Bytes": 1358,
+      "SHA256": "E6B0EBBE50BB0EE4CFF2A081EB1CCFA007221308B606C6691BCAD4F882AFFA9E",
+      "LastWriteUtcTicks": 639298960135333341,
+      "RelativePath": "correction-parse-invocation.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\correction-parse.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298960127280538,
+      "RelativePath": "correction-parse.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\correction-parse.stdout.log",
+      "Bytes": 4849,
+      "SHA256": "C4B53295FA329DC4B947D1E0F29C42DE6ABC165C9BFCA1CD6559AD11737A3CCA",
+      "LastWriteUtcTicks": 639298960133723057,
+      "RelativePath": "correction-parse.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\correction-static-parse-result.json",
+      "Bytes": 4848,
+      "SHA256": "E7F7CCFE12FDD5681F470424579B84090319032D30EB00E6B2195E15A3947A50",
+      "LastWriteUtcTicks": 639298960133548467,
+      "RelativePath": "correction-static-parse-result.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\delivery-lib.ps1",
+      "Bytes": 29289,
+      "SHA256": "CF4CF4F46767393635B286378DDE694FBA768ADCAEF1E26D8C8F84FCCDE3419E",
+      "LastWriteUtcTicks": 639298957165129354,
+      "RelativePath": "delivery-lib.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\frozen-bitmap-before.json",
+      "Bytes": 27868,
+      "SHA256": "0EB5AE381392EA47B89FD7F47865E89C19D15531FD4D02630D30D80797716C5C",
+      "LastWriteUtcTicks": 639298961102185664,
+      "RelativePath": "frozen-bitmap-before.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\initialize-command.ps1",
+      "Bytes": 188,
+      "SHA256": "C98172F2C1563524F6FBB484F94D02A613E823D58FD47CDA8ECDA599BC5782CD",
+      "LastWriteUtcTicks": 639298960851820153,
+      "RelativePath": "initialize-command.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\initialize-context.ps1",
+      "Bytes": 12078,
+      "SHA256": "AD438359FF80423CC50D52BEFC0B6CFE093B1F24F6D0D7BE7005F76088FCFA3B",
+      "LastWriteUtcTicks": 639298958530340049,
+      "RelativePath": "initialize-context.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\initialize-delivery.ps1",
+      "Bytes": 2129,
+      "SHA256": "38AF8B6AFA5B34A2F34946C3DBFB3471FDAA46BA68A43470E91E3ED3A09F5AC6",
+      "LastWriteUtcTicks": 639298951342780140,
+      "RelativePath": "initialize-delivery.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\initialize-invocation.json",
+      "Bytes": 1059,
+      "SHA256": "2922796FA0C70C6426BEE03A280870F3FB555239B07C925DE354574AFDA487A9",
+      "LastWriteUtcTicks": 639298960868569651,
+      "RelativePath": "initialize-invocation.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\initialize.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298960852162520,
+      "RelativePath": "initialize.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\initialize.stdout.log",
+      "Bytes": 779,
+      "SHA256": "0FC2CF4CBF20EF2DA69D8B55A6FEDFF17A0E8EC214604E6F9E1063E8AD38ADBE",
+      "LastWriteUtcTicks": 639298960866840038,
+      "RelativePath": "initialize.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\inputs-before.json",
+      "Bytes": 94726,
+      "SHA256": "16BB863AB128EA78CC8DABF4F038D6BD407B8388CBB99F9F67615B2BD1101CF1",
+      "LastWriteUtcTicks": 639298961102040998,
+      "RelativePath": "inputs-before.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\invoke-stage.ps1",
+      "Bytes": 2653,
+      "SHA256": "97369BF3581B5A31706C87DEE3F584D77FA938D4D47B46D1C98E92CB5B151DA7",
+      "LastWriteUtcTicks": 639298925862559965,
+      "RelativePath": "invoke-stage.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-baseline-invocation.json",
+      "Bytes": 1091,
+      "SHA256": "BF95633D0F5315EF7065C96F35B05387613905F2546AB1F41A8BE6B48F61066B",
+      "LastWriteUtcTicks": 639298961106034104,
+      "RelativePath": "outer-baseline-invocation.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-baseline.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961082012272,
+      "RelativePath": "outer-baseline.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-baseline.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961081927089,
+      "RelativePath": "outer-baseline.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-package-invocation.json",
+      "Bytes": 1091,
+      "SHA256": "16EF406256E04781812E5C65FB78CA3081C28C2C25C294DE54BEFA50889A4135",
+      "LastWriteUtcTicks": 639298961490885654,
+      "RelativePath": "outer-package-invocation.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-package.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961317744560,
+      "RelativePath": "outer-package.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\outer-package.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961317744560,
+      "RelativePath": "outer-package.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package-command.json",
+      "Bytes": 1506,
+      "SHA256": "DF6D640A523CC642330C52E26FEECC2AF531CFB67018834FF8972E51A6F568C0",
+      "LastWriteUtcTicks": 639298961485851800,
+      "RelativePath": "package-command.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package-invoke.ps1",
+      "Bytes": 362,
+      "SHA256": "37B2AA8166E7C74752C1F1420F4AEC1AA9EFCF98352200B08F8EE440FCB89768",
+      "LastWriteUtcTicks": 639298961338272983,
+      "RelativePath": "package-invoke.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package.stderr.log",
+      "Bytes": 337,
+      "SHA256": "214319C4C7C7DF3290C4A8CD66F0C15F6E3ABE7FF28A754929D6243D19BCD367",
+      "LastWriteUtcTicks": 639298961484701064,
+      "RelativePath": "package.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961338565301,
+      "RelativePath": "package.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host-build.json",
+      "Bytes": 761,
+      "SHA256": "E5AB1C9437D916B11CC7CCCA86226346B0DE6784A12775800909AD9D26CD8648",
+      "LastWriteUtcTicks": 639298961478510073,
+      "RelativePath": "package/host-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host-build.ps1",
+      "Bytes": 325,
+      "SHA256": "02012827F3606F92AEE760583395730554C3775598E7F7E2FD6B6F140C9F6385",
+      "LastWriteUtcTicks": 639298961446970344,
+      "RelativePath": "package/host-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961447011552,
+      "RelativePath": "package/host.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961447001115,
+      "RelativePath": "package/host.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio-build.json",
+      "Bytes": 872,
+      "SHA256": "10BFBBC0DF3BD07A049ED104C539B99ACAF294F65EB941366E73C9B674945605",
+      "LastWriteUtcTicks": 639298961446861755,
+      "RelativePath": "package/worker-drawio-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio-build.ps1",
+      "Bytes": 407,
+      "SHA256": "F862C9C5113EC9E33D099407631DDF08731A45991DD200144E84110642FCE52C",
+      "LastWriteUtcTicks": 639298961434070253,
+      "RelativePath": "package/worker-drawio-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961434108392,
+      "RelativePath": "package/worker-drawio.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961434092219,
+      "RelativePath": "package/worker-drawio.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown-build.json",
+      "Bytes": 893,
+      "SHA256": "88252AC06A67DAA3E5609D70C5066E2BC173B7CE5BEB2502B4B83E360802EEF3",
+      "LastWriteUtcTicks": 639298961362906459,
+      "RelativePath": "package/worker-markdown-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown-build.ps1",
+      "Bytes": 422,
+      "SHA256": "87B47C1F7EE9C1DF16CD85DE0ADE85D30DA2F111F7366A6AB32D5DD954D96C1B",
+      "LastWriteUtcTicks": 639298961346552584,
+      "RelativePath": "package/worker-markdown-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961346706091,
+      "RelativePath": "package/worker-markdown.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961346695013,
+      "RelativePath": "package/worker-markdown.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-build.json",
+      "Bytes": 878,
+      "SHA256": "8AA8075D2D9B08BEB7B5385374550BE689F7E913D51D4371801118E3012E055D",
+      "LastWriteUtcTicks": 639298961418745578,
+      "RelativePath": "package/worker-mindmap-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-build.ps1",
+      "Bytes": 410,
+      "SHA256": "AE4F11DD16C28E0664FC8E7DE5D41C36F4C9952BB036B7685E40CB5550C0BB20",
+      "LastWriteUtcTicks": 639298961363621819,
+      "RelativePath": "package/worker-mindmap-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview-build.json",
+      "Bytes": 914,
+      "SHA256": "5AB257BAFB6B720D6A985C878D9A133F340877F58883F463BCC2B1011554F275",
+      "LastWriteUtcTicks": 639298961433924808,
+      "RelativePath": "package/worker-mindmap-preview-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview-build.ps1",
+      "Bytes": 422,
+      "SHA256": "58EB9C7706735EC0BAD44D124C7425EF3CB90E51F27CF7B6D2107D04558C05B1",
+      "LastWriteUtcTicks": 639298961418911660,
+      "RelativePath": "package/worker-mindmap-preview-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961418972389,
+      "RelativePath": "package/worker-mindmap-preview.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961418957072,
+      "RelativePath": "package/worker-mindmap-preview.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961363651934,
+      "RelativePath": "package/worker-mindmap.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961363642027,
+      "RelativePath": "package/worker-mindmap.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\parse-command.ps1",
+      "Bytes": 313,
+      "SHA256": "0BC6DCEB2736843A3D2BA9200B59F1C77217A74C2CB44556837C9E4D89B5CAF0",
+      "LastWriteUtcTicks": 639298957341711962,
+      "RelativePath": "parse-command.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\parse-invocation.json",
+      "Bytes": 1036,
+      "SHA256": "4E0CFACE578D85CDD5E4D3B8A50D7B2D6459855F350A8124DB9429129E800DA9",
+      "LastWriteUtcTicks": 639298957351418510,
+      "RelativePath": "parse-invocation.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\parse.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298957342049168,
+      "RelativePath": "parse.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\parse.stdout.log",
+      "Bytes": 4527,
+      "SHA256": "4F362BF9B9154E42B3BC13B83D0749081D9186F4F16D2438E7874F4D624E2F51",
+      "LastWriteUtcTicks": 639298957349699133,
+      "RelativePath": "parse.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\pinned-patches-before.json",
+      "Bytes": 18602,
+      "SHA256": "6783F2481AE77B4198F56C767D4EC01FC985578C8110EAF11E2761AF818EE2F0",
+      "LastWriteUtcTicks": 639298961102200749,
+      "RelativePath": "pinned-patches-before.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\protected-release-before.json",
+      "Bytes": 74671,
+      "SHA256": "6851D59E46795A0AD4E46684AA267BCE288F70A284DE4FF1D1F519BF94D116E9",
+      "LastWriteUtcTicks": 639298961102155381,
+      "RelativePath": "protected-release-before.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\run-host-smoke.ps1",
+      "Bytes": 32892,
+      "SHA256": "6521E27A1139927D9878E7FC3F6CA868A33B393B720E503FCDD5A7562AEEB9FF",
+      "LastWriteUtcTicks": 639298958530312624,
+      "RelativePath": "run-host-smoke.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\run-package.ps1",
+      "Bytes": 17324,
+      "SHA256": "23E0A147DF35473FECB273D4FC0E6DE56DB79D38D66833C05FDB8BE167FD89AA",
+      "LastWriteUtcTicks": 639298951429994935,
+      "RelativePath": "run-package.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\run-preflight.ps1",
+      "Bytes": 1299,
+      "SHA256": "78839F34149B517F2AA3F0DA8D850F6A5193446C6D76D9877F9A7E7C1759252A",
+      "LastWriteUtcTicks": 639298925862579793,
+      "RelativePath": "run-preflight.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\run-stage.ps1",
+      "Bytes": 2958,
+      "SHA256": "9631549F240DD5E30A3B7DC8F39F1C4566903A1FF59CE5FABBC7A32B0F31F59A",
+      "LastWriteUtcTicks": 639298925862579793,
+      "RelativePath": "run-stage.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\source-gates-before.json",
+      "Bytes": 3606,
+      "SHA256": "09271AEFF4FB52D542B9E5913C31A1343931F4EB2915143CA96DD5C3CC529572",
+      "LastWriteUtcTicks": 639298961102059406,
+      "RelativePath": "source-gates-before.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\source-scope.ps1",
+      "Bytes": 2157,
+      "SHA256": "6CEFB378F9027F66892560CE92D3199C1F5F8C5D12FD32E3F40E557A78DE5FC5",
+      "LastWriteUtcTicks": 639298925862589610,
+      "RelativePath": "source-scope.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-baseline-invocation.json",
+      "Bytes": 1047,
+      "SHA256": "8B0CC8354151354BA67970A45F842FFEBA7030282500E1714B0F2B139A687BF2",
+      "LastWriteUtcTicks": 639298961104500713,
+      "RelativePath": "stage-baseline-invocation.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-baseline.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961087398062,
+      "RelativePath": "stage-baseline.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-baseline.stdout.log",
+      "Bytes": 5529,
+      "SHA256": "680D48726529B24D373358867C14E63D9685DF6E1AE993DD2A584B3D1741977F",
+      "LastWriteUtcTicks": 639298961102680998,
+      "RelativePath": "stage-baseline.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-package-invocation.json",
+      "Bytes": 1050,
+      "SHA256": "0DDACC59ECD5DF9B0FCA7E132A4016DE87A8D092542699C7288423F00170C59B",
+      "LastWriteUtcTicks": 639298961489608702,
+      "RelativePath": "stage-package-invocation.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-package.stderr.log",
+      "Bytes": 382,
+      "SHA256": "95000DE89448CF46ED6419F9CE71E775B3015CE4A7DF211B7E93C55356E0CE9B",
+      "LastWriteUtcTicks": 639298961488526321,
+      "RelativePath": "stage-package.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\stage-package.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961323709584,
+      "RelativePath": "stage-package.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\static-parse-result.json",
+      "Bytes": 4526,
+      "SHA256": "EE75070D4C251D08634430AEE0EE4B0AECF14D2A19FAD12FAD38AA67AB43F7F8",
+      "LastWriteUtcTicks": 639298957349459726,
+      "RelativePath": "static-parse-result.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\static-parse.ps1",
+      "Bytes": 1794,
+      "SHA256": "3CFFA602034A1E3210A62351F5A35DDF4F4E3CBB0CE107416B2E62075A5F8BEE",
+      "LastWriteUtcTicks": 639298952493010169,
+      "RelativePath": "static-parse.ps1"
+    }
+  ],
+  "PackageEvidenceFiles": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host-build.json",
+      "Bytes": 761,
+      "SHA256": "E5AB1C9437D916B11CC7CCCA86226346B0DE6784A12775800909AD9D26CD8648",
+      "LastWriteUtcTicks": 639298961478510073,
+      "RelativePath": "host-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host-build.ps1",
+      "Bytes": 325,
+      "SHA256": "02012827F3606F92AEE760583395730554C3775598E7F7E2FD6B6F140C9F6385",
+      "LastWriteUtcTicks": 639298961446970344,
+      "RelativePath": "host-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961447011552,
+      "RelativePath": "host.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\host.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961447001115,
+      "RelativePath": "host.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio-build.json",
+      "Bytes": 872,
+      "SHA256": "10BFBBC0DF3BD07A049ED104C539B99ACAF294F65EB941366E73C9B674945605",
+      "LastWriteUtcTicks": 639298961446861755,
+      "RelativePath": "worker-drawio-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio-build.ps1",
+      "Bytes": 407,
+      "SHA256": "F862C9C5113EC9E33D099407631DDF08731A45991DD200144E84110642FCE52C",
+      "LastWriteUtcTicks": 639298961434070253,
+      "RelativePath": "worker-drawio-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961434108392,
+      "RelativePath": "worker-drawio.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-drawio.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961434092219,
+      "RelativePath": "worker-drawio.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown-build.json",
+      "Bytes": 893,
+      "SHA256": "88252AC06A67DAA3E5609D70C5066E2BC173B7CE5BEB2502B4B83E360802EEF3",
+      "LastWriteUtcTicks": 639298961362906459,
+      "RelativePath": "worker-markdown-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown-build.ps1",
+      "Bytes": 422,
+      "SHA256": "87B47C1F7EE9C1DF16CD85DE0ADE85D30DA2F111F7366A6AB32D5DD954D96C1B",
+      "LastWriteUtcTicks": 639298961346552584,
+      "RelativePath": "worker-markdown-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961346706091,
+      "RelativePath": "worker-markdown.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-markdown.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961346695013,
+      "RelativePath": "worker-markdown.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-build.json",
+      "Bytes": 878,
+      "SHA256": "8AA8075D2D9B08BEB7B5385374550BE689F7E913D51D4371801118E3012E055D",
+      "LastWriteUtcTicks": 639298961418745578,
+      "RelativePath": "worker-mindmap-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-build.ps1",
+      "Bytes": 410,
+      "SHA256": "AE4F11DD16C28E0664FC8E7DE5D41C36F4C9952BB036B7685E40CB5550C0BB20",
+      "LastWriteUtcTicks": 639298961363621819,
+      "RelativePath": "worker-mindmap-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview-build.json",
+      "Bytes": 914,
+      "SHA256": "5AB257BAFB6B720D6A985C878D9A133F340877F58883F463BCC2B1011554F275",
+      "LastWriteUtcTicks": 639298961433924808,
+      "RelativePath": "worker-mindmap-preview-build.json"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview-build.ps1",
+      "Bytes": 422,
+      "SHA256": "58EB9C7706735EC0BAD44D124C7425EF3CB90E51F27CF7B6D2107D04558C05B1",
+      "LastWriteUtcTicks": 639298961418911660,
+      "RelativePath": "worker-mindmap-preview-build.ps1"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961418972389,
+      "RelativePath": "worker-mindmap-preview.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap-preview.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961418957072,
+      "RelativePath": "worker-mindmap-preview.stdout.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap.stderr.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961363651934,
+      "RelativePath": "worker-mindmap.stderr.log"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-image-reference-release26-20261110\\package\\worker-mindmap.stdout.log",
+      "Bytes": 0,
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "LastWriteUtcTicks": 639298961363642027,
+      "RelativePath": "worker-mindmap.stdout.log"
+    }
+  ],
+  "HostStarted": false,
+  "KernelRestoreStarted": false,
+  "Scope": "Immutable external snapshot after the sole .26 package invocation exited1 and all stage writers exited. Five GUI builds preceded the portable README link-validation failure. Partial candidate is preserved; no host, restore, worker request, retest, capture or product rerun occurred."
+}

@@ -1,0 +1,3078 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:38:40.2908971Z",
+  "Scope": "One documentation-only check of six owned files: local markdown target existence outside fenced blocks (fragments not validated), current-version/launch claims, final file identities. No network, test, build, host launch or frozen evidence mutation.",
+  "Pass": true,
+  "FileCount": 6,
+  "LocalLinkCount": 498,
+  "MissingLocalLinkCount": 0,
+  "CurrentReferenceCheckCount": 9,
+  "CurrentReferencePassed": 9,
+  "Checks": [
+    {
+      "Name": "Root current launch is .22",
+      "Pass": true
+    },
+    {
+      "Name": "Native current launch and version are .22",
+      "Pass": true
+    },
+    {
+      "Name": "README launch commands do not point to .21",
+      "Pass": true
+    },
+    {
+      "Name": "Roadmap current delivery is .22",
+      "Pass": true
+    },
+    {
+      "Name": "Architecture current delivery is .22 and .21 is historical",
+      "Pass": true
+    },
+    {
+      "Name": "Validation current .22 and dated historical .21 sections",
+      "Pass": true
+    },
+    {
+      "Name": "Changelog preserves dated .21 after .22 entry",
+      "Pass": true
+    },
+    {
+      "Name": "Native usage documents no queued switch and completed focus-leave state",
+      "Pass": true
+    },
+    {
+      "Name": "Current .22 launch target exists",
+      "Pass": true
+    }
+  ],
+  "MissingLocalLinks": [],
+  "Files": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\README.md",
+      "RelativePath": "README.md",
+      "Bytes": 14833,
+      "SHA256": "F7CAB8963D7CE5575AF0B5CA8A532AEC5576D827B0703E2462CFD1A02F9D082F"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\ROADMAP.md",
+      "RelativePath": "ROADMAP.md",
+      "Bytes": 120056,
+      "SHA256": "93E6A073313DFA8441691E123B26614769EEBAF40DB2155BF863D9D56018467B"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\CHANGELOG.md",
+      "RelativePath": "CHANGELOG.md",
+      "Bytes": 147452,
+      "SHA256": "F9C9EF404D6752EA0DE211D5B6690F90229F6292D055BC628A55220EB82AB0B0"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\README.md",
+      "RelativePath": "native/README.md",
+      "Bytes": 61569,
+      "SHA256": "C5FC501AB531090D06543B7F93CCD908B60F3CB78A77ABE509FCB136192435ED"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\ARCHITECTURE.md",
+      "RelativePath": "native/ARCHITECTURE.md",
+      "Bytes": 64445,
+      "SHA256": "1D96286325A3230B7F5E34DBCC29F1C3C94E7EA739BA9384EFC91661783E3890"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "RelativePath": "native/VALIDATION.md",
+      "Bytes": 149608,
+      "SHA256": "2D1D46603824E868CC97EBA7F9675E580FBA9A4A9AF70D419CD8ECC983749CA7"
+    }
+  ],
+  "LocalLinks": [
+    {
+      "File": "README.md",
+      "Target": "native/ARCHITECTURE.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\ARCHITECTURE.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "CHANGELOG.md",
+      "Resolved": "F:\\AIproject\\LevNote\\CHANGELOG.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/handoffs/tab-workflow-release22-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/README.md#已有能力与边界",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/ARCHITECTURE.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\ARCHITECTURE.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/formats/API.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\formats\\API.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/THIRD_PARTY_NOTICES.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\THIRD_PARTY_NOTICES.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/decisions/0063-native-migration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0063-native-migration.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/handoffs/tab-workflow-release22-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/handoffs/tab-workflow-release22-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "native/VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "ROADMAP.md",
+      "Resolved": "F:\\AIproject\\LevNote\\ROADMAP.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/decisions/0048-mindmap-and-drawio-are-first-class-too.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0048-mindmap-and-drawio-are-first-class-too.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/decisions/0027-drawio-viewer.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0027-drawio-viewer.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/format-spec.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\format-spec.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/decisions/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/open-decisions.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\open-decisions.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/gap-analysis-horsemd.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\gap-analysis-horsemd.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "ROADMAP.md",
+      "Resolved": "F:\\AIproject\\LevNote\\ROADMAP.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "AGENTS.md",
+      "Resolved": "F:\\AIproject\\LevNote\\AGENTS.md",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "LICENSE",
+      "Resolved": "F:\\AIproject\\LevNote\\LICENSE",
+      "Exists": true
+    },
+    {
+      "File": "README.md",
+      "Target": "docs/dependency-licenses.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\dependency-licenses.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "docs/decisions/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "docs/open-decisions.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\open-decisions.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "docs/decisions/0063-native-migration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0063-native-migration.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/README.md#已有能力与边界",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/tab-workflow-release22-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/tab-workflow-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/utf8-save-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/utf8-save-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/utf8-save-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/session-output-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/session-output-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/session-output-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/source-navigation-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/source-navigation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/source-navigation-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/search-navigation-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/search-navigation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/search-navigation-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/findbar-layout-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/find-keyboard-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/find-keyboard-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-result.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/find-keyboard-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/find-whole-word-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/find-whole-word-release17-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-release17-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/find-whole-word-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/release10-ui-feasibility-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\release10-ui-feasibility-result.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/drawio-route-release20-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-release20-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/drawio-route-release20-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-release20-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/drawio-worker-stage2-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-result.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/drawio-worker-stage2-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/drawio-worker-release19-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-release19-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/native-preview-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/markdown-worker-resources.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-worker-resources.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/format-routing-app-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\format-routing-app-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/drawio-route-release20-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-release20-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/markdown-table-rows.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-table-rows.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/markdown-table-alignment.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-table-alignment.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "native/handoffs/mindmap-tags.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-tags.md",
+      "Exists": true
+    },
+    {
+      "File": "ROADMAP.md",
+      "Target": "docs/gap-analysis-horsemd.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\gap-analysis-horsemd.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "native/VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "native/handoffs/format-routing-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\format-routing-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "native/handoffs/native-preview-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "native/handoffs/mindmap-engine-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-engine-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "native/handoffs/markdown-worker-resources.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-worker-resources.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "native/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "native/VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/dependency-licenses.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\dependency-licenses.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0026-workspace-search.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0026-workspace-search.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0024-block-handle.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0024-block-handle.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/open-decisions.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\open-decisions.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0018-m6-images.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0018-m6-images.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0017-m5-tables-and-code-blocks.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0017-m5-tables-and-code-blocks.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0016-slash-menu.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0016-slash-menu.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0016-slash-menu.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0016-slash-menu.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0015-selection-toolbar.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0015-selection-toolbar.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0014-markdown-source-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0014-markdown-source-view.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0010-multi-tab-workspace.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0010-multi-tab-workspace.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0011-code-kernel-and-graceful-downgrade.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0011-code-kernel-and-graceful-downgrade.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/decisions/0012-command-registry.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0012-command-registry.md",
+      "Exists": true
+    },
+    {
+      "File": "CHANGELOG.md",
+      "Target": "docs/gap-analysis-horsemd.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\gap-analysis-horsemd.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "../docs/decisions/0063-native-migration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\docs\\decisions\\0063-native-migration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "bin/levnote-native-worker-20261110.22/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.22\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/tab-workflow-release22-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "dependency-patches/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\dependency-patches\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "formats/API.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\formats\\API.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "examples/plugins/ini-outline.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\examples\\plugins\\ini-outline.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "examples/plugins/config-headings.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\examples\\plugins\\config-headings.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "examples/plugins/task-notes.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\examples\\plugins\\task-notes.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "examples/plugins/thoughts.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\examples\\plugins\\thoughts.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "examples/plugins/diagram-notes.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\examples\\plugins\\diagram-notes.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/drawio-efficiency-release21-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/drawio-worker-stage2-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/drawio-worker-stage2-test-followup-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-test-followup-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/drawio-worker-stage2-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/drawio-worker-release19-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-release19-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/drawio-worker-release19-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-release19-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/drawio-worker-release19-20261110-023148/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-worker-release19-20261110-023148\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-whole-word-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-whole-word-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-whole-word-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-whole-word-release17-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-release17-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-whole-word-release17-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-release17-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/find-whole-word-release17-20261110-004642/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\find-whole-word-release17-20261110-004642\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/session-output-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/session-output-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/session-output-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/session-output-release16-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-release16-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/session-output-release16-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-release16-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/session-output-release16-20261110-001354/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\session-output-release16-20261110-001354\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/utf8-save-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/utf8-save-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/utf8-save-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/utf8-save-release15-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-release15-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/utf8-save-release15-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-release15-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/utf8-save-release15-20261109-234608/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\utf8-save-release15-20261109-234608\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-keyboard-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-keyboard-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-keyboard-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-keyboard-release14-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-release14-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/find-keyboard-release14-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-release14-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/find-keyboard-release14-delivery-20261109-215637/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\find-keyboard-release14-delivery-20261109-215637\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/search-navigation-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/search-navigation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/search-navigation-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/findbar-layout-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/findbar-layout-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/search-navigation-release13-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-release13-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/search-navigation-release13-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-release13-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/search-navigation-release13-delivery-20261109-210329/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\search-navigation-release13-delivery-20261109-210329\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/source-navigation-release12-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-release12-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/source-navigation-release12-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-release12-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/retention-release11-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\retention-release11-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/retention-release11-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\retention-release11-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/markdown-worker-resources.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-worker-resources.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/markdown-tables-20261108-204724/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tables-20261108-204724\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/markdown-tables-20261108-204724/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tables-20261108-204724\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/markdown-tables-20261108-204724/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tables-20261108-204724\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/markdown-tables-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tables-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213713/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213713\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213713/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213713\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213713/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213713\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/markdown-cell-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-cell-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/mindmap-markers-integration-20261109-000341/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-markers-integration-20261109-000341\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/mindmap-markers-integration-20261109-000341/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-markers-integration-20261109-000341\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/mindmap-markers-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-markers-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/docblock-reference-20261108-192000/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\docblock-reference-20261108-192000\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "artifacts/acceptance/docblock-reference-20261108-192000/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\docblock-reference-20261108-192000\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/docblock-reference-integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-reference-integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/docblock-reference-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-reference-view.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "handoffs/docblock-reference-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-reference-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "ARCHITECTURE.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\ARCHITECTURE.md",
+      "Exists": true
+    },
+    {
+      "File": "native/README.md",
+      "Target": "THIRD_PARTY_NOTICES.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\THIRD_PARTY_NOTICES.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "formats/API.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\formats\\API.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "formats/API.md#schema3固定原生格式选择",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\formats\\API.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/format-routing-app-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\format-routing-app-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-svg-budget-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-svg-budget-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-svg-budget-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-efficiency-release21-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-efficiency-release21-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "artifacts/acceptance/drawio-efficiency-release21-20261110/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-efficiency-release21-20261110\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-route-release20-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-release20-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-route-release20-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-release20-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "artifacts/acceptance/drawio-route-release20-20261110-031456/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-route-release20-20261110-031456\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-worker-release19-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-release19-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-worker-stage2-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-worker-stage2-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-worker-stage2-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-svg-budget-release18-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-release18-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/drawio-svg-budget-release18-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-release18-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-whole-word-release17-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-release17-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-whole-word-release17-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-release17-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "artifacts/acceptance/find-whole-word-release17-20261110-004642/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\find-whole-word-release17-20261110-004642\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/session-output-release16-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-release16-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/session-output-release16-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-release16-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "artifacts/acceptance/session-output-release16-20261110-001354/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\session-output-release16-20261110-001354\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/utf8-save-release15-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-release15-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/utf8-save-release15-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-release15-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-keyboard-release14-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-release14-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-keyboard-release14-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-release14-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/search-navigation-release13-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-release13-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/tab-workflow-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/source-navigation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/source-navigation-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/source-navigation-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/search-navigation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/search-navigation-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/search-navigation-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/findbar-layout-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/findbar-layout-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-whole-word-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-whole-word-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-whole-word-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-keyboard-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-keyboard-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-keyboard-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/find-keyboard-release14-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-release14-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/markdown-table-rows.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-table-rows.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/markdown-table-alignment.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-table-alignment.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/docblock-reference-integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-reference-integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/session-output-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/session-output-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "handoffs/session-output-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "VALIDATION.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\VALIDATION.md",
+      "Exists": true
+    },
+    {
+      "File": "native/ARCHITECTURE.md",
+      "Target": "THIRD_PARTY_NOTICES.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\THIRD_PARTY_NOTICES.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261110.22/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.22\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/tab-workflow-20261110/18-corrected-final-app-test.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\tab-workflow-20261110\\18-corrected-final-app-test.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/tab-workflow-20261110/19-corrected-final-app-vet.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\tab-workflow-20261110\\19-corrected-final-app-vet.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/tab-workflow-20261110/tab-active-wrap-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\tab-workflow-20261110\\tab-active-wrap-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/tab-keyboard-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-keyboard-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/tab-active-reveal-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-active-reveal-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/tab-workflow-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/tab-workflow-release22-20261110/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\tab-workflow-release22-20261110\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/tab-workflow-release22-20261110-closed-inventory.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\tab-workflow-release22-20261110-closed-inventory.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/release22-final-preparation-checkpoint.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\release22-final-preparation-checkpoint.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/tab-workflow-release22-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/tab-workflow-release22-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/tab-workflow-release22-20261110/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\tab-workflow-release22-20261110\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261110.21/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-efficiency-release21-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-efficiency-release21-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-structural-warning-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-structural-warning-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-structural-warning-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-structural-warning-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-structural-warning-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-structural-warning-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-source-retention-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-source-retention-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-source-retention-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-source-retention-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-source-retention-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-source-retention-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/drawio-efficiency-release21-20261110/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-efficiency-release21-20261110\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/drawio-efficiency-release21-20261110/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-efficiency-release21-20261110\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261110.20/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-route-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-route-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-route-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-route-release20-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-release20-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-route-release20-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-release20-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/drawio-route-release20-20261110-031456/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-route-release20-20261110-031456\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261110.19/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.19\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-worker-stage2-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-worker-stage2-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-worker-stage2-test-followup-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-test-followup-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-worker-stage2-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-stage2-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-worker-release19-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-release19-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-worker-release19-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-release19-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/drawio-worker-release19-20261110-023148/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-worker-release19-20261110-023148\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261110.18/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.18\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-svg-budget-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-svg-budget-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-svg-budget-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-svg-budget-release18-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-release18-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-svg-budget-release18-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-release18-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/drawio-svg-budget-release18-20261110-011852/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-svg-budget-release18-20261110-011852\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/drawio-svg-budget-correction-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-svg-budget-correction-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/evidence/drawio-svg-budget-correction-test.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\evidence\\drawio-svg-budget-correction-test.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/evidence/drawio-svg-budget-correction-vet.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\evidence\\drawio-svg-budget-correction-vet.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/drawio-svg-budget-release18-20261110-011852/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\drawio-svg-budget-release18-20261110-011852\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261110.17/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.17\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-whole-word-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-whole-word-release17-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-release17-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-whole-word-release17-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-release17-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/find-whole-word-release17-20261110-004642/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\find-whole-word-release17-20261110-004642\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-whole-word-evidence/screenshots/findbar-light-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-evidence\\screenshots\\findbar-light-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-whole-word-evidence/screenshots/findbar-dark-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-whole-word-evidence\\screenshots\\findbar-dark-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/find-whole-word-release17-20261110-004642/",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\find-whole-word-release17-20261110-004642\\",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261110.16/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.16\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session-output-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session-output-release16-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-release16-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/session-output-release16-20261110-001354/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\session-output-release16-20261110-001354\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "ARCHITECTURE.md#文件与恢复安全",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\ARCHITECTURE.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session-output-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session-output-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session-output-evidence/review-final-affected-suite-1.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-evidence\\review-final-affected-suite-1.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session-output-evidence/review-final-affected-vet-1.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-evidence\\review-final-affected-vet-1.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session-output-evidence/review-session-output-benchmark-1.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session-output-evidence\\review-session-output-benchmark-1.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/session-output-release16-20261110-001354/",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\session-output-release16-20261110-001354\\",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.15/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.15\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-release15-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-release15-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/utf8-save-release15-20261109-234608/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\utf8-save-release15-20261109-234608\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-implementation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-implementation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-evidence/focused-utf8-save-tests-6.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-evidence\\focused-utf8-save-tests-6.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-evidence/benchmark-utf8-output-10x-final.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-evidence\\benchmark-utf8-output-10x-final.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-evidence/final-affected-suite-2.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-evidence\\final-affected-suite-2.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/utf8-save-evidence/final-vet.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\utf8-save-evidence\\final-vet.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/utf8-save-release15-20261109-234608/",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\utf8-save-release15-20261109-234608\\",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.14/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.14\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-keyboard-release14-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-release14-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-keyboard-release14-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-release14-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/find-keyboard-release14-delivery-20261109-215637/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\find-keyboard-release14-delivery-20261109-215637\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "ARCHITECTURE.md#查找键盘焦点与组合输入",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\ARCHITECTURE.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-keyboard-evidence/final-app-ui-editor-test-3.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-evidence\\final-app-ui-editor-test-3.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-keyboard-evidence/final-app-ui-editor-vet-3.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-evidence\\final-app-ui-editor-vet-3.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-keyboard-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/find-keyboard-independent-reconciliation.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\find-keyboard-independent-reconciliation.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.13/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.13\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/search-navigation-release13-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-release13-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/search-navigation-release13-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-release13-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/search-navigation-release13-delivery-20261109-210329/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\search-navigation-release13-delivery-20261109-210329\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/search-navigation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/search-navigation-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/search-navigation-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search-navigation-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/findbar-layout-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/findbar-layout-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/findbar-layout-evidence/findbar-light-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-evidence\\findbar-light-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/findbar-layout-evidence/findbar-dark-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\findbar-layout-evidence\\findbar-dark-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.12/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.12\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-navigation-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-navigation-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-navigation-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-navigation-release12-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-release12-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-navigation-release12-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-release12-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/source-navigation-release12-delivery-20261109-201756/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\source-navigation-release12-delivery-20261109-201756\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-navigation-evidence/source-navigation-error-760x480-light.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-evidence\\source-navigation-error-760x480-light.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-navigation-evidence/source-navigation-error-760x480-dark.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-navigation-evidence\\source-navigation-error-760x480-dark.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.11/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.11\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/retention-release11-delivery-20261109-193512",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\retention-release11-delivery-20261109-193512",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/retention-release11-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\retention-release11-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/retention-release11-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\retention-release11-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.10/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.10\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/fixed-engine-package-delivery-20261109-20261109-191019",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\fixed-engine-package-delivery-20261109-20261109-191019",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/fixed-engine-package-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\fixed-engine-package-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/fixed-engine-package-delivery-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\fixed-engine-package-delivery-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/engine-package-volume-root-fix-20261109-190635",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\engine-package-volume-root-fix-20261109-190635",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/release10-ui-feasibility-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\release10-ui-feasibility-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.8/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.8\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/format-routing-delivery-20261109-114942/aggregate02.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\format-routing-delivery-20261109-114942\\aggregate02.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/format-routing-delivery-20261109-114942/validator02.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\format-routing-delivery-20261109-114942\\validator02.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/format-routing-delivery-20261109-114942/total-byte-correction.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\format-routing-delivery-20261109-114942\\total-byte-correction.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/format-routing-core-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\format-routing-core-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/format-routing-app-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\format-routing-app-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/format-routing-delivery-20261109-114942/smoke.stdout.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\format-routing-delivery-20261109-114942\\smoke.stdout.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/format-routing-delivery-20261109-114942/smoke/session-after-close.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\format-routing-delivery-20261109-114942\\smoke\\session-after-close.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/format-routing-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\format-routing-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/format-routing-delivery-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\format-routing-delivery-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-083326-status-followup/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-083326-status-followup\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-083326-status-followup/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-083326-status-followup\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-083326-status-followup/aggregate.ps1",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-083326-status-followup\\aggregate.ps1",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.7/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.7\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/native-preview-dto.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-dto.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/native-preview-worker.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-worker.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/native-preview-ipc-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-ipc-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/native-preview-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/native-preview-consumer-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-consumer-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-082251-package/host-path.stdout.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-082251-package\\host-path.stdout.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-083326-status-followup/host-path.stdout.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-083326-status-followup\\host-path.stdout.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-083326-status-followup/scene captures/preview-readonly-light-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-083326-status-followup\\scene captures\\preview-readonly-light-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-083326-status-followup/scene captures/preview-readonly-dark-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-083326-status-followup\\scene captures\\preview-readonly-dark-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/native-preview-delivery-20261109-083326-status-followup/scene captures/preview-readonly-source-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\native-preview-delivery-20261109-083326-status-followup\\scene captures\\preview-readonly-source-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/native-preview-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/native-preview-delivery-root-acceptance.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\native-preview-delivery-root-acceptance.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-engine-20261109-065002-package/aggregate-attempt02.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-engine-20261109-065002-package\\aggregate-attempt02.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-engine-20261109-065002-package/validator-attempt02.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-engine-20261109-065002-package\\validator-attempt02.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-engine-20261109-065002-package/aggregate-attempt02.ps1",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-engine-20261109-065002-package\\aggregate-attempt02.ps1",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.6/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.6\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-engine-pure.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-engine-pure.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-command-20261109-070556-actual-attempt01/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-command-20261109-070556-actual-attempt01\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-engine-pure-review-fix-result.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-engine-pure-review-fix-result.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-engine-integration-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-engine-integration-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-engine-20261109-065002-package/host-path.stdout.log",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-engine-20261109-065002-package\\host-path.stdout.log",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-engine-20261109-065002-package/aggregate-attempt02-command.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-engine-20261109-065002-package\\aggregate-attempt02-command.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-engine-delivery.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-engine-delivery.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-engine-20261109-065002-package/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-engine-20261109-065002-package\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-alignment-20261109-055547-package/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-alignment-20261109-055547-package\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-alignment-20261109-055547-package/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-alignment-20261109-055547-package\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-alignment-20261109-055547-package/aggregate.ps1",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-alignment-20261109-055547-package\\aggregate.ps1",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.5/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.5\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-alignment-20261109-055235-capture-attempt02/images/markdown-alignment-light-column-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-alignment-20261109-055235-capture-attempt02\\images\\markdown-alignment-light-column-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-alignment-20261109-055235-capture-attempt02/images/markdown-alignment-dark-recovery-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-alignment-20261109-055235-capture-attempt02\\images\\markdown-alignment-dark-recovery-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-alignment-independent-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-alignment-independent-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-table-alignment.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-table-alignment.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-alignment-20261109-055547-package/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-alignment-20261109-055547-package\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-tags-20261109-050613-package/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-tags-20261109-050613-package\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-tags-20261109-050613-package/validator.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-tags-20261109-050613-package\\validator.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.4/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.4\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-tags-20261109-050143-consumer-attempt07/images/mindmap-tags-light-expanded-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-tags-20261109-050143-consumer-attempt07\\images\\mindmap-tags-light-expanded-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-tags-20261109-050143-consumer-attempt07/images/mindmap-tags-dark-recovery-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-tags-20261109-050143-consumer-attempt07\\images\\mindmap-tags-dark-recovery-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-tags.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-tags.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-tags-20261109-050613-package/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-tags-20261109-050613-package\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-table-rows-20261109-040306-package/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-table-rows-20261109-040306-package\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.3/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.3\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-table-rows-20261109-035447-consumer-attempt02/images/markdown-rows-staged-light-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-table-rows-20261109-035447-consumer-attempt02\\images\\markdown-rows-staged-light-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-table-rows-20261109-035447-consumer-attempt02/images/markdown-rows-refused-dark-760x480.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-table-rows-20261109-035447-consumer-attempt02\\images\\markdown-rows-refused-dark-760x480.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-table-rows.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-table-rows.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-table-rows-20261109-040306-package/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-table-rows-20261109-040306-package\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-worker-resources-20261109-031432-matrix-attempt02/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-worker-resources-20261109-031432-matrix-attempt02\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-worker-resources.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-worker-resources.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.2/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.2\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-export-memory-20261109-024336-optimized/focused-checkpoint.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-export-memory-20261109-024336-optimized\\focused-checkpoint.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-export-memory-20261109-025501-metadata/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-export-memory-20261109-025501-metadata\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-export-memory.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-export-memory.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote native worker 20261109.1 packaged/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote native worker 20261109.1 packaged\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/portable build 20261109-022315 production/package-verification.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\portable build 20261109-022315 production\\package-verification.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/portable-build-20261109-022549-protected-correction/protected-correction.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\portable-build-20261109-022549-protected-correction\\protected-correction.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/portable-build.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\portable-build.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "bin/levnote-native-worker-20261109.1/README.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261109.1\\README.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-worker-integration-20261109-015232-attempt04/aggregate.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-worker-integration-20261109-015232-attempt04\\aggregate.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-worker-integration-20261109-015232-attempt04/validator-result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-worker-integration-20261109-015232-attempt04\\validator-result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-worker-integration-20261109-015232-attempt04/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-worker-integration-20261109-015232-attempt04\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-worker-full-integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-worker-full-integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-markers-integration-20261109-000341/levnote-native.exe",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-markers-integration-20261109-000341\\levnote-native.exe",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-markers-integration-20261109-000341/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-markers-integration-20261109-000341\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-markers-integration-20261109-000341/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-markers-integration-20261109-000341\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-markers-integration-20261109-000341/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-markers-integration-20261109-000341\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-mindmap-markers-20261109-000341/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-mindmap-markers-20261109-000341\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-markers-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-markers-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-markers-integration-20261109-000341/evidence-notes.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-markers-integration-20261109-000341\\evidence-notes.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-fields-20261108-181628/levnote-native.exe",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-fields-20261108-181628\\levnote-native.exe",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-fields-20261108-181628/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-fields-20261108-181628\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-fields-20261108-181628/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-fields-20261108-181628\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-mindmap-fields-20261108-181739/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-mindmap-fields-20261108-181739\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-fields-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-fields-view.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-fields-format.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-fields-format.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/mindmap-fields-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\mindmap-fields-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/docblock-safety.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-safety.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-fields-view/",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-fields-view\\",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-fields-20261108-180356/mindmap-fields-app-normal-760x480-dark.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-fields-20261108-180356\\mindmap-fields-app-normal-760x480-dark.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/mindmap-fields-20261108-180356/mindmap-fields-app-conflict-760x480-dark.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\mindmap-fields-20261108-180356\\mindmap-fields-app-conflict-760x480-dark.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/docblock-reference-20261108-192000/levnote-native.exe",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\docblock-reference-20261108-192000\\levnote-native.exe",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/docblock-reference-20261108-192000/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\docblock-reference-20261108-192000\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/docblock-reference-20261108-192000/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\docblock-reference-20261108-192000\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/docblock-reference-20261108-192000/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\docblock-reference-20261108-192000\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-docblock-reference-20261108-192100/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-docblock-reference-20261108-192100\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/docblock-reference-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-reference-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/docblock-reference-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-reference-view.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/docblock-reference-integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\docblock-reference-integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-tables-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tables-view.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-tables-20261108-204724/levnote-native.exe",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tables-20261108-204724\\levnote-native.exe",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-tables-20261108-204724/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tables-20261108-204724\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-tables-20261108-204724/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tables-20261108-204724\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-tables-20261108-204724/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tables-20261108-204724\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-markdown-tables-20261108-204724/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-markdown-tables-20261108-204724\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-tables-format.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tables-format.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-tables-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tables-view.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-tables-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tables-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213013/",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213013\\",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213713/levnote-native.exe",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213713\\levnote-native.exe",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213713/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213713\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213713/evidence-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213713\\evidence-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-cells-20261108-213713/root-acceptance.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-cells-20261108-213713\\root-acceptance.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-markdown-cells-20261108-213713/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-markdown-cells-20261108-213713\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/resource-followup-20261108-165230/fixture-validation.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\resource-followup-20261108-165230\\fixture-validation.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/resource-followup-20261108-165230/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\resource-followup-20261108-165230\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/resource-followup-20261108-165230/followup-clean-restore-attempt-01-no-logical-cpu/followup-clean-restore/clean-restore-followup.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\resource-followup-20261108-165230\\followup-clean-restore-attempt-01-no-logical-cpu\\followup-clean-restore\\clean-restore-followup.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/resource-followup-20261108-165230/followup-clean-restore/clean-restore-followup.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\resource-followup-20261108-165230\\followup-clean-restore\\clean-restore-followup.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/resource-followup-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\resource-followup-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/resource-followup-artifact-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\resource-followup-artifact-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-links-20261108-164403/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-links-20261108-164403\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-links-20261108-164403/OUTPUT-PROVENANCE.txt",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-links-20261108-164403\\OUTPUT-PROVENANCE.txt",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-links-20261108-164403/levnote-native.exe",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-links-20261108-164403\\levnote-native.exe",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-markdown-links-20261108-164536/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-markdown-links-20261108-164536\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-links-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-links-view.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-links-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-links-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-links-review.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-links-review.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-links-focused-20261108-1644/markdown-links-wrapped-760x480-dark.png",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-links-focused-20261108-1644\\markdown-links-wrapped-760x480-dark.png",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-tasks-format.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tasks-format.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-tasks-view.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tasks-view.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-tasks-20261108-154805/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-tasks-20261108-154805\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/markdown-links-20261108-164403/previous-accepted-markdown-tasks.exe",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-links-20261108-164403\\previous-accepted-markdown-tasks.exe",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-markdown-tasks-20261108-154842/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-markdown-tasks-20261108-154842\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/markdown-tasks-app.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\markdown-tasks-app.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/oversize-preview-20261108-150938/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\oversize-preview-20261108-150938\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-oversize-preview-20261108-151201/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-oversize-preview-20261108-151201\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/oversize-preview.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\oversize-preview.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/source-plugin-20261108-144035/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\source-plugin-20261108-144035\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "artifacts/acceptance/startup-smoke-source-plugin-20261108-144240/result.json",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\startup-smoke-source-plugin-20261108-144240\\result.json",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/source-plugin-contract.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\source-plugin-contract.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/outline-contract.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\outline-contract.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/integration.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\integration.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/search.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\search.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/resources.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\resources.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/view-resources.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\view-resources.md",
+      "Exists": true
+    },
+    {
+      "File": "native/VALIDATION.md",
+      "Target": "handoffs/session.md",
+      "Resolved": "F:\\AIproject\\LevNote\\native\\handoffs\\session.md",
+      "Exists": true
+    }
+  ]
+}

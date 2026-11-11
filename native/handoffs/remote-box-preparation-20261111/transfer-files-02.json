@@ -1,0 +1,17 @@
+[
+    {
+        "Path":  "levnote-source-inputs-20261111-02.zip",
+        "Length":  5227577,
+        "Sha256":  "457503DEECBCF0A534CC3240027048454BDF758076E0EE8D3A0A64F7773DB7F9"
+    },
+    {
+        "Path":  "inputs-02.json",
+        "Length":  244715,
+        "Sha256":  "A51734C0E9B40051AD1BA06AD4B5E0ACC4D92EF1A3DE5261259FA435B5DF2E51"
+    },
+    {
+        "Path":  "linux-guarded-validation-02.py",
+        "Length":  33772,
+        "Sha256":  "7D53C6B7374A52C9D3E6749E423449D073778AC1C33C49888A121B97D43E17D7"
+    }
+]

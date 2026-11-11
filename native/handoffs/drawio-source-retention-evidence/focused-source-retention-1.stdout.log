@@ -1,0 +1,5 @@
+--- FAIL: TestSourceRetentionAddSizeLimitDoesNotClone (0.00s)
+    source_retention_test.go:202: oversized input allocated 3.00 times
+FAIL
+FAIL	levnote.local/native/formats/drawio	0.576s
+FAIL

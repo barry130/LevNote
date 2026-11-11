@@ -1,0 +1,54 @@
+Fresh DeepSeek app implementation owner, user-authorized
+auto/deepseek-v4.1-flash. Root plans/reads/reviews only; delegate no children.
+Compact before200K tokens. F:\AIproject\LevNote, PowerShell, no sandbox_permissions.
+
+EXPLICIT ACTIVATION2026-11-09. Prior read_native_worker_app_task_txt produced no
+ACK/results after repeated requests and root interrupted it; NO ownership.
+Do not resume it or wait for it. Marker release17E014EB6F61E671... is fully
+accepted, its docs finished. Root reviewed app lifecycle and resolved seam
+decisions in handoffs/markdown-worker-contract.md (CONTROLLING, ACTIVE).
+
+You own app/** async worker export/UI/lifecycle/tests, additive ExportEngine
+type/Adapter field ONLY in ui/editor/contract.go, and ONLY Markdown descriptor
+assignment in modules/markdownview/view.go. Final product docs after focused
+acceptance; full-suite/build/packaging/smoke awaits root's explicit gate.
+No edits to pure parser, graphview, document/text, vendor, Go wrapper or peers.
+
+Read controlling contract, runtime seam handoffs/markdown-worker-runtime.md,
+proposal handoffs/markdown-worker-runtime-proposal.md app/API sections, and
+app/export.go, app.go, workspace.go, plugins.go, view.go, state.go and existing
+tests. Actual runtime API is published; runtime files are being implemented by
+/root/astra_marker_view. Protocol/worker owner is
+/root/read_native_worker_protocol_task_txt. Coordinate exact seams directly.
+
+Implement source/preview/split engine routing without requiring View nonnil;
+flush then immutable Snapshot+LenBytes, no UI Buffer.String. One app job,
+generation/Tab/Buffer/version/capability identity. Race-safe clearable results;
+queued UI callbacks retain identity only, not HTML. Runtime completes/joins off
+UI independently of dispatch. Show simple progress/cancel, never silent fallback.
+On success recheck identities, Flush and version before SaveDialog and again
+after modal return. Edit+undo counts stale. No publication on failed Flush,
+cancel/error/stale. Existing synchronous document.WriteNewFile final publish;
+exclusive/no-overwrite. Readonly allowed, conflicting drafts retained/recovered.
+
+Successful tab switch/new/recovered draft, origin removal, Buffer reload,
+SaveAs/plugin reconfigure invalidate; failed attempted changes do not. Same
+buffer mode switch allowed after ordinary Flush. Both CloseTab and CanClose
+defer result delivery during prompts; canceled close resumes. Accepted window
+close only after persistence succeeds cancels/joins before tab disposal.
+Shutdown cancels/joins and clears retained results without UI callback wait.
+Cached small plugin status (unverified until first use, historical last verified
+version/hash on later failure), no per-frame IO/hash/start, no arbitrary plugin
+executables or new settings. Declarative schema1/2 remain data-only.
+
+Focused app tests/vet authorized after real runtime/protocol imports compile;
+deterministic fake exporter/dialog seams for races and no-fallback assertions.
+Use actual registered Markdown descriptor for routing. Final useful760x480
+light/dark screenshots of progress/cancel/status; assert RoleButton full bounds,
+not Find(text) glyph bounds. Fresh evidence directory for EVERY attempt; capture
+actual streams/exit/timing. Do not overwrite old/failing artifacts. No resource
+matrix or claimed OSIME validation. Go via native/scripts/go.ps1 wrapper1.27.3.
+
+Send ACK promptly and publish handoffs/markdown-worker-app.md with concise
+implementation progress, exact APIs, tests, paths and remaining concerns. Do
+not stop at a design-only report: this is implementation activation.

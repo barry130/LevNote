@@ -1,0 +1,30 @@
+=== RUN   TestNativeImageOpenMixedAuthorityAndCapabilities
+--- PASS: TestNativeImageOpenMixedAuthorityAndCapabilities (0.03s)
+=== RUN   TestNativeImageSignatureDisabledCorruptMismatchAndOversize
+--- PASS: TestNativeImageSignatureDisabledCorruptMismatchAndOversize (0.05s)
+=== RUN   TestNativeImageCopiesHeldBytesAndReloadsExplicitly
+--- PASS: TestNativeImageCopiesHeldBytesAndReloadsExplicitly (0.03s)
+=== RUN   TestNativeImageModalStaleAndFailedFlushKeepAuthority
+--- PASS: TestNativeImageModalStaleAndFailedFlushKeepAuthority (0.02s)
+=== RUN   TestNativeImageSessionOrderAndPathOnlyRestore
+--- PASS: TestNativeImageSessionOrderAndPathOnlyRestore (0.03s)
+=== RUN   TestNativeImageLaneLatestPendingAndShutdownJoin
+--- PASS: TestNativeImageLaneLatestPendingAndShutdownJoin (0.03s)
+=== RUN   TestNativeImageCopySurvivesNavigationAndClosedTabOutcome
+--- PASS: TestNativeImageCopySurvivesNavigationAndClosedTabOutcome (0.02s)
+=== RUN   TestNativeImageExternalObservationAndReacquireFailure
+--- PASS: TestNativeImageExternalObservationAndReacquireFailure (0.28s)
+=== RUN   TestNativeImageChooseOpenHeadlessAndDeliveryTimeout
+--- PASS: TestNativeImageChooseOpenHeadlessAndDeliveryTimeout (0.06s)
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/before_publication
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/after_publication
+--- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing (0.04s)
+    --- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/before_publication (0.02s)
+    --- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/after_publication (0.02s)
+=== RUN   TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin
+--- PASS: TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin (0.03s)
+=== RUN   TestNativeImageTransactionalReloadOverlapAndNewestPending
+--- PASS: TestNativeImageTransactionalReloadOverlapAndNewestPending (0.01s)
+PASS
+ok  	levnote.local/native/app	2.320s

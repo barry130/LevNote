@@ -1,0 +1,11 @@
+{
+  "Phase": "vet",
+  "Command": "& '.\\native\\scripts\\go.ps1' -GoArguments @('vet','./app')",
+  "WorkingDirectory": "F:\\AIproject\\LevNote",
+  "StartUtc": "2026-11-10T10:02:24.9932495Z",
+  "EndUtc": "2026-11-10T10:02:26.3645992Z",
+  "DurationSeconds": 1.37,
+  "ExitCode": 0,
+  "StdoutPath": "F:\\AIproject\\LevNote\\native\\handoffs\\file-workflow-final-evidence-20261110\\02-vet.stdout.txt",
+  "StderrPath": "F:\\AIproject\\LevNote\\native\\handoffs\\file-workflow-final-evidence-20261110\\02-vet.stderr.txt"
+}

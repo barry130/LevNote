@@ -1,0 +1,16 @@
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./core/enginecatalog','./core/engineipc','./core/engineruntime','./formats/drawio','./cmd/levnote-drawio-svg','-run','^$')
+WORKDIR: F:\AIproject\LevNote
+EXIT_CODE=1
+HARNESS_NOTE: first invocation executed the compile command but Tee-Object parameter binding failed while saving output; command rerun below for exact captured evidence.
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./core/enginecatalog','./core/engineipc','./core/engineruntime','./formats/drawio','./cmd/levnote-drawio-svg','-run','^$')
+ok  	levnote.local/native/core/enginecatalog	(cached) [no tests to run]
+# levnote.local/native/core/engineipc [levnote.local/native/core/engineipc.test]
+core\engineipc\protocol_test.go:41:69: too few values in struct literal of type RequestMeta
+core\engineipc\protocol_test.go:66:66: too few values in struct literal of type RequestMeta
+core\engineipc\protocol_test.go:101:83: too few values in struct literal of type RequestMeta
+FAIL	levnote.local/native/core/engineipc [build failed]
+ok  	levnote.local/native/core/engineruntime	(cached) [no tests to run]
+ok  	levnote.local/native/formats/drawio	(cached) [no tests to run]
+?   	levnote.local/native/cmd/levnote-drawio-svg	[no test files]
+FAIL
+EXIT_CODE=1

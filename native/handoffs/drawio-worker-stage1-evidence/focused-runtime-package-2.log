@@ -1,0 +1,4 @@
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./core/engineruntime','-run','TestRuntimeDrawio|TestRuntimeInvalidDrawio|TestPackageStateSchema|TestPackageStateLoadWithout|TestPackageStoreFourEnginesExact')
+WORKDIR: F:\AIproject\LevNote
+ok  	levnote.local/native/core/engineruntime	1.756s
+EXIT_CODE=0

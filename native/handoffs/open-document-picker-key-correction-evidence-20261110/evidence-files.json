@@ -1,0 +1,70 @@
+{
+  "RecordedUtc": "2026-11-10T12:30:42.7553481Z",
+  "EvidenceRoot": "F:\\AIproject\\LevNote\\native\\handoffs\\open-document-picker-key-correction-evidence-20261110",
+  "FileCount": 12,
+  "TotalBytes": 11012,
+  "Verified": true,
+  "Scope": "All correction evidence except this inventory; focused runner exited before closure. Initial47file picker evidence preserved separately.",
+  "Files": [
+    {
+      "Path": "01-focused-union.go-result.json",
+      "Length": 124,
+      "Sha256": "A614DF2BD58419F3D1B11340C2FBA071098153C35FBB30668FA73B0A91820186"
+    },
+    {
+      "Path": "01-focused-union.process-result.json",
+      "Length": 101,
+      "Sha256": "53A5F047A2F651E16FF2A0314F85B2ECAEC358616201C42B2B61AF602A6CDED3"
+    },
+    {
+      "Path": "01-focused-union.ps1",
+      "Length": 583,
+      "Sha256": "D380B7A14AF39395E1B920E38D845451997341F1FCCBAC841BAA750B81809031"
+    },
+    {
+      "Path": "01-focused-union.stderr.log",
+      "Length": 0,
+      "Sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "01-focused-union.stdout.log",
+      "Length": 6302,
+      "Sha256": "3C77D9E933F3643FF3527E20C0C50103F5F0761696C5980098D70918C88F4D6D"
+    },
+    {
+      "Path": "01-source-after.json",
+      "Length": 748,
+      "Sha256": "AB90451D3003E713E6A5260087FA36B0E32DC2B3EDA23DD517F8B0502E9B59F6"
+    },
+    {
+      "Path": "01-source-before.json",
+      "Length": 748,
+      "Sha256": "AB90451D3003E713E6A5260087FA36B0E32DC2B3EDA23DD517F8B0502E9B59F6"
+    },
+    {
+      "Path": "original-evidence-after.json",
+      "Length": 282,
+      "Sha256": "9C49BBDE962A3B4BF2B7DA318564B31635A980C7AE6FDD6CDFE299430518482D"
+    },
+    {
+      "Path": "original-evidence-before.json",
+      "Length": 284,
+      "Sha256": "9FADC3BB032523E60C50082CC5AB545BD6471949150C09D641C73AE3BD299A58"
+    },
+    {
+      "Path": "source-before-correction.json",
+      "Length": 748,
+      "Sha256": "2B8361918331AE37192567AAF62F90679EE25575C677F47BDBD75AB3EAADCFAD"
+    },
+    {
+      "Path": "source-comparison.json",
+      "Length": 344,
+      "Sha256": "C59037BFE4ED36A2853CE9EC318BEC4C077E93D731EAC8BE59418F6D3EAE14C9"
+    },
+    {
+      "Path": "source-frozen.json",
+      "Length": 748,
+      "Sha256": "AB90451D3003E713E6A5260087FA36B0E32DC2B3EDA23DD517F8B0502E9B59F6"
+    }
+  ]
+}

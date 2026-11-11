@@ -1,0 +1,4 @@
+=== RUN   TestNativeImageCaptures
+--- PASS: TestNativeImageCaptures (0.06s)
+PASS
+ok  	levnote.local/native/app	2.369s

@@ -1,0 +1,1889 @@
+{
+  "Schema": 1,
+  "Status": "PASS",
+  "CreatedAtUtc": "2026-11-10T01:51:11.574202Z",
+  "RepositoryRoot": "F:\\AIproject\\LevNote",
+  "Tester": {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+    "Bytes": 7528448,
+    "SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+    "LastWriteTimeUtc": "2026-11-09T22:00:51.9592937Z"
+  },
+  "PreflightRecord": {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\preflight-output\\preflight.json",
+    "Bytes": 8797,
+    "SHA256": "1722314a3c99f4f70eb42f9e8b13078a3230a8f9642d2359d1884e9a9688911c",
+    "LastWriteTimeUtc": "2026-11-09T22:02:12.7544945Z"
+  },
+  "OutputRoot": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass",
+  "SampleTimeoutSeconds": 120,
+  "CleanupTimeoutSeconds": 10,
+  "PackageProtection": [
+    {
+      "Version": "native-worker.20261110.20",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3121664,
+          "SHA256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.5408244Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "6175456b457fc85bd96e1a2ce2dbb8172474cdf6cdcde790ac80453f45c73fac",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.6614133Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "b32b43668e5072623981a6c5627e960ab1ca8088d0205c0d6232edcc6d889856",
+          "LastWriteTimeUtc": "2026-11-09T19:19:10.9643243Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "3e553a074f7a946f628ec1357a3f672b1637396625160e2e7d65c51215033f77",
+          "LastWriteTimeUtc": "2026-11-09T19:19:11.1778279Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "705f7c0caa83f785e55d6cd5fb4d92a054dc57f1cfb7ec8bfc21a0e69424f8f7",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.4025281Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "a99e79e5f1a211683986c13c3b73a2209c1f7afe3a111e30db7e5f997d076498",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.5277959Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "9fb4eb306825b4c8b678de790d7fd42d12666cedf745dce92bc7d4ed496cb193",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.3690616Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "66b7bc76d50c5c41ee443968f4570da524623022ec5b8b8cb9b01ca7e52b2931",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.5000684Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14095360,
+          "SHA256": "4b776f634a3626f2bdd15303e175fe38cc4908d566ac54a6d25f51d989b4f34e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.3780141Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "9bedc3cb386f1ea5f02117d22d9fa8606f00d93d17978e2a1792a1d8a4a6bb5e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8747987Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.962661Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8767957Z"
+        }
+      ]
+    },
+    {
+      "Version": "native-worker.20261110.21",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3124736,
+          "SHA256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.824583Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "caff96ac3181d9c5160a099ff9282fe37df9b11374c95472bd2237539fa14c18",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.9622855Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "3c8ecc586a5c04cf3c72593c83a75424a497d5300a24536612b6e4ab6b12ab2e",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.4952651Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "42c4fc450c5bbc76e3330c311740d15faef150c53c85d7561e352d69603072af",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.6989973Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "0f717b5a2ef820f9f415e36ebae9c934cdee6fd80c68a23eb31c1e3dde20b0d7",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.7487793Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "39eae741e18d6ef57ab87187c32289c1c88059fa191c6ac5ba05b57ec1ca258b",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.8748555Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "1ac1f9ba36c6e4fa6faf7c3fd069877e649ac4abbec308b6e0dccebeb059ff76",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.4944436Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "eb98c128b953997a050facbea2c0c0035b371953fa0036411180d904890eb0cc",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.6190127Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14097920,
+          "SHA256": "2c400d3730aee64fc380ca0312b44baab1c0803aa70ba96525804bb4b436b329",
+          "LastWriteTimeUtc": "2026-11-09T20:58:53.9187695Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "8baa5ef08314f89a3cfbb7e552f6028b459ee13a4e8456a9bbdad77b499c4e8d",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1621588Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.2522213Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1645872Z"
+        }
+      ]
+    }
+  ],
+  "Rows": [
+    {
+      "Index": 1,
+      "MatrixPosition": 1,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.5943945Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.6767324Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.6973298Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.6345207Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.635519Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "1e525a91d002a5d6dbfc2b57eb4df4bfb8d56b591a14cd39698a4b48d85b5c80",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.6507552Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.6377365Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 101,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 2,
+      "MatrixPosition": 2,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.7553197Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.7742878Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.7747555Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.7640598Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.7650676Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\measurement\\measurement.json",
+        "Bytes": 1621,
+        "SHA256": "4e033f234475d3ea11bedc66f5ac2197e2ba85c9519a0ec287389166dfd847bb",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.7700679Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.7680695Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 102,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 3,
+      "MatrixPosition": 3,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.7966946Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.8071387Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.807424Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8027199Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8027199Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\measurement\\measurement.json",
+        "Bytes": 1621,
+        "SHA256": "48cf383129c02bb3e1f7db46670326e49f8c94190b226b9883a65eb17c90f915",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8047235Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.8037189Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 103,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 4,
+      "MatrixPosition": 4,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.8230665Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.8338376Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.8340652Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8285817Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8285817Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "b5de5ff040e701d0c3f164787cea6dcf01b6668c6fc4bb2e2d559843e83eede2",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8315819Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.8305812Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 104,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 5,
+      "MatrixPosition": 5,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.8453163Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.855016Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.8551823Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8503356Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8503356Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "f9a02f1d47a3f03271ecc3226602d78d9faf79d8c9d2a4bde8991d65f7a1e39c",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8533328Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.8523326Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 105,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 6,
+      "MatrixPosition": 6,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.8830113Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9042745Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.904434Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.899152Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.899152Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\measurement\\measurement.json",
+        "Bytes": 1621,
+        "SHA256": "fb319a76fd2987e913edf7906a453f2957960846691872c277b40e7772b1cef5",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9021523Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9011523Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 106,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 7,
+      "MatrixPosition": 7,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.917319Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9312494Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.931473Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9251536Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9251536Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\measurement\\measurement.json",
+        "Bytes": 1619,
+        "SHA256": "8b76407d2e8d1befe71be91113222e46d1816523bedc74f4be94d535ce6f9b77",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9281521Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9271526Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 107,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 8,
+      "MatrixPosition": 8,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.9465843Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9594658Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.9596511Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9525987Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9536966Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\measurement\\measurement.json",
+        "Bytes": 1996,
+        "SHA256": "c1d138c3e48346d1628ffc4850bc15648a3c8c28f6e1dec3f8f0538825b3d1e4",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9563759Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9549102Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          }
+        ],
+        "ExportElapsedNS": 108,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 9,
+      "MatrixPosition": 9,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.973552Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9857129Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.9858901Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9792147Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9802145Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\measurement\\measurement.json",
+        "Bytes": 1996,
+        "SHA256": "b7ee353103765eb9b21674e88f17c4c2b165875c953f63a092f5482656d95a88",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9833315Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9812141Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          }
+        ],
+        "ExportElapsedNS": 109,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 10,
+      "MatrixPosition": 10,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:12.0021692Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:12.0157499Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:12.0159296Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0099975Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0099975Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\measurement\\measurement.json",
+        "Bytes": 1620,
+        "SHA256": "47bd103a17e21c62fae73bfa9ae48934ffb4f70d9373f7819caddfa538317bad",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.012355Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:12.0109973Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 110,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 11,
+      "MatrixPosition": 11,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:12.0301331Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:12.0449142Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:12.0450914Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0387852Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0387852Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\measurement\\measurement.json",
+        "Bytes": 1620,
+        "SHA256": "ebd4467fbf75a05526a611e11ff876e0c59ceccbb4ca411ccaadeb8d82062364",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0427894Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:12.0407995Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 111,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 12,
+      "MatrixPosition": 12,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:12.059275Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:12.0730588Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:12.0732307Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0662516Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0662516Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\measurement\\measurement.json",
+        "Bytes": 1997,
+        "SHA256": "54b712b49d3a2a9ceeaeae8e802ec2f5a80d3cdf06a0ad2b9b2aab2d47397669",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0702532Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:12.0692513Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          }
+        ],
+        "ExportElapsedNS": 112,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    }
+  ],
+  "PackageAfter": [
+    {
+      "Version": "native-worker.20261110.20",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3121664,
+          "SHA256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.5408244Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "6175456b457fc85bd96e1a2ce2dbb8172474cdf6cdcde790ac80453f45c73fac",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.6614133Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "b32b43668e5072623981a6c5627e960ab1ca8088d0205c0d6232edcc6d889856",
+          "LastWriteTimeUtc": "2026-11-09T19:19:10.9643243Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "3e553a074f7a946f628ec1357a3f672b1637396625160e2e7d65c51215033f77",
+          "LastWriteTimeUtc": "2026-11-09T19:19:11.1778279Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "705f7c0caa83f785e55d6cd5fb4d92a054dc57f1cfb7ec8bfc21a0e69424f8f7",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.4025281Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "a99e79e5f1a211683986c13c3b73a2209c1f7afe3a111e30db7e5f997d076498",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.5277959Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "9fb4eb306825b4c8b678de790d7fd42d12666cedf745dce92bc7d4ed496cb193",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.3690616Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "66b7bc76d50c5c41ee443968f4570da524623022ec5b8b8cb9b01ca7e52b2931",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.5000684Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14095360,
+          "SHA256": "4b776f634a3626f2bdd15303e175fe38cc4908d566ac54a6d25f51d989b4f34e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.3780141Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "9bedc3cb386f1ea5f02117d22d9fa8606f00d93d17978e2a1792a1d8a4a6bb5e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8747987Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.962661Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8767957Z"
+        }
+      ]
+    },
+    {
+      "Version": "native-worker.20261110.21",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3124736,
+          "SHA256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.824583Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "caff96ac3181d9c5160a099ff9282fe37df9b11374c95472bd2237539fa14c18",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.9622855Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "3c8ecc586a5c04cf3c72593c83a75424a497d5300a24536612b6e4ab6b12ab2e",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.4952651Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "42c4fc450c5bbc76e3330c311740d15faef150c53c85d7561e352d69603072af",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.6989973Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "0f717b5a2ef820f9f415e36ebae9c934cdee6fd80c68a23eb31c1e3dde20b0d7",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.7487793Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "39eae741e18d6ef57ab87187c32289c1c88059fa191c6ac5ba05b57ec1ca258b",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.8748555Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "1ac1f9ba36c6e4fa6faf7c3fd069877e649ac4abbec308b6e0dccebeb059ff76",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.4944436Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "eb98c128b953997a050facbea2c0c0035b371953fa0036411180d904890eb0cc",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.6190127Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14097920,
+          "SHA256": "2c400d3730aee64fc380ca0312b44baab1c0803aa70ba96525804bb4b436b329",
+          "LastWriteTimeUtc": "2026-11-09T20:58:53.9187695Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "8baa5ef08314f89a3cfbb7e552f6028b459ee13a4e8456a9bbdad77b499c4e8d",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1621588Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.2522213Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1645872Z"
+        }
+      ]
+    }
+  ],
+  "PackageProtectionErrors": [],
+  "PackageProtectionEqual": true,
+  "StoppedAtFirstFailure": false,
+  "CompletedRows": 12,
+  "PassedRows": 12,
+  "FailedRows": 0,
+  "FinishedAtUtc": "2026-11-10T01:51:12.1958362Z",
+  "FixtureOnly": true
+}

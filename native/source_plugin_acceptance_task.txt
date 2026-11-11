@@ -1,0 +1,61 @@
+Installed source-format outline acceptance — root review plan
+
+Implementation owners remain exclusive as stated in AGENTS.md. Root reviews
+source and evidence; agents execute tests, builds and applications. The14:03
+outline binary remains accepted until this stage has a new passing artifact.
+
+GLM focused checkpoint:
+- Preserve schema1 defaults and compatibility, reject schema1 outline field.
+- For schema2 verify required/optional/null/type/unknown-field distinctions,
+  exact UTF8 marker bounds and controls, ordered rules, duplicate signatures,
+  absent versus empty array, and max8. A literal valid U+FFFD is not malformed
+  UTF8; do not reject it merely because Go also uses it for decoding failures.
+- Public Syntax results and loaded state must isolate mutable slices. Real
+  InstallFile/Refresh must preserve64KiB/count/no-overwrite protections.
+- Two working local manifests and documentation in examples/plugins.
+- Freeze owned implementation after focused test/vet evidence. Then review
+  completed scanner/provider and app integration independently, read-only.
+
+Astra focused checkpoint:
+- Literal first full marker match owns the line, even an empty label; only
+  horizontal ASCII trim; exactly one terminal CR removed; internal CR retained.
+- Byte/rune/UTF16 offsets across short reads, CRLF, Unicode/emoji, EOF and
+  budget boundaries. End includes terminator for source identity.
+- Reader errors, data+EOF, invalid counts, <=8 zero-progress retries, invalid
+  UTF8, huge physical lines and exact byte/line/item caps have finite results.
+  Never emit a cut partial line. Report bounded scratch read-ahead accurately.
+- Same label duplicates and harmless prefix edits follow exact old range;
+  overlap edits, Restore, expired64-edit journal, buffer/rules/plugin changes
+  fail stale. Anchor unsupported. Snapshot returns owned slice and Release
+  frees descriptors while tiny immutable configuration can remain reusable.
+- Report a reproducible large-line/cache microbenchmark or allocation check
+  with fixture size; no claims that this measures main-process working set.
+- Final docs include real capability/limits and latest accepted artifact only.
+
+DeepSeek focused checkpoint:
+- Use real local InstallFile, not only constructed manifests, for app feature
+  tests. Installed formats keep Adapter=nil and source-only controls. No rule
+  means no outline. Specific enabled builtins still win.
+- Capture ID -> pending Compose/Flush -> resolve is the actual path. Failed
+  Flush retains source/caret/controller; refresh/disable/reload during that
+  lifecycle cannot navigate through a captured controller or factory.
+- Disabling and re-enabling releases/recreates outline state. Changed rules
+  reject old IDs; schema1 and empty schema2 do not leave a prior factory alive.
+- Opening/navigation/unmodified save preserves exact source bytes (BOM/CRLF
+  where present); editing+saving preserves intended content. Readonly source
+  permits navigation without mutation. Source-only has no rich export route.
+- Test virtual visible list rows and real far activation. Capture at least
+  installed INI outline narrow/dark, far Unicode/duplicate/CRLF target, and
+  plugin capability panel. Inspect actual screenshots, no stale fixture image.
+- Final full test ./... -count=1 -timeout=300s, vet ./..., release GUI build and
+  isolated native startup/close only after root freezes reviewed code. Record
+  current hash/size/time and raw result.json. Stop only verified own smoke
+  processes if needed. Do not rerun unrelated historical resource benchmarks.
+
+Root acceptance:
+- Read final code and focused test expectations, inspect screenshot output,
+  reconcile independent findings with reachable behavior, then authorize one
+  final integration. Claims in README/API/VALIDATION must match final evidence.
+- Preserve explicit limitations: literal rules may match inside multiline
+  strings/comments, no arbitrary renderer SDK, source bounds and stale target
+  errors visible, no measured Tauri comparison or real OS IME/network claim.

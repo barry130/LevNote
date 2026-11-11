@@ -1,0 +1,10 @@
+{
+    "StartedUtc":  "2026-11-11T02:50:31.1203449Z",
+    "FinishedUtc":  "2026-11-11T02:50:43.5476690Z",
+    "Command":  "powershell.exe -NoLogo -NoProfile -NonInteractive -File prepare-snapshot-02.ps1",
+    "Purpose":  "ordinary copy/archive/hash; exact removal of four historical output PNGs from scope",
+    "ExitCode":  0,
+    "Stdout":  "snapshot-attempt-02.stdout.txt",
+    "Stderr":  "snapshot-attempt-02.stderr.txt",
+    "PreviousAttempt":  "01 remains byte-correct and preserved; superseded scope only"
+}

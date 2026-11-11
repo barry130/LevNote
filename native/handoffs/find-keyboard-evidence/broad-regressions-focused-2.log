@@ -1,0 +1,43 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard|^TestReplaceCurrentRejectsIdentityChangingFlush$","-count=1","-v")
+=== RUN   TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState
+--- PASS: TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState (0.03s)
+=== RUN   TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus
+--- PASS: TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus (0.01s)
+=== RUN   TestFindKeyboardReplacementEnterAndEscape
+--- PASS: TestFindKeyboardReplacementEnterAndEscape (0.01s)
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/source
+--- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers (0.03s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape (0.01s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/source (0.01s)
+=== RUN   TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects
+    find_keyboard_test.go:219: search selection = text.Range{Anchor:7, Head:7}, want ordered bounds [0,6)
+--- FAIL: TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects (0.01s)
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift
+    find_keyboard_test.go:241: fresh replacement Enter: text="needle needle" history={UndoDepth:1 RedoDepth:0 RetainedBytes:13 Truncated:false} replacement="match" focus=true
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition
+    find_keyboard_test.go:301: replacement composition commit: composing=false value="matchmatch"
+--- FAIL: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition (0.03s)
+    --- FAIL: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift (0.01s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly (0.01s)
+    --- FAIL: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition (0.01s)
+=== RUN   TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross
+    find_keyboard_test.go:345: query composition commit: composing=false value="needleneedle"
+--- FAIL: TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross (0.01s)
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview
+--- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused (0.02s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button (0.01s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview (0.01s)
+=== RUN   TestFindKeyboardRealMarkdownCompositionBlocksOpen
+--- PASS: TestFindKeyboardRealMarkdownCompositionBlocksOpen (0.01s)
+=== RUN   TestReplaceCurrentRejectsIdentityChangingFlush
+--- PASS: TestReplaceCurrentRejectsIdentityChangingFlush (0.01s)
+FAIL
+FAIL	levnote.local/native/app	1.623s
+FAIL
+EXIT_CODE=1

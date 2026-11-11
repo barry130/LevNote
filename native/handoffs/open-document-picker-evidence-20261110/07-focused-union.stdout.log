@@ -1,0 +1,89 @@
+=== RUN   TestOpenDocumentsModalKeyboardAndOpener
+--- PASS: TestOpenDocumentsModalKeyboardAndOpener (0.05s)
+=== RUN   TestOpenDocumentsModalQueryComposition
+=== RUN   TestOpenDocumentsModalQueryComposition/commit
+=== RUN   TestOpenDocumentsModalQueryComposition/cancel
+--- PASS: TestOpenDocumentsModalQueryComposition (0.05s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/commit (0.03s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/cancel (0.02s)
+=== RUN   TestOpenDocumentsSinglePointerSelect
+--- PASS: TestOpenDocumentsSinglePointerSelect (0.01s)
+=== RUN   TestOpenDocumentsMetadataUnicodeBoundsAndReuse
+--- PASS: TestOpenDocumentsMetadataUnicodeBoundsAndReuse (0.04s)
+=== RUN   TestOpenDocumentsHundredVirtualRowsAndQueryNavigation
+--- PASS: TestOpenDocumentsHundredVirtualRowsAndQueryNavigation (0.51s)
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/source
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-first
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-ongoing
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/find
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/replacement
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/goto
+--- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers (0.16s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/source (0.04s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-first (0.02s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-ongoing (0.02s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/find (0.03s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/replacement (0.03s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/goto (0.02s)
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/fail
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/remove
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/reorder
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/activate
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/fail
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/remove
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/reorder
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/activate
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/fail
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/remove
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/reorder
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/activate
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/restore
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/modal
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/shutdown
+--- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity (0.20s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/fail (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/remove (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/reorder (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/activate (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/fail (0.02s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/remove (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/reorder (0.02s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/activate (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/fail (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/remove (0.02s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/reorder (0.02s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/activate (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/restore (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/modal (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/shutdown (0.01s)
+=== RUN   TestOpenDocumentsAsyncSelectionInvalidatesRows
+--- PASS: TestOpenDocumentsAsyncSelectionInvalidatesRows (0.01s)
+=== RUN   TestOpenDocumentsSameTargetMutationDuringFlush
+=== RUN   TestOpenDocumentsSameTargetMutationDuringFlush/remove
+=== RUN   TestOpenDocumentsSameTargetMutationDuringFlush/replace
+=== RUN   TestOpenDocumentsSameTargetMutationDuringFlush/move
+--- PASS: TestOpenDocumentsSameTargetMutationDuringFlush (0.05s)
+    --- PASS: TestOpenDocumentsSameTargetMutationDuringFlush/remove (0.01s)
+    --- PASS: TestOpenDocumentsSameTargetMutationDuringFlush/replace (0.02s)
+    --- PASS: TestOpenDocumentsSameTargetMutationDuringFlush/move (0.02s)
+=== RUN   TestOpenDocumentsRepeatedOpenReusesPublicHandles
+--- PASS: TestOpenDocumentsRepeatedOpenReusesPublicHandles (0.10s)
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/escape
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/same
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-other
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-same
+--- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus (0.09s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/escape (0.03s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/same (0.02s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-other (0.02s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-same (0.02s)
+=== RUN   TestOpenDocumentsRealRichGrowthRefusalKeepsEditableDraft
+--- PASS: TestOpenDocumentsRealRichGrowthRefusalKeepsEditableDraft (0.02s)
+=== RUN   TestOpenDocumentsMinimumWindowCapture
+    open_documents_test.go:642: set LEVNOTE_OPEN_DOCUMENTS_CAPTURE_DIR for one picker capture
+--- SKIP: TestOpenDocumentsMinimumWindowCapture (0.00s)
+PASS
+ok  	levnote.local/native/app	3.318s

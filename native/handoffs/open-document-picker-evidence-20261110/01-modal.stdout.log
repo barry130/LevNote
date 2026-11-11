@@ -1,0 +1,18 @@
+=== RUN   TestOpenDocumentsModalKeyboardAndOpener
+    open_documents_test.go:57: Escape opener not restored: open=false current=alpha🙂.txt texts=[轻笺 新建 打开 最近关闭的文件 ▾ 文件夹 保存 查找 插件 设置 工作区 切换文件树与文档大纲 大纲 刷新文件树 ↻ 打开一个文件夹，
+        把资料放在一起。 打开文件夹 新建文档 Markdown 纯文本 思维导图 图纸 • alpha🙂.txt 关闭 alpha🙂.txt × • BETA.txt 关闭 BETA.txt × 已打开文档 文档编辑区 本地文件 · 原生编辑 转到源码行；当前第 1 行，第 16 列 第 1 行，第 16 列 UTF-8 未保存]
+--- FAIL: TestOpenDocumentsModalKeyboardAndOpener (0.04s)
+=== RUN   TestOpenDocumentsModalQueryComposition
+=== RUN   TestOpenDocumentsModalQueryComposition/commit
+    open_documents_test.go:94: native preedit not present: ui.AccessInfo{Role:0xb, Name:"搜索已打开文档", Value:"", Description:"", Placeholder:"按标题或路径搜索", RoleDescription:"", Bounds:ui.Rect{X:113, Y:108, W:534, H:32}, Checked:false, Mixed:false, Expanded:false, Expandable:false, Selected:false, Selectable:false, Multiselectable:false, Busy:false, Disabled:false, Invalid:false, Focusable:true, Focused:true, ReadOnly:false, Multiline:false, Password:false, Search:false, Sort:0x0, HasPopup:0x0, Controls:[]string(nil), DescribedBy:[]string(nil), ErrorMessage:[]string(nil), Vertical:false, Horizontal:false, Segment:false, Offscreen:false, Current:0x0, AutoComplete:0x0, KeyShortcuts:"", Level:0, PosInSet:0, SetSize:0, RowCount:0, ColumnCount:0, RowIndex:0, ColumnIndex:0, RowSpan:0, ColumnSpan:0, Min:0, Max:0, Now:0, Step:0}
+=== RUN   TestOpenDocumentsModalQueryComposition/cancel
+    open_documents_test.go:94: native preedit not present: ui.AccessInfo{Role:0xb, Name:"搜索已打开文档", Value:"", Description:"", Placeholder:"按标题或路径搜索", RoleDescription:"", Bounds:ui.Rect{X:113, Y:108, W:534, H:32}, Checked:false, Mixed:false, Expanded:false, Expandable:false, Selected:false, Selectable:false, Multiselectable:false, Busy:false, Disabled:false, Invalid:false, Focusable:true, Focused:true, ReadOnly:false, Multiline:false, Password:false, Search:false, Sort:0x0, HasPopup:0x0, Controls:[]string(nil), DescribedBy:[]string(nil), ErrorMessage:[]string(nil), Vertical:false, Horizontal:false, Segment:false, Offscreen:false, Current:0x0, AutoComplete:0x0, KeyShortcuts:"", Level:0, PosInSet:0, SetSize:0, RowCount:0, ColumnCount:0, RowIndex:0, ColumnIndex:0, RowSpan:0, ColumnSpan:0, Min:0, Max:0, Now:0, Step:0}
+--- FAIL: TestOpenDocumentsModalQueryComposition (0.03s)
+    --- FAIL: TestOpenDocumentsModalQueryComposition/commit (0.02s)
+    --- FAIL: TestOpenDocumentsModalQueryComposition/cancel (0.02s)
+=== RUN   TestOpenDocumentsSinglePointerSelect
+    open_documents_test.go:132: ui: "选择文档 2：BETA.txt" is not the input target at (380, 219)
+--- FAIL: TestOpenDocumentsSinglePointerSelect (0.02s)
+FAIL
+FAIL	levnote.local/native/app	2.306s
+FAIL

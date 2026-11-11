@@ -1,0 +1,6 @@
+{
+  "Command": "$env:LEVNOTE_IMAGE_REFERENCE_CAPTURE_DIR = Join-Path (Get-Location) 'native/handoffs/markdown-image-reference-ui-evidence-20261110'\n& 'native/scripts/go.ps1' -GoArguments @('test','./modules/markdownview','./app','-run','^(TestImageReference|TestMarkdownImageReference|TestLinkNative|TestLinkExactIdentity|TestLinkSynchronous|TestLinkControlsBoundary|TestLinkBoundedMetadata|TestMarkdownLinkRealAdapter)','-count=1','-v')",
+  "StartedAtUtc": "2026-11-10T07:51:36.7708732+00:00",
+  "FinishedAtUtc": "2026-11-10T07:51:46.2661111+00:00",
+  "ExitCode": 0
+}

@@ -1,0 +1,6 @@
+{
+  "Command": "& 'native/scripts/go.ps1' -GoArguments @('test','./app','-run','^TestMarkdownImageReferenceRealAdapterOpenPreservesSource/PNG$','-count=1','-v')\nexit $LASTEXITCODE",
+  "StartedAtUtc": "2026-11-10T07:53:35.6807185+00:00",
+  "FinishedAtUtc": "2026-11-10T07:53:41.2899463+00:00",
+  "ExitCode": 1
+}

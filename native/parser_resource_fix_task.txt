@@ -1,0 +1,66 @@
+Parser resource correction and core/document contract — GLM owner
+
+Root interrupted you to transfer core/session/** exclusively to Astra.
+Do not edit session again. Retain formats except code, document/search and
+docs. This supersedes the earlier parser_core_finish_task.txt session section.
+Read handoffs/qa.md for measured evidence once written.
+
+Priority 1: actual Markdown allocation budget
+- A 256KiB source of '# a\n' produces 65536 blocks and ~126MB allocations.
+  256KiB plain newlines allocate ~8.4MB line descriptors; the 8MiB input guard
+  alone permits far more. Add line/block/inline-element budget enforced BEFORE
+  slices are allocated/grown. Avoid Count+full lines preallocation without cap.
+- Use explicit bounded limits, preserving original source with actionable
+  fallback warnings. If a parse is partial, expose that fact in Document or
+  a named warning; coordinate with Astra view so HTML export refuses silently
+  incomplete content and preview shows guidance rather than empty/complete.
+- Important: ending all parsing after budget exhaustion is acceptable when
+  raw original is retained. Do not make a giant fallback text widget for tail.
+- Inline scan exhaustion must exit before scanning backtick runs or building
+  strings.Repeat markers. Current helpers are bounded, but parse() still
+  enters delimiter run loops and allocates after exhaustion. Bound delimiter
+  count and short ordinary paragraphs should retain formatting.
+- Scope byte accounting across a document, not a fresh unconstrained budget
+  per tiny block. Cap warning arrays consistently.
+- Add deterministic limits and bounded allocation regression/benchmarks on
+  256KiB workloads; never run an intentional OOM case. Show before/after.
+- Export ordered lists must preserve start != 1; current <ol> loses it. Add
+  one source-to-export assertion alongside existing list test.
+- Root review 12:08: describeTableRow Split+cells allocates per pipe despite
+  callers using only handled. Replace unsupported-table detection with a
+  non-allocating predicate; keep original source/warning. isThematic converts
+  a whole long line to []rune before rejecting it: use an ASCII scan instead.
+  Add bounded256KiB pipe-dense input and a small ordinary one-line paragraph
+  to allocation evidence. Do not preallocate8192 line slots for a one-line
+  document. Finish this focused checkpoint before further tuning or docs.
+
+Priority 2: immutable disk check API for DeepSeek
+- Capture opaque immutable path/baseline token from Document on UI thread.
+- Worker performs bounded-memory hash/comparison using token only, no access
+  to mutable Document/Buffer. Include cancellation for long reads.
+- A method/token check on UI determines result still belongs to current saved
+  baseline. Save/SaveAs/Revert must invalidate old responses even on same bytes.
+- Keep existing full conflict check before save authoritative. Readonly text
+  also obtains a usable baseline; byte inspector may remain out of scope.
+- Coordinate exact contract with DeepSeek immediately; meaningful stale token,
+  same-mtime edit/replacement, deleted file and cancellation tests.
+- Root review 12:15, current candidate implementation: unchanged Save must
+  only advance baselineRevision after the existing successful conflict check;
+  do not fingerprint again and blindly replace d.disk via refreshBaseline.
+  That can adopt externally changed bytes without matching the buffer, allowing
+  a later overwrite. didSave needs one revision increment, not two. Final
+  CheckDisk compares frozen baseline identity AND hash to opened final file;
+  stable-check includes after/current size+mtime+SameFile. Changed file identity
+  between pre-stat and open must be detected even if bytes match. Cancellation
+  is checked before I/O; unstable reads return ErrConflict, not silent invalid.
+  Use equal-length same-mtime edit fixtures; length5/6 only tests size.
+
+Then finish requested native README/capability matrix/architecture/API/ADR0063,
+root README native entry and legacy distinction, roadmap/changelog, notices.
+Use actual vendor/modules.txt and compiled dependency graph for license scope;
+do not state Harfbuzz/shader compiler is distributed if it is only module-cache
+content excluded from this build. Preserve notices for copied derived sources.
+Dependencies remain licensed third-party code, not independent code.
+
+Write finite focused commands/results/APIs to handoffs/formats.md. No new
+feature expansion or subagents; compact before 200K context.

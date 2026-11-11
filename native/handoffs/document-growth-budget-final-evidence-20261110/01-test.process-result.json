@@ -1,0 +1,7 @@
+{
+  "StartedUtc": "2026-11-10T11:06:34.2647234Z",
+  "FinishedUtc": "2026-11-10T11:07:07.6232868Z",
+  "ShellExitCode": 0,
+  "ProcessId": 4640,
+  "Script": "01-test.ps1"
+}

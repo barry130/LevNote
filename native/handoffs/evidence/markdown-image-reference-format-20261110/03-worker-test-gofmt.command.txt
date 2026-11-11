@@ -1,0 +1,1 @@
+native/scripts/go.ps1 -GoArguments @('fmt', './cmd/levnote-markdown-export/image_reference_test.go')

@@ -1,0 +1,60 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:51:15.4832929Z",
+  "RunStatus": "FAIL",
+  "TotalRows": 2,
+  "PassedRows": 1,
+  "FailedRows": 1,
+  "OtherRows": 0,
+  "StoppedAtFirstFailure": null,
+  "RunError": null,
+  "PackageProtectionEqual": null,
+  "RawRows": [
+    {
+      "Index": 1,
+      "Status": "PASS",
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20"
+    },
+    {
+      "Index": 2,
+      "Status": "FAIL"
+    }
+  ],
+  "DescriptiveGroups": [],
+  "Limitations": [],
+  "FailureDiagnostics": [
+    {
+      "Index": 1,
+      "MatrixPosition": null,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": null,
+      "Status": "PASS",
+      "ExitCode": null,
+      "TimedOut": null,
+      "Violations": [],
+      "Error": null,
+      "Diagnostic": "Measurement summary absent; counters are unknown.",
+      "MeasurementSummaryPresent": false,
+      "AvailableArtifacts": {}
+    },
+    {
+      "Index": 2,
+      "MatrixPosition": null,
+      "Fixture": null,
+      "Version": null,
+      "Ordinal": null,
+      "Status": "FAIL",
+      "ExitCode": null,
+      "TimedOut": null,
+      "Violations": [],
+      "Error": null,
+      "Diagnostic": "Measurement summary absent; counters are unknown.",
+      "MeasurementSummaryPresent": false,
+      "AvailableArtifacts": {}
+    }
+  ],
+  "Scope": "Twelve or fewer local draw.io worker requests only. Raw rows are preserved before descriptive statistics. Request elapsed, CPU kernel/user, process wall lifetime, sampled working/private commit, and OS-observed peaks are distinct. Missing counters are not replaced with zero. Limited lifetime peak rows are retained and are not represented as complete lifetime peaks. No host/editor/Tauri/global memory or speed claim.",
+  "FixtureOnly": true
+}

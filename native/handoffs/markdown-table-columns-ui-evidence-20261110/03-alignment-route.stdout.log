@@ -1,0 +1,20 @@
+=== RUN   TestTableAlignmentNativePointerKeyboardAndUndo
+=== RUN   TestTableAlignmentNativePointerKeyboardAndUndo/pointer
+=== RUN   TestTableAlignmentNativePointerKeyboardAndUndo/enter
+=== RUN   TestTableAlignmentNativePointerKeyboardAndUndo/space
+--- PASS: TestTableAlignmentNativePointerKeyboardAndUndo (0.09s)
+    --- PASS: TestTableAlignmentNativePointerKeyboardAndUndo/pointer (0.04s)
+    --- PASS: TestTableAlignmentNativePointerKeyboardAndUndo/enter (0.03s)
+    --- PASS: TestTableAlignmentNativePointerKeyboardAndUndo/space (0.02s)
+=== RUN   TestTableAlignmentRapidContinuationAndHeldRepeat
+=== RUN   TestTableAlignmentRapidContinuationAndHeldRepeat/rapid-pointer
+=== RUN   TestTableAlignmentRapidContinuationAndHeldRepeat/held-key
+--- PASS: TestTableAlignmentRapidContinuationAndHeldRepeat (0.04s)
+    --- PASS: TestTableAlignmentRapidContinuationAndHeldRepeat/rapid-pointer (0.02s)
+    --- PASS: TestTableAlignmentRapidContinuationAndHeldRepeat/held-key (0.02s)
+PASS
+ok  	levnote.local/native/modules/markdownview	2.344s
+=== RUN   TestMarkdownAlignmentRealAdapterExactNoopSaveReopenModesAndHTML
+--- PASS: TestMarkdownAlignmentRealAdapterExactNoopSaveReopenModesAndHTML (0.17s)
+PASS
+ok  	levnote.local/native/app	1.975s

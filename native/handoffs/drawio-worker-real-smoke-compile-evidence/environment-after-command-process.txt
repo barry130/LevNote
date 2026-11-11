@@ -1,0 +1,6 @@
+Independent PowerShell process started after the compile command.
+Process-scoped environment variables were never persisted outside the compile command process.
+LEVNOTE_DRAWIO_MANAGED_REAL_SMOKE	present=False	valueIsNull=True
+LEVNOTE_DRAWIO_MANAGED_REAL_SMOKE_CANDIDATE	present=False	valueIsNull=True
+LEVNOTE_DRAWIO_MANAGED_REAL_SMOKE_EVIDENCE	present=False	valueIsNull=True
+LEVNOTE_DRAWIO_MANAGED_REAL_SMOKE_CONFIG	present=False	valueIsNull=True

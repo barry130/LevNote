@@ -1,0 +1,39 @@
+=== RUN   TestNativeImageOpenMixedAuthorityAndCapabilities
+--- PASS: TestNativeImageOpenMixedAuthorityAndCapabilities (0.05s)
+=== RUN   TestNativeImageSignatureDisabledCorruptMismatchAndOversize
+--- PASS: TestNativeImageSignatureDisabledCorruptMismatchAndOversize (0.08s)
+=== RUN   TestNativeImageCopiesHeldBytesAndReloadsExplicitly
+--- PASS: TestNativeImageCopiesHeldBytesAndReloadsExplicitly (0.04s)
+=== RUN   TestNativeImageModalStaleAndFailedFlushKeepAuthority
+--- PASS: TestNativeImageModalStaleAndFailedFlushKeepAuthority (0.02s)
+=== RUN   TestNativeImageSessionOrderAndPathOnlyRestore
+--- PASS: TestNativeImageSessionOrderAndPathOnlyRestore (0.05s)
+=== RUN   TestNativeImageLaneLatestPendingAndShutdownJoin
+--- PASS: TestNativeImageLaneLatestPendingAndShutdownJoin (0.05s)
+=== RUN   TestNativeImageCopySurvivesNavigationAndClosedTabOutcome
+--- PASS: TestNativeImageCopySurvivesNavigationAndClosedTabOutcome (0.03s)
+=== RUN   TestNativeImageExternalObservationAndReacquireFailure
+--- PASS: TestNativeImageExternalObservationAndReacquireFailure (0.11s)
+=== RUN   TestNativeImageChooseOpenHeadlessAndDeliveryTimeout
+--- PASS: TestNativeImageChooseOpenHeadlessAndDeliveryTimeout (0.07s)
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/before_publication
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/after_publication
+--- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing (0.07s)
+    --- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/before_publication (0.03s)
+    --- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/after_publication (0.04s)
+=== RUN   TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin
+--- PASS: TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin (0.04s)
+=== RUN   TestNativeImageTransactionalReloadOverlapAndNewestPending
+--- PASS: TestNativeImageTransactionalReloadOverlapAndNewestPending (0.02s)
+=== RUN   TestNativeImageCaptures
+    binary_test.go:680: explicit synthetic image/byte captures
+--- SKIP: TestNativeImageCaptures (0.00s)
+=== RUN   TestNativeImageDuplicateRecheckedAtPublication
+--- PASS: TestNativeImageDuplicateRecheckedAtPublication (0.02s)
+=== RUN   TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft
+--- PASS: TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft (0.02s)
+=== RUN   TestNativeImageCallbacksAndReentrantCopyAreBounded
+--- PASS: TestNativeImageCallbacksAndReentrantCopyAreBounded (0.03s)
+PASS
+ok  	levnote.local/native/app	2.420s

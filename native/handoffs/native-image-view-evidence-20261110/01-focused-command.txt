@@ -1,0 +1,1 @@
+$env:LEVNOTE_IMAGEVIEW_CAPTURE_DIR=<evidence>; native/scripts/go.ps1 -GoArguments @('test','./modules/imageview','-count=1')

@@ -1,0 +1,82 @@
+=== RUN   TestDecodePNGExactPixels
+=== RUN   TestDecodePNGExactPixels/grayscale
+=== RUN   TestDecodePNGExactPixels/truecolor
+=== RUN   TestDecodePNGExactPixels/truecolor_alpha
+=== RUN   TestDecodePNGExactPixels/palette
+--- PASS: TestDecodePNGExactPixels (0.00s)
+    --- PASS: TestDecodePNGExactPixels/grayscale (0.00s)
+    --- PASS: TestDecodePNGExactPixels/truecolor (0.00s)
+    --- PASS: TestDecodePNGExactPixels/truecolor_alpha (0.00s)
+    --- PASS: TestDecodePNGExactPixels/palette (0.00s)
+=== RUN   TestDecodePNGOrientationExact
+=== RUN   TestDecodePNGOrientationExact/orientation_1
+=== RUN   TestDecodePNGOrientationExact/orientation_2
+=== RUN   TestDecodePNGOrientationExact/orientation_3
+=== RUN   TestDecodePNGOrientationExact/orientation_4
+=== RUN   TestDecodePNGOrientationExact/orientation_5
+=== RUN   TestDecodePNGOrientationExact/orientation_6
+=== RUN   TestDecodePNGOrientationExact/orientation_7
+=== RUN   TestDecodePNGOrientationExact/orientation_8
+--- PASS: TestDecodePNGOrientationExact (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_1 (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_2 (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_3 (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_4 (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_5 (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_6 (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_7 (0.00s)
+    --- PASS: TestDecodePNGOrientationExact/orientation_8 (0.00s)
+=== RUN   TestDecodeJPEGKnownRegions
+=== RUN   TestDecodeJPEGKnownRegions/grayscale
+=== RUN   TestDecodeJPEGKnownRegions/three_component
+--- PASS: TestDecodeJPEGKnownRegions (0.00s)
+    --- PASS: TestDecodeJPEGKnownRegions/grayscale (0.00s)
+    --- PASS: TestDecodeJPEGKnownRegions/three_component (0.00s)
+=== RUN   TestDecodeJPEGEXIFOrientation
+--- PASS: TestDecodeJPEGEXIFOrientation (0.00s)
+=== RUN   TestDecodeRejectsCorruptAdmittedPayloads
+=== RUN   TestDecodeRejectsCorruptAdmittedPayloads/png_corrupt_idat
+=== RUN   TestDecodeRejectsCorruptAdmittedPayloads/png_bad_idat_crc
+=== RUN   TestDecodeRejectsCorruptAdmittedPayloads/jpeg_truncated_after_sos
+--- PASS: TestDecodeRejectsCorruptAdmittedPayloads (0.00s)
+    --- PASS: TestDecodeRejectsCorruptAdmittedPayloads/png_corrupt_idat (0.00s)
+    --- PASS: TestDecodeRejectsCorruptAdmittedPayloads/png_bad_idat_crc (0.00s)
+    --- PASS: TestDecodeRejectsCorruptAdmittedPayloads/jpeg_truncated_after_sos (0.00s)
+=== RUN   TestDecodeRunsAdmissionInternally
+--- PASS: TestDecodeRunsAdmissionInternally (0.00s)
+=== RUN   TestDecodeReaderFailures
+=== RUN   TestDecodeReaderFailures/before_admission
+=== RUN   TestDecodeReaderFailures/during_codec
+--- PASS: TestDecodeReaderFailures (0.00s)
+    --- PASS: TestDecodeReaderFailures/before_admission (0.00s)
+    --- PASS: TestDecodeReaderFailures/during_codec (0.00s)
+=== RUN   TestDecodeCancellation
+=== RUN   TestDecodeCancellation/initially
+=== RUN   TestDecodeCancellation/during_reads
+=== RUN   TestDecodeCancellation/between_conversion_rows
+=== RUN   TestDecodeCancellation/during_final_row
+=== RUN   TestDecodeCancellation/after_codec
+--- PASS: TestDecodeCancellation (0.00s)
+    --- PASS: TestDecodeCancellation/initially (0.00s)
+    --- PASS: TestDecodeCancellation/during_reads (0.00s)
+    --- PASS: TestDecodeCancellation/between_conversion_rows (0.00s)
+    --- PASS: TestDecodeCancellation/during_final_row (0.00s)
+    --- PASS: TestDecodeCancellation/after_codec (0.00s)
+=== RUN   TestDecodeRejectsDecodedBoundsBeforePublication
+=== RUN   TestDecodeRejectsDecodedBoundsBeforePublication/dimension_mismatch
+=== RUN   TestDecodeRejectsDecodedBoundsBeforePublication/oversize_side
+=== RUN   TestDecodeRejectsDecodedBoundsBeforePublication/too_many_pixels
+=== RUN   TestDecodeRejectsDecodedBoundsBeforePublication/empty_surface
+=== RUN   TestDecodeRejectsDecodedBoundsBeforePublication/pixel_count_disagrees
+=== RUN   TestDecodeRejectsDecodedBoundsBeforePublication/orientation_outside_range
+--- PASS: TestDecodeRejectsDecodedBoundsBeforePublication (0.00s)
+    --- PASS: TestDecodeRejectsDecodedBoundsBeforePublication/dimension_mismatch (0.00s)
+    --- PASS: TestDecodeRejectsDecodedBoundsBeforePublication/oversize_side (0.00s)
+    --- PASS: TestDecodeRejectsDecodedBoundsBeforePublication/too_many_pixels (0.00s)
+    --- PASS: TestDecodeRejectsDecodedBoundsBeforePublication/empty_surface (0.00s)
+    --- PASS: TestDecodeRejectsDecodedBoundsBeforePublication/pixel_count_disagrees (0.00s)
+    --- PASS: TestDecodeRejectsDecodedBoundsBeforePublication/orientation_outside_range (0.00s)
+=== RUN   TestDecodeResultRetainsNoReader
+--- PASS: TestDecodeResultRetainsNoReader (0.00s)
+PASS
+ok  	levnote.local/native/formats/raster	0.511s

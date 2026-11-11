@@ -1,0 +1,11 @@
+--- FAIL: TestSessionOutputAdapterErrorsAreSticky (0.00s)
+    --- FAIL: TestSessionOutputAdapterErrorsAreSticky/excess (0.00s)
+        output_test.go:224: Finish after excess = <nil>
+    --- FAIL: TestSessionOutputAdapterErrorsAreSticky/sentinel (0.00s)
+        output_test.go:259: Finish after sink failure = encoded session does not match preflight length and terminator, want injected sticky failure
+    --- FAIL: TestSessionOutputAdapterErrorsAreSticky/short-write (0.00s)
+        output_test.go:259: Finish after sink failure = encoded session does not match preflight length and terminator, want short write
+FAIL
+FAIL	levnote.local/native/core/session	0.665s
+FAIL
+EXIT_CODE=1

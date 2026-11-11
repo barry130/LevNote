@@ -1,0 +1,26 @@
+{
+  "name": "01-format",
+  "step": "format",
+  "goArguments": [
+    "run",
+    "cmd/gofmt",
+    "-w",
+    "app/autosave.go",
+    "app/autosave_test.go",
+    "app/app.go",
+    "app/state.go",
+    "app/view.go",
+    "app/workspace.go",
+    "app/export_worker.go",
+    "app/binary_actions.go",
+    "app/outline.go",
+    "app/plugins.go",
+    "app/source_navigation.go"
+  ],
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-autosave-evidence-20261110\\01-format.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-autosave-evidence-20261110\\01-format.output.txt",
+  "startedUtc": "2026-11-10T06:02:39.2701764+00:00",
+  "finishedUtc": "2026-11-10T06:02:40.2283195+00:00",
+  "durationSeconds": 0.958,
+  "exitCode": 0
+}

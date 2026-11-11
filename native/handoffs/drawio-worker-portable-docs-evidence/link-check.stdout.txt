@@ -1,0 +1,6 @@
+attribution/`tTrue`tF:\AIproject\LevNote\native\bin\levnote-native-worker-20261110.18\attribution\
+LICENSE`tTrue`tF:\AIproject\LevNote\native\bin\levnote-native-worker-20261110.18\LICENSE
+licenses/`tTrue`tF:\AIproject\LevNote\native\bin\levnote-native-worker-20261110.18\licenses\
+release-manifest.json`tTrue`tF:\AIproject\LevNote\native\bin\levnote-native-worker-20261110.18\release-manifest.json
+THIRD_PARTY_NOTICES.md`tTrue`tF:\AIproject\LevNote\native\bin\levnote-native-worker-20261110.18\THIRD_PARTY_NOTICES.md
+targets=5 missing=0

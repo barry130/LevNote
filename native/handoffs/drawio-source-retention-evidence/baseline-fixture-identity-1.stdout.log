@@ -1,0 +1,5 @@
+=== RUN   TestSourceRetentionFixtureIdentity
+    source_retention_fixture_identity_test.go:20: source_bytes=33985 sha256=04e533b0da533713f51e106f820a7f4a62d0e0f06ca910eb6feaa9857a3d3e9f pages=8 uncompressed_pages=7 nodes=169
+--- PASS: TestSourceRetentionFixtureIdentity (0.00s)
+PASS
+ok  	levnote.local/native/formats/drawio	0.514s

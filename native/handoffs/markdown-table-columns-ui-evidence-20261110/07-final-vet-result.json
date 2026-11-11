@@ -1,0 +1,6 @@
+{
+  "Command": "& 'native/scripts/go.ps1' -GoArguments @('vet','./modules/markdownview','./app')",
+  "StartedAtUtc": "2026-11-10T07:20:14.7985677+00:00",
+  "FinishedAtUtc": "2026-11-10T07:20:16.0481769+00:00",
+  "ExitCode": 0
+}

@@ -1,0 +1,135 @@
+{
+  "RecordedAtUtc": "2026-11-09T00:16:16.9333523Z",
+  "Status": "PASS",
+  "Passed": 25,
+  "Total": 25,
+  "Checks": [
+    {
+      "Name": "fresh-distinct-space-paths",
+      "Passed": true,
+      "Detail": "Both parents validated; no directories created by preflight."
+    },
+    {
+      "Name": "preflight-no-side-effects",
+      "Passed": true,
+      "Detail": "Preflight kept both destinations absent."
+    },
+    {
+      "Name": "same-directory",
+      "Passed": true,
+      "Detail": "OutputDirectory and EvidenceDirectory must be distinct and non-nested."
+    },
+    {
+      "Name": "evidence-inside-output",
+      "Passed": true,
+      "Detail": "OutputDirectory and EvidenceDirectory must be distinct and non-nested."
+    },
+    {
+      "Name": "output-inside-evidence",
+      "Passed": true,
+      "Detail": "OutputDirectory and EvidenceDirectory must be distinct and non-nested."
+    },
+    {
+      "Name": "existing-output",
+      "Passed": true,
+      "Detail": "Package directories must be fresh; existing files or directories are never overwritten."
+    },
+    {
+      "Name": "existing-evidence",
+      "Passed": true,
+      "Detail": "Package directories must be fresh; existing files or directories are never overwritten."
+    },
+    {
+      "Name": "existing-file",
+      "Passed": true,
+      "Detail": "Package directories must be fresh; existing files or directories are never overwritten."
+    },
+    {
+      "Name": "missing-parent",
+      "Passed": true,
+      "Detail": "Cannot find path 'F:\\AIproject\\LevNote\\native\\handoffs\\evidence\\preview-packaging-fixture-20261109\\fixture\\absent' because it does not exist."
+    },
+    {
+      "Name": "ancestor-junction",
+      "Passed": true,
+      "Detail": "Package directory components must be ordinary directories, not reparse points."
+    },
+    {
+      "Name": "historical-sentinel-preserved",
+      "Passed": true,
+      "Detail": "No existing destination or junction target mutated."
+    },
+    {
+      "Name": "different-ps-location",
+      "Passed": true,
+      "Detail": "PowerShell location deliberately differs from .NET cwd."
+    },
+    {
+      "Name": "real-script-relative-location",
+      "Passed": true,
+      "Detail": "Package directories must be fresh; existing files or directories are never overwritten."
+    },
+    {
+      "Name": "real-script-relative-no-output",
+      "Passed": true,
+      "Detail": "Rejected before creating relative output or invoking compiler."
+    },
+    {
+      "Name": "dotnet-cwd-unmodified",
+      "Passed": true,
+      "Detail": "Test did not mutate process .NET cwd."
+    },
+    {
+      "Name": "missing-inputs-before-output",
+      "Passed": true,
+      "Detail": "Cannot find path 'F:\\AIproject\\LevNote\\native\\handoffs\\evidence\\preview-packaging-fixture-20261109\\fixture\\isolated source\\LICENSE' because it does not exist."
+    },
+    {
+      "Name": "missing-inputs-no-destinations",
+      "Passed": true,
+      "Detail": "Incomplete source copy refuses before creating either directory."
+    },
+    {
+      "Name": "authored-local-links",
+      "Passed": true,
+      "Detail": "Portable README/notices relative links resolve inside output, including release manifest."
+    },
+    {
+      "Name": "required-asset-copies",
+      "Passed": true,
+      "Detail": "All13 required project/attribution/license files are independently listed and match actual source bytes."
+    },
+    {
+      "Name": "manifest-complete-excluding-self",
+      "Passed": true,
+      "Detail": "Schema explicitly excludes only itself and includes every actual fixture file."
+    },
+    {
+      "Name": "three-fixed-engine-paths",
+      "Passed": true,
+      "Detail": "All three fixed engine payload and manifest paths are inventoried."
+    },
+    {
+      "Name": "manifest-independent-file-oracle",
+      "Passed": true,
+      "Detail": "Actual directory files/bytes/digests independently re-read for every entry."
+    },
+    {
+      "Name": "manifest-relative-no-machine-paths",
+      "Passed": true,
+      "Detail": "Only normalized relative file paths; no source machine paths."
+    },
+    {
+      "Name": "version-config-unaccepted-template",
+      "Passed": true,
+      "Detail": "Template substitutes actual version, states APPDATA, and does not claim future acceptance."
+    },
+    {
+      "Name": "output-has-no-evidence",
+      "Passed": true,
+      "Detail": "No build runners, logs, tester or evidence results in asset fixture."
+    }
+  ],
+  "Error": null,
+  "Scope": "Package path preflight and asset/manifest fixture only; no product compile/launch or arbitrary executable engine."
+}

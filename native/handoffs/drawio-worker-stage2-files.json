@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "files": [
+    {"relativePath":"native/modules/graphview/adapter.go","bytes":8958,"sha256":"680840AF4782E3481BFDFEED3D0B73D1F3F2E623920183AEC99BB7981378EDF9"},
+    {"relativePath":"native/modules/graphview/export_request_test.go","bytes":11060,"sha256":"3ACB6E4BA117BCBFA52D579072D45940EEA913849B0D1FBFDE8962D409F699D7"},
+    {"relativePath":"native/app/engine_packages.go","bytes":10214,"sha256":"9D3B3298140B34FB222CFA36561361857C3D9293DF2F3C74B1F5A50068F9B8C7"},
+    {"relativePath":"native/app/engine_packages_ui.go","bytes":6682,"sha256":"3187AD685DCD065F9377F739BB2E2EF7EC01A6DE1B30F1FB09D582F45ADEE0D8"},
+    {"relativePath":"native/app/engine_packages_app_test.go","bytes":1890,"sha256":"6D23D76A60DFF830EF1AF5116EA0907DEFDBA594FAFF6C67247E47798B6523BC"},
+    {"relativePath":"native/app/export.go","bytes":1470,"sha256":"86708F1E04F7434D9AA51551ABDD951552A7AE23A2FB6DC1FBC6CAE8F799DB67"},
+    {"relativePath":"native/app/export_worker.go","bytes":15546,"sha256":"46345F7EADA34FF2D0C808F0CAF7C1DB4B9F4C78F88DB28C97EBE04DCAD3C48E"},
+    {"relativePath":"native/app/view.go","bytes":21546,"sha256":"DDBE9D6C57DB7279BE579538E8734EDA8A0FBEC04FB65929A14DA8D18DD11AAF"},
+    {"relativePath":"native/app/export_worker_test.go","bytes":26560,"sha256":"1CCEA1C3611B96D646F1B445457CF135D7B144D327118C045431DE45E4CD76FC"},
+    {"relativePath":"native/app/export_mindmap_worker_test.go","bytes":15228,"sha256":"939BAB05DB3E0DE1B31D1B2AD82D6AB3E4149B56B0E967E789680DD309793133"},
+    {"relativePath":"native/app/export_drawio_worker_test.go","bytes":14855,"sha256":"F8FF9ADBF52F1ED68161306FB4D472A91C500FC59B3A90BA24278C579F4C2BD2"},
+    {"relativePath":"native/app/drawio_worker_stage2_capture_test.go","bytes":1968,"sha256":"934D3C0EB4973CFC5668806167DD53CFCB3BFAFE07789BD3AB66D98BA73E6A55"}
+  ]
+}

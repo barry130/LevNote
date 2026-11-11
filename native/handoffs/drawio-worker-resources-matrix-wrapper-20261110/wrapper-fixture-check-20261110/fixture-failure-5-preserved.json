@@ -1,0 +1,11 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:34:42.7066346Z",
+  "FixtureOnly": true,
+  "Scope": "Preserved fifth fixture-check failure. The failure diagnostics block accessed optional row fields directly under Set-StrictMode. The synthetic failed row intentionally omitted stdout/stderr/measurement/config, so the summarizer must report available artifacts without treating missing optional fields as zeros. No tester, worker, host, build, preflight, or product execution occurred.",
+  "ExitCode": 1,
+  "OriginalStdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-5-stdout.txt",
+  "OriginalStderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-5-stderr.txt",
+  "ResultWritten": false,
+  "Correction": "Add a property-presence helper for optional row fields and use it in FailureDiagnostics."
+}

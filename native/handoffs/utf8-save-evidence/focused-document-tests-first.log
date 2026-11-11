@@ -1,0 +1,6 @@
+# levnote.local/native/core/document [levnote.local/native/core/document.test]
+core\document\atomic.go:80:9: not enough return values
+	have (error)
+	want (sha256Digest, error)
+FAIL	levnote.local/native/core/document [build failed]
+FAIL

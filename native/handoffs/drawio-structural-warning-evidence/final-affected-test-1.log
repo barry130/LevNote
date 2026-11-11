@@ -1,0 +1,4 @@
+ok  	levnote.local/native/formats/drawio	0.725s
+ok  	levnote.local/native/cmd/levnote-drawio-svg	0.670s
+ok  	levnote.local/native/modules/graphview	11.369s
+ok  	levnote.local/native/core/engineruntime	38.040s

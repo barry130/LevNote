@@ -1,0 +1,6 @@
+=== RUN   TestNativeImageCaptures
+    binary_test.go:691: real image adapter did not request decode
+--- FAIL: TestNativeImageCaptures (0.46s)
+FAIL
+FAIL	levnote.local/native/app	1.974s
+FAIL

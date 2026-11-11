@@ -1,0 +1,193 @@
+=== RUN   TestDrawioWorkerResourcesHarnessPreflight
+    drawio_worker_resources_test.go:194: drawio-worker-resources-preflight-json
+        {
+          "schema": 1,
+          "status": "PASS",
+          "createdUtc": "2026-11-09T22:02:12.7303185Z",
+          "platform": {
+            "GOOS": "windows",
+            "GOARCH": "amd64",
+            "GoVersion": "go1.27.3",
+            "WindowsQueryError": "",
+            "LogicalCPUs": 16,
+            "GOMAXPROCS": 16,
+            "WindowsMajor": 10,
+            "WindowsMinor": 0,
+            "WindowsBuild": 26200
+          },
+          "tester": {
+            "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+            "SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+            "Bytes": 7528448
+          },
+          "packages": [
+            {
+              "version": "native-worker.20261110.20",
+              "root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20",
+              "executable": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\engines\\drawio-svg\\levnote-drawio-svg.exe",
+                "SHA256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+                "Bytes": 3121664
+              },
+              "releaseManifest": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\release-manifest.json",
+                "SHA256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+                "Bytes": 4490
+              },
+              "engineManifest": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\engines\\drawio-svg\\manifest.json",
+                "SHA256": "6175456b457fc85bd96e1a2ce2dbb8172474cdf6cdcde790ac80453f45c73fac",
+                "Bytes": 327
+              },
+              "executableBefore": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\engines\\drawio-svg\\levnote-drawio-svg.exe",
+                "SHA256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+                "Bytes": 3121664
+              },
+              "releaseManifestBefore": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\release-manifest.json",
+                "SHA256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+                "Bytes": 4490
+              },
+              "engineManifestAfter": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\engines\\drawio-svg\\manifest.json",
+                "SHA256": "6175456b457fc85bd96e1a2ce2dbb8172474cdf6cdcde790ac80453f45c73fac",
+                "Bytes": 327
+              },
+              "executableAfter": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\engines\\drawio-svg\\levnote-drawio-svg.exe",
+                "SHA256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+                "Bytes": 3121664
+              },
+              "releaseManifestAfter": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20\\release-manifest.json",
+                "SHA256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+                "Bytes": 4490
+              },
+              "engineManifestSha256": "6175456b457fc85bd96e1a2ce2dbb8172474cdf6cdcde790ac80453f45c73fac",
+              "expectedWorkerSha256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+              "expectedReleaseSha256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+              "workerIdentityError": "",
+              "releaseIdentityError": "",
+              "manifestIdentityError": ""
+            },
+            {
+              "version": "native-worker.20261110.21",
+              "root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21",
+              "executable": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\engines\\drawio-svg\\levnote-drawio-svg.exe",
+                "SHA256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+                "Bytes": 3124736
+              },
+              "releaseManifest": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\release-manifest.json",
+                "SHA256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+                "Bytes": 4490
+              },
+              "engineManifest": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\engines\\drawio-svg\\manifest.json",
+                "SHA256": "caff96ac3181d9c5160a099ff9282fe37df9b11374c95472bd2237539fa14c18",
+                "Bytes": 327
+              },
+              "executableBefore": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\engines\\drawio-svg\\levnote-drawio-svg.exe",
+                "SHA256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+                "Bytes": 3124736
+              },
+              "releaseManifestBefore": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\release-manifest.json",
+                "SHA256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+                "Bytes": 4490
+              },
+              "engineManifestAfter": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\engines\\drawio-svg\\manifest.json",
+                "SHA256": "caff96ac3181d9c5160a099ff9282fe37df9b11374c95472bd2237539fa14c18",
+                "Bytes": 327
+              },
+              "executableAfter": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\engines\\drawio-svg\\levnote-drawio-svg.exe",
+                "SHA256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+                "Bytes": 3124736
+              },
+              "releaseManifestAfter": {
+                "Path": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21\\release-manifest.json",
+                "SHA256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+                "Bytes": 4490
+              },
+              "engineManifestSha256": "caff96ac3181d9c5160a099ff9282fe37df9b11374c95472bd2237539fa14c18",
+              "expectedWorkerSha256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+              "expectedReleaseSha256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+              "workerIdentityError": "",
+              "releaseIdentityError": "",
+              "manifestIdentityError": ""
+            }
+          ],
+          "fixtures": [
+            {
+              "name": "NormalMultiPage",
+              "path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\preflight-output\\fixtures\\NormalMultiPage.drawio",
+              "expectedSvgPath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\preflight-output\\fixtures\\NormalMultiPage.expected.svg",
+              "sourceBytes": 28976,
+              "sourceSha256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+              "svgBytes": 598,
+              "svgSha256": "3f990a4aac3209bafad94f44026bf14f3cec27ea44bdbd3169555947936472bf",
+              "pages": 8,
+              "nodes": 148,
+              "edges": 42,
+              "selectedIndex": 2,
+              "selectedId": "page-3",
+              "expectedWarnings": {
+                "native-worker.20261110.20": [
+                  {
+                    "code": "UNSUPPORTED_ELEMENT",
+                    "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+                    "start": 0,
+                    "end": 28976
+                  },
+                  {
+                    "code": "UNSUPPORTED_ELEMENT",
+                    "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+                    "start": 0,
+                    "end": 28976
+                  }
+                ],
+                "native-worker.20261110.21": []
+              }
+            },
+            {
+              "name": "MetadataHeavy",
+              "path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\preflight-output\\fixtures\\MetadataHeavy.drawio",
+              "expectedSvgPath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\preflight-output\\fixtures\\MetadataHeavy.expected.svg",
+              "sourceBytes": 93639,
+              "sourceSha256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+              "svgBytes": 598,
+              "svgSha256": "3f990a4aac3209bafad94f44026bf14f3cec27ea44bdbd3169555947936472bf",
+              "pages": 6,
+              "nodes": 41,
+              "edges": 60,
+              "selectedIndex": 3,
+              "selectedId": "page-4",
+              "expectedWarnings": {
+                "native-worker.20261110.20": [
+                  {
+                    "code": "UNSUPPORTED_ELEMENT",
+                    "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+                    "start": 0,
+                    "end": 93639
+                  },
+                  {
+                    "code": "UNSUPPORTED_ELEMENT",
+                    "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+                    "start": 0,
+                    "end": 93639
+                  }
+                ],
+                "native-worker.20261110.21": []
+              }
+            }
+          ],
+          "output": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\preflight-output",
+          "failures": null
+        }
+--- PASS: TestDrawioWorkerResourcesHarnessPreflight (0.03s)
+PASS

@@ -1,0 +1,3 @@
+.\native\scripts\go.ps1 -GoArguments @('vet','./formats/drawio','./modules/graphview')
+<no stdout or stderr>
+exit=0

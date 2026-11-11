@@ -1,0 +1,56 @@
+Stage B/C resource work — DeepSeek app owner
+
+The 11:39 integration checkpoint is accepted as a build/visual/native-startup
+checkpoint, not the end of resource work. Root reviews; you implement/tests.
+Read resource_workflows_task.txt and current handoffs/qa.md when present.
+No child agents/commits/pushes. Compact before 200K context.
+
+Finish these finite increments in order, reporting each checkpoint.
+
+1. Recovery allocation path
+- App still calls CaptureBounded for every raw-bounded draft. Integrate the
+  Astra encoded-budget API before copying rejected escape-heavy draft content.
+  Builder API may need support for existing saved/discarded Tab entries and
+  view metadata; coordinate concrete changes with Astra rather than reimplement
+  JSON-size counting in app. Keep all previous discard/cancel semantics.
+  Exact provisional signatures are in handoffs/session.md. Session ownership
+  was transferred from GLM to Astra at 11:45; document disk tokens remain GLM.
+- Same-unchanged recovery failure must not reattempt expensive capture on
+  every frame. Retry after a new document/session/preference change or an
+  explicit user action. Preserve old recovery on every failure.
+- Add app regression that closing with escape-heavy draft fails before
+  materialization and leaves tabs/old recovery intact; no bogus oversized
+  raw-only fixture pretending to test encoded size.
+
+2. Disk work off the UI thread
+- Current CheckExternal and refreshTree do disk reads/hashes inside UI
+  callbacks. Add a bounded coalesced worker. Capture immutable disk token and
+  path on UI; compare in worker; apply only when tab/path/token/generation still
+  matches. Never call methods on mutable Document from worker.
+- Request minimal disk token/check API from GLM core/document owner. Save,
+  SaveAs, Revert and reopening invalidate stale results by token/generation.
+- Include readonly file text (byte inspector can retain explicit limitations).
+  Coalesce bursts; one active scan plus one pending rescan, no goroutine per
+  event. Shutdown and root/tab change invalidate pending UI callbacks.
+- Tree workers capture root and a copied Expanded map and return immutable
+  bounded entries/issues. Keep existing displayed tree until successful or
+  partial replacement is ready; failures remain visible. Focus/refresh button
+  uses same scheduling route. Keep per-directory/depth/total disclosures.
+- Waiting workers must terminate if window closes; updateWait/open queues must
+  not hang forever waiting on a Window.Update that will never execute.
+- Test with controllable delayed worker/dispatcher: UI continues to accept
+  edits, stale pre-save/pre-reload results cannot set conflict, newer tab/root
+  requests win, cancellation/shutdown returns, readonly changes are reported.
+
+3. Bounded visible tree and search rows
+- Use MyGo ordinary ui.List/ListState (allowed native widget) or an equivalent
+  visible-window strategy for 3000 tree and 2000 search results. List only
+  builds visible rows; keep stable path keys and appropriate keyboard actions.
+- Test far-result navigation, expansion while scrolled, empty list, search
+  replacement and narrow layout. Measure rendered row count/idle allocations
+  to show results, not only a new API call in source.
+
+Final focused test/vet, then full integration test/vet/build once fixes in
+other owners stabilize. Refresh only affected screenshots. Record resource
+workloads, actual latency/allocation numbers and limits in handoffs/resources.md.
+Do not add outline/table/new graph fields until this finite checkpoint passes.

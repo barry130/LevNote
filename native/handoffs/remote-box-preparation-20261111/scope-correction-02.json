@@ -1,0 +1,35 @@
+{
+    "InspectedUtc":  "2026-11-11T02:57:53.4210834Z",
+    "PreviousFiles":  1212,
+    "CurrentFiles":  1208,
+    "Removed":  [
+                    {
+                        "Path":  "native/modules/markdownview/artifacts/acceptance/markdown-cell-view-20261108-final/table-cell-invalid-dark-760x480.png",
+                        "Length":  32127,
+                        "Sha256":  "ED3042A07006E0AE91FDD9EAE91F82ABA87A6669F604BAFD23A7DECFDFA55207"
+                    },
+                    {
+                        "Path":  "native/modules/markdownview/artifacts/acceptance/markdown-cell-view-20261108-final/table-cell-invalid-light-760x480.png",
+                        "Length":  32254,
+                        "Sha256":  "6A71B658385F544B10BEED9D4CD1AB9A231DCF235FA57CF4A9AA012A97186062"
+                    },
+                    {
+                        "Path":  "native/modules/markdownview/artifacts/acceptance/markdown-cell-view-20261108-final/table-cell-staged-dark-760x480.png",
+                        "Length":  28339,
+                        "Sha256":  "6E2B922646170D652096E5901C8FE5D3AB60BC7AAE2F81E88708AAEE1C2608D1"
+                    },
+                    {
+                        "Path":  "native/modules/markdownview/artifacts/acceptance/markdown-cell-view-20261108-final/table-cell-staged-light-760x480.png",
+                        "Length":  28294,
+                        "Sha256":  "5AFCA25A66578BCB5731490A5D6F5100CB1EB883B9ABC317E220619AC31E3F8A"
+                    }
+                ],
+    "RemovedBytes":  121014,
+    "Added":  [
+
+              ],
+    "ChangedRetainedInputs":  [
+
+                              ],
+    "Reason":  "Four old screenshot output PNGs are not test dependencies; exact nested directory excluded. All01 artifacts preserved."
+}

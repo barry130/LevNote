@@ -1,0 +1,6 @@
+=== RUN   TestDrawioWorkerResourcesHarnessPreflight
+    drawio_worker_resources_test.go:85: evidence directory must not exist before preflight: <nil>
+--- FAIL: TestDrawioWorkerResourcesHarnessPreflight (0.00s)
+FAIL
+FAIL	levnote.local/native/core/engineruntime	0.611s
+FAIL

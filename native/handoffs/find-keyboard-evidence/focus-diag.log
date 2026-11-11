@@ -1,0 +1,8 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus$","-count=1","-v")
+=== RUN   TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus
+    find_keyboard_test.go:95: first Enter did not retain query focus
+--- FAIL: TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus (0.44s)
+FAIL
+FAIL	levnote.local/native/app	2.089s
+FAIL
+EXIT_CODE=1

@@ -1,0 +1,14 @@
+{
+  "step": "final-test",
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\final-test.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\final-test.output.txt",
+  "goArguments": [
+    "test",
+    "./core/document",
+    "-count=1"
+  ],
+  "startedUtc": "2026-11-10T03:29:07.0724635+00:00",
+  "finishedUtc": "2026-11-10T03:29:09.3754190+00:00",
+  "durationSeconds": 2.303,
+  "exitCode": 0
+}

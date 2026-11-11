@@ -1,0 +1,1 @@
+native/scripts/go.ps1 -GoArguments @('fmt', './formats/markdown/types.go', './formats/markdown/inline.go', './formats/markdown/export.go', './formats/markdown/image_test.go', './formats/markdown/markdown_test.go')

@@ -1,0 +1,21 @@
+{
+  "label": "baseline-gofmt",
+  "command": [
+    "native/scripts/go.ps1",
+    "-GoArguments",
+    "fmt",
+    "./formats/drawio"
+  ],
+  "workingDirectory": "F:\\AIproject\\LevNote",
+  "startedAtUtc": "2026-11-09T20:09:17.1983120+00:00",
+  "finishedAtUtc": "2026-11-09T20:09:18.0527841+00:00",
+  "exitCode": 1,
+  "sourceSha256Before": {
+    "formats/drawio/parse.go": "92BDCA474CE49921FD88331079A186FB6CD6887F69DA8000B53C2217E1ACF8C9",
+    "formats/drawio/edit.go": "57FE17DCD1F1290F2DD15278FC4D507DCFFAEEFDAD0AEA71A6802A7D05C01F4A",
+    "formats/drawio/types.go": "233025C35D1A6C33832E47D8782A07A367954F1EEF70754FB83A5BE436C7D845",
+    "formats/drawio/source_retention_benchmark_test.go": "58CE35C69B79FFADBC1BCBF619F63516D7BECD5ABA2A5F47D1AF5E0033D93493"
+  },
+  "stdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-source-retention-evidence\\baseline-gofmt.stdout.log",
+  "stderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-source-retention-evidence\\baseline-gofmt.stderr.log"
+}

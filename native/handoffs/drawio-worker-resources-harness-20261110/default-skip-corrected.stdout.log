@@ -1,0 +1,5 @@
+# levnote.local/native/core/engineruntime
+# [levnote.local/native/core/engineruntime]
+core\engineruntime\drawio_worker_resources_test.go:333:48: fmt.Fprintf format %q has arg enabled of wrong type int
+FAIL	levnote.local/native/core/engineruntime [build failed]
+FAIL

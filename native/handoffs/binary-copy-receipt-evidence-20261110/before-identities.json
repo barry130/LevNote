@@ -1,0 +1,17 @@
+[
+  {
+    "Path": "native\\core\\document\\binary.go",
+    "Bytes": 14495,
+    "SHA256": "E3D56794354B3CE2B1A9CBF93BD68A67E3F333A482CCA3EC5D8753DE18FF759D"
+  },
+  {
+    "Path": "native\\core\\document\\binary_test.go",
+    "Bytes": 22341,
+    "SHA256": "60637AD62D744E9331F584B6E60F95DBA268C2E2487DAB8D7F2E1B07D0CCFB19"
+  },
+  {
+    "Path": "native\\core\\document\\atomic.go",
+    "Bytes": 3516,
+    "SHA256": "33D45A65253972D8547A5DC7ACD1AC9FA04C0540EF11DD3DE207676801A232CC"
+  }
+]

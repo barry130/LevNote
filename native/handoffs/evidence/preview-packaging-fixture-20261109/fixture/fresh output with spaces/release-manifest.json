@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "version": "fixture.1",
+  "goos": "windows",
+  "goarch": "amd64",
+  "goamd64": "v1",
+  "excludes": [
+    "release-manifest.json"
+  ],
+  "scope": "Every shipped file except this manifest; local integrity fingerprints, not signatures or acceptance evidence.",
+  "configuration": "%APPDATA%/LevNoteNative",
+  "files": [
+    {
+      "path": "attribution/dependency-patches-README.md",
+      "size": 3114,
+      "sha256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc"
+    },
+    {
+      "path": "attribution/mygo-README.md",
+      "size": 3812,
+      "sha256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2"
+    },
+    {
+      "path": "attribution/mygo-v0.8.3-no-startup-cleanup.patch",
+      "size": 516,
+      "sha256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a"
+    },
+    {
+      "path": "attribution/purego-README.md",
+      "size": 5505,
+      "sha256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99"
+    },
+    {
+      "path": "attribution/SOURCE_THIRD_PARTY_NOTICES.txt",
+      "size": 6390,
+      "sha256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2"
+    },
+    {
+      "path": "engines/markdown-export/levnote-markdown-export.exe",
+      "size": 36,
+      "sha256": "2fa3fbbc0a267c01aabf7e6089c1af3fafa7599057c8ce85d551b08df4aa290f"
+    },
+    {
+      "path": "engines/markdown-export/manifest.json",
+      "size": 16,
+      "sha256": "ffbc2dfc402782325da71132100e74ff511d1585dd80e4ea196ed4bcace3fef2"
+    },
+    {
+      "path": "engines/mindmap-preview/levnote-mindmap-preview.exe",
+      "size": 36,
+      "sha256": "2fa3fbbc0a267c01aabf7e6089c1af3fafa7599057c8ce85d551b08df4aa290f"
+    },
+    {
+      "path": "engines/mindmap-preview/manifest.json",
+      "size": 16,
+      "sha256": "ffbc2dfc402782325da71132100e74ff511d1585dd80e4ea196ed4bcace3fef2"
+    },
+    {
+      "path": "engines/mindmap-svg/levnote-mindmap-svg.exe",
+      "size": 36,
+      "sha256": "2fa3fbbc0a267c01aabf7e6089c1af3fafa7599057c8ce85d551b08df4aa290f"
+    },
+    {
+      "path": "engines/mindmap-svg/manifest.json",
+      "size": 16,
+      "sha256": "ffbc2dfc402782325da71132100e74ff511d1585dd80e4ea196ed4bcace3fef2"
+    },
+    {
+      "path": "levnote-native.exe",
+      "size": 34,
+      "sha256": "10a6bfc91ca7136f52cb5b087ac1b4654489473a1c7c45246278e658372fc038"
+    },
+    {
+      "path": "LICENSE",
+      "size": 1092,
+      "sha256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b"
+    },
+    {
+      "path": "licenses/Go-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/go-text-typesetting.txt",
+      "size": 3006,
+      "sha256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca"
+    },
+    {
+      "path": "licenses/mygo-MIT.txt",
+      "size": 1074,
+      "sha256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4"
+    },
+    {
+      "path": "licenses/purego-Apache-2.0.txt",
+      "size": 11357,
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+    },
+    {
+      "path": "licenses/x-image-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/x-net-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/x-text-BSD-3-Clause.txt",
+      "size": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "README.md",
+      "size": 5821,
+      "sha256": "e15d9fa6d5bc81e412cd76120785405aa42bcc8c768130bb27fb242d85e75034"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "size": 6868,
+      "sha256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c"
+    }
+  ]
+}

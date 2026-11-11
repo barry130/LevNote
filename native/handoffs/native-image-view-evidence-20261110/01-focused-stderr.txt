@@ -1,0 +1,4 @@
+# levnote.local/native/modules/imageview [levnote.local/native/modules/imageview.test]
+modules\imageview\imageview_test.go:123:21: view (local variable) is not a type
+modules\imageview\imageview_test.go:305:14: invalid operation: v.viewport.panX * 2 + 400 * v.viewport.zoom - v.canvasRect.W (mismatched types float64 and float32)
+modules\imageview\imageview_test.go:306:12: invalid operation: v.viewport.panY * 2 + 200 * v.viewport.zoom - v.canvasRect.H (mismatched types float64 and float32)

@@ -1,0 +1,9 @@
+Environment-handling evidence note
+
+The four variables were absent in environment-before.txt.
+They were removed before the format and test commands.
+The test command ran before the finally block reinstated snapshot values.
+PowerShell converted the absent snapshot nulls to present empty strings in environment-restored-after-test.txt.
+That evidence file is preserved unchanged rather than rewritten.
+environment-after-command-process.txt records an independent post-command process with all four variables absent.
+No smoke enable/candidate/evidence/config value was supplied to the test.

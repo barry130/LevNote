@@ -1,0 +1,4 @@
+COMMAND=.\native\scripts\go.ps1 -GoArguments @("vet","./core/document","./core/session","./app")
+OUTPUT_BEGIN
+OUTPUT_END
+EXIT_CODE=0

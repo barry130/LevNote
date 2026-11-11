@@ -1,0 +1,40 @@
+Resource stage final acceptance — DeepSeek, after owners' checkpoints
+
+Prerequisites: Astra handoffs/session.md + view-resources.md green; GLM parser,
+disk token and bounded search checkpoint green. No further feature additions
+during this acceptance. Root only reviews/coordinates, you execute/build.
+
+1. Integrate exact APIs, then focused app regression for recovery failure,
+   discard/cancel, queued/started/cancelled dispatches, readonly external
+   change, stale tokens after unchanged Save/Revert, tree root/selection and
+   far keyboard search/tree navigation. Resource counts must measure the
+   actual full model (not an emptied replacement at the end of a test).
+2. Real-adapter pending native Compose -> save, mode, tab routes for Markdown,
+   mindmap and drawio; round-trip disk bytes and preserve intended mode. Keep
+   independent source edits/unknown metadata intact, failed flush retains draft.
+3. Full native go test ./... -count=1 and go vet ./... after peers stop editing
+   implementation. Run dependency patch checks/build guard if its source
+   changed. Do not repeat broad checks after passing unless code changed or
+   concrete concern appeared. Windows race initialization remains unavailable;
+   do not silently call it passed or keep rerunning the known environment error.
+4. Refresh affected real-app screenshots: source-light/dark, Markdown preview,
+   split with active draft and narrow conflict, mindmap/drawio narrow and dark,
+   large tree/search near far end. Inspect them for clipping/overlap and record
+   actual screenshot paths. Tester Compose is not actual OS IME validation.
+5. Build current Windows GUI executable with trimpath/buildvcs=false/strip.
+   Record bytes/SHA256/toolchain/build timestamp. Existing11:39 build is stale.
+   Isolated launch/close using temporary config/workspace must preserve unrelated
+   updater-name sentinel files. Only stop processes created for this check.
+6. Record one bounded native process resource sample (idle, representative
+   four-document workspace, editing if practical) including setup/window and
+   time interval, RSS/working set versus private bytes clearly named. No Tauri
+   comparison unless both measured on identical workload; no self-reported
+   tester allocations labelled process memory. Runtime network/OS IME limits
+   remain explicitly listed when not verified.
+7. Native README/capability/API/provenance must match current build and facts.
+   Root reviews docs; notify GLM of final metrics. Do not block implementation
+   checkpoint merely waiting for documentation prose; coordinate final record.
+
+Write current summary and commands to handoffs/integration.md, resource metrics
+to handoffs/resources.md. Preserve earlier checkpoints as dated historical data
+but clearly mark current accepted binary. No commits/pushes/network features.

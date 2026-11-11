@@ -1,0 +1,49 @@
+GLM current scope after view handoff (2026-11-08)
+
+Ownership ONLY formats/** except code, core/document/session/search and docs.
+Both modules/markdownview/** and modules/graphview/** now belong to Astra.
+No more view edits. Root interrupted before transfer; read native/AGENTS.md.
+
+Complete this finite checkpoint, then documentation. Do not expand features.
+
+Parser correctness/complexity:
+- Closed fence consumes closing line; unterminated consumes EOF. Trailing
+  spaces after closing ticks accepted; bytes preserved. Tests include prose
+  after CRLF fence and unterminated fence with heading/list inside.
+- List content uses regexp submatch indexes, empty first items advance and
+  don't panic, ordered list Start retained, mixed kind stops correctly.
+- ALL repeated scans bounded cumulatively: readBracketLabel, findLinkEnd,
+  findClosing, backtick delimiter and dollar branches. Current raw helper
+  calls bypass scanSpent. Avoid charging entire suffix for a 2-byte match
+  if it unnecessarily disables a short normal paragraph; count actual scans
+  or bounded spans. Work counter/explicit budget regression preferred to
+  vague timeout or merely max file bytes. Keep unparsed source visible.
+- Heading/list warnings retained; aggregate doc warning cap enforced when
+  appending batches, not only checked before a multi-warning append.
+- Export propagates parser warnings; network href rejection adds warning;
+  protocol-relative links blocked. Exact source offsets for inline ranges,
+  repeated bold/underscore/multi-backtick/Chinese/later blocks covered.
+- Do not label empty lists unsupported when supported and not ambiguous.
+- Native formats/API.md stale: builtin disabling is allowed now, code plugin
+  isn't unconditional fallback (plaintext source is), API arity in examples
+  must be correct. Update docs after final APIs.
+
+Core:
+- boundedPreview absolute UTF16 ranges. Ensure SliceUTF16 never cuts surrogate;
+  reuse preview per physical line; preserve BOTH leading and trailing ellipses
+  (current second assignment still overwrites first). Cover a later line,
+  astral boundary, long-line multiple matches. Avoid full-line allocation.
+- Aggregate session snapshot budget BEFORE capturing all drafts/marshalling.
+  Existing per draft4MiB and MaxTabs100 allow400MiB first. Account JSON escaping.
+  API helper or builder used by app should reject/report without replacing old
+  recovery. Coordinate exact API with DeepSeek when ready.
+- Existing WriteNewFile, CaptureBounded and preference fixes have focused
+  passing tests; no need to redo unrelated core rewrites.
+
+Checkpoint: focused test/vet, exact commands/results in handoffs/formats.md.
+Then docs native/README.md capability matrix, architecture/plugin contract,
+ADR0063/index, root README native launch + old Tauri section explicitly legacy,
+ROADMAP/CHANGELOG. Include exact dependency notices, actual Go deps from build.
+Do not claim full parity or no copyright risk. MyGo MIT; internal shader has
+Apache2; go-text BSD3/Unlicense plus Harfbuzz MIT; purego Apache2; x/* BSD3.
+Final executable measurements come from DeepSeek integration report.

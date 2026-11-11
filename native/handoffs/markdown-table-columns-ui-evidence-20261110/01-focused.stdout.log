@@ -1,0 +1,111 @@
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/在此列前插入列/pointer
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/在此列前插入列/enter
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/在此列前插入列/space
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/在此列后插入列/pointer
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/在此列后插入列/enter
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/在此列后插入列/space
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/删除此列/pointer
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/删除此列/enter
+=== RUN   TestTableColumnsNativePointerKeyboardOneUndo/删除此列/space
+--- PASS: TestTableColumnsNativePointerKeyboardOneUndo (0.15s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/在此列前插入列/pointer (0.04s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/在此列前插入列/enter (0.02s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/在此列前插入列/space (0.01s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/在此列后插入列/pointer (0.01s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/在此列后插入列/enter (0.01s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/在此列后插入列/space (0.01s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/删除此列/pointer (0.01s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/删除此列/enter (0.02s)
+    --- PASS: TestTableColumnsNativePointerKeyboardOneUndo/删除此列/space (0.02s)
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder/265
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder/300
+=== RUN   TestTableColumnsNarrowGeometryAndFocusOrder/760
+--- PASS: TestTableColumnsNarrowGeometryAndFocusOrder (0.12s)
+    --- PASS: TestTableColumnsNarrowGeometryAndFocusOrder/265 (0.05s)
+    --- PASS: TestTableColumnsNarrowGeometryAndFocusOrder/300 (0.03s)
+    --- PASS: TestTableColumnsNarrowGeometryAndFocusOrder/760 (0.04s)
+=== RUN   TestTableColumnsBoundaryDisabledAndReadonly
+=== RUN   TestTableColumnsBoundaryDisabledAndReadonly/1
+    table_columns_test.go:151: Tab did not skip disabled controls
+=== RUN   TestTableColumnsBoundaryDisabledAndReadonly/8
+    table_columns_test.go:151: Tab did not skip disabled controls
+--- FAIL: TestTableColumnsBoundaryDisabledAndReadonly (0.02s)
+    --- FAIL: TestTableColumnsBoundaryDisabledAndReadonly/1 (0.01s)
+    --- FAIL: TestTableColumnsBoundaryDisabledAndReadonly/8 (0.01s)
+=== RUN   TestTableColumnsCompositionGeometryAndTwoUndos
+--- PASS: TestTableColumnsCompositionGeometryAndTwoUndos (0.02s)
+=== RUN   TestTableColumnsSelectionAcrossEditsAndInsertionAffinity
+=== RUN   TestTableColumnsSelectionAcrossEditsAndInsertionAffinity/retained-reverse
+=== RUN   TestTableColumnsSelectionAcrossEditsAndInsertionAffinity/deleted-interior
+=== RUN   TestTableColumnsSelectionAcrossEditsAndInsertionAffinity/insert-boundary
+--- PASS: TestTableColumnsSelectionAcrossEditsAndInsertionAffinity (0.02s)
+    --- PASS: TestTableColumnsSelectionAcrossEditsAndInsertionAffinity/retained-reverse (0.01s)
+    --- PASS: TestTableColumnsSelectionAcrossEditsAndInsertionAffinity/deleted-interior (0.01s)
+    --- PASS: TestTableColumnsSelectionAcrossEditsAndInsertionAffinity/insert-boundary (0.01s)
+=== RUN   TestTableColumnsInvalidDraftConflictAndPostFlushRefusal
+=== RUN   TestTableColumnsInvalidDraftConflictAndPostFlushRefusal/invalid
+=== RUN   TestTableColumnsInvalidDraftConflictAndPostFlushRefusal/conflict
+=== RUN   TestTableColumnsInvalidDraftConflictAndPostFlushRefusal/post-flush-context
+--- PASS: TestTableColumnsInvalidDraftConflictAndPostFlushRefusal (0.06s)
+    --- PASS: TestTableColumnsInvalidDraftConflictAndPostFlushRefusal/invalid (0.02s)
+    --- PASS: TestTableColumnsInvalidDraftConflictAndPostFlushRefusal/conflict (0.02s)
+    --- PASS: TestTableColumnsInvalidDraftConflictAndPostFlushRefusal/post-flush-context (0.03s)
+=== RUN   TestTableColumnsHeldGestureInvalidation
+=== RUN   TestTableColumnsHeldGestureInvalidation/outside
+=== RUN   TestTableColumnsHeldGestureInvalidation/selection
+=== RUN   TestTableColumnsHeldGestureInvalidation/draft
+=== RUN   TestTableColumnsHeldGestureInvalidation/readonly
+=== RUN   TestTableColumnsHeldGestureInvalidation/foreign-group
+=== RUN   TestTableColumnsHeldGestureInvalidation/scroll
+=== RUN   TestTableColumnsHeldGestureInvalidation/cancel
+=== RUN   TestTableColumnsHeldGestureInvalidation/release
+--- PASS: TestTableColumnsHeldGestureInvalidation (0.09s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/outside (0.01s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/selection (0.01s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/draft (0.01s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/readonly (0.01s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/foreign-group (0.01s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/scroll (0.01s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/cancel (0.01s)
+    --- PASS: TestTableColumnsHeldGestureInvalidation/release (0.01s)
+=== RUN   TestTableColumnsHeldKeyCannotRetargetReplacementPanel
+--- PASS: TestTableColumnsHeldKeyCannotRetargetReplacementPanel (0.05s)
+=== RUN   TestTableColumnsCallbackReplacementOwnership
+=== RUN   TestTableColumnsCallbackReplacementOwnership/cell-changed/release
+=== RUN   TestTableColumnsCallbackReplacementOwnership/cell-changed/buffer
+=== RUN   TestTableColumnsCallbackReplacementOwnership/cell-changed/draft
+=== RUN   TestTableColumnsCallbackReplacementOwnership/column-changed/release
+=== RUN   TestTableColumnsCallbackReplacementOwnership/column-changed/buffer
+=== RUN   TestTableColumnsCallbackReplacementOwnership/column-changed/draft
+=== RUN   TestTableColumnsCallbackReplacementOwnership/report/release
+=== RUN   TestTableColumnsCallbackReplacementOwnership/report/buffer
+=== RUN   TestTableColumnsCallbackReplacementOwnership/report/draft
+--- PASS: TestTableColumnsCallbackReplacementOwnership (0.16s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/cell-changed/release (0.02s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/cell-changed/buffer (0.02s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/cell-changed/draft (0.02s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/column-changed/release (0.02s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/column-changed/buffer (0.02s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/column-changed/draft (0.02s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/report/release (0.02s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/report/buffer (0.01s)
+    --- PASS: TestTableColumnsCallbackReplacementOwnership/report/draft (0.02s)
+=== RUN   TestTableColumnsOriginalRangeValidationAndOwnedRollback
+=== RUN   TestTableColumnsOriginalRangeValidationAndOwnedRollback/original-byte-validation
+=== RUN   TestTableColumnsOriginalRangeValidationAndOwnedRollback/replace-error
+=== RUN   TestTableColumnsOriginalRangeValidationAndOwnedRollback/selection-error
+=== RUN   TestTableColumnsOriginalRangeValidationAndOwnedRollback/foreign-group
+--- PASS: TestTableColumnsOriginalRangeValidationAndOwnedRollback (0.00s)
+    --- PASS: TestTableColumnsOriginalRangeValidationAndOwnedRollback/original-byte-validation (0.00s)
+    --- PASS: TestTableColumnsOriginalRangeValidationAndOwnedRollback/replace-error (0.00s)
+    --- PASS: TestTableColumnsOriginalRangeValidationAndOwnedRollback/selection-error (0.00s)
+    --- PASS: TestTableColumnsOriginalRangeValidationAndOwnedRollback/foreign-group (0.00s)
+FAIL
+FAIL	levnote.local/native/modules/markdownview	2.209s
+=== RUN   TestMarkdownColumnsRealAdapterBOMCRLFSaveReopen
+--- PASS: TestMarkdownColumnsRealAdapterBOMCRLFSaveReopen (0.12s)
+PASS
+ok  	levnote.local/native/app	2.052s
+FAIL

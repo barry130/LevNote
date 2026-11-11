@@ -1,0 +1,94 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-09T20:29:33.7517900Z",
+  "PowerShell": "7.6.9",
+  "ScriptCount": 12,
+  "ParseErrorCount": 0,
+  "Pass": true,
+  "Scripts": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\aggregate.ps1",
+      "Bytes": 25119,
+      "SHA256": "61EB12606E76F8E01DA1ED2DF4D08BB6A0DBED0910705B446B7710B0AAEF409D",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\baseline.ps1",
+      "Bytes": 8916,
+      "SHA256": "C4436F02D521F6958A25AA0BC76DD925909BAE6F3FF7EAADE439B6D3E207C620",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\delivery-lib.ps1",
+      "Bytes": 12628,
+      "SHA256": "6A6FF0CCC12263770E3FA32D0A488F8FD5FB846C7DA9420EAD2D7523296C06ED",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\initialize-context.ps1",
+      "Bytes": 8965,
+      "SHA256": "4121F096D0A4697CB6A17089AFF957E0EE223E6889AB0CFC21477EF0202471AE",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\invoke-stage.ps1",
+      "Bytes": 1700,
+      "SHA256": "B791685AC92FE8225F1780705E9B15492601186CD833C4A85A6252D7C98914FB",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\json-shape-sanity.ps1",
+      "Bytes": 3930,
+      "SHA256": "8F54FCD82165AB3D2AFF7FD51AC69D2100149FA3705B76482F20F7ACC997B638",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\run-host-smoke.ps1",
+      "Bytes": 19887,
+      "SHA256": "89E70EED238FE6AA44225ECFE6B831A11F5E5944B3D251F3EDF7EC6FE314E056",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\run-managed-smoke.ps1",
+      "Bytes": 12441,
+      "SHA256": "B7AD17346F67C4AD71F39EFACD432F8A1F77F5F0CD6FD016C1B9B2B7CE4737F8",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\run-package.ps1",
+      "Bytes": 12656,
+      "SHA256": "5553AFECED1B99052A76F0CE96E00342B15840EFCCE3DAA0A8C246ABBDD9DE3F",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\run-stage.ps1",
+      "Bytes": 2062,
+      "SHA256": "C619C043ED4612572BCB4AE87165CC321188C856C1EFC599C70442B3881BBDAD",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\source-scope.ps1",
+      "Bytes": 1599,
+      "SHA256": "95E9EE57648CDC88815856FD77C5C9D17F5526036FF0A270063DD2009C5B1AC7",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-efficiency-release21-preparation-20261109-193152\\static-parse.ps1",
+      "Bytes": 1597,
+      "SHA256": "3A9FB8EA090530348A01CC8EE5B3B3568A2230F302931DE35BEA029ED55BC47F",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    }
+  ]
+}

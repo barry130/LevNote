@@ -1,0 +1,11 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:30:53.5175456Z",
+  "FixtureOnly": true,
+  "Scope": "Preserved third fixture-check failure. The corrected Get-Values returned an unenumerated .NET LINQ-like/pipeline result whose Count property was not available under Set-StrictMode in Get-Stats. No tester, worker, host, build, preflight, or product execution occurred.",
+  "ExitCode": 1,
+  "OriginalStdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-3-stdout.txt",
+  "OriginalStderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-3-stderr.txt",
+  "ResultWritten": false,
+  "Correction": "Ensure Get-Values returns a stable PowerShell array with @(...) around the filtered pipeline."
+}

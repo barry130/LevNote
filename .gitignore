@@ -39,3 +39,10 @@ docs/samples/v3-longdoc*.md
 # 加起来十几 MB，且它们随上游版本变 —— 脚本（v1-samples / v1-page / v1-run）才是资产。
 # 重新拿到产物的方式写在 v1-run.mjs 的报错提示里（本机只有 Python urllib 能过代理）。
 .v1-out/
+
+# 原生版的本地工具链、构建缓存与可执行产物（均可由 scripts 重建）
+native/tools/
+native/build-cache/
+native/bin/
+native/artifacts/
+native/*.exe

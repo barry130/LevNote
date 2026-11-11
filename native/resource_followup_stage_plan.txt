@@ -1,0 +1,78 @@
+Completed finite stage — current native process/resource checkpoint
+
+ROOT ACCEPTED WITH LIMITATION. Original matrix remains FAIL; six rows and the
+first17:40 restore PASS are primary scoped evidence. The unnecessary17:42 repeat
+is preserved as supplemental only. No additional process execution is allowed.
+DeepSeek must reconcile report arithmetic from saved raw bytes only and correct
+the handoffs; Astra documents that table, executable identity and scope. Missing
+preclose session alone does not prove absence of View/render frames. Mindmap
+fields implementation may now proceed under its separate activated contract.
+
+Historical execution plan follows:
+
+ACTIVE after root reviewed and accepted the16:45 Markdown-links binary and
+16:48 hidden startup evidence. Current executable is13,252,608B, SHA256
+5BFB5A445CC619FEA9380F0363D3DF26EC4F3FF944C8549B1992F5B462EF3F10.
+First implement/validate the already reviewed plan in
+handoffs/resource-followup-app.md, then publish tooling for read-only review
+before starting the single bounded matrix. Product remains frozen.
+Read handoffs/resource-followup-design.md as a proposal, with corrections below.
+Root plans/reviews, children implement and execute all measurements. No new
+product feature or instrumentation is authorized just to produce numbers.
+
+Purpose: answer the user's actual resource goal for the current accepted
+executable, beyond small headless operation-allocation samples. Report measured
+workload costs and limits; do not claim superiority to Tauri without a fair
+matched comparison. No Tauri build/comparison belongs to this finite stage.
+
+Tentative owners:
+- DeepSeek: reusable isolated acceptance sampler, validated deterministic
+  fixtures, current-release process samples and evidence/summary.
+- Astra: focused existing view/cache lifecycle tests and final docs; coordinate
+  sampling so compilation/tests do not contaminate idle CPU samples.
+- GLM: read-only fixture/budget/method/result review. No duplicate benchmark.
+
+Corrections to the preliminary resource-followup design:
+1. Every helper/process launched through Start-Process uses -WindowStyle Hidden.
+   Preserve the PID-scoped EnumWindows/WM_CLOSE path from accepted smoke. Do
+   not claim a foreground visible editor workload from a hidden window. Record
+   visibility and whether real rendering/adapter activation was evidenced.
+   A session file can prove tab/order/mode state, not that GPU text was painted.
+2. Hidden startup sampling and native tester lifecycle/allocation checks are
+   separate evidence. If the product exposes no hidden input route, omit real
+   process tab-click/reopen scenarios and say so; do not add product hooks.
+3. Validate all fixtures through current format parsers BEFORE sampling. An
+   approximately1MiB Markdown fixture can exceed inline-scan/block/list limits
+   even below8MiB. Use enough prose per block and assert !Partial plus intended
+   block/task/link counts. No full HTML/parser-equivalence claim is necessary.
+   Confirm mindmap/drawio inputs are valid supported structures, bounded nodes
+   and dimensions, with honest fallback/warning status and fixture hashes.
+4. Run one bounded full matrix on the same executable: blank10s settle+10samples
+   at1s, extended blank30s idle, each of four active formats10s settle+10samples,
+   ordered four-format launch10s+10samples, clean-session restore10s+10samples.
+   Optional one repeat only for an anomaly, recorded explicitly. No broad stress
+   suite, working-set trimming or forced-GC performance claims.
+   Clarification: the blank extension continues that same process for30 more
+   seconds; take an extension baseline and ten3s intervals, not a new launch.
+   Include baseline/end observations for each CPU interval and distinguish
+   observation counts from interval counts. Use actual recorded durations.
+5. Samples record UTC/elapsed timestamps, raw WorkingSet64, PrivateMemorySize64,
+   cumulative process CPU seconds, logical-core count, file/executable hashes,
+   source file bytes unchanged, exit status and process cleanup. Use actual
+   elapsed intervals in CPU calculations. Report one-core and total-machine
+   bases. Private bytes/working set are distinct and need not fall on Release.
+6. Isolate APPDATA/LOCALAPPDATA/workspace under the new acceptance directory.
+   Never repurpose HOME/CODEX_HOME, mutate the user's real profile/session, or
+   remove unrelated paths. Keep all launch/sampling waits asynchronous or in
+   bounded poll chunks so root can communicate while children execute.
+7. Give root the concrete fixture + method plan before execution, then publish
+   raw JSON, reproducible script and a small factual table. No new feature
+   stage starts during CPU sampling. Only demonstrated correctness/resource
+   defects justify returning to product implementation and a new build.
+   Build the product-loader validator executable before sampling. Session
+   validation must use that binary, never go run/go build during the matrix.
+
+Acceptance ends with exact current artifact/process evidence, existing cache
+release/rebuild behavior verified within the appropriate native tester scope,
+documented limitations, and a concrete prioritized next usability/resource
+stage. This checkpoint is not a performance guarantee or full desktop/IME QA.

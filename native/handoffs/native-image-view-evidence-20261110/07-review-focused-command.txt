@@ -1,0 +1,1 @@
+native/scripts/go.ps1 -GoArguments @('test','./modules/imageview','-run','TestTallImageFitBelowManualZoomFloor|TestResizePreservesCenterBeforeClamp|TestManualResizePreservesCenterThroughTester|TestGeometryZoomAnchorPanClampAndFiniteGuards|TestOneRequestAndPublicToolbarInput|TestErrorSourceRefusalAndPixelsStayExplicit','-count=1')

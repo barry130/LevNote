@@ -1,0 +1,77 @@
+[
+  {
+    "Path": "01-test.go-result.json",
+    "Length": 206,
+    "Sha256": "9987677904735C725F25A63F5328412A096E59DF580BAA9BBC15B295D7E34B08"
+  },
+  {
+    "Path": "01-test.process-result.json",
+    "Length": 178,
+    "Sha256": "4AEC528ECFD4CC9B5A75A6CE2C2C9DD005380F7A4DC26A1168D9DB791A624705"
+  },
+  {
+    "Path": "01-test.ps1",
+    "Length": 715,
+    "Sha256": "66F9DEFD2D7AF2A1CF43ACB0074E4C2C2FF3DDF754DDE9D92DF8F4D27BB80FE7"
+  },
+  {
+    "Path": "01-test.stderr.log",
+    "Length": 0,
+    "Sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+  },
+  {
+    "Path": "01-test.stdout.log",
+    "Length": 420,
+    "Sha256": "55B1CDF5E389A490DBFD2BE360DCD92AD2B8DB51598530AE855FAE5E855568E2"
+  },
+  {
+    "Path": "02-vet.go-result.json",
+    "Length": 206,
+    "Sha256": "BE48288A8D066AF7AA7CB25CA3FA10319301733D9C889E79B76704DB4D855FB3"
+  },
+  {
+    "Path": "02-vet.process-result.json",
+    "Length": 177,
+    "Sha256": "8193B4C19A2944EBED6FD9AE3ABC2C1AC0D71AF89D165F158E0E08667D21307B"
+  },
+  {
+    "Path": "02-vet.ps1",
+    "Length": 702,
+    "Sha256": "5E04A65242E25E789644654EC6E25604A88677E69DE87C280A719F4C5E64D0E1"
+  },
+  {
+    "Path": "02-vet.stderr.log",
+    "Length": 0,
+    "Sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+  },
+  {
+    "Path": "02-vet.stdout.log",
+    "Length": 0,
+    "Sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+  },
+  {
+    "Path": "preflight.json",
+    "Length": 331,
+    "Sha256": "801236869989B7A6DF2FAE87CF224DB8484261E65898F3032B37454FC164088B"
+  },
+  {
+    "Path": "source-after.json",
+    "Length": 628,
+    "Sha256": "5673AB5368E21B7F81631418448C0D4B20B8ECC3A274906E6BE3EBF77EB47213"
+  },
+  {
+    "Path": "source-before.json",
+    "Length": 628,
+    "Sha256": "5673AB5368E21B7F81631418448C0D4B20B8ECC3A274906E6BE3EBF77EB47213"
+  },
+  {
+    "Path": "source-comparison.json",
+    "Length": 598,
+    "Sha256": "9BED74D5154B6881677F9308AB20CD439D62C50319E176206CC149DD18A051CC"
+  },
+  {
+    "Path": "source-frozen.json",
+    "Length": 628,
+    "Sha256": "5673AB5368E21B7F81631418448C0D4B20B8ECC3A274906E6BE3EBF77EB47213"
+  }
+]

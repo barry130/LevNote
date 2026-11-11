@@ -1,0 +1,80 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-09T21:49:00.7711073Z",
+  "PowerShell": "7.6.9",
+  "ScriptCount": 10,
+  "ParseErrorCount": 0,
+  "Pass": true,
+  "Scripts": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\aggregate.ps1",
+      "Bytes": 19460,
+      "SHA256": "1E62861A7EC3C505FB1D33202DB549FD9FA60D57040475233B1134F4C60008F1",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\baseline.ps1",
+      "Bytes": 8084,
+      "SHA256": "E2D48E046B9A394DE1BFF7647E3D31BBA2796D15C34A9F7EC048D21484D19AB3",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\delivery-lib.ps1",
+      "Bytes": 8635,
+      "SHA256": "5FEABF25DCD8D2FB07E9EB05A63AED905646B9F0B8CA0A1BA5D5C65DBAABBD3E",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\initialize-context.ps1",
+      "Bytes": 8661,
+      "SHA256": "1688D2DAFD6B5092228F15ABE22F57164F74764FB655332EF803897385DFC022",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\invoke-stage.ps1",
+      "Bytes": 2018,
+      "SHA256": "7F9B08082BAEBD3B5F736A928448C50576C19FA8D2B3763AA06C75A9EC27DB90",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\run-host-smoke.ps1",
+      "Bytes": 19856,
+      "SHA256": "5F4A3401A65616F817A47D3566FCB4AC657849CF83ABE2013584FE59EF824A79",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\run-package.ps1",
+      "Bytes": 12880,
+      "SHA256": "56BC3031BBACE1D9F98C47873B8E08782F277D54D28EAC31AA4CB6E340D414F4",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\run-stage.ps1",
+      "Bytes": 2317,
+      "SHA256": "FACB9D74C34894CC970E74B28301AC6D7AB3721DF5188B2930676D7345FA3F22",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\source-scope.ps1",
+      "Bytes": 1599,
+      "SHA256": "95E9EE57648CDC88815856FD77C5C9D17F5526036FF0A270063DD2009C5B1AC7",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse.ps1",
+      "Bytes": 1568,
+      "SHA256": "1687DE5352F6CEC39B9C0B12BDB1E028C28A723079995A886279039A48C21F31",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    }
+  ]
+}

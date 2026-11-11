@@ -1,0 +1,50 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^(TestFindbarControlsFitMainPaneAtMinimumWindow|TestFindbarActionsAndFocusSurviveMinimumReflow|TestFindbarTabFocusAtMinimumWindow)$","-count=1","-v")
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-default
+    findbar_layout_test.go:33: light-default control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-default control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: light-default control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: light-default control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: light-default control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-default control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-default control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-default control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:38: light-default leaves an unusable editor area at 760x480: ui.Rect{X:0, Y:0, W:0, H:0}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default
+    findbar_layout_test.go:33: dark-default control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: dark-default control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: dark-default control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:38: dark-default leaves an unusable editor area at 760x480: ui.Rect{X:0, Y:0, W:0, H:0}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font
+    findbar_layout_test.go:33: light-maximum-editor-font control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:38: light-maximum-editor-font leaves an unusable editor area at 760x480: ui.Rect{X:0, Y:0, W:0, H:0}
+--- FAIL: TestFindbarControlsFitMainPaneAtMinimumWindow (0.17s)
+    --- FAIL: TestFindbarControlsFitMainPaneAtMinimumWindow/light-default (0.15s)
+    --- FAIL: TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default (0.01s)
+    --- FAIL: TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font (0.01s)
+=== RUN   TestFindbarActionsAndFocusSurviveMinimumReflow
+--- PASS: TestFindbarActionsAndFocusSurviveMinimumReflow (0.02s)
+=== RUN   TestFindbarTabFocusAtMinimumWindow
+--- PASS: TestFindbarTabFocusAtMinimumWindow (0.01s)
+FAIL
+FAIL	levnote.local/native/app	1.685s
+FAIL
+EXIT_CODE=1

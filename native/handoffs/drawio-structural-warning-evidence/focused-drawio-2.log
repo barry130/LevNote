@@ -1,0 +1,5 @@
+--- FAIL: TestCanonicalContainerDuplicateAndBudgetPaths (0.00s)
+    canonical_container_test.go:244: exact element budget: err=draw.io limit exceeded: XML element count exceeds 2 issues=[]drawio.Issue{drawio.Issue{Severity:"warning", Code:"UNSUPPORTED_ELEMENT", Message:"mxCell is neither a vertex nor an edge and is not rendered", Page:0, CellID:"0"}}
+FAIL
+FAIL	levnote.local/native/formats/drawio	0.749s
+FAIL

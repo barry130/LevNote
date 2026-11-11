@@ -1,0 +1,205 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^(TestFindKeyboard|TestFind|TestSourceNavigation|TestFindbar)","-count=1","-v")
+=== RUN   TestFindFlushesPendingRichEditFirst
+--- PASS: TestFindFlushesPendingRichEditFirst (0.03s)
+=== RUN   TestFindRevealsSourceInsteadOfLeavingPreviewVisible
+--- PASS: TestFindRevealsSourceInsteadOfLeavingPreviewVisible (0.02s)
+=== RUN   TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState
+--- PASS: TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState (0.44s)
+=== RUN   TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus
+--- PASS: TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus (0.01s)
+=== RUN   TestFindKeyboardReplacementEnterAndEscape
+--- PASS: TestFindKeyboardReplacementEnterAndEscape (0.01s)
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/source
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Ctrl+G
+--- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers (0.03s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape (0.01s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/source (0.01s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/Ctrl+G (0.01s)
+=== RUN   TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects
+--- PASS: TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects (0.02s)
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition
+--- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition (0.03s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift (0.01s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly (0.01s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition (0.01s)
+=== RUN   TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross
+--- PASS: TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross (0.01s)
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview
+--- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused (0.02s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button (0.01s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview (0.01s)
+=== RUN   TestFindKeyboardRealMarkdownCompositionBlocksOpen
+--- PASS: TestFindKeyboardRealMarkdownCompositionBlocksOpen (0.01s)
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-default
+    findbar_layout_test.go:33: light-default control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-default control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: light-default control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: light-default control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: light-default control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-default control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-default control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-default control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:40: light-default editor area: ui.Rect{X:228, Y:246.04102, W:532, H:203.95898}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default
+    findbar_layout_test.go:33: dark-default control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: dark-default control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: dark-default control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:40: dark-default editor area: ui.Rect{X:228, Y:246.04102, W:532, H:203.95898}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font
+    findbar_layout_test.go:33: light-maximum-editor-font control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:40: light-maximum-editor-font editor area: ui.Rect{X:228, Y:246.04102, W:532, H:203.95898}
+--- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow (0.03s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/light-default (0.01s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default (0.01s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font (0.01s)
+=== RUN   TestFindbarActionsAndFocusSurviveMinimumReflow
+--- PASS: TestFindbarActionsAndFocusSurviveMinimumReflow (0.02s)
+=== RUN   TestFindbarTabFocusAtMinimumWindow
+--- PASS: TestFindbarTabFocusAtMinimumWindow (0.01s)
+=== RUN   TestFindbarLayoutScreenshots
+    findbar_layout_test.go:201: set LEVNOTE_FINDBAR_LAYOUT_SCREENSHOT_DIR for Find-bar layout captures
+--- SKIP: TestFindbarLayoutScreenshots (0.00s)
+=== RUN   TestFindAdjacentMatchesProgress
+--- PASS: TestFindAdjacentMatchesProgress (0.01s)
+=== RUN   TestFindSingleResultWrapsToItself
+--- PASS: TestFindSingleResultWrapsToItself (0.01s)
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/between_previous
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/between_next
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_includes_match_forward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_uses_previous_when_going_backward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_includes_match_backward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_advances_forward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_forward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_previous
+--- PASS: TestFindNearestMatchUsesOrderedSelectionBounds (0.05s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/between_previous (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/between_next (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_includes_match_forward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_uses_previous_when_going_backward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_includes_match_backward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_advances_forward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_forward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_previous (0.01s)
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_next
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_next
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_previous
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_previous
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/next_wraps
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/previous_wraps
+--- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps (0.03s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_next (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_next (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_previous (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_previous (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/next_wraps (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/previous_wraps (0.01s)
+=== RUN   TestFindZeroWidthAndUTF16OffsetsProgress
+--- PASS: TestFindZeroWidthAndUTF16OffsetsProgress (0.01s)
+=== RUN   TestFindCacheReusesColdOffsetsAndTracksSourceVersion
+--- PASS: TestFindCacheReusesColdOffsetsAndTracksSourceVersion (0.01s)
+=== RUN   TestFindCacheRefusesPartialLimitResultAndKeepsOffsetsOnly
+--- PASS: TestFindCacheRefusesPartialLimitResultAndKeepsOffsetsOnly (0.01s)
+=== RUN   TestFindCacheNoResultAndSearchErrorClearCursor
+--- PASS: TestFindCacheNoResultAndSearchErrorClearCursor (0.01s)
+=== RUN   TestFindAbandonsResultsWhenActiveTabChangesDuringScan
+--- PASS: TestFindAbandonsResultsWhenActiveTabChangesDuringScan (0.01s)
+=== RUN   TestFindWarmCacheStillFlushesAndFailedFlushPreservesState
+--- PASS: TestFindWarmCacheStillFlushesAndFailedFlushPreservesState (0.01s)
+=== RUN   TestFindUsesVersionAfterSourceChangingRichFlush
+--- PASS: TestFindUsesVersionAfterSourceChangingRichFlush (0.01s)
+=== RUN   TestFindAcceptsNoResultAfterFlushChangesBufferIdentity
+--- PASS: TestFindAcceptsNoResultAfterFlushChangesBufferIdentity (0.01s)
+=== RUN   TestFindCacheLifecycleClearsOnCommitNotFailedTransitions
+--- PASS: TestFindCacheLifecycleClearsOnCommitNotFailedTransitions (0.01s)
+=== RUN   TestFindCacheExpiresOnNextFrameForQueryAndVersion
+--- PASS: TestFindCacheExpiresOnNextFrameForQueryAndVersion (0.01s)
+=== RUN   TestFindCacheDropsOnReloadAndPluginRematch
+--- PASS: TestFindCacheDropsOnReloadAndPluginRematch (0.01s)
+=== RUN   TestFindReadonlySourceReveal
+--- PASS: TestFindReadonlySourceReveal (0.01s)
+=== RUN   TestSourceNavigationActualShortcutFocusEnterAndStatusAction
+--- PASS: TestSourceNavigationActualShortcutFocusEnterAndStatusAction (0.01s)
+=== RUN   TestSourceNavigationKeyboardTabPointerCancelAndEscapeAreScoped
+--- PASS: TestSourceNavigationKeyboardTabPointerCancelAndEscapeAreScoped (0.02s)
+=== RUN   TestSourceNavigationCompositionEscapeAndPointerSubmit
+--- PASS: TestSourceNavigationCompositionEscapeAndPointerSubmit (0.02s)
+=== RUN   TestSourceNavigationFlushesRealMarkdownDraft
+--- PASS: TestSourceNavigationFlushesRealMarkdownDraft (0.02s)
+=== RUN   TestSourceNavigationCancelPreservesHistoryAndSelection
+--- PASS: TestSourceNavigationCancelPreservesHistoryAndSelection (0.02s)
+=== RUN   TestSourceNavigationOldPanelCallbacksCannotUseReopenedTarget
+--- PASS: TestSourceNavigationOldPanelCallbacksCannotUseReopenedTarget (0.01s)
+=== RUN   TestSourceNavigationInvalidTargetKeepsCaretAndDisclosesSurrogate
+--- PASS: TestSourceNavigationInvalidTargetKeepsCaretAndDisclosesSurrogate (0.01s)
+=== RUN   TestSourceNavigationCompositionBarrierSourceAndRealMarkdown
+=== RUN   TestSourceNavigationCompositionBarrierSourceAndRealMarkdown/source
+=== RUN   TestSourceNavigationCompositionBarrierSourceAndRealMarkdown/real_Markdown
+--- PASS: TestSourceNavigationCompositionBarrierSourceAndRealMarkdown (0.02s)
+    --- PASS: TestSourceNavigationCompositionBarrierSourceAndRealMarkdown/source (0.01s)
+    --- PASS: TestSourceNavigationCompositionBarrierSourceAndRealMarkdown/real_Markdown (0.01s)
+=== RUN   TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget
+=== RUN   TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/invalid_syntax_does_not_flush
+=== RUN   TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/flush_refusal_retains_target
+=== RUN   TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/successful_flush_can_invalidate_target
+=== RUN   TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/final_coordinates_use_the_flushed_buffer
+=== RUN   TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/replaced_editor_buffer_invalidates_target_before_flush
+--- PASS: TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget (0.03s)
+    --- PASS: TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/invalid_syntax_does_not_flush (0.01s)
+    --- PASS: TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/flush_refusal_retains_target (0.01s)
+    --- PASS: TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/successful_flush_can_invalidate_target (0.01s)
+    --- PASS: TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/final_coordinates_use_the_flushed_buffer (0.01s)
+    --- PASS: TestSourceNavigationFlushRefusalAndPostFlushInvalidTarget/replaced_editor_buffer_invalidates_target_before_flush (0.01s)
+=== RUN   TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation
+=== RUN   TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation/source
+=== RUN   TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation/split
+=== RUN   TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation/preview
+--- PASS: TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation (0.03s)
+    --- PASS: TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation/source (0.01s)
+    --- PASS: TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation/split (0.01s)
+    --- PASS: TestSourceNavigationPreservesSourceSplitAndConvertsPreviewAfterValidation/preview (0.01s)
+=== RUN   TestSourceNavigationReadonlyAndDisplayedByteView
+=== RUN   TestSourceNavigationReadonlyAndDisplayedByteView/readonly_source
+=== RUN   TestSourceNavigationReadonlyAndDisplayedByteView/byte_view
+--- PASS: TestSourceNavigationReadonlyAndDisplayedByteView (0.02s)
+    --- PASS: TestSourceNavigationReadonlyAndDisplayedByteView/readonly_source (0.01s)
+    --- PASS: TestSourceNavigationReadonlyAndDisplayedByteView/byte_view (0.01s)
+=== RUN   TestSourceNavigationLifecycleInvalidationAndFailedSwitchRetention
+--- PASS: TestSourceNavigationLifecycleInvalidationAndFailedSwitchRetention (0.01s)
+=== RUN   TestSourceNavigationReloadAndPluginReconfigureInvalidateCapturedTarget
+--- PASS: TestSourceNavigationReloadAndPluginReconfigureInvalidateCapturedTarget (0.01s)
+=== RUN   TestSourceNavigationLateLineAndSegmentedLongLineTail
+--- PASS: TestSourceNavigationLateLineAndSegmentedLongLineTail (0.01s)
+=== RUN   TestSourceNavigationNarrowErrorCapture
+    source_navigation_test.go:741: set LEVNOTE_SOURCE_NAVIGATION_SCREENSHOT_DIR for visual acceptance
+--- SKIP: TestSourceNavigationNarrowErrorCapture (0.00s)
+PASS
+ok  	levnote.local/native/app	2.776s
+EXIT_CODE=0

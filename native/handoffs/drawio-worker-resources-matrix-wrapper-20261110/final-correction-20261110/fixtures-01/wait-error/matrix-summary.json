@@ -1,0 +1,184 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:51:13.1561754Z",
+  "RunStatus": "FAIL",
+  "TotalRows": 1,
+  "PassedRows": 0,
+  "FailedRows": 1,
+  "OtherRows": 0,
+  "StoppedAtFirstFailure": true,
+  "RunError": null,
+  "PackageProtectionEqual": true,
+  "RawRows": [
+    {
+      "Index": 1,
+      "MatrixPosition": 1,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 1,
+      "Status": "FAIL",
+      "StartedAtUtc": "2026-11-10T01:51:12.986222Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": "Exception calling \"WaitForExit\" with \"1\" argument(s): \"fixture wait exception\"",
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:13.0138569Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:13.0225729Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.9932365Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.9932365Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "1e525a91d002a5d6dbfc2b57eb4df4bfb8d56b591a14cd39698a4b48d85b5c80",
+        "LastWriteTimeUtc": "2026-11-10T01:51:13.0102379Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:13.0082398Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 101,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": [
+        "tester process failure"
+      ]
+    }
+  ],
+  "DescriptiveGroups": [],
+  "Limitations": [
+    {
+      "Index": 1,
+      "MatrixPosition": 1,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    }
+  ],
+  "FailureDiagnostics": [
+    {
+      "Index": 1,
+      "MatrixPosition": 1,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 1,
+      "Status": "FAIL",
+      "ExitCode": 0,
+      "TimedOut": false,
+      "Violations": [
+        "tester process failure"
+      ],
+      "Error": null,
+      "Diagnostic": "Row did not pass; inspect raw evidence.",
+      "MeasurementSummaryPresent": true,
+      "AvailableArtifacts": {
+        "Stdout": {
+          "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\stdout.txt",
+          "Bytes": 33,
+          "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+          "LastWriteTimeUtc": "2026-11-10T01:51:12.9932365Z"
+        },
+        "Stderr": {
+          "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\stderr.txt",
+          "Bytes": 33,
+          "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+          "LastWriteTimeUtc": "2026-11-10T01:51:12.9932365Z"
+        },
+        "Measurement": {
+          "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\measurement\\measurement.json",
+          "Bytes": 1998,
+          "SHA256": "1e525a91d002a5d6dbfc2b57eb4df4bfb8d56b591a14cd39698a4b48d85b5c80",
+          "LastWriteTimeUtc": "2026-11-10T01:51:13.0102379Z"
+        },
+        "Config": {
+          "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\wait-error\\sample-01\\measurement\\config",
+          "Inventory": [
+            {
+              "RelativePath": "fixture.txt",
+              "Bytes": 16,
+              "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+              "LastWriteTimeUtc": "2026-11-10T01:51:13.0082398Z"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "Scope": "Twelve or fewer local draw.io worker requests only. Raw rows are preserved before descriptive statistics. Request elapsed, CPU kernel/user, process wall lifetime, sampled working/private commit, and OS-observed peaks are distinct. Missing counters are not replaced with zero. Limited lifetime peak rows are retained and are not represented as complete lifetime peaks. No host/editor/Tauri/global memory or speed claim.",
+  "FixtureOnly": true
+}

@@ -1,0 +1,6 @@
+{
+  "Command": "Remove-Item Env:LEVNOTE_IMAGE_REFERENCE_CAPTURE_DIR -ErrorAction SilentlyContinue\n& 'native/scripts/go.ps1' -GoArguments @('test','./modules/markdownview','./app','-count=1')\nexit $LASTEXITCODE",
+  "StartedAtUtc": "2026-11-10T08:06:21.4272878+00:00",
+  "FinishedAtUtc": "2026-11-10T08:06:47.4597672+00:00",
+  "ExitCode": 0
+}

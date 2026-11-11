@@ -1,0 +1,6 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard","-count=1","-v")
+F:\AIproject\LevNote\native\scripts\go.ps1 : �Ҳ�������ʵ�ʲ�����./app����λ����ʽ������
+    + CategoryInfo          : InvalidArgument: (:) [go.ps1]��ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : PositionalParameterNotFound,go.ps1
+ 
+EXIT_CODE=1

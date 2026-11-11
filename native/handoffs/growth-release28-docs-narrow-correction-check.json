@@ -1,0 +1,76 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T11:21:20.0900638Z",
+  "Scope": "Justified narrow docs correction after the original consolidated check exit1. No product task run.",
+  "PreEditBackupDirectory": "C:\\Users\\canace\\AppData\\Local\\Temp\\levnote-growth28-docs-before-2716ca43304349499ac1f36b5f02e4d3",
+  "PreEditBackupFileCount": 6,
+  "OriginalCheckScriptPath": null,
+  "OriginalCheckRawOutputPath": null,
+  "OriginalCheckDisclosure": "The original consolidated check was inline and its raw stdout/stderr was not saved. No original log is reconstructed in this record.",
+  "NarrowCheckScriptPath": null,
+  "NarrowCheckDisclosure": "This one narrow check was inline; its raw JSON result is this file. The script itself was not saved.",
+  "Checks": [
+    {
+      "Name": "historical root README .27 paragraph",
+      "Pass": true,
+      "BeforeSha256": "0D2A64F58E2000BE2ED2ACE42C634D57F2E0DEE414A2A658211C960F1B075891",
+      "AfterSha256": "0D2A64F58E2000BE2ED2ACE42C634D57F2E0DEE414A2A658211C960F1B075891"
+    },
+    {
+      "Name": "historical architecture .21 paragraph",
+      "Pass": true,
+      "BeforeSha256": "089DB805FD53F7EADE93C076A0C8F5026C8485ED8B642B53B6D850C153524960",
+      "AfterSha256": "089DB805FD53F7EADE93C076A0C8F5026C8485ED8B642B53B6D850C153524960"
+    },
+    {
+      "Name": "delivery wrapped phrase normalized-whitespace comparison",
+      "Pass": true,
+      "BeforeSha256": null,
+      "AfterSha256": null
+    },
+    {
+      "Name": "CHANGELOG typo correction",
+      "Pass": true,
+      "BeforeSha256": null,
+      "AfterSha256": null
+    }
+  ],
+  "Pass": true,
+  "FinalIdentities": [
+    {
+      "Path": "README.md",
+      "Bytes": 20885,
+      "Sha256": "C877577DF62F36D914BF3C998CDDB7A737C12E386C08D8BBF287FFA6371A81DE"
+    },
+    {
+      "Path": "ROADMAP.md",
+      "Bytes": 125180,
+      "Sha256": "C0C5B894080D7078D89B5764E55EA9A0A86EF1932B703626EDA38A34712D1F01"
+    },
+    {
+      "Path": "CHANGELOG.md",
+      "Bytes": 156129,
+      "Sha256": "A40AF07961BF84D3766188927862BA77EFFEA764B62A605FBBCC856AC391D098"
+    },
+    {
+      "Path": "native/README.md",
+      "Bytes": 72429,
+      "Sha256": "B3E26A0BC6546608231F2E32E348ADE053848F91CCFE3DB8FA44EDCCF8F01DD0"
+    },
+    {
+      "Path": "native/ARCHITECTURE.md",
+      "Bytes": 72086,
+      "Sha256": "569C3809F8B48C813101269E124C3E5587F9619E50CE1DF3AD6C5DA08501B578"
+    },
+    {
+      "Path": "native/VALIDATION.md",
+      "Bytes": 171577,
+      "Sha256": "63FCF0BAC61101ACA62C14540DFE9125082EE79A217AF7F61240113C7BED4DB7"
+    },
+    {
+      "Path": "native/handoffs/growth-release28-delivery.md",
+      "Bytes": 5576,
+      "Sha256": "1A718D7BD144B4AF1911768FEF72B60C8B4151F9C408469581DA1719BEDF874C"
+    }
+  ]
+}

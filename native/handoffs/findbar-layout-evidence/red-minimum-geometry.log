@@ -1,0 +1,7 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindbarControlsFitMainPaneAtMinimumWindow$","-count=1")
+--- FAIL: TestFindbarControlsFitMainPaneAtMinimumWindow (0.02s)
+    findbar_layout_test.go:41: Find-bar control "正则" is outside the main pane above status at 760x480: ui.Rect{X:759, Y:101, W:50, H:16.510254}
+FAIL
+FAIL	levnote.local/native/app	2.013s
+FAIL
+EXIT_CODE=1

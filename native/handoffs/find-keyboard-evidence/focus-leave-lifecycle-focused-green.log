@@ -1,0 +1,20 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboardFocusLeaveReconcilesComposition$","-count=1","-v")
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/query_to_source
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_source
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/query_to_tab
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_tab
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_and_show
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/replacement_plugins_hide_and_show
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_pending_focus
+--- PASS: TestFindKeyboardFocusLeaveReconcilesComposition (0.20s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/query_to_source (0.10s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_source (0.02s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/query_to_tab (0.02s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_tab (0.01s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_and_show (0.02s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/replacement_plugins_hide_and_show (0.02s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_pending_focus (0.01s)
+PASS
+ok  	levnote.local/native/app	1.634s
+EXIT_CODE=0

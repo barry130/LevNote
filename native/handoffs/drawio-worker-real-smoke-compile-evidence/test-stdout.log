@@ -1,0 +1,5 @@
+=== RUN   TestDrawioManagedRealBundleSmoke
+    drawio_managed_bundle_test.go:122: real managed draw.io smoke requires explicit LEVNOTE_DRAWIO_MANAGED_REAL_SMOKE=1
+--- SKIP: TestDrawioManagedRealBundleSmoke (0.00s)
+PASS
+ok  	levnote.local/native/core/engineruntime	0.735s

@@ -1,0 +1,80 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T05:23:23.6587962Z",
+  "PowerShell": "7.6.9",
+  "ScriptCount": 10,
+  "ParseErrorCount": 0,
+  "Pass": true,
+  "Scripts": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\aggregate.ps1",
+      "Bytes": 33679,
+      "SHA256": "BAA336B15C3AE9D11119D73D9E23F9A6237E08780C5131F2B3D83F6FE8BEE578",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\baseline.ps1",
+      "Bytes": 10582,
+      "SHA256": "88508D9B9F18D501C49EFF3E7DF3374A93A9962D3FA3029ED25AB54A928E925E",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\delivery-lib.ps1",
+      "Bytes": 21192,
+      "SHA256": "3CC43ADB150FBFCB42848C20A77C3D30FDEA0F880E55E95E94AF03662061BC4A",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\initialize-context.ps1",
+      "Bytes": 14720,
+      "SHA256": "75F7F44E7E0462FC392FB627693F373A64F166460C00EDCBFEF2E32883498F2D",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\invoke-stage.ps1",
+      "Bytes": 2653,
+      "SHA256": "97369BF3581B5A31706C87DEE3F584D77FA938D4D47B46D1C98E92CB5B151DA7",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\run-host-smoke.ps1",
+      "Bytes": 30122,
+      "SHA256": "8E44364073FD6390F32BC2F9FC8F0F94B3D9D4D8F61ADDAED6085171A8ED234D",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\run-package.ps1",
+      "Bytes": 16751,
+      "SHA256": "1E3F7573E862BF7CB6F6C4C9788E685A6D6B48BD014D7133BFB7F24B797BB567",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\run-stage.ps1",
+      "Bytes": 2958,
+      "SHA256": "9631549F240DD5E30A3B7DC8F39F1C4566903A1FF59CE5FABBC7A32B0F31F59A",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\source-scope.ps1",
+      "Bytes": 2157,
+      "SHA256": "6CEFB378F9027F66892560CE92D3199C1F5F8C5D12FD32E3F40E557A78DE5FC5",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-release23-preparation-20261110\\static-parse.ps1",
+      "Bytes": 1666,
+      "SHA256": "FC9EA3E3AB5A6A36A80880C9C62E85D495B7E892E3ADE4758B3EEF0AAC2D9E68",
+      "ParseErrorCount": 0,
+      "ParseErrors": []
+    }
+  ]
+}

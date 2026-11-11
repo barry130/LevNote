@@ -1,0 +1,32 @@
+[
+  {
+    "Path": "native/modules/markdownview/links.go",
+    "Bytes": 11353,
+    "SHA256": "6F3283C9B0C36861A327713996FC10561EF2F0DF37292AE0C903E8480CC6D293"
+  },
+  {
+    "Path": "native/modules/markdownview/blocks.go",
+    "Bytes": 3247,
+    "SHA256": "1C1BBCD0282C97E5608E51D2380C50ED791BF27F6D727AB46127183E9B3E3821"
+  },
+  {
+    "Path": "native/modules/markdownview/view.go",
+    "Bytes": 19104,
+    "SHA256": "A720F9D028755DD3EBDEFC16B212C9A19BFA4283B69C238C38816CADDE9268DE"
+  },
+  {
+    "Path": "native/modules/markdownview/links_test.go",
+    "Bytes": 24226,
+    "SHA256": "6264D1490C4E225DCD61329D3FC0B910843F1621857B0AD6A4E54C8A6566A54F"
+  },
+  {
+    "Path": "native/modules/markdownview/image_reference_test.go",
+    "Bytes": 16963,
+    "SHA256": "9EF851FA5A414E0F0F26512822CC4E63AD62F128C9CC9E271A1C6C44E57000BC"
+  },
+  {
+    "Path": "native/app/markdown_image_reference_app_test.go",
+    "Bytes": 7929,
+    "SHA256": "A5CBA2E870AEBBDFD3CD4F9F0C41E1D60962278BCC542DE8C6973C944ABBB0AC"
+  }
+]

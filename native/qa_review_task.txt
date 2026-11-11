@@ -1,0 +1,49 @@
+The user has reauthorized Qiandao 6 Astra on 2026-11-08. This supersedes the
+old model prohibition below. GLM and DeepSeek still compact before 200K.
+
+Independent acceptance pass for the native migration. This task starts only
+after the implementation owners report their current stage ready. Root only
+plans/reviews. Do not spawn agents. GLM/DeepSeek compact before 200K.
+
+Read native/AGENTS.md and native/handoffs/*.md first. Initially read/test only,
+do not modify another active owner's code. Report specific failures and
+reproduction to native/handoffs/qa.md; root will route fixes.
+
+Acceptance areas:
+1. Run native go test ./..., go vet ./..., and release build via scripts/go.ps1.
+   Record exact outcomes, executable size and SHA256. Exclude downloaded Go/
+   module caches from scans and deliverables.
+2. Verify direction: App/UI use contracts; format engines cannot touch files.
+   No references to MyGo prebuilt document editors or WebView/browser engines
+   in the application path. Display RichText and ordinary form inputs are fine.
+3. File safety: untouched save exact bytes, UTF8/UTF16/legacy encoding choices,
+   atomic save and export, same-mtime external conflict, readonly preview/copy,
+   cancellation of close and source/block draft conflicts, recovery semantics.
+4. Plugins: real installation, builtin/custom enable/disable, unconditional
+   plain fallback, duplicate IDs/extensions, invalid/oversize manifests, failure
+   to persist settings, corrupted startup settings. Disabled items remain
+   visible and reusable. No arbitrary code/network plugin execution.
+5. Editor: wrapped multiline caret hit-testing/selection/IME, long line tail,
+   Unicode/grapheme deletion, indentation boundary/undo, resize, inactive cache
+   release with preserved undo. Test the user-facing routes, not only helpers.
+6. Format views: edits dirty the authoritative document before save/recovery,
+   unknown fields survive, unsupported features are visible as limits, labels/
+   notes/drafts aren't discarded on switch. Verify exports independently.
+7. UI: inspect generated source/Markdown/mindmap/drawio/light/dark screenshots.
+   Check clipping, tiny text, wrapping/scrolling, empty states and action states.
+   If doing real native GUI smoke use the computer-use skill and actual
+   observations. Do not call a tester screenshot an OS IME test.
+8. Resource evidence: idle frame scheduling, bounded active view/layout cache,
+   large text input/lookup benchmarks; multiple tabs shouldn't retain inactive
+   renderer caches. Report sampling conditions. Compare old/new memory only
+   if both actually measured under the same workload.
+9. Runtime must remain local; inspect first-party network/telemetry calls and
+   the invoked MyGo startup path. Toolchain downloads during development are
+   distinct from runtime behavior. Verify required permissive dependency
+   notices and that no old third-party editor assets enter the native bundle.
+10. Native docs/README/build scripts must reflect current tested behavior and
+    name unsupported capabilities without marking full parity complete.
+
+Do not accept a green build as proof of data safety, performance or visual
+quality. Prioritize demonstrated data loss or unbounded work above optional
+feature polish. Give root concrete actionable findings, not generic checklists.

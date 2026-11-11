@@ -1,0 +1,6 @@
+{
+  "Command": "& 'native/scripts/go.ps1' -GoArguments @('test','./modules/markdownview','./app','-run','^(TestTableColumns|TestMarkdownColumns)','-count=1','-v')",
+  "StartedAtUtc": "2026-11-10T07:05:29.4364558+00:00",
+  "FinishedAtUtc": "2026-11-10T07:05:36.9354317+00:00",
+  "ExitCode": 1
+}

@@ -1,0 +1,9 @@
+ok  	levnote.local/native/core/text	0.966s
+ok  	levnote.local/native/core/document	1.353s
+ok  	levnote.local/native/core/search	1.323s
+ok  	levnote.local/native/core/session	2.636s
+ok  	levnote.local/native/ui/editor	2.920s
+ok  	levnote.local/native/modules/sourceview	2.406s
+ok  	levnote.local/native/modules/markdownview	5.889s
+ok  	levnote.local/native/modules/graphview	16.495s
+ok  	levnote.local/native/app	41.451s

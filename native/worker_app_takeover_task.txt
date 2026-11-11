@@ -1,0 +1,30 @@
+ACTIVE APP TAKEOVER2026-11-09 01:09local. Root accepted protocol/worker/runtime
+focused checkpoint EAA53F06003BD871D442178F7781CB5AE2425269ED8C2E273E0BF1E7BFCBEB50
+after reading actual source/tests/logs, known symlink skip and three-package vet.
+Those packages and packaging script are now frozen; no extra helper reruns.
+
+Root interrupted DeepSeek app owner00:50local after ACK but
+no app source/handoff >25min despite repeated incremental progress requests.
+Both previous app agents have NO ownership and must stay stopped. Existing
+worker_app_implementation_task.txt contains the implementation requirements;
+handoffs/markdown-worker-contract.md is controlling.
+
+Sole implementation owner /root/astra_marker_view now takes app sequentially.
+Write implementation incrementally for root review. Focused app tests/vet and
+useful760x480light/dark progress/status/cancel screenshots are authorized. No
+full native suite/package/production worker launch until root app gate.
+Root retains planning/review. Previous app/review/protocol agents stay stopped.
+
+Active scope: app/**, additive editor.ExportEngine metadata, Markdown descriptor
+only. Keep fixed runtime/protocol APIs, all lifecycle/publish checks and no
+fallback. No fake process stubs replacing real verification. Existing files
+have no app changes from paused owner as of root's00:49read. Announce before
+write; no concurrency with former owners. Same acceptance and docs obligations.
+
+Actual bundled end-to-end acceptance planning (do not execute yet): app test
+executable can later be compiled beside packaged host/engines, calling real
+NewBundled and registered Markdown exportCurrent with injected SaveDialog only.
+Verify exact HTML/warnings, no source/selection/history/baseline mutation,
+exclusive publishing and no retained process. Label it host-path tester, not
+physical native dialog. Actual packaged host startup/owned WM_CLOSE separately.
+Plan minimal opt-in seam/tests now to avoid a public arbitrary-path runtime API.

@@ -1,0 +1,36 @@
+=== RUN   TestBinarySnapshotExactBytesAndSafeStreams
+--- PASS: TestBinarySnapshotExactBytesAndSafeStreams (0.01s)
+=== RUN   TestBinaryWriteToDoesNotExposePrivateStorage
+--- PASS: TestBinaryWriteToDoesNotExposePrivateStorage (0.00s)
+=== RUN   TestBinarySnapshotRefusesChangedMissingAndSupportsTokenRead
+--- PASS: TestBinarySnapshotRefusesChangedMissingAndSupportsTokenRead (0.01s)
+=== RUN   TestBinaryTokenReadIsConcurrentAndReadOnly
+--- PASS: TestBinaryTokenReadIsConcurrentAndReadOnly (0.01s)
+=== RUN   TestBinaryOpenRejectsUnknownKindOversizeNonregularAndCancellation
+--- PASS: TestBinaryOpenRejectsUnknownKindOversizeNonregularAndCancellation (0.01s)
+=== RUN   TestBinarySaveAsExactNonOverwriteAndSamePathNoRewrite
+--- PASS: TestBinarySaveAsExactNonOverwriteAndSamePathNoRewrite (0.03s)
+=== RUN   TestBinarySaveAsAllowsChangedSourceButNotStaleAuthority
+--- PASS: TestBinarySaveAsAllowsChangedSourceButNotStaleAuthority (0.01s)
+=== RUN   TestBinarySaveAsLosesExclusiveRaceWithoutOverwrite
+--- PASS: TestBinarySaveAsLosesExclusiveRaceWithoutOverwrite (0.01s)
+=== RUN   TestBinarySaveAsReportsPostCommitFailureWithoutAdoption
+--- PASS: TestBinarySaveAsReportsPostCommitFailureWithoutAdoption (0.01s)
+=== RUN   TestBinarySaveAsPublicationAndPostCommitCancellation
+--- PASS: TestBinarySaveAsPublicationAndPostCommitCancellation (0.01s)
+=== RUN   TestBinarySnapshotRejectsNilAndMissingFileAuthority
+--- PASS: TestBinarySnapshotRejectsNilAndMissingFileAuthority (0.00s)
+=== RUN   TestBinarySaveAsMidcopyCancellationLeavesNoDestination
+--- PASS: TestBinarySaveAsMidcopyCancellationLeavesNoDestination (0.01s)
+=== RUN   TestBinaryStableReadRejectsShortReadAndFinalCancellation
+--- PASS: TestBinaryStableReadRejectsShortReadAndFinalCancellation (0.00s)
+=== RUN   TestBinarySameSizeRestoredMtimeReplacementIsRejected
+--- PASS: TestBinarySameSizeRestoredMtimeReplacementIsRejected (0.00s)
+=== RUN   TestBinaryReplaceByRenameChangesIdentity
+--- PASS: TestBinaryReplaceByRenameChangesIdentity (0.01s)
+=== RUN   TestBinaryEmptyCopyAndDeletedSourceHeldSnapshot
+--- PASS: TestBinaryEmptyCopyAndDeletedSourceHeldSnapshot (0.01s)
+=== RUN   TestBinaryCrossAuthoritySnapshotCannotBeAdopted
+--- PASS: TestBinaryCrossAuthoritySnapshotCannotBeAdopted (0.01s)
+PASS
+ok  	levnote.local/native/core/document	0.727s

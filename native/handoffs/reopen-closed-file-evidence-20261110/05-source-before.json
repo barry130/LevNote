@@ -1,0 +1,37 @@
+[
+  {
+    "Path": "app/app.go",
+    "Length": 38029,
+    "Sha256": "C1061C650ED8A5FF3231F3642B003225D2155508F1C8B435B40981CE5052F1D3"
+  },
+  {
+    "Path": "app/reopen_closed.go",
+    "Length": 7895,
+    "Sha256": "BFCA75BA0E2A878483133ECE43530742C424623CBE6B8809F1285C9E04C62E92"
+  },
+  {
+    "Path": "app/binary.go",
+    "Length": 10170,
+    "Sha256": "AE2F059F0E91C812A82FFE3F0317EAFE7E2F0B0CE9AEB3AA5056F713C555226D"
+  },
+  {
+    "Path": "app/binary_actions.go",
+    "Length": 9626,
+    "Sha256": "84129D789A02A16B57B467A52E5C6B0E99278FE7A4F5F8DBBC02ED06EB701E11"
+  },
+  {
+    "Path": "app/view.go",
+    "Length": 23002,
+    "Sha256": "195AFA3D82E7612A0CDBEC6A9D0F0432777F492CAB4D94596B0C6F2329C83456"
+  },
+  {
+    "Path": "app/workspace.go",
+    "Length": 6715,
+    "Sha256": "B1492575D6C64673BF02E633C0D7049F47BF151391B4CA58F58F3779599AF259"
+  },
+  {
+    "Path": "app/reopen_closed_test.go",
+    "Length": 27234,
+    "Sha256": "480E666DF7E2D82268AA79C5702C164EA9BDA30B2062513C2AB7A68D3DCBD012"
+  }
+]

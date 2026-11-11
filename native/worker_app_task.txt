@@ -1,0 +1,32 @@
+Fresh context GLM app owner. Root coordinates/reviews only; all implementation,
+test/build/launch delegated. No child agents; compact before200K tokens. CWD
+F:\AIproject\LevNote, PowerShell, no sandbox_permissions argument.
+
+INITIAL TASK READ-ONLY APP DESIGN CHECK. Marker release currently frozen and
+Astra alone is full integrator/final docs owner. Old glm_marker_app and
+glm_formats_finish are interrupted, do not resume them. You have no product
+write/test/build ownership until root explicitly activates next stage.
+
+Read handoffs/markdown-worker-contract.md (QUEUED, controlling) and app/export.go,
+app.go/workspace.go lifecycle, plugins.go, ui/editor/contract.go. Review ONLY
+the proposed app async job, source snapshot, late completion/draft Flush,
+SaveDialog nested events, accepted/canceled close, cached plugin status.
+Report concise material implementation risks <=1page in
+handoffs/markdown-worker-app-review.md. Send ACK promptly. No speculative
+framework or second publish policy: existing synchronous exclusive WriteNewFile
+is final publication boundary, cannot be canceled once started.
+
+If later activated you will own app/** job/UI/hooks/tests, exactly additive
+Adapter.ExportEngine in editor contract + Markdown adapter assignment, final
+docs/integration when assigned. Pure engineipc and worker belong fresh GLM
+protocol owner; core/engineruntime+packaging belong Astra. Do not edit peers.
+No hardcoded concrete format import in shell; descriptor routes fixed engine.
+One admitted job, no background persistent child, no silent fallback. A failure
+retains drafts and never publishes. New ordinary host-only build can lack bundle;
+app must show unavailable only on attempted export, preserving normal editing.
+
+Read test oracles carefully: don't confuse text Find bounds with RoleButton
+bounds; independent expected values only. Final marker PASS evidence at
+artifacts/acceptance/mindmap-markers-20261108-234731-final-run belongs prior
+stage, no need repeat. Each future attempt uses fresh evidence directories.
+No fabricated historical logs or root approvals. Go via scripts/go.ps1 only.

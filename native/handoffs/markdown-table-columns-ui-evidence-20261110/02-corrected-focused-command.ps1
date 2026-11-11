@@ -1,0 +1,1 @@
+& 'native/scripts/go.ps1' -GoArguments @('test','./modules/markdownview','./app','-run','^(TestTableColumns(Boundary|Narrow|Rapid)|TestMarkdownColumns|TestTableAlignment(Rapid|Narrow)|TestTableRowsRapid)','-count=1','-v')

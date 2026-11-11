@@ -1,0 +1,5 @@
+# levnote.local/native/app [levnote.local/native/app.test]
+app\binary_keyboard_test.go:90:29: a.heldBinary(imageTab).SameBaseline undefined (type *document.BinarySnapshot has no field or method SameBaseline)
+FAIL	levnote.local/native/app [build failed]
+FAIL
+EXIT=1

@@ -1,0 +1,29 @@
+{
+    "Schema":  1,
+    "CreatedAtUtc":  "2026-11-10T01:39:51.3877697Z",
+    "PowerShell":  "5.1.26100.9168",
+    "ScriptCount":  2,
+    "ParseErrorCount":  0,
+    "Pass":  true,
+    "Scope":  "Static parse only; no wrapper execution, tester launch, worker request, host request, compile, preflight, or product run.",
+    "Scripts":  [
+                    {
+                        "Path":  "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\run-matrix.ps1",
+                        "Bytes":  21487,
+                        "SHA256":  "0f722793e4a1168c0f9730b983a9da93732d5c423ed1db1b44aa5b6a7536eba7",
+                        "ParseErrorCount":  0,
+                        "ParseErrors":  [
+
+                                        ]
+                    },
+                    {
+                        "Path":  "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\summarize-matrix.ps1",
+                        "Bytes":  7155,
+                        "SHA256":  "83c88813f32bc7f492df8ac4be200192f672e0c1478f04786815e87bd842dc24",
+                        "ParseErrorCount":  0,
+                        "ParseErrors":  [
+
+                                        ]
+                    }
+                ]
+}

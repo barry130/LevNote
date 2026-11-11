@@ -1,0 +1,11 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:38:42.8031855Z",
+  "Scope": "Preserved second final-parse invocation failure before a parse record was written: a patch removed the closing parenthesis from the script-path array. This is a static-parse helper syntax failure only; no wrapper, tester, worker, host, build, preflight, or product execution occurred.",
+  "ExitCode": 1,
+  "OriginalCommand": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-static-parse-3-command.txt",
+  "OriginalStdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-static-parse-3-stdout.txt",
+  "OriginalStderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-static-parse-3-stderr.txt",
+  "ResultWritten": false,
+  "Correction": "Restore the missing script-path array closing parenthesis."
+}

@@ -1,0 +1,48 @@
+You are the fresh sole app acceptance/documentation/integration owner. Root
+coordinates only. Old deepseek_plugins_app and read_native_marker_app_task_txt
+are paused and have no ownership. Current owner /root/glm_marker_app uses
+crouter/GLM-5.3. Do NOT resume old agents or delegate. Compact before200K tokens.
+
+Workspace F:\AIproject\LevNote. FIRST finish accepted Markdown cell docs,
+then implement app marker acceptance under native/handoffs/mindmap-markers-contract.md.
+Current accepted binary native/bin/levnote-native.exe is13425152bytes SHA256
+34F3F48C98300B053B0BA0E69BE9D9F89CDA15E17759E6A26AD817A1E9C1D14C,
+mtimeUTC2026-11-08T13:45:35.0697169Z. Root read full actual evidence and ACCEPTED.
+Evidence native/artifacts/acceptance/markdown-cells-20261108-213713/result.json
+SHA E3AD9163C07EBA90C6436069BBE751DAACEBB029E8EB8D8FFDBE4DF9112D9BF8;
+validator12/12PASS. Tests9.147s/vet1.941s/build2.516s exit0, hidden startup
+3.875s with ownedPID25664 native hidden window/WM_CLOSE exit0/sentinels unchanged.
+Previous20:49 first-table exe preserved in same evidence dir (13384192bytes,
+SHA7632B1C50D9536B25A12CF9FA7E288B62F903A3B4ABA9896EF8849356864BBCD).
+
+Write separate root-acceptance.json referencing immutable result and validator
+hashes; do NOT change hashed aggregate. Update native/README.md, VALIDATION.md,
+ARCHITECTURE/API where stale, root README/ROADMAP/CHANGELOG and relevant handoff
+to accepted current cell release, no stale 'pending'. New cell draft is LOCAL
+until Finish/Save and not captured in session/crash recovery; mention faithfully.
+Final integrated760x480 dark image shows recovery controls, table body may be
+below viewport; don't claim all rows visible. Hidden smoke is not realGPU/OSIME.
+No current resource comparisons; only older16:45 evidence exists with limitation.
+
+Evidence correction: initial full test failed only stale RoleCell test selector,
+root read failure and approved test-only fix; next full runPASS. Prior agent
+wrongly reused directory so failed raw streams/metadata were overwritten.
+Do NOT fabricate them or claim retained. Record historical failure from
+handoffs/integration.md as root-observed/report, not raw evidence. Fix typo
+'failedظ' and stale present-tense 'test.stdout.log records failure'. Update
+OUTPUT-PROVENANCE honestly, without changing immutable result/validator.
+No new tests/build/smoke for these doc fixes.
+
+NEXT: active markers scope is app/** actual registered adapter tests and final
+docs, no shell product edits unless demonstrated defect. View owner is fresh
+/root/astra_marker_view; format owner /root/glm_formats_finish.
+API Icons/SetIcons is ready. UI stable labels: 展开标记面板 / 收起标记面板;
+优先级 1..优先级 9, 红色标记/橙色标记/黄色标记/绿色标记/蓝色标记/紫色标记,
+星标标记/完成标记/重要标记/疑问标记; 清空全部标记. Read final contract
+and existing app integration tests; coordinate focused native pointer/key,
+save/reopen/BOM/undo/redo/source-preview-split/readonly and pending-field barriers.
+Run only focused app marker tests/vet once view ready; final760x480light/dark
+integrated screenshots. Do NOT repeat peer test suites. Publish handoff
+native/handoffs/mindmap-markers-app.md. Full test/vet/build/smoke waits root gate.
+Each future integration attempt MUST use a NEW artifact directory to preserve
+failed raw records. No resource sampling, benchmarks, commits or pushes.

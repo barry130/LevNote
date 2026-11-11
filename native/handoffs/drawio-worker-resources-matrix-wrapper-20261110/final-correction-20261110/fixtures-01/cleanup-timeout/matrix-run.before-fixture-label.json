@@ -1,0 +1,771 @@
+{
+  "Schema": 1,
+  "Status": "FAIL",
+  "CreatedAtUtc": "2026-11-10T01:51:13.5701467Z",
+  "RepositoryRoot": "F:\\AIproject\\LevNote",
+  "Tester": {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+    "Bytes": 7528448,
+    "SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+    "LastWriteTimeUtc": "2026-11-09T22:00:51.9592937Z"
+  },
+  "PreflightRecord": {
+    "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\preflight-output\\preflight.json",
+    "Bytes": 8797,
+    "SHA256": "1722314a3c99f4f70eb42f9e8b13078a3230a8f9642d2359d1884e9a9688911c",
+    "LastWriteTimeUtc": "2026-11-09T22:02:12.7544945Z"
+  },
+  "OutputRoot": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\cleanup-timeout",
+  "SampleTimeoutSeconds": 120,
+  "CleanupTimeoutSeconds": 10,
+  "PackageProtection": [
+    {
+      "Version": "native-worker.20261110.20",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3121664,
+          "SHA256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.5408244Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "6175456b457fc85bd96e1a2ce2dbb8172474cdf6cdcde790ac80453f45c73fac",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.6614133Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "b32b43668e5072623981a6c5627e960ab1ca8088d0205c0d6232edcc6d889856",
+          "LastWriteTimeUtc": "2026-11-09T19:19:10.9643243Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "3e553a074f7a946f628ec1357a3f672b1637396625160e2e7d65c51215033f77",
+          "LastWriteTimeUtc": "2026-11-09T19:19:11.1778279Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "705f7c0caa83f785e55d6cd5fb4d92a054dc57f1cfb7ec8bfc21a0e69424f8f7",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.4025281Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "a99e79e5f1a211683986c13c3b73a2209c1f7afe3a111e30db7e5f997d076498",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.5277959Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "9fb4eb306825b4c8b678de790d7fd42d12666cedf745dce92bc7d4ed496cb193",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.3690616Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "66b7bc76d50c5c41ee443968f4570da524623022ec5b8b8cb9b01ca7e52b2931",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.5000684Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14095360,
+          "SHA256": "4b776f634a3626f2bdd15303e175fe38cc4908d566ac54a6d25f51d989b4f34e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.3780141Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36.0000000Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "9bedc3cb386f1ea5f02117d22d9fa8606f00d93d17978e2a1792a1d8a4a6bb5e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8747987Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.9626610Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8767957Z"
+        }
+      ]
+    },
+    {
+      "Version": "native-worker.20261110.21",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3124736,
+          "SHA256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.8245830Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "caff96ac3181d9c5160a099ff9282fe37df9b11374c95472bd2237539fa14c18",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.9622855Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "3c8ecc586a5c04cf3c72593c83a75424a497d5300a24536612b6e4ab6b12ab2e",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.4952651Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "42c4fc450c5bbc76e3330c311740d15faef150c53c85d7561e352d69603072af",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.6989973Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "0f717b5a2ef820f9f415e36ebae9c934cdee6fd80c68a23eb31c1e3dde20b0d7",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.7487793Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "39eae741e18d6ef57ab87187c32289c1c88059fa191c6ac5ba05b57ec1ca258b",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.8748555Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "1ac1f9ba36c6e4fa6faf7c3fd069877e649ac4abbec308b6e0dccebeb059ff76",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.4944436Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "eb98c128b953997a050facbea2c0c0035b371953fa0036411180d904890eb0cc",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.6190127Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14097920,
+          "SHA256": "2c400d3730aee64fc380ca0312b44baab1c0803aa70ba96525804bb4b436b329",
+          "LastWriteTimeUtc": "2026-11-09T20:58:53.9187695Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36.0000000Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "8baa5ef08314f89a3cfbb7e552f6028b459ee13a4e8456a9bbdad77b499c4e8d",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1621588Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.2522213Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1645872Z"
+        }
+      ]
+    }
+  ],
+  "Rows": [
+    {
+      "Index": 1,
+      "MatrixPosition": 1,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 1,
+      "Status": "FAIL",
+      "StartedAtUtc": "2026-11-10T01:51:13.5718387Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\cleanup-timeout\\sample-01\\measurement"
+        }
+      },
+      "ExitCode": null,
+      "TimedOut": true,
+      "CleanupError": "Exact tester object did not exit within 10 seconds after Kill.",
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:13.5871750Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:13.5889940Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\cleanup-timeout\\sample-01\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:13.5789595Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\cleanup-timeout\\sample-01\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:13.5789595Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\cleanup-timeout\\sample-01\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "1e525a91d002a5d6dbfc2b57eb4df4bfb8d56b591a14cd39698a4b48d85b5c80",
+        "LastWriteTimeUtc": "2026-11-10T01:51:13.5829681Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\cleanup-timeout\\sample-01\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:13.5809595Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 101,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": [
+        "tester timeout",
+        "tester exit ",
+        "cleanup failure"
+      ]
+    }
+  ],
+  "PackageAfter": [
+    {
+      "Version": "native-worker.20261110.20",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.20",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3121664,
+          "SHA256": "70c15942339ecf074f81192c01ce652b19fdbc7dbdfaba139fed22e66c46fe9a",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.5408244Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "6175456b457fc85bd96e1a2ce2dbb8172474cdf6cdcde790ac80453f45c73fac",
+          "LastWriteTimeUtc": "2026-11-09T19:19:14.6614133Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "b32b43668e5072623981a6c5627e960ab1ca8088d0205c0d6232edcc6d889856",
+          "LastWriteTimeUtc": "2026-11-09T19:19:10.9643243Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "3e553a074f7a946f628ec1357a3f672b1637396625160e2e7d65c51215033f77",
+          "LastWriteTimeUtc": "2026-11-09T19:19:11.1778279Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "705f7c0caa83f785e55d6cd5fb4d92a054dc57f1cfb7ec8bfc21a0e69424f8f7",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.4025281Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "a99e79e5f1a211683986c13c3b73a2209c1f7afe3a111e30db7e5f997d076498",
+          "LastWriteTimeUtc": "2026-11-09T19:19:13.5277959Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "9fb4eb306825b4c8b678de790d7fd42d12666cedf745dce92bc7d4ed496cb193",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.3690616Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "66b7bc76d50c5c41ee443968f4570da524623022ec5b8b8cb9b01ca7e52b2931",
+          "LastWriteTimeUtc": "2026-11-09T19:19:12.5000684Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14095360,
+          "SHA256": "4b776f634a3626f2bdd15303e175fe38cc4908d566ac54a6d25f51d989b4f34e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.3780141Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36.0000000Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "9bedc3cb386f1ea5f02117d22d9fa8606f00d93d17978e2a1792a1d8a4a6bb5e",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8747987Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "53c0b71c317734001596988f6ab2bf44201879cc322ba9db3b9ab494e553dbfa",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.9626610Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T19:19:16.8767957Z"
+        }
+      ]
+    },
+    {
+      "Version": "native-worker.20261110.21",
+      "Root": "F:\\AIproject\\LevNote\\native\\bin\\levnote-native-worker-20261110.21",
+      "Inventory": [
+        {
+          "RelativePath": "attribution\\dependency-patches-README.md",
+          "Bytes": 3114,
+          "SHA256": "3ec4993d66cc9bd39d853c6daad52e5d42c3c8b86ca8fbb63affc2b42e9bc8bc",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9151288Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-README.md",
+          "Bytes": 3812,
+          "SHA256": "f213ebbafa038865225762ff811db40ec8747a8a72968d3873ee22ab82bc6ac2",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1349506Z"
+        },
+        {
+          "RelativePath": "attribution\\mygo-v0.8.3-no-startup-cleanup.patch",
+          "Bytes": 516,
+          "SHA256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+          "LastWriteTimeUtc": "2026-11-08T03:27:02.8931926Z"
+        },
+        {
+          "RelativePath": "attribution\\purego-README.md",
+          "Bytes": 5505,
+          "SHA256": "87af3eb64f293f458beafea09181676680a17e6b0ff4491cf4a07f97b5474b99",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0355774Z"
+        },
+        {
+          "RelativePath": "attribution\\SOURCE_THIRD_PARTY_NOTICES.txt",
+          "Bytes": 6390,
+          "SHA256": "41a9f7b6526b85576f5e44263211a2ea61b3371a112a66f772a7a62a7a1ba8b2",
+          "LastWriteTimeUtc": "2026-11-08T18:14:38.9140297Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\levnote-drawio-svg.exe",
+          "Bytes": 3124736,
+          "SHA256": "16e51c34688d39625626eab8a4d68aeb507ecc1cb9ffba7ea7478f9b8c0ff5d4",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.8245830Z"
+        },
+        {
+          "RelativePath": "engines\\drawio-svg\\manifest.json",
+          "Bytes": 327,
+          "SHA256": "caff96ac3181d9c5160a099ff9282fe37df9b11374c95472bd2237539fa14c18",
+          "LastWriteTimeUtc": "2026-11-09T20:58:51.9622855Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\levnote-markdown-export.exe",
+          "Bytes": 3303424,
+          "SHA256": "3c8ecc586a5c04cf3c72593c83a75424a497d5300a24536612b6e4ab6b12ab2e",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.4952651Z"
+        },
+        {
+          "RelativePath": "engines\\markdown-export\\manifest.json",
+          "Bytes": 338,
+          "SHA256": "42c4fc450c5bbc76e3330c311740d15faef150c53c85d7561e352d69603072af",
+          "LastWriteTimeUtc": "2026-11-09T20:58:48.6989973Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\levnote-mindmap-preview.exe",
+          "Bytes": 3140608,
+          "SHA256": "0f717b5a2ef820f9f415e36ebae9c934cdee6fd80c68a23eb31c1e3dde20b0d7",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.7487793Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-preview\\manifest.json",
+          "Bytes": 350,
+          "SHA256": "39eae741e18d6ef57ab87187c32289c1c88059fa191c6ac5ba05b57ec1ca258b",
+          "LastWriteTimeUtc": "2026-11-09T20:58:50.8748555Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\levnote-mindmap-svg.exe",
+          "Bytes": 3126272,
+          "SHA256": "1ac1f9ba36c6e4fa6faf7c3fd069877e649ac4abbec308b6e0dccebeb059ff76",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.4944436Z"
+        },
+        {
+          "RelativePath": "engines\\mindmap-svg\\manifest.json",
+          "Bytes": 329,
+          "SHA256": "eb98c128b953997a050facbea2c0c0035b371953fa0036411180d904890eb0cc",
+          "LastWriteTimeUtc": "2026-11-09T20:58:49.6190127Z"
+        },
+        {
+          "RelativePath": "levnote-native.exe",
+          "Bytes": 14097920,
+          "SHA256": "2c400d3730aee64fc380ca0312b44baab1c0803aa70ba96525804bb4b436b329",
+          "LastWriteTimeUtc": "2026-11-09T20:58:53.9187695Z"
+        },
+        {
+          "RelativePath": "LICENSE",
+          "Bytes": 1092,
+          "SHA256": "8fda1768825826229ba67b0708c8d5b6e5250411e039fce4549072c40a4bfb7b",
+          "LastWriteTimeUtc": "2026-10-09T03:44:37.7669716Z"
+        },
+        {
+          "RelativePath": "licenses\\Go-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-10-19T14:20:36.0000000Z"
+        },
+        {
+          "RelativePath": "licenses\\go-text-typesetting.txt",
+          "Bytes": 3006,
+          "SHA256": "6b1bf94c77d7faa0ce94f8745595bfaf4c404f8b3873f5c2ce55ca15f8e44eca",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.6823043Z"
+        },
+        {
+          "RelativePath": "licenses\\mygo-MIT.txt",
+          "Bytes": 1074,
+          "SHA256": "f0b56f4ab53beb6e18c5e155219c2e2b6000b5475c0ae3ddb3af3894fd9349b4",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.1344266Z"
+        },
+        {
+          "RelativePath": "licenses\\purego-Apache-2.0.txt",
+          "Bytes": 11357,
+          "SHA256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.0350418Z"
+        },
+        {
+          "RelativePath": "licenses\\x-image-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7522048Z"
+        },
+        {
+          "RelativePath": "licenses\\x-net-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7805018Z"
+        },
+        {
+          "RelativePath": "licenses\\x-text-BSD-3-Clause.txt",
+          "Bytes": 1453,
+          "SHA256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "LastWriteTimeUtc": "2026-11-08T03:42:29.7869539Z"
+        },
+        {
+          "RelativePath": "README.md",
+          "Bytes": 12469,
+          "SHA256": "8baa5ef08314f89a3cfbb7e552f6028b459ee13a4e8456a9bbdad77b499c4e8d",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1621588Z"
+        },
+        {
+          "RelativePath": "release-manifest.json",
+          "Bytes": 4490,
+          "SHA256": "c2556b0e372466b5f67febf7c9fbacba0d44050b00f9892c64837ed16ce9a824",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.2522213Z"
+        },
+        {
+          "RelativePath": "THIRD_PARTY_NOTICES.md",
+          "Bytes": 6868,
+          "SHA256": "704aa5c9e6ade5c284f503d0096932b461a1b4b0ebb197bdc6674da08c84870c",
+          "LastWriteTimeUtc": "2026-11-09T20:58:54.1645872Z"
+        }
+      ]
+    }
+  ],
+  "PackageProtectionErrors": [],
+  "PackageProtectionEqual": true,
+  "StoppedAtFirstFailure": true,
+  "CompletedRows": 1,
+  "PassedRows": 0,
+  "FailedRows": 1,
+  "FinishedAtUtc": "2026-11-10T01:51:13.7116387Z"
+}

@@ -1,0 +1,42 @@
+Workspace search resource review — GLM, after parser/disk API checkpoint
+
+Root reviewed core/search/workspace.go. This is a focused continuation of the
+resource stage, not a feature expansion; do it after publishing parser and
+document token APIs so DeepSeek can proceed. Do not edit session or views.
+
+Two concrete limits currently depend on unchecked assumptions:
+- filepath.WalkDir sorts/loads the whole directory even though emitted result
+  batches are64 and matches2000. A very broad directory is allocated before
+  those result caps help. Use bounded directory batches/a traversal budget and
+  explicit skipped/truncated evidence. Preserve no-symlink-follow policy,
+  cancellation and directory exclusions. Determinism can be scoped to each
+  bounded batch; disclose limits rather than allocating the whole directory.
+- entry.Info().Size() <= opts.MaxFileBytes is checked before document.Open,
+  whose hard read limit is128MiB. A file growing after stat can cause a full
+  large document read/decode/buffer before the4MiB search limit is applied.
+  Provide a minimal document limited-open/read API or safe internal boundary
+  so the actual read enforces opts.MaxFileBytes. Never duplicate encoding or
+  stable-read semantics in the search layer.
+
+Read/test the current source first. If these paths are already corrected by
+your concurrent work, record that evidence instead of repeating changes.
+Tests should use fake/counting directory reader or controlled read hook where
+appropriate, bounded real fixtures, growing-file read bound, cancellation and
+preserved result UTF16 ranges. Avoid giant real folders or intentional OOM.
+Report focused command/results in handoffs/formats.md. Then finish native
+README/capabilities/ADR/notices; no new product features before documentation.
+
+Root checkpoint review, continued 2026-11-08:
+- Current workspace.go still calls filepath.WalkDir. Its callback MaxEntries
+  guard runs after an entire directory has been read/sorted. Thus the handoff
+  statement "without allocating an unbounded directory list" is not true yet.
+  Replace that traversal with bounded reads; do not merely lower MaxEntries.
+- OpenLimitedRead errors above the read limit must be classified visibly as
+  too-large (currently only binary and encoding errors get special reasons).
+- Demonstrate bounded reader work, cancellation and growing-file read limit
+  with meaningful controlled/counting fixtures, as originally requested.
+- disk.go now includes final after/current size+mtime comparison; preserve it.
+  Correct handoff prose: Save checks fingerprints internally; it does not call
+  Document.CheckExternalChange as its pre-save authority.
+- Publish a truthful focused checkpoint before final acceptance. Documentation
+  may progress concurrently; the search gate remains open until addressed.

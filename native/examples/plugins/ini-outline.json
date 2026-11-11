@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "id": "ini-outline",
+  "name": "INI outline",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "extensions": [".ini"],
+  "lineComment": "#",
+  "outline": [
+    {
+      "prefix": "[",
+      "suffix": "]",
+      "level": 1
+    },
+    {
+      "prefix": "# ",
+      "suffix": "",
+      "level": 2
+    }
+  ]
+}

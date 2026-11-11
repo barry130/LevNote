@@ -1,0 +1,26 @@
+=== RUN   TestRecoveryAutosaveWithoutViewUsesQueuedUIAndDoesNotFlush
+--- PASS: TestRecoveryAutosaveWithoutViewUsesQueuedUIAndDoesNotFlush (0.03s)
+=== RUN   TestRecoveryAutosaveDebounceAndNonEditCoalescing
+--- PASS: TestRecoveryAutosaveDebounceAndNonEditCoalescing (0.01s)
+=== RUN   TestRecoveryAutosaveModalExitResumesWithoutView
+--- PASS: TestRecoveryAutosaveModalExitResumesWithoutView (0.01s)
+=== RUN   TestRecoveryAutosaveRestoreAndShutdownInvalidateLateCallbacks
+=== RUN   TestRecoveryAutosaveRestoreAndShutdownInvalidateLateCallbacks/restore_transaction
+=== RUN   TestRecoveryAutosaveRestoreAndShutdownInvalidateLateCallbacks/shutdown
+--- PASS: TestRecoveryAutosaveRestoreAndShutdownInvalidateLateCallbacks (0.02s)
+    --- PASS: TestRecoveryAutosaveRestoreAndShutdownInvalidateLateCallbacks/restore_transaction (0.01s)
+    --- PASS: TestRecoveryAutosaveRestoreAndShutdownInvalidateLateCallbacks/shutdown (0.01s)
+=== RUN   TestRecoveryAutosaveExplicitCloseSupersedesQueuedCapture
+--- PASS: TestRecoveryAutosaveExplicitCloseSupersedesQueuedCapture (0.01s)
+=== RUN   TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry
+=== RUN   TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry/automatic
+=== RUN   TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry/failed_close
+--- PASS: TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry (0.03s)
+    --- PASS: TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry/automatic (0.01s)
+    --- PASS: TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry/failed_close (0.01s)
+=== RUN   TestRecoveryAutosaveBinaryNonEditStoresOnlyMetadata
+--- PASS: TestRecoveryAutosaveBinaryNonEditStoresOnlyMetadata (0.02s)
+=== RUN   TestRecoveryAutosaveHeadlessInlineDispatcherNeverArmsRealTimer
+--- PASS: TestRecoveryAutosaveHeadlessInlineDispatcherNeverArmsRealTimer (0.01s)
+PASS
+ok  	levnote.local/native/app	1.971s

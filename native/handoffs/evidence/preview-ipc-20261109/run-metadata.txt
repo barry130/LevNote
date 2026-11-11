@@ -1,0 +1,8 @@
+testArguments=test ./core/enginecatalog ./core/engineipc -count=1
+testExit=0
+testStart=2026-11-09T07:51:40.1952115+08:00
+testEnd=2026-11-09T07:51:41.2973835+08:00
+vetArguments=vet ./core/enginecatalog ./core/engineipc
+vetExit=0
+vetStart=2026-11-09T07:51:41.2974825+08:00
+vetEnd=2026-11-09T07:51:41.6241958+08:00

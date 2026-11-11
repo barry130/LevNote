@@ -1,0 +1,9 @@
+{
+  "schema": 3,
+  "id": "thoughts",
+  "name": "想法导图",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "extensions": [".thoughts"],
+  "nativeRoute": "builtin.mindmap"
+}

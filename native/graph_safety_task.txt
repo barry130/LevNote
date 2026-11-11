@@ -1,0 +1,49 @@
+Graph view safety and lifecycle — root assignment for Astra
+
+Start only after root confirms GLM has handed off modules/graphview/**.
+Own modules/graphview/** and the existing editor/text/script ownership only.
+Do not edit format engines, app, session, or Markdown. Coordinate API gaps.
+No subagents, commits or pushes. Write progress/results to handoffs/graph.md.
+
+Stage A acceptance requirements:
+
+1. Implement optional Flush with explicit pending-label/note/metadata state.
+   A failed mutation, buffer group ownership conflict, parse failure, or source
+   edit must never cause ensureSynced, selection/page changes, or Release to
+   erase pending input. Normal changes may write through immediately; failure
+   must retain the user's draft, expose the failure, and block unsafe actions.
+   Handle actual native TextInput composition/Changed semantics rather than
+   assuming each rendered frame commits a complete value.
+2. Detect conflict against the edited node/field on the current authoritative
+   buffer. Preserve unrelated source edits. Do not apply a stale field to a
+   different node/page. Offer Host.RecoverDraft into a separate unsaved copy
+   for a conflict and retain the draft if recovery fails. Do not overwrite
+   the authoritative source as a recovery action.
+3. Flush before export/structural edits/page/selection/undo where needed.
+   Release should clear parsed/layout caches but be safe with pending input;
+   Release -> Draw/Warnings/Export must rebuild for unchanged Buffer.Version.
+   Retain graph-owned selection/page/zoom/pan state across lifecycle if the
+   App retains the view; report any host contract gap (host currently drops
+   View pointers on every tab switch). Never retain inactive heavy caches.
+4. Verify original bytes on untouched save/export, edited unknown metadata,
+   read-only pages/documents, failed edits, selection changes and undo. Make
+   unsupported shapes/images/rendering explicit without deleting their data.
+5. Focused tests + vet on graphview; include failure scenarios rather than
+   only setting draft fields and immediately invoking success methods.
+
+Current code findings from root:
+- labelDraft is overwritten by ensureSynced -> refreshLabelDraft when host
+  buffer changes, and parse failure clears it. renameSelected discards the
+  error result; TextInput.Changed invokes it immediately.
+- noteDraft/noteID/noteOpen exist but current UI does not expose editing;
+  field setters compare v.noteDraft rather than their actual argument. Keep
+  this stage scoped to safe existing behavior; remove stale scaffolding or
+  make it correct before optional features later.
+- Release clears model/layout and lastSynced now uses ^uint64(0). Retain
+  this invalidation fix. Export currently does not call Flush.
+- drawToolbar page changes currently mutate pageIndex/selection directly.
+- documentAllNodes recursively concatenates arrays; avoid large-tree
+  quadratic traversal if practical while preserving scope.
+
+After focused Stage A completion, report and await independent acceptance or
+Stage C task. Do not expand graph feature scope before integrated checks.

@@ -1,0 +1,14 @@
+ok  	levnote.local/native/core/text	0.825s
+ok  	levnote.local/native/core/document	0.939s
+ok  	levnote.local/native/core/search	0.889s
+ok  	levnote.local/native/ui/editor	1.643s
+ok  	levnote.local/native/modules/markdownview	1.748s
+ok  	levnote.local/native/modules/graphview	2.036s
+--- FAIL: TestGrowthAppSourceCompositionBlocksLifecycleUntilRetryOrCancel (0.11s)
+    --- FAIL: TestGrowthAppSourceCompositionBlocksLifecycleUntilRetryOrCancel/first/cancel (0.02s)
+        document_growth_test.go:157: resolved input could not save 保存前未能完成文本输入：此次编辑超过文档的 UTF-8 内容上限（4 字节）；请先缩短内容或拆分文档后重试；输入法内容尚未接受，请缩短后重试，或按 Esc 取消本次输入
+    --- FAIL: TestGrowthAppSourceCompositionBlocksLifecycleUntilRetryOrCancel/ongoing/cancel (0.02s)
+        document_growth_test.go:157: resolved input could not save 保存前未能完成文本输入：此次编辑超过文档的 UTF-8 内容上限（4 字节）；请先缩短内容或拆分文档后重试；输入法内容尚未接受，请缩短后重试，或按 Esc 取消本次输入
+FAIL
+FAIL	levnote.local/native/app	1.937s
+FAIL

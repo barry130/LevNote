@@ -1,0 +1,46 @@
+Next stage plan — start only after integrated safety checkpoint
+
+Root will assign explicit owners/sequence. Current implementation remains in
+the three agents' owned directories. No new engines or external libraries are
+needed for these increments.
+
+Priority 1: keep disk work off the interactive UI (app + document contracts).
+- Watch events currently run all open-file hashes and tree scans inside
+  Window.Update. Capture immutable path/baseline tokens on the UI thread;
+  worker compares disk state; apply results only if the tab/path/baseline still
+  match. A Save/SaveAs/Reload must invalidate old results. Do not pass a mutable
+  Document to worker methods. Coalesce bursts and allow cancellation/shutdown.
+- Readonly file previews also need external-change notification. Failures
+  remain visible and usable saved content is retained. Focus check uses the
+  same worker route. Full-byte conflict checks before save remain authoritative.
+- Keep bounded directory batches, disclose per-directory/total/depth limits
+  accurately, and virtualize visible tree/search entries where practical.
+
+Priority 2: predictable memory budgets (session + app + text/search).
+- 100 drafts at 4 MiB each must not build a 400 MiB snapshot before rejecting
+  a 16 MiB JSON cap. Validate aggregate encoded size before materialization
+  or marshal. Account for escaping overhead. Preserve old snapshot on error.
+- Search previews use consistent absolute UTF16 ranges and bounded decoding;
+  reuse repeated-line excerpts, preserving surrogate boundaries and ellipses.
+- Avoid presenting source fallback as empty when parsing is capped. Disclose
+  limits as actionable source mode guidance and preserve all original bytes.
+- Export/cold parsing should not invisibly reactivate inactive heavy caches.
+
+Priority 3: mature everyday workflows (small tested increments).
+- Native outline through existing optional OutlineProvider; stable graph node
+  IDs, Markdown versioned source offsets, active source/split navigation.
+- Markdown task toggles then basic table edits, with bounded source-range
+  patches that preserve CRLF, indentation and unrelated syntax.
+- Links: classify local/anchor/external before Host.OpenReference. Block
+  network activation per local-only runtime, explicitly report unsupported
+  protocols; relative paths based on saved document path, not arbitrary cwd.
+- Graph notes/links/tags/icons using independently owned input buffers and
+  tested Flush/Undo/recovery. Unknown tag/icon metadata must survive edits.
+
+Review policy: practical behavior from Typora/Notepad++/XMind/draw.io may
+inspire familiar interactions; independently implement, do not copy engines,
+proprietary assets or licensed source. Document actual compatibility limits.
+
+Validation must demonstrate the relevant user route and its error path, and
+record resource results with workload/environment. Do not claim old-vs-new
+memory improvement without a comparable measurement of both programs.

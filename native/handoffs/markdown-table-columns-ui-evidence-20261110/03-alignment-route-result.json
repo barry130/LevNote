@@ -1,0 +1,6 @@
+{
+  "Command": "& 'native/scripts/go.ps1' -GoArguments @('test','./modules/markdownview','./app','-run','^(TestTableAlignment(RapidContinuationAndHeldRepeat|NativePointerKeyboardAndUndo)|TestMarkdownAlignmentRealAdapterExactNoopSaveReopenModesAndHTML)$','-count=1','-v')",
+  "StartedAtUtc": "2026-11-10T07:11:20.8213217+00:00",
+  "FinishedAtUtc": "2026-11-10T07:11:25.3287757+00:00",
+  "ExitCode": 0
+}

@@ -8,6 +8,69 @@
 
 ---
 
+## 原生迁移 · 当前主线（2026-11-10）
+
+技术路线改为 Go + MyGo 原生 Surface，自研文本和格式内核；决策见
+[ADR 0063](docs/decisions/0063-native-migration.md)。以下按原生交付范围记账，
+后面的 P0–P5 等条目保留旧 Tauri 历史，不自动算作已经迁移。
+
+| 交付 | 状态 | 当前范围 |
+|---|---|---|
+| 原生窗口、文档与文本编辑 | ✅ | 多标签/文件树、自研缓冲与输入、原子保存/编码/冲突、只读与字节回退 |
+| 原生格式视图 | ✅ 有限子集 | Markdown 块编辑、导图主题结构、图纸基本形状与多页；HTML/SVG；[具体边界](native/README.md#已有能力与边界) |
+| 局部草稿与恢复安全 | ✅ | 组合输入 Flush、源变化冲突保留、恢复副本、JSON 编码前预算和有界会话加载 |
+| 最近关闭文件与100标签准入 | ✅ `.27`有限子集 | `Ctrl+Shift+T`或「最近关闭的文件」按当前磁盘重开最后成功关闭的已保存本地文件；最近16个路径只活在本次运行，缺失/不可读记录保留并允许显式重试。不恢复已放弃修改、未保存/恢复草稿或正文/撤销/选区，已有标签路径重复选中。新建、模板、恢复、普通/批量打开、字节回退、异步二进制和会话恢复共用`session.MaxTabs=100`：满额新标签提示关闭一个再重试，拒绝不逐出标签、不静默丢草稿、不消耗重开记录。100只限标签数量；128MiB源读取是独立边界，`.28`另加普通UTF-8实时内容准入，两者都不构成内容/内存总量上限。[源码验收](native/handoffs/file-workflow-source-root-acceptance.md)/[包验收](native/handoffs/file-workflow-release27-root-acceptance.md) |
+| 文档增长准入与 `.28` | ✅ `.28`有限证据 | 普通UTF-8实时内容默认限制128MiB；初开或显式重载的已解码种子完整保留，并以固定`max(基值,种子字节)`高水位允许缩小后回涨。ReplaceAll/缩进提交前预检，反向中间状态超限可保守拒绝最终可容纳的批次；格式本地草稿在拒绝后保留。大小拒绝的IME组合输入须有效重试或Esc明确取消；焦点丢失后重新聚焦处理，保存/切换/关闭不会静默提交，拒绝字符串不保存。该边界不限制进程内剪贴板、正则/编解码临时串或全部文档内存，也不是IME合并阶段。[源码验收](native/handoffs/document-growth-budget-source-root-acceptance.md)/[交付](native/handoffs/growth-release28-delivery.md)/[包验收](native/handoffs/growth-release28-root-acceptance.md) |
+| 输入法组合更新合并与 `.29` | ✅ `.29`有限证据 | 同一完整IME标记范围的连续更新只保留原始/当前文本端点；取消、单步撤销/重做仍按一个事务，回到原文不增加空撤销并保留更早重做。非连续/不规则显式范围仍追加普通后缀历史，可能保留较多中间编辑。[源码验收](native/handoffs/active-composition-coalescing-source-root-acceptance.md)/[交付](native/handoffs/composition-release29-delivery.md)/[包验收](native/handoffs/composition-release29-root-acceptance.md) |
+| 可见 UI 与长文本预算 | ✅ 定向验证 | Markdown 虚拟列表、图形剔除/标签缓存、超长字段分段、窄窗口冲突面板；磁盘源读取和普通UTF-8实时逻辑内容各有独立的128MiB准入，后者带已解码种子高水位例外，二者都不是进程工作集或全部文档总量上限 |
+| 插件与设置 | ✅ 有限子集 | 本地JSON高亮、schema2字面源码大纲、schema3固定Markdown/导图/drawio选择；配置安装/启停与原生新建，独立纯文本兜底；明暗/字号/行号/换行 |
+| 本轮集成验收 | ✅ `.29`有限证据 | 冻结后一次9包组合test在`11:32:49.5106114Z–11:33:33.3885214Z`通过9/9（`app 41.451s`、`graphview 16.495s`），随后匹配vet在`11:33:58.2801608Z–11:34:01.0655179Z`无诊断；4个源码输入前后一致。源码测试包含600次更新结构序列与240次Tester更新序列。一次打包调用完成五次Windows amd64 GUI构建，首次aggregate即13/13，无重试；一次有序CLI打开文本+PNG的隐藏副本宿主完成46次存活检查/5,009.7743ms后，通过唯一owned`WM_CLOSE`退出0并发布同一653字节会话。不证明物理IME、第二次启动恢复、PNG渲染、worker执行或进程内存改善。精确身份见[验证记录](native/VALIDATION.md)/[包验收](native/handoffs/composition-release29-root-acceptance.md) |
+| Markdown 表格列操作 | ✅ `.25`有限子集 | 单元格面板提供前后插入列和删除当前列；保持1–8列，保留幸存单元格原始字节、填充、分隔线写法、缩进、行尾和相邻内容，仅在需要边界时添加外层管道。单元格修改与列结构调整分别撤销；F6/Tab/ShiftTab/Enter/Space沿用，组合输入先确认。不安全/不支持/超预算操作明确拒绝并保留整表源码回退。[源码验收](native/handoffs/markdown-table-columns-root-acceptance.md)/[包验收](native/handoffs/markdown-table-columns-release25-root-acceptance.md) |
+| 标签键盘切换与可见位置 | ✅ `.22` | `Ctrl+Tab`/`Ctrl+Shift+Tab`按视觉顺序回绕；零/一标签无动作，实际选中变化时显示活动按钮一次，保留后续手动滚动。源码/富视图同步失败保留草稿；可见查找/转到行列组合输入先提示确认或取消再重试，不排队。鼠标离开后不残留转到行列组合状态。[源码验收](native/handoffs/tab-workflow-root-acceptance.md) |
+| 本地PNG/JPEG阅读 | ✅ `.23`有限子集 | 有边界只读PNG/JPEG、原始字节另存副本、字节回退、插件启停和混合会话恢复。支持适应、100%、缩放和平移；源16MiB、单边8192像素、总像素8,388,608，JPEG baseline/8位灰度或三通道，PNG8位非交错非动画。超过16MiB仅保留有界字节检查，不能经该路径使用有界图片复制。[包验收](native/handoffs/native-image-release23-root-acceptance.md)/[验证记录](native/VALIDATION.md) |
+| 图片键盘与恢复调度 | ✅ `.24`有限证据 | 图片画布获得焦点时可用`+`/`=`/`-`/数字键盘缩放、方向键平移、`0`适应和`1`明确100%；明确100%在窗口变化时保留手工缩放，`0`切回适应。激活已启用的工具栏缩放/适应/100%按钮后键盘焦点返回图片画布。编辑后约900ms由应用计时器写入恢复状态，不依赖绘制帧；待处理写入可被UI工作或原生对话框延后，不自动写回原文件，未完成格式本地草稿仍需显式完成流程。[包验收](native/handoffs/native-reading-release24-root-acceptance.md)/[源码验收](native/handoffs/native-autosave-keyboard-root-acceptance.md) |
+| Markdown 图片引用打开 | ✅ `.26`有限子集 | 阅读/分屏中原始`![label](target)`保持可见；Ctrl/Cmd+点击或Tab+Enter显式打开。目标1–4096 UTF-8字节，排除ASCII空白/控制字符、尖括号/圆括号；标题式和引用式图片不支持。复用本地文件打开、读取器和字节回退，本地相对路径/百分号编码/Windows反斜杠保留；无自动内嵌图片解码或图片缓存，HTML保留转义原语法。已有`file:`/锚点规则不变。[源码验收](native/handoffs/markdown-image-reference-root-acceptance.md)/[包验收](native/handoffs/markdown-image-reference-release26-root-acceptance.md) |
+| UTF-8/BOM流式保存 | ✅ `.15`定向证据 | 脏UTF-8/UTF-8 BOM `Save`/`SaveAs`从现有快照经32KiB缓冲写入临时文件，不再先构造整篇编码副本；可选BOM、精确字节与行尾、无改动保存、冲突检查、只读/组合输入拒绝、原子发布和`SaveAs`独占目标语义不变。发布后读回摘要必须等于预期输出才推进已保存快照、磁盘token、基准版本和脏缓存；发布后校验失败不承诺回滚，`SaveAs`保留`.14`的Path/IsNew/ReadOnly时机。UTF-16/GBK/GB18030沿用整缓冲路径。固定10次的输出only 1/8MiB基准从2,105,398/16,785,478B/op、4allocs/op降至33,131/33,139B/op、8allocs/op；只证明编码输出分配字节，不含快照捕获/基准保留、整次保存延迟、RSS/工作集、UI/CPU/GC或物理输入。[源码验收](native/handoffs/utf8-save-root-acceptance.md)/[结果](native/handoffs/utf8-save-implementation-result.md)/[独立核对](native/handoffs/utf8-save-independent-reconciliation.md) |
+| 会话恢复 JSON 输出 | ✅ `.16`定向证据 | 标准`json.Encoder`经适配器写入既有私用状态原子临时文件，删除`json.Marshal`额外返回的整份编码副本。适配器在运行期核对预检长度、拒绝短写/溢出，并只移除Encoder强制的末尾LF；完整JSON字节、字段/顺序/转义/省略规则由测试与旧`json.Marshal`oracle逐字节比对，恢复JSON末尾仍无LF。快照校验、4MiB单草稿/100标签/16MiB编码后预算和发布前校验均在发布点之前完成；临时写入、校验或发布操作失败保留旧恢复文件。发布成功后`syncDirectory`失败会返回错误，但新文件已生效且不回滚（Windows当前为no-op，Unix目录同步可能失败）。Encoder仍内部缓冲完整JSON，脏草稿字符串仍保留；输出only样本1MiB为1,164,120→106,213B/op、5→4 allocs/op，八标签约1MiB为1,469,992→412,825B/op、5→4 allocs/op，受池状态影响，不含整次保存、RSS/工作集、UI/CPU或物理输入结论。[源码验收](native/handoffs/session-output-root-acceptance.md)/[结果](native/handoffs/session-output-implementation-result.md)/[独立核对](native/handoffs/session-output-independent-reconciliation.md) |
+| 本地引用保留修正 | ✅ 指针生命周期 | 文本piece合并后清理超出新逻辑长度的死槽位；关闭标签时移动剩余指针并清空被移除尾部指针后再缩短切片。两者保留逻辑内容、快照、撤销/重做与关闭语义，不构成RSS或工作集测量 |
+| 源码行列导航 | ✅ 有限子集 | `Ctrl+G`/行列状态入口接受严格正整数`line`或`line:column`；省略列为1，32 UTF-16码元输入、前导零/零/符号/空值/多余分隔符/溢出拒绝且不夹取。坐标为一基UTF-16码元，CR/LF不计列、末尾空行有效，代理对内部列拒绝；输入语法通过后才同步，行列范围只在Flush后的最终缓冲上验证。源码/分屏保持模式，预览仅在最终目标有效后切换；只读与十六进制字节视图可用并有提示。打开时源码/富视图组合输入阻止导航，提交时仅查询字段自身组合输入阻止；代际回调与标签/选中变化防止旧目标生效。[源码验收](native/handoffs/source-navigation-root-acceptance.md)/[结果](native/handoffs/source-navigation-result.md)/[审查](native/handoffs/source-navigation-independent-review.md) |
+| 查找相邻导航与窄窗查找栏 | ✅ `.13`有限子集 | 上一处/下一处使用有序UTF-16选区边界；精确匹配按所点的操作方向移动一个结果，正向/反向选区均适用；其它情况选最近结果，首尾回绕，零宽结果与单结果也有确定语义。仅缓存当前活动文档的匹配偏移，必须匹配标签/Document/Editor/Buffer、最终版本和查询选项；提交切换、重载、重配、关闭查找或实际替换会使缓存失效，每次查找仍先Flush，替换继续以新搜索为准。760×480下原有两行查找控件使用两个Wrap调用重新排布，字段、动作、Tab顺序和搜索语义不变。函数级benchmark不证明整应用提速；该阶段未改变`Ctrl+F`焦点或Enter快捷键，键盘流程见下一行。[源码验收](native/handoffs/search-navigation-root-acceptance.md)/[结果](native/handoffs/search-navigation-result.md)/[审查](native/handoffs/search-navigation-independent-review.md)/[布局验收](native/handoffs/findbar-layout-root-acceptance.md) |
+| 查找键盘与焦点生命周期 | ✅ `.14`有限子集 | `Ctrl+F`或工具栏入口首次打开并聚焦查询框，后续触发复用现有面板且保留查询、替换和选项；查询`Enter`/`Shift+Enter`执行下一处/上一处，替换`Enter`只替换当前一处，`Shift+Enter`不动作，`Escape`关闭查找并返回源码/分屏中的有效源编辑器，预览不接收隐藏焦点。活动组合输入期间Enter/Escape动作与`Ctrl+G`暂不执行；失焦或插件面板隐藏后按公开Focus/Compose状态清理瞬时焦点与组合标记。代际及标签/文档/编辑器/Buffer身份阻止陈旧回调；替换在Flush后重验身份并使用新匹配，失败Flush保留文本、历史、选区和字段焦点。证据为合成应用/Tester事件，[源码验收](native/handoffs/find-keyboard-root-acceptance.md)/[结果](native/handoffs/find-keyboard-result.md)/[独立核对](native/handoffs/find-keyboard-independent-reconciliation.md) |
+| 全词查找选项 | ✅ `.17`有限子集 | Find面板把运行期`全词`选项与大小写、正则并列，同一`findOptions`用于文档上一处/下一处、Replace Current/All和工作区搜索；切换后活动文档偏移缓存按查询选项失效。边界沿用Unicode字母/数字/记号/下划线判定，`cat`命中独立`cat`但不命中`category`、`_cat`或`cat_`，不是中文分词。选项不写入设置/会话，不新增依赖，搜索算法、缓存结构与会话schema不变；Replace All仍为一个撤销组，失败Flush仍保留文本、版本、选区、历史和字段焦点。控件测试覆盖导航、换行、760×480布局、Tab/Escape；Unicode/大小写/正则、工作区及替换生命周期用运行期选项和应用方法覆盖，不宣称物理IME或打包Find交互。[源码验收](native/handoffs/find-whole-word-root-acceptance.md)/[包验收](native/handoffs/find-whole-word-release17-root-acceptance.md)/[独立核对](native/handoffs/find-whole-word-independent-reconciliation.md) |
+| 本地引擎包管理 | ✅ 有限子集 | 固定4个引擎；导入完整兼容本地发布目录但不自动启用，显式启用/重置/全部重置；每个引擎12版本保留、后台导入与取消、来源/版本/摘要/错误可见。schema1旧选择按原字节读取，显式选择后持久化schema2四个引擎项；切换等待旧导出/预览并清理runner，保留可写草稿与撤销；清理失败poison阻止新任务与切换，导入/列表仍可用。schema3 JSON配置与可执行worker包不混写 |
+| 真实窗口UI试点 | ❓ Helper受限 | 激活后先做Computer Use能力门；3次有界探测均因native pipe不存在失败，按要求停止且未启动应用/复制包/生成夹具。无真实窗口观察、输入或资源测量；这是helper可用性限制，不是产品UI失败。[结果](native/handoffs/release10-ui-feasibility-result.md) |
+| 固定HTML/SVG/场景导出引擎 | ✅ 有限子集 | Markdown HTML、导图SVG、只读场景与draw.io当前页SVG分别用固定worker，源8/16/32MiB，导出64MiB、场景32MiB，默认30秒超时；有界stdio、快照/取消、Windows Job清理和清单一致性。源码导图无需画布，警告定位/占位/元数据超限语义保留；不静默回退。不支持任意执行插件，不宣称沙箱或峰值内存上限 |
+| schema3数据路由 | ✅ `.20`有限子集 | 本地JSON只接受`builtin.markdown`、`builtin.mindmap`和`builtin.drawio`三个固定目标；`builtin.drawio`为自定义后缀提供内置draw.io编辑、分屏/阅读当前页选择和SVG导出，不提供大纲或只读场景。配置本身不改变正文格式，SaveAs按新路径重匹配，不把Markdown/导图转换成draw.io XML。[包验收](native/handoffs/drawio-route-release20-root-acceptance.md)/[交付](native/handoffs/drawio-route-release20-delivery.md) |
+| draw.io当前页worker导出 | ✅ `.19`有限子集 | 阅读或分屏中选择页面后，宿主准备当前页索引/ID并交给第四worker；源32MiB、SVG64MiB，失败无部分结果。页面A-B-A、同索引重解析、Release、视图/模式/标签/文档/Buffer/编辑器/名称变化或版本变化都会拒绝发布并释放载荷；待写回字段Flush为一次有意撤销事务并改变Buffer/脏状态/历史，无草稿时保持Buffer/选区/脏状态/历史，磁盘字节/编码/BOM不变。无进程内存/CPU、物理UI/IME或打包交互式导出结论，[Stage2结果](native/handoffs/drawio-worker-stage2-result.md)/[独立审查](native/handoffs/drawio-worker-stage2-independent-review.md)/[包验收](native/handoffs/drawio-worker-release19-root-acceptance.md) |
+| 只读导图场景引擎 | ✅ 有限子集 | 固定worker解析/布局，源16MiB/中性DTO32MiB，宿主原生绘制；缩放/平移/选择与可见ID定位，隐藏目标明确拒绝。属性请看源码，另存可写副本恢复编辑面板；无图片/占位徽标。四个引擎共用单执行队列、最新预览合并与导出优先，迟到结果丢弃、清理不依赖UI回调；缺失worker拒绝预览并保留源码入口。[交接](native/handoffs/native-preview-delivery.md) |
+| HTML生成结果缓冲 | ✅ 定向分配证据 | `.2`先有界计数再精确分配/填充，共享转义规则，worker直接使用自有字节。两份固定解析夹具累计B/op约减少80%/66.8%；转义样本中位耗时约+12.8%，属于本机小样本，不是RSS或速度保证。实际进程数据另见下一行 |
+| Markdown worker进程对照 | ✅ 有限12请求样本 | 相同测试器运行已接受`.1/.2`副本，各夹具/版本3次交替、无预热，全部输出/警告/精确句柄清理通过。转义夹具OS峰值工作集/提交量中位数-39.86%/-36.89%，Mixed32为-2.23%/-2.41%；初次较慢请求保留、CPU量化不足以证明提速。不是应用UI或Tauri比较。[方法/证据](native/handoffs/markdown-worker-resources.md) |
+| 宿主＋四个引擎目录交付 | ✅ `.29`当前包 | PowerShell7脚本固定构建四个worker与宿主，附许可/来源及相对哈希清单，日志另存全新证据目录。当前26文件`.29`包27,408,380字节、identity`9FAEE40604A7DBA31ED14003011938911661E8BBBE0CCBDC5D9EBCDAA640962B`；`.28`及更早历史包保持不变，配置仍在APPDATA，跨机器可复现/签名待验证。[交付与精确身份](native/VALIDATION.md) |
+| Markdown/导图大纲导航 | ✅ 有限子集 | 2048 项有界虚拟列表；重复/Unicode 标题与 HTML 锚点；Flush 后重解身份；导图隐藏祖先一次展开/撤销、只读拒绝；三模式与窄/暗色回归 |
+| 安装格式源码大纲 | ✅ 有限子集 | schema2 最多8条字面规则、2MiB/65536行扫描保护，规则变更使旧身份失效；不提供多行语言理解或富视图 |
+| schema3格式路由 | ✅ `.20`有限子集 | `.taskmd`/`.thoughts`/`.diagramnote`实例安装、打开、原生视图与导出及新建；三个固定数据目标，配置ID与适配器ID分开。首后缀遮蔽拒绝、禁用后重匹配/源码兜底，SaveAs只按路径重匹配不转换，Flush/模态及同ID重配保护草稿与迟到结果；不是任意可执行引擎安装。Markdown/导图有大纲，draw.io没有大纲或只读场景。[应用验收](native/handoffs/format-routing-app-root-acceptance.md)/[.20包验收](native/handoffs/drawio-route-release20-root-acceptance.md) |
+| 超大富视图入口保护 | ✅ 有限子集 | 在整篇复制前拒绝超出 8/16/32MiB 的 Markdown/导图/图纸，释放旧预览并保留独立草稿；定向分配、真实应用恢复、窄窗控件与集成测试通过 |
+| Markdown 原生任务方框 | ✅ 有限子集 | 简单有序/无序项点击与空格切换；源范围/上下文重校验、单字符事务和选区保留、只读禁用；HTML 为不可交互方框，不扩展嵌套列表 |
+| Markdown 本地行内链接 | ✅ 有限子集 | Ctrl/Cmd+点击、Tab+Enter、只读/锚点、Flush后原文身份验证；密集行有提示地保留文字；定向输入、分配、对比度及完整集成验收通过 |
+| Markdown doc-block 本地引用 | ✅ 有限子集 | 显式reference模式、非空本地`src`、4096字节上限；指针/Enter/Space、Flush后精确整块与属性范围重验，同名ID不回退；最终点击行来源守卫、GLM复核、全套test/vet/build及隐藏启动关闭通过，13,298,176字节产物已由根代理接受，现为上一验收产物 |
+| Markdown 管道表第一切片 | ✅ 已并入后续产物 | 有限矩形表、响应式网格/堆叠字面预览、安全字面HTML导出、完整表源码编辑；BOM/CRLF、Flush冲突、只读、超限回退和760×480明暗图通过。20:49完整集成、隐藏启动关闭和13,384,192字节产物曾由根代理接受，现作为上一验收产物保留 |
+| Markdown 表格单元格编辑 | ✅ 有限子集 | 表头/正文单元格双击或Tab+Enter打开单一原生字面源码编辑器；本地草稿、Finish/Save单次写回、无效值恢复副本、只读和全部Flush屏障已有真实应用聚焦测试。BOM/CRLF保存重开、应用指令2.010s/app vet、最终视图检查和两张760×480集成图通过；根代理复核后全量test/vet/build、12/12证据核验及隐藏启动关闭通过，13,425,152字节产物已验收。未写回单元格不进入会话/崩溃恢复 |
+| Markdown 表格数据行 | ✅ 有限子集 | 选中单元格面板插入/删除数据行，表头只插入；纯精确补丁和全篇描述项预算重验。单元格先写回、行另记撤销，写回后拒绝有明确提示；F6组合保护、连续多击拒绝、48px单格编辑器和760×480明暗恢复图通过。`.3`源能力已被后续交付保留。[交接](native/handoffs/markdown-table-rows.md) |
+| Markdown 所选列对齐 | ✅ 有限子集 | 默认/左/中/右，仅改该列分隔标记冒号，保留短横线、空白、其它源文与行尾；完整候选/全篇回退状态重验。成功/语义无操作完成面板，干净无操作无历史；先写单元格、对齐另记撤销，后续拒绝明确区分。复用行生命周期、完整字段/状态边界与恢复可达；`.5`源能力已被后续交付保留。[交接](native/handoffs/markdown-table-alignment.md) |
+| 导图备注与本地链接 | ✅ 有限子集 | 单一原生字段编辑器、存在性/原值冲突保护、显式写回并打开、真实输入与窄窗回归；18:17完整集成产物验收通过 |
+| 导图标记 | ✅ 有限子集 | 19字形面板及全清，优先级/色标组内互斥、未知顺序保留、清空存[]；UI当前/候选上限64项/4096字节，512字节摘要与画布/SVG标签，草稿和身份重验。最终应用聚焦2.817s、完整集成及精确产物已验收；四张760×480图覆盖分屏全清/恢复，控件不同屏、窄源码区受挤压。标签后续能力见下一行，图片仍占位，无本轮资源比较 |
+| 导图标签 | ✅ 有限子集 | 默认收起的滚动面板，精确单行添加、按序移除重复/空旧项、全清[]，对象与未知Raw保留；新输入512B、UI64项/8KiB预算。节点字段/标签分别撤销，待添加输入阻止公共动作且可双草稿恢复，不承诺崩溃恢复。首次警告焦点/滚动稳定、真实app屏障/恢复、两张760×480图及`.4`包已接受。[交接](native/handoffs/mindmap-tags.md) |
+| 其他图形元数据编辑 | ⏳ | 节点图片、标签对象样式/重命名/重排/全局检索等尚未迁移 |
+| 更完整的 Markdown/图形能力 | ⏳ | 表格排序/合并等结构工具、公式、Mermaid、图片管理、PNG/PDF、复杂图形等按实际需求逐项迁移 |
+| 更完整图片能力 | ⏳ | 编辑、转码、动画、外链、SVG图片路由和更宽格式解码尚未提供，失败保留字节检查并明示 |
+| draw.io worker资源矩阵 | ✅ 12/12描述性证据 | 12项计划行按序完成且全部PASS；source/598字节SVG oracle、有序版本警告、tester/worker exit0、123次内存读取零失败。每版本/夹具三样本显示Normal`.21`中位工作集/私有提交量上升，元数据中位数下降而私有提交峰值与中位生命周期上升；CPU计数器量化，零不代表零工作。仅为本机worker描述性观察，不证明一般内存/速度或整应用改善。[验收](native/handoffs/drawio-worker-resources-fixed12-root-acceptance.md) |
+| 系统与分发验收 | ❓ | Windows 真输入法/无障碍/网络跟踪、签名和安装包、其他平台；不能用测试器截图代替 |
+| 与旧版同负载资源比较 | ❓ | 尚无匹配的对照实验；低内存/低 CPU 是目标，不作为已验证优势 |
+
+---
+
+## 旧 Tauri 路线与测量（legacy）
+
 ## P0–P2 · 已完成（截至 2026-09-28）
 
 | 阶段 | 交付 |

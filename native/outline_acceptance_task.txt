@@ -1,0 +1,47 @@
+Outline stage acceptance — run after provider/app focused checks are ready
+
+Root reviews source and artifacts only. DeepSeek executes final integration,
+build and screenshots; Astra owns focused view/provider fixes and final docs.
+GLM independently reviews published implementation and routes defects without
+editing it. Do not spawn additional agents or overlap product ownership.
+
+Functional evidence must use the real builtin adapters for at least these:
+- Markdown with duplicate/Unicode headings, astral text and CRLF; a captured
+  target survives a harmless insertion before it, including a same-name
+  heading inserted during Flush, and target edits/Restore/history expiry fail.
+- Native Compose in a different draft is flushed before navigation; failed
+  Flush retains draft, tab, mode and view. A source-only snapshot never calls
+  Adapter.Create; code/drawio/invalid/empty/partial states are distinguishable.
+- Markdown anchors use the documented slug resolver and exported HTML IDs.
+- Mindmap collapsed ancestor/root writable jump, one undo, unknown metadata,
+  readonly hidden-node refusal without mutation; split preserves source caret,
+  source-only negative position reports guidance without mounting a canvas.
+- Mode/tab/plugin/reload invalidation and released outline cache cannot
+  retarget a captured item or retain a parsed graph after deactivation.
+- Virtual list Home/End/arrows/Enter and far item actual activation. Preserve
+  selection by resolver, not raw array index, on compatible source changes.
+
+Capture representative final UI at1180x780 and760x480, light/dark:
+Markdown outline in preview/source/split, far selected heading, mindmap outline
+with hidden descendant and readonly limitation, unsupported/partial state.
+Use small clear fixtures for legibility. Keep controls/tab/status visible and
+the current native aesthetic. Root will open the actual generated images.
+
+Record bounded-work evidence:2048-item cap,512-byte labels, no layout during
+source collection, cache reuse/release, only viewport rows built per frame;
+one representative large-outline measurement is enough. Do not rerun already
+accepted resource benchmarks or imply old process samples measure this build.
+
+After review fixes and code freeze, run one full native test/vet/build with
+the documented wrapper and stripped Windows GUI flags. Record timestamp,
+size and SHA256 plus exact commands. Perform isolated normal startup/close
+smoke on the new executable, keeping user settings/files isolated. Existing
+dependency patch tests remain part of full suite. Do not rerun failing Windows
+race setup or claim desktop IME coverage from tester Compose.
+
+Astra updates README/API/ARCHITECTURE/VALIDATION/root roadmap/change log around
+actual final capability, limitations and evidence. Retain the accepted12:55
+resource measurement clearly tied to its old binary, not silently relabelled.
+Record new acceptance in handoffs/outline.md and integration.md; avoid ambiguous
+intermixed partial and final logs. Failures are routed to owners then tested
+only as broadly as changed code requires.

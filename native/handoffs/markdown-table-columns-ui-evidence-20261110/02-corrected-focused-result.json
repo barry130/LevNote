@@ -1,0 +1,7 @@
+{
+  "Command": "& 'native/scripts/go.ps1' -GoArguments @('test','./modules/markdownview','./app','-run','^(TestTableColumns(Boundary|Narrow|Rapid)|TestMarkdownColumns|TestTableAlignment(Rapid|Narrow)|TestTableRowsRapid)','-count=1','-v')",
+  "Screenshot": "column-panel-300x480.png",
+  "StartedAtUtc": "2026-11-10T07:09:23.4577421+00:00",
+  "FinishedAtUtc": "2026-11-10T07:09:30.4827617+00:00",
+  "ExitCode": 1
+}

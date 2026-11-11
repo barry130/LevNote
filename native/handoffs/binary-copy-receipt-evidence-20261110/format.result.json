@@ -1,0 +1,17 @@
+{
+  "step": "format",
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\format.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\format.output.txt",
+  "goArguments": [
+    "run",
+    "cmd/gofmt",
+    "-w",
+    "core/document/binary.go",
+    "core/document/binary_copy.go",
+    "core/document/binary_test.go"
+  ],
+  "startedUtc": "2026-11-10T03:28:12.6773279+00:00",
+  "finishedUtc": "2026-11-10T03:28:13.7478858+00:00",
+  "durationSeconds": 1.071,
+  "exitCode": 0
+}

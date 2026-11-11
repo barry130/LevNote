@@ -1,0 +1,38 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard","-count=1","-v")
+=== RUN   TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState
+--- PASS: TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState (0.47s)
+=== RUN   TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus
+--- PASS: TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus (0.02s)
+=== RUN   TestFindKeyboardReplacementEnterAndEscape
+--- PASS: TestFindKeyboardReplacementEnterAndEscape (0.01s)
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/source
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Ctrl+G
+--- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers (0.04s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape (0.01s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/source (0.01s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/Ctrl+G (0.02s)
+=== RUN   TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects
+--- PASS: TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects (0.02s)
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition
+--- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition (0.03s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift (0.01s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly (0.01s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition (0.01s)
+=== RUN   TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross
+--- PASS: TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross (0.01s)
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview
+--- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused (0.02s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button (0.01s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview (0.01s)
+=== RUN   TestFindKeyboardRealMarkdownCompositionBlocksOpen
+--- PASS: TestFindKeyboardRealMarkdownCompositionBlocksOpen (0.01s)
+PASS
+ok  	levnote.local/native/app	2.619s
+EXIT_CODE=0

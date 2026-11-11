@@ -1,0 +1,2 @@
+command: .\\native\\scripts\\go.ps1 -GoArguments @('test','./app','-run','^TestLiveTabAdmissionRealRecoverCallbackKeepsDraftAtCapacity$','-count=1')
+exit_code: 1

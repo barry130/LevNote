@@ -1,0 +1,521 @@
+{
+  "FixtureOnly": true,
+  "PowerShell": "7.6.9",
+  "Pass": true,
+  "CheckCount": 128,
+  "Checks": [
+    {
+      "Name": "actual array helper: null",
+      "Pass": true
+    },
+    {
+      "Name": "actual array helper: empty",
+      "Pass": true
+    },
+    {
+      "Name": "actual array helper: singleton",
+      "Pass": true
+    },
+    {
+      "Name": "actual array helper: multiple",
+      "Pass": true
+    },
+    {
+      "Name": "actual warning helper admits null arrays",
+      "Pass": true
+    },
+    {
+      "Name": "actual warning helper compares singleton",
+      "Pass": true
+    },
+    {
+      "Name": "absent summary and null finalTimes preserve null counters",
+      "Pass": true
+    },
+    {
+      "Name": "twelve rows cannot pass before package protection",
+      "Pass": true
+    },
+    {
+      "Name": "twelve rows plus package protection passes",
+      "Pass": true
+    },
+    {
+      "Name": "partial terminal run cannot pass",
+      "Pass": true
+    },
+    {
+      "Name": "pass actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "pass package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "pass per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "pass available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "pass no retry",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "pass exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "pass actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "pass elapsed and CPU statistics have values and units",
+      "Pass": true
+    },
+    {
+      "Name": "malformed actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "malformed package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "malformed per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "malformed available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "malformed no retry",
+      "Pass": true
+    },
+    {
+      "Name": "malformed handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "malformed exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "malformed actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "start-error actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "start-error package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "start-error per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "start-error available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "start-error no retry",
+      "Pass": true
+    },
+    {
+      "Name": "start-error actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error no retry",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error exact cleanup bounded",
+      "Pass": true
+    },
+    {
+      "Name": "wait-error actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "timeout actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "timeout package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "timeout per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "timeout available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "timeout no retry",
+      "Pass": true
+    },
+    {
+      "Name": "timeout handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "timeout exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "timeout exact cleanup bounded",
+      "Pass": true
+    },
+    {
+      "Name": "timeout actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout no retry",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout exact cleanup bounded",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup timeout recorded",
+      "Pass": true
+    },
+    {
+      "Name": "cleanup-timeout actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "null-final actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "null-final package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "null-final per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "null-final available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "null-final no retry",
+      "Pass": true
+    },
+    {
+      "Name": "null-final handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "null-final exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "null CPU remains unknown in actual wrapper",
+      "Pass": true
+    },
+    {
+      "Name": "null-final actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error actual wrapper exit/state",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error package inventory runs in finally",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error per-row record stays RUNNING",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error available streams retained",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error no retry",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error handle precedes optional identity",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error exact fake object disposed once",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error actual summarizer keeps raw rows",
+      "Pass": true
+    },
+    {
+      "Name": "identity-error elapsed and CPU statistics have values and units",
+      "Pass": true
+    },
+    {
+      "Name": "actual summary handles omitted measurementSummary/exitCode/timedOut/violations",
+      "Pass": true
+    },
+    {
+      "Name": "existing output precondition exits nonzero without launch",
+      "Pass": true
+    },
+    {
+      "Name": "wrong cwd precondition exits nonzero without launch",
+      "Pass": true
+    },
+    {
+      "Name": "protected package output rejected before write or launch",
+      "Pass": true
+    },
+    {
+      "Name": "actual stats preserve fractional even median",
+      "Pass": true
+    }
+  ],
+  "Scope": "Actual scripts/functions with mocked Start-Process. No real tester/worker/host/test/build/preflight."
+}

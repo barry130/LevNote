@@ -1,0 +1,21 @@
+{
+  "name": "final-suite1",
+  "step": "final",
+  "goArguments": [
+    "test",
+    "./app",
+    "./modules/...",
+    "./core/plugins",
+    "./core/session",
+    "./core/document",
+    "./formats/raster",
+    "./ui/editor",
+    "-count=1"
+  ],
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\final-suite1.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\final-suite1.output.txt",
+  "startedUtc": "2026-11-10T04:51:42.7146691+00:00",
+  "finishedUtc": "2026-11-10T04:52:04.3002937+00:00",
+  "durationSeconds": 21.586,
+  "exitCode": 1
+}

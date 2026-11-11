@@ -1,0 +1,9 @@
+F:\AIproject\LevNote\native\scripts\go.ps1 : 无法将“Get-FileHash”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。
+请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
+所在位置 F:\AIproject\LevNote\native\handoffs\native-image-view-narrow-toolbar-evidence-20261110\run-focused-child.ps1:
+3 字符: 1
++ & (Join-Path $PSScriptRoot '..\..\scripts\go.ps1') -GoArguments @(
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (Get-FileHash:String) [go.ps1], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException,go.ps1
+ 

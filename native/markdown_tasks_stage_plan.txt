@@ -1,0 +1,92 @@
+Accepted finite stage — native Markdown task checkboxes
+
+ACCEPTED 2026-11-08 15:50 +08:00. Root reviewed the focused parser/view/app
+evidence, independent current-source review, final narrow light/dark/readonly
+images, complete package test log and isolated startup result. Full tests,
+vet, GUI build and graceful-close smoke passed. Artifact13,227,008 bytes;
+SHA2568D71EC6AEF8F0DAE91C125AB87F234B439FEBF111712CEFC79751692412175ED;
+UTC mtime2026-11-08T07:48:42.2959080Z. See
+artifacts/acceptance/markdown-tasks-20261108-154805/result.json.
+No new process memory/CPU comparison was performed.
+
+Historical activation after root accepted the15:12 oversized-preview checkpoint and published
+ownership in native/AGENTS.md. The exact additive API/recognition/export contract
+in handoffs/markdown-tasks-contract.md is approved, including the correction
+that label separator scanning stops at the already-trimmed bodyEnd. The user
+asks for continued practical improvements based on mature editors; native task
+checkboxes are a useful workflow that fits the existing list preview.
+
+Exclusive ownership:
+- GLM: formats/markdown/** parser metadata + checked HTML export, focused tests.
+- Astra: modules/markdownview/** native control + safe one-character command,
+  focused lifecycle/input tests; final capability/API documentation.
+- DeepSeek: app/** real-adapter/save/source/readonly/undo acceptance, final
+  integration/build/screenshots after root reviews focused checkpoints.
+- Root: exact shared contract, review, routing, acceptance. No implementation.
+
+Scope and observable behavior:
+1. Recognize a task marker only at the start of a body already recognized by
+   the current simple list parser, in unordered AND ordered list items.
+   Valid markers are [ ], [x], [X], followed by ASCII space/tab or end of item.
+   Empty task labels are valid. Do not broaden nesting/indentation/CommonMark
+   support in this stage. Invalid markers, escaped brackets, fenced/quoted text,
+   inline-code strings, and [x]word remain ordinary text.
+2. Publish an additive pure-format metadata contract before UI implementation.
+   Preferred ListItem.Task *TaskMarker, TaskMarker{Range SourceRange, Checked
+   bool}; Range covers the exact three ASCII marker bytes in original source.
+   A task item's Text/TextRange/Inline describe its label after the marker and
+   following ASCII whitespace. Non-task ListItems retain current semantics.
+   Whole item/block Range and Document.Raw preserve all original bytes.
+   A zero-length label range must be a valid position within the item.
+3. Use MyGo's native checkbox primitive in each virtual list row. Checked state
+   derives from the source model; a transient widget bool is not authority.
+   Give keyboard/accessibility labels using bounded task text, visibly disable
+   readonly controls, keep row identity stable. No animations/new dependencies.
+4. Checkbox activation first completes pending composition/draft through Flush.
+   Capture Buffer identity/version + exact item/marker identity beforehand;
+   after Flush revalidate host identity, readonly, transaction ownership and map
+   the enclosing item range through the edit journal. Target changes/deletion,
+   Restore, expired history or failed Flush must visibly refuse and retain the
+   draft/source/caret. Never resolve by list index, task label or old byte offset.
+   Unrelated changes above may safely map; identical duplicate labels must not
+   redirect an activation. Mapping alone does not prove the item is still a
+   task: a newly inserted fence before it can change parsing without touching
+   its bytes. After a source-version change, require the current bounded parser
+   to recognize the mapped exact item/marker range before writing. If it no
+   longer does, or preview is now partial/oversized, visibly refuse. No full
+   serialization or extra whole-buffer String is needed for the final
+   one-character mutation after this validation.
+5. Replace only the middle marker character: unchecked -> lowercase x;
+   checked x/X -> ASCII space. Preserve brackets, list marker, indentation,
+   numbering, line endings, trailing whitespace and all neighboring bytes.
+   One successful toggle is exactly one undo action; undo restores the original
+   x/X spelling. Preserve the pre-toggle source selection (and its direction)
+   because the edit does not change length. Do not join an existing group.
+   Notify Host.Changed once for the toggle, after successful mutation; a prior
+   draft Flush has its own ordinary notifications/undo behavior.
+6. HTML export emits an inert disabled checkbox with the corresponding checked
+   state and existing escaped/formatted label. No script, event handler or
+   network asset. Existing partial-document export refusal remains unchanged.
+7. Source mode, preview mode and split mode agree after toggle/undo/redo/save;
+   original bytes remain unchanged when simply opening/exporting without edits.
+   Existing preview size/line/item limits and refusal behavior stay intact.
+
+Meaningful acceptance (fixtures independent of implementation):
+- Parser matrix for three markers, empty labels, tabs, CRLF, Unicode, ordered
+  numbering, inline formatting, invalid/escaped/fenced/quoted lookalikes,
+  absolute original-source ranges and untouched Raw equality.
+- Real checkbox pointer/keyboard activation, disabled readonly behavior,
+  exact byte diff and one undo/redo transaction with reversed source selection.
+- Duplicate labels, unrelated insertion before target, changed/deleted target,
+  a fence inserted above an otherwise unchanged item, stale journal/Restore/new
+  Buffer; pending IME in same and another block;
+  failed Flush must not toggle or discard text. No test-only mutation shortcut
+  as sole evidence of the native control's behavior.
+- Source/save bytes, no-op dirty behavior, HTML output states + escaping;
+  source split actual adapter interaction at app level.
+- Existing virtualization continues to build only visible rows. Capture a
+  narrow light/dark preview with checked/unchecked/readonly controls; root
+  visually reviews before accepting the integrated release.
+
+This is a supported task-list subset, not full GFM, nested-list editing or a
+universal Markdown rich-text engine. Document this distinction accurately.

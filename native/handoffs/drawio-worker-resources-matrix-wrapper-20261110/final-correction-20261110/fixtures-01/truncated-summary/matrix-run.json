@@ -1,0 +1,17 @@
+{
+  "Schema": 1,
+  "Status": "FAIL",
+  "FixtureOnly": true,
+  "Rows": [
+    {
+      "Index": 1,
+      "Status": "PASS",
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20"
+    },
+    {
+      "Index": 2,
+      "Status": "FAIL"
+    }
+  ]
+}

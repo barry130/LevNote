@@ -1,0 +1,7 @@
+Get-GroupStats : The property 'Count' cannot be found on this object. Verify that the property exists.
+At F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-20261110\summarize-matrix.ps1:98 char:25
++                 Stats = Get-GroupStats $rows
++                         ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Get-GroupStats], PropertyNotFoundException
+    + FullyQualifiedErrorId : PropertyNotFoundStrict,Get-GroupStats
+ 

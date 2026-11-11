@@ -1,0 +1,24 @@
+{
+  "ClosedInventory": {
+    "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-table-columns-release25-20261110-closed-inventory.json",
+    "Bytes": 66343,
+    "SHA256": "39BADBA047C552252A13AD7645FA19D93B70DDF4FA8414FEB9B8E8362B3C99DF",
+    "LastWriteUtcTicks": 639298931297285706
+  },
+  "TotalFileCount": 152,
+  "TotalBytes": 55543248,
+  "Roots": [
+    {
+      "Root": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-table-columns-release25-20261110",
+      "FileCount": 146,
+      "TotalBytes": 55539894,
+      "InventoryIdentity": "F383C6A160D3B56F55A1EEF0B4A083693C1C09EF2F97910AE06C37DDC5BC9646"
+    },
+    {
+      "Root": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\markdown-table-columns-release25-20261110-aggregate-capture-attempt-1",
+      "FileCount": 6,
+      "TotalBytes": 3354,
+      "InventoryIdentity": "FCD2AE8E96784802DBA7C3A193D350634F1F8E281EC97507799B70CA3E27ABAF"
+    }
+  ]
+}

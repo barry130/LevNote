@@ -1,0 +1,15 @@
+ok  	levnote.local/native/app	19.490s
+ok  	levnote.local/native/modules	1.041s
+ok  	levnote.local/native/modules/graphview	13.736s
+--- FAIL: TestManualResizePreservesCenterThroughTester (0.21s)
+    imageview_test.go:227: manual 100% state = imageview.viewport{zoom:0.9999999999999999, panX:-299.99999999999994, panY:-288.99999999999994, fitMode:false}
+FAIL
+FAIL	levnote.local/native/modules/imageview	1.985s
+ok  	levnote.local/native/modules/markdownview	4.333s
+ok  	levnote.local/native/modules/sourceview	2.567s
+ok  	levnote.local/native/core/plugins	4.533s
+ok  	levnote.local/native/core/session	2.879s
+ok  	levnote.local/native/core/document	1.280s
+ok  	levnote.local/native/formats/raster	2.472s
+ok  	levnote.local/native/ui/editor	3.832s
+FAIL

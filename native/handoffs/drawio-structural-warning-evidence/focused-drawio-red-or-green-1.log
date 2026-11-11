@@ -1,0 +1,22 @@
+--- FAIL: TestCanonicalContainerPairRecognition (0.00s)
+    --- FAIL: TestCanonicalContainerPairRecognition/self-closing (0.00s)
+        canonical_container_test.go:185: issues:
+            got  []drawio.Issue{}
+            want []drawio.Issue(nil)
+    --- FAIL: TestCanonicalContainerPairRecognition/attribute_order_quotes_whitespace_comments_and_explicit_close (0.00s)
+        canonical_container_test.go:185: issues:
+            got  []drawio.Issue{}
+            want []drawio.Issue(nil)
+    --- FAIL: TestCanonicalContainerPairRecognition/valid_cells_follow_pair (0.00s)
+        canonical_container_test.go:185: issues:
+            got  []drawio.Issue{}
+            want []drawio.Issue(nil)
+--- FAIL: TestCanonicalContainerDuplicateAndBudgetPaths (0.00s)
+    canonical_container_test.go:247: over element budget error = <nil>
+--- FAIL: TestSVGSuccessMatchesPreChangeOracle (0.00s)
+    svg_budget_test.go:96: source issue subtraction changed:
+        got  []drawio.Issue{drawio.Issue{Severity:"warning", Code:"HTML_LABEL", Message:"HTML label is preserved verbatim and rendered as escaped plain text", Page:0, CellID:"a"}, drawio.Issue{Severity:"warning", Code:"HTML_LABEL", Message:"HTML label is preserved verbatim and rendered as escaped plain text", Page:0, CellID:"html"}, drawio.Issue{Severity:"warning", Code:"IMAGE", Message:"image or remote image style is preserved; native SVG export does not fetch it", Page:0, CellID:"image"}, drawio.Issue{Severity:"warning", Code:"STENCIL", Message:"custom stencil is preserved and rendered with a basic-shape fallback", Page:0, CellID:"stencil"}, drawio.Issue{Severity:"warning", Code:"UNSUPPORTED_ELEMENT", Message:"cell wrapper <future> is preserved but not rendered", Page:0, CellID:""}}
+        want []drawio.Issue{drawio.Issue{Severity:"warning", Code:"UNSUPPORTED_ELEMENT", Message:"cell wrapper <future> is preserved but not rendered", Page:0, CellID:""}}
+FAIL
+FAIL	levnote.local/native/formats/drawio	0.735s
+FAIL

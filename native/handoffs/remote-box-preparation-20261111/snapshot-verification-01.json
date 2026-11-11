@@ -1,0 +1,64 @@
+{
+    "Schema":  1,
+    "Operation":  "ordinary byte copy/archive/hash; no product execution",
+    "StartedUtc":  "2026-11-11T02:42:11.8718481Z",
+    "FinishedUtc":  "2026-11-11T02:42:20.5278686Z",
+    "Repository":  "F:/AIproject/LevNote",
+    "PathBase":  "repository root; forward slash",
+    "SnapshotDirectory":  "snapshot-01",
+    "TreeRoots":  [
+                      "native/app",
+                      "native/cmd",
+                      "native/core",
+                      "native/dependency-patches",
+                      "native/examples",
+                      "native/formats",
+                      "native/licenses",
+                      "native/modules",
+                      "native/portable",
+                      "native/scripts",
+                      "native/ui",
+                      "native/vendor"
+                  ],
+    "SingleFiles":  [
+                        "LICENSE",
+                        "README.md",
+                        "native/README.md",
+                        "native/THIRD_PARTY_NOTICES.md",
+                        "native/go.mod",
+                        "native/go.sum",
+                        "native/handoffs/open-document-picker-key-correction-evidence-20261110/source-frozen.json"
+                    ],
+    "Files":  1212,
+    "Bytes":  17166862,
+    "InputIdentity":  "4cb67e243ff141cc34b0134223b0bc80162f184c375305d5050338cfa4d289cc",
+    "IdentityAlgorithm":  "SHA256 of UTF8 sorted-ordinal records Path + TAB + decimal Length + TAB + lowercase Sha256 + LF",
+    "Manifest":  {
+                     "Path":  "inputs-01.json",
+                     "Length":  245791,
+                     "Sha256":  "6D624B8F19A907B5A0F47378572A84FC18FB773DB7B642988B0991C2F2C492EC"
+                 },
+    "Archive":  {
+                    "Path":  "levnote-source-inputs-20261111-01.zip",
+                    "Length":  5332912,
+                    "Sha256":  "C7454F4F727F7514258D8C41761BA6C9DA755744434E35CEA5D70FE9EBD3B0D9"
+                },
+    "SourceCopyArchiveSourceAfterIdentical":  true,
+    "FixedPinCount":  6,
+    "PickerFiles":  5,
+    "PatchFiles":  26,
+    "ReparseOrCollisionCount":  0,
+    "Excluded":  [
+                     "all new remote-box preparation/results/preflight",
+                     "native/tools",
+                     "native/build-cache",
+                     "native/bin",
+                     "native/artifacts",
+                     "native/native/handoffs",
+                     "native/drawio-resources.test.exe",
+                     "other historical handoffs",
+                     "legacy web/Tauri tree",
+                     "Git/credentials/configuration",
+                     "nondependency historical validation docs"
+                 ]
+}

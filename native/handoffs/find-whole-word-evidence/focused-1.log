@@ -1,0 +1,8 @@
+--- FAIL: TestFindWholeWordReachesWorkspaceSearch (0.01s)
+    find_whole_word_test.go:183: workspace whole-word results = []search.FileMatch{search.FileMatch{Path:"C:\\Users\\canace\\AppData\\Local\\Temp\\TestFindWholeWordReachesWorkspaceSearch3763807095\\001\\boundaries.txt", Line:1, Column:1, Start:0, End:3, Preview:"cat category _cat cat_"}}, want standalone cat plus cat_ exclusion and _cat exclusion
+--- FAIL: TestFindbarWholeWordEscapeAtMinimumWindow (0.01s)
+    findbar_layout_test.go:216: whole-word checkbox did not retain focus: []string{"轻笺", "新建", "打开", "文件夹", "保存", "查找", "插件", "设置", "工作区", "切换文件树与文档大纲", "大纲", "刷新文件树", "↻", "打开一个文件夹，\n把资料放在一起。", "打开文件夹", "新建文档", "Markdown", "纯文本", "思维导图", "图纸", "• 未命名.txt", "关闭 未命名.txt", "×", "查找内容", "上一个", "下一个", "区分大小写", "正则", "全词", "关闭查找", "×", "替换内容", "替换当前", "全部替换", "搜索工作区", "文档编辑区", "本地文件 · 原生编辑", "转到源码行；当前第 1 行，第 7 列", "第 1 行，第 7 列", "UTF-8", "未保存"}
+FAIL
+FAIL	levnote.local/native/app	1.989s
+FAIL
+EXIT_CODE=1

@@ -1,0 +1,1607 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:51:12.3192628Z",
+  "RunStatus": "PASS",
+  "TotalRows": 12,
+  "PassedRows": 12,
+  "FailedRows": 0,
+  "OtherRows": 0,
+  "StoppedAtFirstFailure": false,
+  "RunError": null,
+  "PackageProtectionEqual": true,
+  "RawRows": [
+    {
+      "Index": 1,
+      "MatrixPosition": 1,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.5943945Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.6767324Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.6973298Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.6345207Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.635519Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "1e525a91d002a5d6dbfc2b57eb4df4bfb8d56b591a14cd39698a4b48d85b5c80",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.6507552Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-01\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.6377365Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 101,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 2,
+      "MatrixPosition": 2,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.7553197Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.7742878Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.7747555Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.7640598Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.7650676Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\measurement\\measurement.json",
+        "Bytes": 1621,
+        "SHA256": "4e033f234475d3ea11bedc66f5ac2197e2ba85c9519a0ec287389166dfd847bb",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.7700679Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-02\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.7680695Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 102,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 3,
+      "MatrixPosition": 3,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.7966946Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.8071387Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.807424Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8027199Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8027199Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\measurement\\measurement.json",
+        "Bytes": 1621,
+        "SHA256": "48cf383129c02bb3e1f7db46670326e49f8c94190b226b9883a65eb17c90f915",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8047235Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-03\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.8037189Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 103,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 4,
+      "MatrixPosition": 4,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.8230665Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.8338376Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.8340652Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8285817Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8285817Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "b5de5ff040e701d0c3f164787cea6dcf01b6668c6fc4bb2e2d559843e83eede2",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8315819Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-04\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.8305812Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 104,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 5,
+      "MatrixPosition": 5,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.8453163Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.855016Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.8551823Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8503356Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8503356Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\measurement\\measurement.json",
+        "Bytes": 1998,
+        "SHA256": "f9a02f1d47a3f03271ecc3226602d78d9faf79d8c9d2a4bde8991d65f7a1e39c",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.8533328Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-05\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.8523326Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 2 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 28976
+          }
+        ],
+        "ExportElapsedNS": 105,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 6,
+      "MatrixPosition": 6,
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.8830113Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "NormalMultiPage",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "ab822c28db64279a793810c45bbff7f6d7ecfd1cd44aaa1f59c48e00fedcaea2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9042745Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.904434Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.899152Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.899152Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\measurement\\measurement.json",
+        "Bytes": 1621,
+        "SHA256": "fb319a76fd2987e913edf7906a453f2957960846691872c277b40e7772b1cef5",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9021523Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-06\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9011523Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 106,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 7,
+      "MatrixPosition": 7,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.917319Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9312494Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.931473Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9251536Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9251536Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\measurement\\measurement.json",
+        "Bytes": 1619,
+        "SHA256": "8b76407d2e8d1befe71be91113222e46d1816523bedc74f4be94d535ce6f9b77",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9281521Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-07\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9271526Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 107,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 8,
+      "MatrixPosition": 8,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 1,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.9465843Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9594658Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.9596511Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9525987Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9536966Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\measurement\\measurement.json",
+        "Bytes": 1996,
+        "SHA256": "c1d138c3e48346d1628ffc4850bc15648a3c8c28f6e1dec3f8f0538825b3d1e4",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9563759Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-08\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9549102Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          }
+        ],
+        "ExportElapsedNS": 108,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 9,
+      "MatrixPosition": 9,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:11.973552Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:11.9857129Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:11.9858901Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9792147Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9802145Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\measurement\\measurement.json",
+        "Bytes": 1996,
+        "SHA256": "b7ee353103765eb9b21674e88f17c4c2b165875c953f63a092f5482656d95a88",
+        "LastWriteTimeUtc": "2026-11-10T01:51:11.9833315Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-09\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:11.9812141Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          }
+        ],
+        "ExportElapsedNS": 109,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 10,
+      "MatrixPosition": 10,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 2,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:12.0021692Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "2",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:12.0157499Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:12.0159296Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0099975Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0099975Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\measurement\\measurement.json",
+        "Bytes": 1620,
+        "SHA256": "47bd103a17e21c62fae73bfa9ae48934ffb4f70d9373f7819caddfa538317bad",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.012355Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-10\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:12.0109973Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 110,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 11,
+      "MatrixPosition": 11,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.21",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:12.0301331Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.21",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:12.0449142Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:12.0450914Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0387852Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0387852Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\measurement\\measurement.json",
+        "Bytes": 1620,
+        "SHA256": "ebd4467fbf75a05526a611e11ff876e0c59ceccbb4ca411ccaadeb8d82062364",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0427894Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-11\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:12.0407995Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [],
+        "ExportElapsedNS": 111,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    },
+    {
+      "Index": 12,
+      "MatrixPosition": 12,
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.20",
+      "Ordinal": 3,
+      "Status": "PASS",
+      "StartedAtUtc": "2026-11-10T01:51:12.059275Z",
+      "Command": {
+        "FilePath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-harness-final-validation-20261110\\drawio-resources.test.exe",
+        "Arguments": [
+          "-test.run",
+          "^TestDrawioWorkerResourceMeasurement$",
+          "-test.count=1",
+          "-test.v"
+        ],
+        "WorkingDirectory": "F:\\AIproject\\LevNote",
+        "WindowStyle": "Hidden",
+        "TimeoutSeconds": 120,
+        "Environment": {
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_MEASUREMENT": "1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_FIXTURE": "MetadataHeavy",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_VERSION": "native-worker.20261110.20",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_ORDINAL": "3",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_SOURCE_SHA256": "504b19ffcf126353b79b34bcb5735f6a1cff21d5d515b23bc294342c7a61bcb1",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_TESTER_SHA256": "e737a93cb11331b09b83113984b9d279aef6cab129ff590063fd21fdee845398",
+          "LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\measurement"
+        }
+      },
+      "ExitCode": 0,
+      "TimedOut": false,
+      "CleanupError": null,
+      "ProcessError": null,
+      "TesterIdentity": {
+        "PID": 987654,
+        "ProcessStartTimeUtc": "2026-11-10T01:51:12.0730588Z",
+        "ProcessPath": "FIXTURE-ONLY-NO-EXECUTABLE"
+      },
+      "IdentityErrors": [],
+      "FinishedAtUtc": "2026-11-10T01:51:12.0732307Z",
+      "Stdout": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\stdout.txt",
+        "Bytes": 33,
+        "SHA256": "801a65b3440d95b2e98a8ee8124325522232d7540863c2a73d5c81c77d8db391",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0662516Z"
+      },
+      "Stderr": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\stderr.txt",
+        "Bytes": 33,
+        "SHA256": "fdf74add5071cbde017106b10662b1f53f8ff7c76726526b0ec639bdd90ff28d",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0662516Z"
+      },
+      "Measurement": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\measurement\\measurement.json",
+        "Bytes": 1997,
+        "SHA256": "54b712b49d3a2a9ceeaeae8e802ec2f5a80d3cdf06a0ad2b9b2aab2d47397669",
+        "LastWriteTimeUtc": "2026-11-10T01:51:12.0702532Z"
+      },
+      "Config": {
+        "Path": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\fixtures-01\\pass\\sample-12\\measurement\\config",
+        "Inventory": [
+          {
+            "RelativePath": "fixture.txt",
+            "Bytes": 16,
+            "SHA256": "ec356eea78fb4cbccc9885fa5c4159f62ee2b8d547bd5ee38e7e240d637b1ff5",
+            "LastWriteTimeUtc": "2026-11-10T01:51:12.0692513Z"
+          }
+        ]
+      },
+      "ArtifactErrors": [],
+      "MeasurementSummary": {
+        "Failures": [],
+        "Limitations": [
+          "FIXTURE ONLY: incomplete lifetime peak coverage"
+        ],
+        "ActualWarnings": [
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 0: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          },
+          {
+            "code": "UNSUPPORTED_ELEMENT",
+            "message": "page 3 cell 1: mxCell is neither a vertex nor an edge and is not rendered",
+            "start": 0,
+            "end": 93639
+          }
+        ],
+        "ExportElapsedNS": 112,
+        "SampleIntervalNS": 2000000,
+        "MaxAttempts": 20000,
+        "ProbeAttempts": 3,
+        "ProbeFailedReads": 0,
+        "SampledMaxWorkingSetBytes": 1024,
+        "SampledMaxPrivateUsageBytes": 2048,
+        "ObservedOSPeakWorkingSetBytes": 4096,
+        "ObservedOSPeakPagefileBytes": 8192,
+        "FinalMemoryReadOK": true,
+        "FinalCPUReadOK": true,
+        "LifetimePeakCountersComplete": false,
+        "PeakCoverage": "fixture only",
+        "CPUKernel100ns": 0,
+        "CPUUser100ns": 20,
+        "ProcessLifetimeNS": 300
+      },
+      "MeasurementStatus": "PASS",
+      "Violations": []
+    }
+  ],
+  "DescriptiveGroups": [
+    {
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.20",
+      "RowCount": 3,
+      "Stats": {
+        "ExportElapsedNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 101,
+          "Median": 104,
+          "Maximum": 105,
+          "Quantization": "host stopwatch nanoseconds; managed Export request wall elapsed"
+        },
+        "SampledMaxWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 1024,
+          "Median": 1024,
+          "Maximum": 1024,
+          "Quantization": "process working-set samples"
+        },
+        "SampledMaxPrivateUsageBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 2048,
+          "Median": 2048,
+          "Maximum": 2048,
+          "Quantization": "process private commit samples"
+        },
+        "ObservedOSPeakWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 4096,
+          "Median": 4096,
+          "Maximum": 4096,
+          "Quantization": "OS-observed working-set peak"
+        },
+        "ObservedOSPeakPagefileBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 8192,
+          "Median": 8192,
+          "Maximum": 8192,
+          "Quantization": "OS-observed pagefile/commit peak"
+        },
+        "CPUKernel100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 0,
+          "Median": 0,
+          "Maximum": 0,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "CPUUser100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 20,
+          "Median": 20,
+          "Maximum": 20,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "ProcessLifetimeNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 300,
+          "Median": 300,
+          "Maximum": 300,
+          "Quantization": "Windows process creation-to-exit wall lifetime; not CPU time"
+        }
+      },
+      "LifetimePeakCompleteRows": 0,
+      "LifetimePeakLimitedRows": 3,
+      "LifetimePeakUnknownRows": 0
+    },
+    {
+      "Fixture": "NormalMultiPage",
+      "Version": "native-worker.20261110.21",
+      "RowCount": 3,
+      "Stats": {
+        "ExportElapsedNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 102,
+          "Median": 103,
+          "Maximum": 106,
+          "Quantization": "host stopwatch nanoseconds; managed Export request wall elapsed"
+        },
+        "SampledMaxWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 1024,
+          "Median": 1024,
+          "Maximum": 1024,
+          "Quantization": "process working-set samples"
+        },
+        "SampledMaxPrivateUsageBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 2048,
+          "Median": 2048,
+          "Maximum": 2048,
+          "Quantization": "process private commit samples"
+        },
+        "ObservedOSPeakWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 4096,
+          "Median": 4096,
+          "Maximum": 4096,
+          "Quantization": "OS-observed working-set peak"
+        },
+        "ObservedOSPeakPagefileBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 8192,
+          "Median": 8192,
+          "Maximum": 8192,
+          "Quantization": "OS-observed pagefile/commit peak"
+        },
+        "CPUKernel100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 0,
+          "Median": 0,
+          "Maximum": 0,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "CPUUser100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 20,
+          "Median": 20,
+          "Maximum": 20,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "ProcessLifetimeNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 300,
+          "Median": 300,
+          "Maximum": 300,
+          "Quantization": "Windows process creation-to-exit wall lifetime; not CPU time"
+        }
+      },
+      "LifetimePeakCompleteRows": 0,
+      "LifetimePeakLimitedRows": 3,
+      "LifetimePeakUnknownRows": 0
+    },
+    {
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.20",
+      "RowCount": 3,
+      "Stats": {
+        "ExportElapsedNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 108,
+          "Median": 109,
+          "Maximum": 112,
+          "Quantization": "host stopwatch nanoseconds; managed Export request wall elapsed"
+        },
+        "SampledMaxWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 1024,
+          "Median": 1024,
+          "Maximum": 1024,
+          "Quantization": "process working-set samples"
+        },
+        "SampledMaxPrivateUsageBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 2048,
+          "Median": 2048,
+          "Maximum": 2048,
+          "Quantization": "process private commit samples"
+        },
+        "ObservedOSPeakWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 4096,
+          "Median": 4096,
+          "Maximum": 4096,
+          "Quantization": "OS-observed working-set peak"
+        },
+        "ObservedOSPeakPagefileBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 8192,
+          "Median": 8192,
+          "Maximum": 8192,
+          "Quantization": "OS-observed pagefile/commit peak"
+        },
+        "CPUKernel100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 0,
+          "Median": 0,
+          "Maximum": 0,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "CPUUser100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 20,
+          "Median": 20,
+          "Maximum": 20,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "ProcessLifetimeNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 300,
+          "Median": 300,
+          "Maximum": 300,
+          "Quantization": "Windows process creation-to-exit wall lifetime; not CPU time"
+        }
+      },
+      "LifetimePeakCompleteRows": 0,
+      "LifetimePeakLimitedRows": 3,
+      "LifetimePeakUnknownRows": 0
+    },
+    {
+      "Fixture": "MetadataHeavy",
+      "Version": "native-worker.20261110.21",
+      "RowCount": 3,
+      "Stats": {
+        "ExportElapsedNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 107,
+          "Median": 110,
+          "Maximum": 111,
+          "Quantization": "host stopwatch nanoseconds; managed Export request wall elapsed"
+        },
+        "SampledMaxWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 1024,
+          "Median": 1024,
+          "Maximum": 1024,
+          "Quantization": "process working-set samples"
+        },
+        "SampledMaxPrivateUsageBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 2048,
+          "Median": 2048,
+          "Maximum": 2048,
+          "Quantization": "process private commit samples"
+        },
+        "ObservedOSPeakWorkingSetBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 4096,
+          "Median": 4096,
+          "Maximum": 4096,
+          "Quantization": "OS-observed working-set peak"
+        },
+        "ObservedOSPeakPagefileBytes": {
+          "Unit": "bytes",
+          "Count": 3,
+          "Minimum": 8192,
+          "Median": 8192,
+          "Maximum": 8192,
+          "Quantization": "OS-observed pagefile/commit peak"
+        },
+        "CPUKernel100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 0,
+          "Median": 0,
+          "Maximum": 0,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "CPUUser100ns": {
+          "Unit": "100ns",
+          "Count": 3,
+          "Minimum": 20,
+          "Median": 20,
+          "Maximum": 20,
+          "Quantization": "Windows process CPU counter units; scheduling/accounting resolution may be coarser, zero is retained"
+        },
+        "ProcessLifetimeNS": {
+          "Unit": "ns",
+          "Count": 3,
+          "Minimum": 300,
+          "Median": 300,
+          "Maximum": 300,
+          "Quantization": "Windows process creation-to-exit wall lifetime; not CPU time"
+        }
+      },
+      "LifetimePeakCompleteRows": 0,
+      "LifetimePeakLimitedRows": 3,
+      "LifetimePeakUnknownRows": 0
+    }
+  ],
+  "Limitations": [
+    {
+      "Index": 1,
+      "MatrixPosition": 1,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 2,
+      "MatrixPosition": 2,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 3,
+      "MatrixPosition": 3,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 4,
+      "MatrixPosition": 4,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 5,
+      "MatrixPosition": 5,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 6,
+      "MatrixPosition": 6,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 7,
+      "MatrixPosition": 7,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 8,
+      "MatrixPosition": 8,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 9,
+      "MatrixPosition": 9,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 10,
+      "MatrixPosition": 10,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 11,
+      "MatrixPosition": 11,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    },
+    {
+      "Index": 12,
+      "MatrixPosition": 12,
+      "Limitation": "FIXTURE ONLY: incomplete lifetime peak coverage"
+    }
+  ],
+  "FailureDiagnostics": [],
+  "Scope": "Twelve or fewer local draw.io worker requests only. Raw rows are preserved before descriptive statistics. Request elapsed, CPU kernel/user, process wall lifetime, sampled working/private commit, and OS-observed peaks are distinct. Missing counters are not replaced with zero. Limited lifetime peak rows are retained and are not represented as complete lifetime peaks. No host/editor/Tauri/global memory or speed claim.",
+  "FixtureOnly": true
+}

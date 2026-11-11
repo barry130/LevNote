@@ -1,0 +1,74 @@
+=== RUN   TestImageReferenceNativePointerKeyboardSelectionReadonly
+=== RUN   TestImageReferenceNativePointerKeyboardSelectionReadonly/false
+=== RUN   TestImageReferenceNativePointerKeyboardSelectionReadonly/true
+--- PASS: TestImageReferenceNativePointerKeyboardSelectionReadonly (0.03s)
+    --- PASS: TestImageReferenceNativePointerKeyboardSelectionReadonly/false (0.03s)
+    --- PASS: TestImageReferenceNativePointerKeyboardSelectionReadonly/true (0.00s)
+=== RUN   TestImageReferenceNarrowWrappedEmptyAndBoundedMetadata
+--- PASS: TestImageReferenceNarrowWrappedEmptyAndBoundedMetadata (0.02s)
+=== RUN   TestImageReferenceSharedBudgetsAndLiteralFallback
+--- PASS: TestImageReferenceSharedBudgetsAndLiteralFallback (0.02s)
+=== RUN   TestImageReferenceOwnedSyntaxAndOuterLinkRemainLiteral
+--- PASS: TestImageReferenceOwnedSyntaxAndOuterLinkRemainLiteral (0.01s)
+=== RUN   TestImageReferenceMappedIdentityAndKind
+=== RUN   TestImageReferenceMappedIdentityAndKind/unchanged
+=== RUN   TestImageReferenceMappedIdentityAndKind/prefix
+=== RUN   TestImageReferenceMappedIdentityAndKind/duplicate-prefix
+=== RUN   TestImageReferenceMappedIdentityAndKind/href
+=== RUN   TestImageReferenceMappedIdentityAndKind/image-to-link
+=== RUN   TestImageReferenceMappedIdentityAndKind/buffer
+=== RUN   TestImageReferenceMappedIdentityAndKind/release
+=== RUN   TestImageReferenceMappedIdentityAndKind/open-fence
+=== RUN   TestImageReferenceMappedIdentityAndKind/restore
+=== RUN   TestImageReferenceMappedIdentityAndKind/foreign-group
+--- PASS: TestImageReferenceMappedIdentityAndKind (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/unchanged (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/prefix (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/duplicate-prefix (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/href (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/image-to-link (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/buffer (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/release (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/open-fence (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/restore (0.00s)
+    --- PASS: TestImageReferenceMappedIdentityAndKind/foreign-group (0.00s)
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/cancel
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/modifier-loss
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/scroll
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/owner
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/release
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/href
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/kind
+=== RUN   TestImageReferenceNativeGestureCancellationStaleAndRepeat/repeat
+--- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat (0.02s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/cancel (0.00s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/modifier-loss (0.00s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/scroll (0.00s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/owner (0.00s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/release (0.00s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/href (0.00s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/kind (0.00s)
+    --- PASS: TestImageReferenceNativeGestureCancellationStaleAndRepeat/repeat (0.00s)
+=== RUN   TestImageReferenceKeyboardPrefixAndSynchronousRelease
+--- PASS: TestImageReferenceKeyboardPrefixAndSynchronousRelease (0.01s)
+=== RUN   TestImageReferenceComposeFlushAndConflict
+=== RUN   TestImageReferenceComposeFlushAndConflict/other
+=== RUN   TestImageReferenceComposeFlushAndConflict/same
+=== RUN   TestImageReferenceComposeFlushAndConflict/conflict
+--- PASS: TestImageReferenceComposeFlushAndConflict (0.02s)
+    --- PASS: TestImageReferenceComposeFlushAndConflict/other (0.00s)
+    --- PASS: TestImageReferenceComposeFlushAndConflict/same (0.01s)
+    --- PASS: TestImageReferenceComposeFlushAndConflict/conflict (0.01s)
+PASS
+ok  	levnote.local/native/modules/markdownview	1.445s
+=== RUN   TestMarkdownImageReferenceRealAdapterOpenPreservesSource
+=== RUN   TestMarkdownImageReferenceRealAdapterOpenPreservesSource/PNG
+=== RUN   TestMarkdownImageReferenceRealAdapterOpenPreservesSource/JPEG
+--- PASS: TestMarkdownImageReferenceRealAdapterOpenPreservesSource (0.11s)
+    --- PASS: TestMarkdownImageReferenceRealAdapterOpenPreservesSource/PNG (0.06s)
+    --- PASS: TestMarkdownImageReferenceRealAdapterOpenPreservesSource/JPEG (0.05s)
+=== RUN   TestMarkdownImageReferenceRealAdapterRefusalAndDisabledFallback
+--- PASS: TestMarkdownImageReferenceRealAdapterRefusalAndDisabledFallback (0.04s)
+PASS
+ok  	levnote.local/native/app	2.151s

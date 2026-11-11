@@ -1,0 +1,60 @@
+Accepted finite stage — reject oversized rich previews before copying source
+
+ACCEPTED after root reviewed the15:12 full test/vet/build and hidden native
+startup/graceful-close result, focused regressions, allocation evidence,
+independent review and corrected narrow recovery screenshot. Exact artifact:
+13,209,600 bytes; SHA256
+36CDC562D0E3C7F1793EDC935154B3AD7FF726716FCC409A736B04BD0FCAF3C6;
+UTC2026-11-08T07:12:01.8261018Z. Product frozen; final doc evidence is assigned
+to Astra. This was a concrete memory finding from source review.
+
+Root observed these current paths:
+- modules/markdownview/view.go refresh and Export call Buffer.String before
+  markdown.Parse can reject >8MiB. The partial Document retains raw source.
+- modules/graphview/sync.go ensureSynced calls Buffer.String then []byte(raw)
+  before mindmap/drawio parsers enforce16MiB/32MiB default limits.
+- Source editing permits128MiB, so a user opening or switching a large file
+  into preview can create a large avoidable copy just to receive a limit error.
+- The accepted outline sources already guard LenBytes before String, proving
+  the intended shape. No measured main-process saving is claimed yet.
+
+Exclusive owner: Astra view/parser boundaries and meaningful allocation tests.
+DeepSeek reviews app lifecycle/source fallback and focused integration. GLM
+independent review, no ownership of frozen session/search/file safety modules.
+
+Design outcome:
+1. Reuse exported parser budget constants/defaults, with one source of truth;
+   do not make copies of magic numbers that can silently drift.
+2. Before whole-buffer materialization for preview or export, inspect LenBytes
+   and reject above its parser budget. Keep full editable buffer authoritative.
+   Show a visible concise message and an available source route.
+3. Cache the refusal by buffer pointer+version. Clear old parsed/layout caches
+   and descriptors; do not retain obsolete source or a stale drawable view.
+   Never clear a pending independent draft because of the size change.
+4. Existing Flush order and conflict checks still apply. Oversize/source
+   mutation while a draft exists must retain/recover that draft; export failure
+   must not publish a partial/empty target.
+   Markdown range-only Flush remains allowed above8MiB when mapped field guards
+   succeed; do not turn a preview budget into a source editing restriction.
+   Graph Flush needs a full parse, so it refuses before String and keeps draft.
+5. Once content is back within budget or a new buffer replaces it, render again
+   normally. Never permanently poison a view after one oversize document.
+6. Audit secondary parse paths only as needed to prevent bypassing the guard;
+   don't rewrite working formats or add arbitrary tighter normal limits.
+
+Acceptance:
+- Just over each parser default bound refuses before a proportional String/
+  []byte allocation; measure allocation with the fixture constructed outside
+  the measurement, and separate retained memory from cumulative allocation.
+- Last-valid preview replaced by oversize source doesn't remain visible or
+  exported; source bytes, buffer identity, selection, draft and undo survive.
+- Repeated unchanged refusal is bounded, shrinking/reload recovers, readonly
+  source navigation works. Add actual source/preview switch app coverage only
+  where it exercises a meaningful lifecycle path beyond unit assertions.
+- Focused checks first, then one integrated build after review if product code
+  changes. Update real capability/resource wording and validation evidence.
+
+After that correction, next usability candidate is conservative Markdown task
+list recognition and checkbox editing: exact one-character source replacement,
+one undo transaction, native readonly behavior, no wholesale serialization.
+That feature needs its own API/behavior plan and is not activated here.

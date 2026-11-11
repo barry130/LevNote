@@ -1,0 +1,61 @@
+Active first slice — native Markdown pipe tables
+
+ACTIVE: root accepted the19:20 doc-block reference release after full integration.
+First-slice implementation follows handoffs/markdown-tables-contract.md, which
+supersedes conflicting tentative proposal details below. DeepSeek app owner
+owns parser/export after the takeover, actual app acceptance/docs and later sole
+integration. DeepSeek reference-view owner owns markdownview. GLM has completed
+independent read-only review with no actionable findings. No cell editing in
+this slice.
+No resource samples or unassigned core/vendor changes. Root reviews only.
+
+User value: reading and editing a normal Markdown table should not require a
+second application or a web engine. The current native parser exposes leading
+pipe runs as raw paragraphs with an unsupported-table warning. Reuse native
+drawing and the existing independent draft editor; add no rendering dependency.
+
+Deliver in two reviewable steps:
+1. Source-preserving parser metadata, readable native table preview and safe
+   HTML export. Complete raw block editing remains available during this step.
+2. Single-cell raw-Markdown editing using the existing draft/Flush lifecycle,
+   exact mapped source identity and candidate-shape validation. Row/column
+   insertion/deletion, resize handles, merge, formulas and extra toolbars wait.
+
+Current planning inputs:
+- handoffs/markdown-tables-app-proposal.md (design-only; root clarifications
+  supersede its inherited legacy engine minimum and code-span pipe assumptions)
+- GLM parser feasibility proposal when available
+- docs/decisions/0017-m5-tables-and-code-blocks.md for prior product behavior,
+  not for importing its ProseMirror schema constraints or implementation
+
+Decisions already made:
+- Header + delimiter with zero body rows is valid. Do not impose the old
+  Milkdown header-plus-body minimum on our independently implemented format.
+- Explicit finite rectangular pipe-table subset. Column alignment is display
+  metadata from the delimiter line. Unsupported/ambiguous shapes preserve
+  complete raw text with a bounded reason; never invent/discard cells.
+- Source bytes/ranges remain authoritative. Preserve BOM/CRLF, outer pipes,
+  whitespace padding, escapes, unknown neighboring constructs and untouched
+  bytes. No automatic pretty-print or canonical table rewrite.
+- Unescaped pipe remains structural even inside a code span. Define one-pass
+  backslash-parity splitting explicitly; do not assume inline code makes pipe
+  safe, and do not promise full GFM without tests for the declared grammar.
+- A first rendering may show cell Markdown source literally, with clear
+  wording. Do not apply inconsistent escape decoding or expose cell links with
+  no source-identity navigation. Decide exact display semantics before code.
+- Bound parser row/column/cell descriptors and per-frame widgets. Prefer
+  flattening visible table rows under the existing virtual list, with a small
+  explicit column cap. Do not build a whole giant table as a single List row.
+- Narrow windows need an actual tested horizontal/wrapping strategy. Avoid
+  arbitrary global scroll coupling or oversized toolbars. Use current palette.
+- No per-cell editor instances: only the one active independent draft. Failed
+  Flush retains draft/recovery and blocks save/switch/close. Newline/unescaped
+  pipe input must never silently change table shape or rewrite adjacent cells.
+- No parser engine/vendor/app host changes without demonstrated need.
+
+The final contract already selects grammar, metadata, limits, preview editing
+entry and fallback/export semantics. Parser focused tests/vet are green;
+current work is view/app focused acceptance. Root must review actual results
+and images before authorizing the sole app owner to integrate. No resource
+matrix. Second-slice proposals may be prepared read-only, but implementation
+waits for root acceptance of the first-slice artifact.

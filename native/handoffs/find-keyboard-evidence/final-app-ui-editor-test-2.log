@@ -1,0 +1,4 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","./ui/editor","-count=1")
+ok  	levnote.local/native/app	15.805s
+ok  	levnote.local/native/ui/editor	2.065s
+EXIT_CODE=0

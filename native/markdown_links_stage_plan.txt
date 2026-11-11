@@ -1,0 +1,96 @@
+Active finite stage — activate local Markdown links in the native view
+
+ACTIVE 2026-11-08 15:50 +08:00 after root accepted the15:48 task-checkbox
+release. Exact approved contract: handoffs/markdown-links-contract.md.
+Astra owns the finite native input feasibility probe first and then the view;
+DeepSeek owns app reference-route acceptance; GLM independent read-only review.
+Publish the probe result and concrete UI contract before dependent integration.
+Other product packages remain frozen. No child agents may spawn more agents.
+
+Current root gate (2026-11-08, after focused link tests): release is NOT frozen.
+The700-link single-row probe measured approximately2.15GB cumulative allocation
+over five unchanged native frames. Normal1000-row virtualization is bounded,
+but that does not cover a dense paragraph. Astra owns a finite public-primitive
+diagnosis and measured control/inline budget, with no vendor change assigned.
+Any fallback must retain the full source/readable bounded preview, visibly
+explain unavailable inline navigation, and preserve normal selection/editing.
+Use practical small-count allocation evidence to justify the selected bound;
+do not freeze solely on normal-row correctness. GLM reviews current behavior,
+and DeepSeek holds final integration/process sampling until root accepts it.
+
+Observed gap: parser InlineLink already has original Range/Text/Href, while
+markdownview currently paints only an accented underlined Span. Host.OpenReference
+already supports local documents and same-document anchors with visible URL/UNC
+refusal; no browser or new renderer is required for this workflow.
+
+Candidate direction, subject to concrete native primitive review:
+- Use native RichText inline children/RoleLink and source-model metadata. Do not
+  use a primitive that invokes OS URL opening automatically. MyGo ui.Link does
+  that; a manually clickable/focusable styled text child can call the host.
+- In this editable preview, ordinary pointer selection/double-click must remain
+  usable. Default pointer activation is Ctrl/Cmd+click, visibly explained in a
+  compact hint/tooltip; keyboard Tab+Enter is available. Test wrapped inline
+  fragments, neighboring code/bold/emphasis, Unicode and task label composition.
+- Capture buffer identity/version, exact enclosing field/item range and exact
+  original inline range; do not select a target by label or old array index.
+  Flush pending composition first. Map untouched ranges through journal; after
+  a changed version require exact current parser context/range and full href.
+  Reject stale/deleted/rewritten/fenced targets visibly, keeping draft and caret.
+- Do not retain or truncate an unbounded href into another destination. Pick a
+  documented finite control target budget only after inspecting existing host
+  behavior; overlong targets are visibly unavailable, full source retained.
+  Visible text keeps existing32KiB row protection; accessibility/tooltip strings
+  use bounded copies. Limit only redundant UI metadata, not authored bytes.
+- Host has no tab/controllerID in view contract. App openReference must check
+  that the source tab is still live/current before routing stale callbacks;
+  inspect ordinary Open/Flush ordering and introduce a minimal liveness check
+  only if a reachable race is demonstrated. Don't import app internals in view.
+- Anchor resolution reuses existing app/outline route. Preview scrolls without
+  focusing hidden source; split mode reveals both source and preview as the
+  accepted outline contract already does. Don't invent a different policy.
+- File targets use the saved source document directory and ordered existing
+  opening route; unsupported network/mail/shell/UNC stays visibly refused.
+  Correctly explain current percent/query/fragment support; don't silently
+  generalize parser syntax or duplicate URL classification in modules.
+
+Tentative owners: Astra native inline controls and identity tests; DeepSeek
+app liveness/local-file/anchor acceptance and integration; GLM independent
+review and parser/API clarification only if root assigns concrete changes.
+
+Expected focused acceptance: real Ctrl+click and Tab/Enter; plain selection
+and double-click remain editable; exact source/no-op dirty bytes; local target
+opened once; same-document Unicode/duplicate anchor; failed Flush retention;
+unrelated mapped edit vs target/context invalidation; rejected external target
+no navigation; readonly link navigation without editing; one narrow wrapped
+link image. No new engine, browser surface, networking or code execution.
+
+This stage is active under the final contract and current native/AGENTS.md.
+Earlier candidate wording is explanatory history; final contract takes priority.
+
+Pre-activation decisions recorded15:46 (planning only):
+- Read handoffs/markdown-links-feasibility.md before choosing the primitive.
+  Focusable inline children steal plain selection in this MyGo version.
+  First prove modifier-sensitive public HitTest using a finite native input
+  probe; no vendor patch or wholesale renderer replacement is pre-authorized.
+- Bound a control's copied full href to4096 UTF-8 bytes. Do not trim, decode,
+  normalize or truncate it in the view. Larger hrefs keep the existing rendered
+  label/source but have an explicit unavailable tooltip/status; never navigate
+  to a shortened target. Accessible labels cap at128 UTF-8 bytes+rune-safe
+  ellipsis; tooltip detail cap512 bytes+rune-safe ellipsis. Existing32KiB row
+  shaping limit still applies to visible text; don't truncate authored labels
+  merely to meet the redundant accessibility metadata budget.
+- Publish exact RoleLink name and unavailable semantics to DeepSeek before
+  writing dependent app tests. Empty labels need a discoverable finite text
+  fallback. Do not present an empty non-hit-testable control as accessible.
+- Current reference policy is literal relative filenames, decoded-once file:
+  URLs and decoded same-document #anchors. Do not silently add percent decoding
+  to relative paths or split local filename query/hash suffixes in this stage.
+  Document that limitation; file-to-file anchor navigation is future scope.
+- Navigation remains permitted in readonly text. The readonly check for task
+  mutations must not be copied into navigation. Failed Flush still blocks.
+- Public Host.OpenReference remains the sole route. App owner may add a small
+  membership/current-tab guard after an actual stale callback test; no host
+  ID field is needed. Frozen unrelated shell code stays frozen.
+- GLM's next bounded task is independent source review of native links and the
+  literal URL/path policy. Parser code remains frozen unless an exact defect
+  is accepted. No redundant full integration run or external network research.

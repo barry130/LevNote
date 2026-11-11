@@ -1,0 +1,39 @@
+Finite search/disk checkpoint takeover — DeepSeek,12:45 2026-11-08
+
+Root interrupted GLM. You now exclusively own native/core/search/** and
+native/core/document/** in addition to existing app ownership. GLM must not
+resume edits. Astra is documentation-only; views/editor/session frozen green.
+Finish this finite checkpoint, then full resource_acceptance_task.txt.
+
+Read current code/test state before editing. GLM has most implementation but
+has not returned a passing checkpoint, and handoff claims are stale. Do not
+reimplement working sections or add features.
+
+Known current state:
+- workspace.go now has stateful directoryReader/Open and Read(n)/Close wrapper,
+  one open current dir with pending child-path stack,256-entry chunks,10k total
+  cap and no-progress handling. EOF/short-read/cancellation/close behavior need
+  focused execution and review. Root-link validation moved below callbacks.
+- Test fakes added to find_test.go are inconsistent: fake.Read returns nil on
+  final nonempty slice, so successful complete traversal includes one extra
+  EOF call. shortDirectoryReader.Open currently clones state, while assertions
+  inspect original reads. Empty short reader returns EOF, yet test expects
+  read-stalled; represent a true empty,nil reader deliberately. Don't weaken
+  coverage: prove >256 and >1 short batch completeness, cap, close/cancellation,
+  partial-error and no-progress using small controlled fixtures.
+- TestWorkspaceEnforcesActualReadLimit has workspaceOpenHook growing file
+  after entry.Info but before OpenLimitedRead. Verify bounded actual reader
+  remains correct; ErrTooLarge is now classified as too-large. ReadStable
+  itself caps io.ReadAll(limit+1). Preserve UTF16 preview regressions.
+- disk token test fixtures now same-byte replacement="same" and equal-size
+  same-mtime="first"/"other" with assertion. Fresh pre-Revert token regression
+  and controlled diskCheckHook replacing path while hashing added. Verify
+  them; globals must be restored reliably and not used in concurrent tests.
+- disk.go now has before/after/current size+mtime+identity validation. Do not
+  revert final guard or reintroduce unchanged Save's unsafe refreshBaseline.
+
+First run focused core/search+core/document tests, fix only actual failures and
+high-confidence defects, vet. Report exact results + update handoffs/search.md.
+Notify root when stable; then app recapture/full suite/build/resource sample.
+If this reveals a nontrivial new design need, report first rather than churn.
+No need to keep waiting for GLM. No commits/pushes/new product features.

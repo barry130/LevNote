@@ -1,0 +1,15 @@
+=== RUN   TestSVGSuccessMatchesPreChangeOracle
+--- PASS: TestSVGSuccessMatchesPreChangeOracle (0.00s)
+=== RUN   TestSVGOutputLimitContract
+    svg_budget_test.go:103: cap-minus-one: err=<nil> output=2148 issues=4
+--- FAIL: TestSVGOutputLimitContract (0.00s)
+=== RUN   TestSVGOutputLimitNormalization
+--- PASS: TestSVGOutputLimitNormalization (0.00s)
+=== RUN   TestSVGNewlineExpansionHonorsCapWithoutPartialOutput
+    svg_budget_test.go:145: newline amplification: err=<nil> output=66600 issues=0
+--- FAIL: TestSVGNewlineExpansionHonorsCapWithoutPartialOutput (0.00s)
+=== RUN   TestSVGSelectedPageAndPageLookupPrecedence
+--- PASS: TestSVGSelectedPageAndPageLookupPrecedence (0.00s)
+FAIL
+FAIL	levnote.local/native/formats/drawio	0.674s
+FAIL

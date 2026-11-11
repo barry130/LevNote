@@ -1,0 +1,42 @@
+{
+  "Schema": 1,
+  "Status": "PASS",
+  "Checks": [
+    {
+      "Name": "all example JSON files are strict UTF-8 and structurally parse",
+      "Pass": true,
+      "Detail": "files=6"
+    },
+    {
+      "Name": "diagram-notes example has the exact schema3/API1 data route",
+      "Pass": true,
+      "Detail": "id=diagram-notes, extension=.diagramnote, route=builtin.drawio"
+    },
+    {
+      "Name": "portable README retains exactly one version placeholder",
+      "Pass": true,
+      "Detail": "placeholders=1"
+    },
+    {
+      "Name": "portable README contains three structurally valid inline schema3 examples",
+      "Pass": true,
+      "Detail": "blocks=3, routes=builtin.markdown,builtin.mindmap,builtin.drawio"
+    },
+    {
+      "Name": "examples README relative links resolve",
+      "Pass": true,
+      "Detail": "links=3, missing=0"
+    },
+    {
+      "Name": "portable README retains the five existing local notice/package links",
+      "Pass": true,
+      "Detail": "links=5, missingInAcceptedBundle=0"
+    },
+    {
+      "Name": "portable README explicitly distinguishes .19 from the later draw.io route",
+      "Pass": true,
+      "Detail": "accepted=.19, drawio=pending later build"
+    }
+  ],
+  "Scope": "Structural JSON parse, UTF-8 decode, version-marker count and relative authored-link checks only. This is not production manifest admission, Go tests, a build, a worker/host launch or a release claim."
+}

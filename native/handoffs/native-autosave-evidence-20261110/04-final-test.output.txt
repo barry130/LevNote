@@ -1,0 +1,6 @@
+ok  	levnote.local/native/app	21.808s
+--- FAIL: TestOneRequestAndPublicToolbarInput (0.01s)
+    imageview_test.go:360: 100% action = imageview.viewport{zoom:1, panX:180, panY:101, fitMode:true}
+FAIL
+FAIL	levnote.local/native/modules/imageview	16.323s
+FAIL

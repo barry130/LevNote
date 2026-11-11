@@ -1,0 +1,22 @@
+[
+  {
+    "Path": "app/open_documents.go",
+    "Unchanged": true
+  },
+  {
+    "Path": "app/open_documents_test.go",
+    "Unchanged": true
+  },
+  {
+    "Path": "app/app.go",
+    "Unchanged": true
+  },
+  {
+    "Path": "app/view.go",
+    "Unchanged": true
+  },
+  {
+    "Path": "app/workspace.go",
+    "Unchanged": true
+  }
+]

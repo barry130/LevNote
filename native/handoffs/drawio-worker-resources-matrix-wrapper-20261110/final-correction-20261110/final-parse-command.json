@@ -1,0 +1,9 @@
+{
+  "FilePath": "C:\\Users\\canace\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+  "Arguments": [
+    "-NoProfile",
+    "-File",
+    "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-correction-20261110\\final-parse.ps1"
+  ],
+  "WorkingDirectory": "F:\\AIproject\\LevNote"
+}

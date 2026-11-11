@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "frozenAtUtc": "2026-11-10T02:56:10.169256+00:00",
+  "sourceRoot": "F:\\AIproject\\LevNote\\native",
+  "files": [
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 7018,
+      "sha256": "e168a7d8d0235483dc43c908c2b8998a25a244f25a9814a3710fcf064e556d64",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "dependency-patches/README.md",
+      "bytes": 5883,
+      "sha256": "1c80925aa016227990b0838831e22fd33bd787788fb3856f390014a6116c98f7",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "dependency-patches/mygo-v0.8.3-bitmap-dispose.patch",
+      "bytes": 47176,
+      "sha256": "995d5505c3b5b1bd869547df3f1ad5954c2dd57f1c9f32e53554851b5db0d4d1",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "dependency-patches/mygo-v0.8.3-no-startup-cleanup.patch",
+      "bytes": 516,
+      "sha256": "1dd7d35b0e6cfd66510f9cf0d82f703ad7656c740bc682ccf1d0c21e0f8b110a",
+      "role": "unchanged-startup-reference"
+    },
+    {
+      "path": "dependency-patches/mygo-v0.8.3-patch-files.json",
+      "bytes": 4463,
+      "sha256": "9113120bd2ebcd9a86842153239cddff84d1f1bd3f46f5d4f0f152eb4560e16a",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "dependency-patches/refresh.ps1",
+      "bytes": 1118,
+      "sha256": "0080c94381696946fd7e94204d81af39df5ed323c5992e05fe0bbee3cd697a0d",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "dependency-patches/verify_test.go",
+      "bytes": 3711,
+      "sha256": "32749fbe3f2c95613931f9456b801918fcd91e8c4561576f04948835b2a161a8",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "scripts/check-build-guard.ps1",
+      "bytes": 12684,
+      "sha256": "8fe6824b69bf46759c0749b2d894059ad31127e02995c36fc731f75a45dfc89b",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "scripts/check-portable-package.ps1",
+      "bytes": 10887,
+      "sha256": "b52ea3a9ce6994ee809eddcef0ceca05e45255e6c91ae8990f28c800e8c59234",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "scripts/go.ps1",
+      "bytes": 6449,
+      "sha256": "a3efcd7dc4079641f1767341446168e6778ab07e1c4dd09a968c768d1cc1b178",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "scripts/portable-package-lib.ps1",
+      "bytes": 7295,
+      "sha256": "809fb09683d290628a48e2aa7cbf3b94f8f09e35ab678d0c2190b4d5e3b51d89",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/app.go",
+      "bytes": 21924,
+      "sha256": "80560d0b654569ae676d450fbb487c84ec795968613b763374302b2f99db08b9",
+      "role": "unchanged-startup-reference"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/d3d11/d3d11.go",
+      "bytes": 65915,
+      "sha256": "81828f2d88f043b1bf4a9eb515968ec58668ae97af6c2deaf9e03ca0d0470c35",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/d3d11/retirement_test.go",
+      "bytes": 2994,
+      "sha256": "5139f21c5fad5887ee6efe96595658477f063dad2bced9da3842ca3d966bc18d",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/gl/gl.go",
+      "bytes": 41109,
+      "sha256": "a8f198c3d1d321f4bde681db792a202c40c9df94cf5aa0921f78e2531f78802a",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/gl/retirement_test.go",
+      "bytes": 1668,
+      "sha256": "133cd0a4ddcc89de6fff637a0c99f53fbbc69d0e0ea6c777e2c8e196a3691e3e",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/gpu.go",
+      "bytes": 47851,
+      "sha256": "2de8802fc19ba627e765bc1b6b5c17434a5abdf410b0a1993fe052255b6b07bf",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/metal/metal.go",
+      "bytes": 69926,
+      "sha256": "50bd7523ee0846c0060c8b5c6f0b1e726d2209351a44b447b9ea1091eb978083",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/metal/present.go",
+      "bytes": 8323,
+      "sha256": "7141c2c76ab8ac01c6b416db607b3b15a818660b2af7809c113127e5699ac6f7",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/metal/retirement_test.go",
+      "bytes": 1424,
+      "sha256": "3c8e8ae85ea3433a01165e2899063afa68b9f18c676674289505e84ddadc5761",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/retirement.go",
+      "bytes": 1593,
+      "sha256": "7fe1f213afede760e8819e27ff9ce8ea13d2557feb068a01310799cf1ee0d5e1",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/gpu/retirement_test.go",
+      "bytes": 3052,
+      "sha256": "9fad27c279567bb9b05646a4127ff55b2967599817f672360104657ac5093584",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/raster/blur.go",
+      "bytes": 4622,
+      "sha256": "4360b13656cdb5e597324a8d745385e914dfda3fc01b484dfd21b800390cefd1",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/raster/canvas.go",
+      "bytes": 913,
+      "sha256": "9abb05e458b5a23b78fd0eceda92e2a4b77af7aef2a6ad60f0285e05a699836f",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/raster/damage.go",
+      "bytes": 2888,
+      "sha256": "25a5520108884f30f7247df65efd4eb0a38b774acc1e3cfc17af68ed5f6c59ec",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/raster/raster.go",
+      "bytes": 47214,
+      "sha256": "61186ecfa3f2f208749adcf9f490015bd2fc3f0c1daeb03f59d246d571e3b392",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/raster/retirement_test.go",
+      "bytes": 3183,
+      "sha256": "ee601ddd18c0b728690f92791a56e978590e9b3adc56961bd51c5f7b1a18a38f",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/scene/image_retirement_test.go",
+      "bytes": 925,
+      "sha256": "79d408094e67e775b71250cd62c201d5a32efc32be6dc8653d0cb72d791cad94",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/scene/retirement.go",
+      "bytes": 949,
+      "sha256": "54044ce534487810901ee4aa57a88b02347c8f402fadaae68ac7783b161cdc88",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/scene/scene.go",
+      "bytes": 22022,
+      "sha256": "467e037468791d3e350b187c4d9646336db3d27b49dd0f5caabdf3ad42f0d9b5",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/ui/bitmap.go",
+      "bytes": 13611,
+      "sha256": "159bdcb12fb86f34516e2a541016c015826b15dd6aff075557687f679348d47d",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/ui/bitmap_retirement_test.go",
+      "bytes": 3132,
+      "sha256": "fe859f86c3824d70fa0735241b0c3ce8c0afa0cf591ee5c47f54215afba06256",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/ui/canvas.go",
+      "bytes": 4512,
+      "sha256": "dab28f3f733ef402c28b2a9933ee39712dba50cab303a295b1d7df02fd1c9568",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/ui/material.go",
+      "bytes": 8843,
+      "sha256": "779ef8d5992ee84292df9a32ba0d526d639e5ab0eb6b231ef9fb72fe3d445ba9",
+      "role": "changed-or-added"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/ui/paint.go",
+      "bytes": 61178,
+      "sha256": "9aa64b97dfc7143eb679675ead0ffbc1e9cc8602bdc0e2330053e7875b67a3c1",
+      "role": "changed-or-added"
+    }
+  ],
+  "changedOrAdded": 33,
+  "unchangedReferences": 2
+}

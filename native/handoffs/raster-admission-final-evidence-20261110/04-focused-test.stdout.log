@@ -1,0 +1,109 @@
+=== RUN   TestAdmitValidPNGVariants
+=== RUN   TestAdmitValidPNGVariants/grayscale8
+=== RUN   TestAdmitValidPNGVariants/truecolor8
+=== RUN   TestAdmitValidPNGVariants/truecoloralpha8
+=== RUN   TestAdmitValidPNGVariants/paletted1
+=== RUN   TestAdmitValidPNGVariants/paletted8
+--- PASS: TestAdmitValidPNGVariants (0.00s)
+    --- PASS: TestAdmitValidPNGVariants/grayscale8 (0.00s)
+    --- PASS: TestAdmitValidPNGVariants/truecolor8 (0.00s)
+    --- PASS: TestAdmitValidPNGVariants/truecoloralpha8 (0.00s)
+    --- PASS: TestAdmitValidPNGVariants/paletted1 (0.00s)
+    --- PASS: TestAdmitValidPNGVariants/paletted8 (0.00s)
+=== RUN   TestAdmitPNGMetadataAndTransparency
+    admission_test.go:423: Admit oriented PNG: raster admission: malformed or ambiguous metadata: EXIF IFD0 entries exceed payload
+--- FAIL: TestAdmitPNGMetadataAndTransparency (0.00s)
+=== RUN   TestAdmitPNGRejections
+=== RUN   TestAdmitPNGRejections/sixteen_bit
+=== RUN   TestAdmitPNGRejections/illegal_color_depth
+    admission_test.go:478: reason = "invalid header", want "unsupported raster subset" (raster admission: invalid header: indexed PNG has no PLTE before IDAT)
+=== RUN   TestAdmitPNGRejections/interlaced
+=== RUN   TestAdmitPNGRejections/apng
+=== RUN   TestAdmitPNGRejections/trns_after_idat
+=== RUN   TestAdmitPNGRejections/unknown_critical
+=== RUN   TestAdmitPNGRejections/trailing_bytes
+=== RUN   TestAdmitPNGRejections/too_many_chunks
+=== RUN   TestAdmitPNGRejections/too_wide
+=== RUN   TestAdmitPNGRejections/too_many_pixels
+=== RUN   TestAdmitPNGRejections/truncated_ihdr
+=== RUN   TestAdmitPNGRejections/compressed_limit
+--- FAIL: TestAdmitPNGRejections (0.20s)
+    --- PASS: TestAdmitPNGRejections/sixteen_bit (0.00s)
+    --- FAIL: TestAdmitPNGRejections/illegal_color_depth (0.00s)
+    --- PASS: TestAdmitPNGRejections/interlaced (0.00s)
+    --- PASS: TestAdmitPNGRejections/apng (0.00s)
+    --- PASS: TestAdmitPNGRejections/trns_after_idat (0.00s)
+    --- PASS: TestAdmitPNGRejections/unknown_critical (0.00s)
+    --- PASS: TestAdmitPNGRejections/trailing_bytes (0.00s)
+    --- PASS: TestAdmitPNGRejections/too_many_chunks (0.00s)
+    --- PASS: TestAdmitPNGRejections/too_wide (0.00s)
+    --- PASS: TestAdmitPNGRejections/too_many_pixels (0.00s)
+    --- PASS: TestAdmitPNGRejections/truncated_ihdr (0.00s)
+    --- PASS: TestAdmitPNGRejections/compressed_limit (0.00s)
+=== RUN   TestAdmitPNGLengthAndCRCIndependentEnvelope
+--- PASS: TestAdmitPNGLengthAndCRCIndependentEnvelope (0.00s)
+=== RUN   TestExifBoundedParsing
+=== RUN   TestExifBoundedParsing/little_endian
+    admission_test.go:518: orientation = 0, raster admission: malformed or ambiguous metadata: EXIF IFD0 entries exceed payload; want 5, nil
+=== RUN   TestExifBoundedParsing/big_endian
+=== RUN   TestExifBoundedParsing/absent
+--- FAIL: TestExifBoundedParsing (0.00s)
+    --- FAIL: TestExifBoundedParsing/little_endian (0.00s)
+    --- PASS: TestExifBoundedParsing/big_endian (0.00s)
+    --- PASS: TestExifBoundedParsing/absent (0.00s)
+=== RUN   TestAdmitJPEGPublicEXIF
+    admission_test.go:556: Admit: raster admission: malformed or ambiguous metadata: EXIF IFD0 entries exceed payload
+--- FAIL: TestAdmitJPEGPublicEXIF (0.00s)
+=== RUN   TestJPEGDecoderSurfaceBySampling
+=== RUN   TestJPEGDecoderSurfaceBySampling/4:4:4_16x16
+=== RUN   TestJPEGDecoderSurfaceBySampling/4:4:0_17x17
+=== RUN   TestJPEGDecoderSurfaceBySampling/4:2:2_17x17
+    admission_test.go:593: payload = 7979, want 7595 (surface=1152)
+=== RUN   TestJPEGDecoderSurfaceBySampling/4:2:0_16x16
+=== RUN   TestJPEGDecoderSurfaceBySampling/4:2:0_17x19
+--- FAIL: TestJPEGDecoderSurfaceBySampling (0.00s)
+    --- PASS: TestJPEGDecoderSurfaceBySampling/4:4:4_16x16 (0.00s)
+    --- PASS: TestJPEGDecoderSurfaceBySampling/4:4:0_17x17 (0.00s)
+    --- FAIL: TestJPEGDecoderSurfaceBySampling/4:2:2_17x17 (0.00s)
+    --- PASS: TestJPEGDecoderSurfaceBySampling/4:2:0_16x16 (0.00s)
+    --- PASS: TestJPEGDecoderSurfaceBySampling/4:2:0_17x19 (0.00s)
+=== RUN   TestAdmitJPEGGrayscaleBudgetAndFillBytes
+--- PASS: TestAdmitJPEGGrayscaleBudgetAndFillBytes (0.00s)
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/progressive
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/lossless
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/four_component
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/sampling_three
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/mixed_chroma
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/nonmaximal_luma
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/total_sampling
+=== RUN   TestAdmitJPEGUnsupportedModesAndSampling/unsupported_marker
+--- PASS: TestAdmitJPEGUnsupportedModesAndSampling (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/progressive (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/lossless (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/four_component (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/sampling_three (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/mixed_chroma (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/nonmaximal_luma (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/total_sampling (0.00s)
+    --- PASS: TestAdmitJPEGUnsupportedModesAndSampling/unsupported_marker (0.00s)
+=== RUN   TestAdmitJPEGSOSEnvelope
+=== RUN   TestAdmitJPEGSOSEnvelope/unknown_selector
+=== RUN   TestAdmitJPEGSOSEnvelope/bad_table_selector
+=== RUN   TestAdmitJPEGSOSEnvelope/bad_spectral_start
+=== RUN   TestAdmitJPEGSOSEnvelope/bad_spectral_end
+--- PASS: TestAdmitJPEGSOSEnvelope (0.00s)
+    --- PASS: TestAdmitJPEGSOSEnvelope/unknown_selector (0.00s)
+    --- PASS: TestAdmitJPEGSOSEnvelope/bad_table_selector (0.00s)
+    --- PASS: TestAdmitJPEGSOSEnvelope/bad_spectral_start (0.00s)
+    --- PASS: TestAdmitJPEGSOSEnvelope/bad_spectral_end (0.00s)
+=== RUN   TestAdmitJPEGTruncatedAndOversized
+--- PASS: TestAdmitJPEGTruncatedAndOversized (0.00s)
+=== RUN   TestExactLimitsAndCheckedArithmetic
+    admission_test.go:751: under boundary = 50299036 bytes/14 levels, want 50299036/11
+--- FAIL: TestExactLimitsAndCheckedArithmetic (0.00s)
+=== RUN   TestAdmitReaderAtFailures
+--- PASS: TestAdmitReaderAtFailures (0.00s)
+FAIL
+FAIL	levnote.local/native/formats/raster	0.841s
+FAIL

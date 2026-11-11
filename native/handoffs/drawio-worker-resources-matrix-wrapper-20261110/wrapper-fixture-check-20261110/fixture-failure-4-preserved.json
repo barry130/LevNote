@@ -1,0 +1,11 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:33:34.1869088Z",
+  "FixtureOnly": true,
+  "Scope": "Preserved fourth fixture-check failure. PowerShell function output semantics still returned a collection whose Count was unavailable under strict mode. The fix now builds an explicit List[object] for stats. No tester, worker, host, build, preflight, or product execution occurred.",
+  "ExitCode": 1,
+  "OriginalStdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-4-stdout.txt",
+  "OriginalStderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-4-stderr.txt",
+  "ResultWritten": false,
+  "Correction": "Get-Stats consumes Get-Values output into an explicit List[object] before Count and sorting."
+}

@@ -1,0 +1,157 @@
+{
+    "Schema":  1,
+    "CreatedAtUtc":  "2026-11-10T01:35:12.7417938Z",
+    "RunStatus":  "FAIL",
+    "TotalRows":  2,
+    "PassedRows":  1,
+    "FailedRows":  1,
+    "StoppedAtFirstFailure":  true,
+    "RawRows":  [
+                    {
+                        "Index":  1,
+                        "MatrixPosition":  1,
+                        "Fixture":  "NormalMultiPage",
+                        "Version":  "native-worker.20261110.20",
+                        "Ordinal":  1,
+                        "Status":  "PASS",
+                        "ExitCode":  0,
+                        "TimedOut":  false,
+                        "Violations":  [
+
+                                       ],
+                        "MeasurementSummary":  {
+                                                   "Failures":  [
+
+                                                                ],
+                                                   "Limitations":  [
+                                                                       "fixture-only limitation"
+                                                                   ],
+                                                   "ActualWarnings":  [
+
+                                                                      ],
+                                                   "ExportElapsedNS":  100,
+                                                   "SampleIntervalNS":  2000000,
+                                                   "MaxAttempts":  20000,
+                                                   "ProbeAttempts":  3,
+                                                   "ProbeFailedReads":  0,
+                                                   "SampledMaxWorkingSetBytes":  1024,
+                                                   "SampledMaxPrivateUsageBytes":  2048,
+                                                   "ObservedOSPeakWorkingSetBytes":  4096,
+                                                   "ObservedOSPeakPagefileBytes":  8192,
+                                                   "FinalMemoryReadOK":  true,
+                                                   "FinalCPUReadOK":  true,
+                                                   "LifetimePeakCountersComplete":  false,
+                                                   "PeakCoverage":  "fixture-only incomplete coverage",
+                                                   "CPUKernel100ns":  10,
+                                                   "CPUUser100ns":  20,
+                                                   "ProcessLifetimeNS":  300
+                                               }
+                    },
+                    {
+                        "Index":  2,
+                        "MatrixPosition":  2,
+                        "Fixture":  "NormalMultiPage",
+                        "Version":  "native-worker.20261110.21",
+                        "Ordinal":  1,
+                        "Status":  "FAIL",
+                        "ExitCode":  2,
+                        "TimedOut":  false,
+                        "Violations":  [
+                                           "measurement.json missing"
+                                       ],
+                        "MeasurementSummary":  null
+                    }
+                ],
+    "DescriptiveGroups":  [
+                              {
+                                  "Fixture":  "NormalMultiPage",
+                                  "Version":  "native-worker.20261110.20",
+                                  "RowCount":  1,
+                                  "Stats":  {
+                                                "RequestElapsedNS":  null,
+                                                "SampledMaxWorkingSetBytes":  {
+                                                                                  "Unit":  "bytes",
+                                                                                  "Count":  1,
+                                                                                  "Minimum":  1024,
+                                                                                  "Median":  1024,
+                                                                                  "Maximum":  1024,
+                                                                                  "Quantization":  "process working-set samples"
+                                                                              },
+                                                "SampledMaxPrivateUsageBytes":  {
+                                                                                    "Unit":  "bytes",
+                                                                                    "Count":  1,
+                                                                                    "Minimum":  2048,
+                                                                                    "Median":  2048,
+                                                                                    "Maximum":  2048,
+                                                                                    "Quantization":  "process private commit samples"
+                                                                                },
+                                                "ObservedOSPeakWorkingSetBytes":  {
+                                                                                      "Unit":  "bytes",
+                                                                                      "Count":  1,
+                                                                                      "Minimum":  4096,
+                                                                                      "Median":  4096,
+                                                                                      "Maximum":  4096,
+                                                                                      "Quantization":  "OS-observed working-set peak"
+                                                                                  },
+                                                "ObservedOSPeakPagefileBytes":  {
+                                                                                    "Unit":  "bytes",
+                                                                                    "Count":  1,
+                                                                                    "Minimum":  8192,
+                                                                                    "Median":  8192,
+                                                                                    "Maximum":  8192,
+                                                                                    "Quantization":  "OS-observed pagefile/commit peak"
+                                                                                },
+                                                "CPUKernel100ns":  {
+                                                                       "Unit":  "100ns",
+                                                                       "Count":  1,
+                                                                       "Minimum":  10,
+                                                                       "Median":  10,
+                                                                       "Maximum":  10,
+                                                                       "Quantization":  "Windows process CPU counter"
+                                                                   },
+                                                "CPUUser100ns":  {
+                                                                     "Unit":  "100ns",
+                                                                     "Count":  1,
+                                                                     "Minimum":  20,
+                                                                     "Median":  20,
+                                                                     "Maximum":  20,
+                                                                     "Quantization":  "Windows process CPU counter"
+                                                                 },
+                                                "ProcessLifetimeNS":  {
+                                                                          "Unit":  "ns",
+                                                                          "Count":  1,
+                                                                          "Minimum":  300,
+                                                                          "Median":  300,
+                                                                          "Maximum":  300,
+                                                                          "Quantization":  "Windows process creation-to-exit wall lifetime; not CPU time"
+                                                                      }
+                                            },
+                                  "LifetimePeakCompleteRows":  0,
+                                  "LifetimePeakLimitedRows":  1
+                              }
+                          ],
+    "Limitations":  [
+                        {
+                            "Index":  1,
+                            "MatrixPosition":  1,
+                            "Limitation":  "fixture-only limitation"
+                        }
+                    ],
+    "FailureDiagnostics":  [
+                               {
+                                   "Index":  2,
+                                   "MatrixPosition":  2,
+                                   "Fixture":  "NormalMultiPage",
+                                   "Version":  "native-worker.20261110.21",
+                                   "Ordinal":  1,
+                                   "ExitCode":  2,
+                                   "TimedOut":  false,
+                                   "Violations":  "measurement.json missing",
+                                   "MeasurementSummaryPresent":  false,
+                                   "AvailableArtifacts":  {
+
+                                                          }
+                               }
+                           ],
+    "Scope":  "Twelve or fewer local draw.io worker requests only. Raw rows are preserved before descriptive statistics. Request elapsed, CPU kernel/user, process wall lifetime, sampled working/private commit, and OS-observed peaks are distinct. Missing counters are not replaced with zero. Limited lifetime peak rows are retained and are not represented as complete lifetime peaks. No host/editor/Tauri/global memory or speed claim."
+}

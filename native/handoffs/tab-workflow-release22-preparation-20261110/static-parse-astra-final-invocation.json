@@ -1,0 +1,26 @@
+{
+  "Schema": 1,
+  "Command": "C:\\Users\\canace\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+  "Arguments": [
+    "-NoProfile",
+    "-File",
+    "\"F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse.ps1\"",
+    "-ResultPath",
+    "\"F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-astra-final.json\""
+  ],
+  "WorkingDirectory": "F:\\AIproject\\LevNote",
+  "StartedAtUtc": "2026-11-10T01:12:31.3191480Z",
+  "FinishedAtUtc": "2026-11-10T01:12:32.1338027Z",
+  "WindowStyle": "Hidden",
+  "ExitCode": 0,
+  "ExitFile": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-astra-final.exit.txt",
+  "ExitBytes": 1,
+  "ExitHex": "30",
+  "ResultPath": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-astra-final.json",
+  "StdoutPath": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-astra-final.stdout.log",
+  "StdoutBytes": 3163,
+  "StderrPath": "F:\\AIproject\\LevNote\\native\\handoffs\\tab-workflow-release22-preparation-20261110\\static-parse-astra-final.stderr.log",
+  "StderrBytes": 0,
+  "PriorRecordCount": 13,
+  "PriorRecordsUnchanged": true
+}

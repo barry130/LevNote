@@ -1,0 +1,19 @@
+{
+  "Schema": 1,
+  "Command": "C:\\Users\\canace\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+  "Arguments": [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-examples-evidence\\validate.ps1"
+  ],
+  "StartedAtUtc": "2026-11-09T18:50:22.3224865Z",
+  "FinishedAtUtc": "2026-11-09T18:50:23.1116183Z",
+  "WallSeconds": 0.789132,
+  "ExitCode": 0,
+  "StdoutPath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-examples-evidence\\validation.stdout.log",
+  "StderrPath": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-route-examples-evidence\\validation.stderr.log",
+  "StdoutBytes": 1470,
+  "StderrBytes": 0
+}

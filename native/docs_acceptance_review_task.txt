@@ -1,0 +1,40 @@
+Root documentation/test evidence review — 2026-11-08 continuation
+
+Ownership update12:35: Astra now owns documentation items1-5. GLM retains
+disk regression corrections below and current search/document implementation.
+They are acceptance corrections, not additional product features. Coordinate
+current acceptance metrics with DeepSeek; do not present the old binary as new.
+
+1. native/formats/API.md is currently missing the closing Go fence after
+   manager.SetEnabled. It contradicts itself by later saying attempts to disable
+   builtins are rejected. Check examples against actual signatures/types; name
+   InstallFile; say what really happens when both format and code are disabled
+   (unconditional plaintext). State the existing multiline highlighting limit
+   if state is reset per line. Keep data-only installed plugin scope explicit.
+2. Native README must be useful to users without agent history: remove
+   "Astra-owned" and "unless owners report" placeholders. List actual editor,
+   Markdown, mindmap, drawio and export capabilities and unsupported operations.
+   Provide verified build/run entry and distinguish native and legacy root docs.
+   Use Chinese for core user guidance, matching the project's existing docs.
+3. ADR0063 currently claims the migration yields lower runtime memory without
+   an identical Tauri/native measurement. Remove that unsupported comparison.
+   Treat low memory as a goal; label current native samples correctly. Do not
+   compare a stripped exe and compressed installer as equal measurements. The
+   current binary is stale until DeepSeek finishes final acceptance.
+4. Describe runtime as designed/implemented local-only native Surface. Separate
+   code-path evidence from unperformed OS network/IME verification. No legal
+   immunity claim. Retain actual vendor license/derived notices; do not assert
+   runtime or compiled inclusion solely because vendor includes a package.
+5. Update README root entry, ROADMAP, CHANGELOG and ADR index for native path
+   and truthful remaining work. Keep legacy history and its measurements.
+
+Focused disk regression evidence correction in core/document/disk_test.go:
+- TestDiskTokenRejectsSameByteReplacement... currently replaces "same" with
+  "DIFF". That proves changed contents, not same-byte replacement identity.
+- SameMtime test uses "first" vs "second", different lengths. Use equal size
+  and equal mtime to exercise the hash branch rather than metadata shortcut.
+- Revert freshness must compare against a fresh token immediately before
+  Revert, not one already invalidated by Save. Remove unused time workaround.
+- Add a controlled during-read/path-change instability regression if not yet
+  covered, as the original task required. Avoid giant/racy timing fixtures.
+Publish actual commands/results; correct handoff claims to match evidence.

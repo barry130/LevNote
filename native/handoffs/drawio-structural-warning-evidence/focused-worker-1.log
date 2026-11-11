@@ -1,0 +1,5 @@
+--- FAIL: TestDrawioWorkerCombinedWarningBound (0.00s)
+    main_test.go:226: exact combined warning bound err=&{warning-limit draw.io warning metadata exceeds the export bounds} svg=0 warnings=0
+FAIL
+FAIL	levnote.local/native/cmd/levnote-drawio-svg	0.529s
+FAIL

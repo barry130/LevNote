@@ -1,0 +1,11 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:29:54.6536650Z",
+  "FixtureOnly": true,
+  "Scope": "Preserved second fixture-check failure. The fixture script itself attempted to recreate the layout/summary case directories after the first corrected run; the wrapper correction was valid, but the no-process check fixture was not idempotent. No tester, worker, host, build, preflight, or product execution occurred.",
+  "ExitCode": 1,
+  "OriginalStdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-2-stdout.txt",
+  "OriginalStderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-2-stderr.txt",
+  "ResultWritten": false,
+  "Correction": "Fixture-only layout and summary directories now derive from LEVNOTE_MATRIX_FIXTURE_CHECK_RUN. This check script is not a product or wrapper source file."
+}

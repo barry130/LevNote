@@ -1,0 +1,9 @@
+The default-SKIP validation command contained one stray shell statement before
+the tester invocation:
+
+    $environment = Get-ChildItem:LevNoteDrawioWorkerResourceEnv
+
+PowerShell reported that the term was not recognized. It was an unused wrapper
+statement, not part of the tester invocation, and did not alter the tester's
+argument array, environment gates, stdout/stderr, or exit code. The tester ran
+once and both targeted tests skipped; no second default-SKIP invocation was run.

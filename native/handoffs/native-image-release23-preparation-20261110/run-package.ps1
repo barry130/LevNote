@@ -1,0 +1,354 @@
+$ErrorActionPreference = 'Stop'
+$evidenceRoot = [IO.Path]::GetFullPath($PSScriptRoot)
+. (Join-Path $evidenceRoot 'delivery-lib.ps1')
+. (Join-Path $evidenceRoot 'source-scope.ps1')
+$ctx = Read-DeliveryContext $evidenceRoot
+Assert-DeliveryExecution $ctx
+
+foreach ($required in @('baseline-result.json')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $evidenceRoot $required) -PathType Leaf)) {
+        throw "Run the hidden baseline stage first; missing $required."
+    }
+}
+if (Test-Path -LiteralPath $ctx.candidateDirectory) {
+    throw "Fresh .23 candidate directory already exists: $($ctx.candidateDirectory)"
+}
+$packageEvidence = Join-Path $evidenceRoot 'package'
+$packageCopy = Join-Path $evidenceRoot 'package-copy'
+if (Test-Path -LiteralPath $packageEvidence) {
+    throw "Fresh package evidence directory already exists: $packageEvidence"
+}
+if (Test-Path -LiteralPath $packageCopy) {
+    throw "Fresh package copy already exists: $packageCopy"
+}
+$sourceBefore = @(
+    Get-DeliverySourceInputPaths $ctx.repositoryRoot $ctx.nativeRoot |
+        ForEach-Object { Get-FileFingerprint $_ }
+)
+$sourceIdentityBefore = Get-InventoryIdentity $sourceBefore
+if ($sourceIdentityBefore -cne [string]$ctx.SourceInputIdentity) {
+    throw 'Scoped source identity changed before the single package invocation.'
+}
+$frozenBefore = Get-FrozenBitmapFacts $ctx.nativeRoot $ctx.FrozenBitmapFilesPath
+$patchBefore = Get-PinnedPatchFacts $ctx.nativeRoot $frozenBefore
+
+$invokePath = Join-Path $evidenceRoot 'package-invoke.ps1'
+$invokeScript = @"
+`$ErrorActionPreference = 'Stop'
+& $(Quote-PowerShellLiteral $ctx.packageScript) -OutputDirectory $(Quote-PowerShellLiteral $ctx.candidateDirectory) -EvidenceDirectory $(Quote-PowerShellLiteral $packageEvidence) -Version $(Quote-PowerShellLiteral $ctx.version)
+exit `$LASTEXITCODE
+"@
+[IO.File]::WriteAllText($invokePath, $invokeScript, [Text.UTF8Encoding]::new($false))
+
+$command = Invoke-CapturedPowerShellScript 'package' $invokePath $ctx.nativeRoot $evidenceRoot
+$command.InvocationCount = 1
+$command.PackageScript = $ctx.packageScript
+$command.PackageArguments = [ordered]@{
+    OutputDirectory = $ctx.candidateDirectory
+    EvidenceDirectory = $packageEvidence
+    Version = $ctx.version
+}
+$command.ExpectedGuiBuilds = $ctx.expectedGuiBuilds
+Write-JsonFile (Join-Path $evidenceRoot 'package-command.json') $command
+if ($command.ExitCode -ne 0) {
+    throw "The single package invocation failed with exit $($command.ExitCode); its raw streams are preserved."
+}
+
+$packageResultPath = Join-Path $packageEvidence 'package-result.json'
+if (-not (Test-Path -LiteralPath $packageResultPath -PathType Leaf)) {
+    throw 'Package invocation exited zero without package-result.json.'
+}
+$package = Read-JsonFile $packageResultPath
+$buildNames = @(
+    'worker-markdown',
+    'worker-mindmap',
+    'worker-mindmap-preview',
+    'worker-drawio',
+    'host'
+)
+$builds = @(
+    foreach ($name in $buildNames) {
+        $path = Join-Path $packageEvidence ($name + '-build.json')
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Expected GUI build record is absent: $name"
+        }
+        Read-JsonFile $path
+    }
+)
+$buildBad = @(
+    $builds | Where-Object {
+        $_.ExitCode -ne 0 -or $_.StdoutBytes -ne 0 -or $_.StderrBytes -ne 0 -or
+        (Get-Item -LiteralPath $_.StdoutPath).Length -ne 0 -or
+        (Get-Item -LiteralPath $_.StderrPath).Length -ne 0
+    }
+)
+if ($builds.Count -ne 5 -or $buildBad.Count -ne 0) {
+    throw "Expected five successful GUI builds with empty streams; found $($builds.Count) builds and $($buildBad.Count) failures."
+}
+
+$candidate = @(Get-DirectoryInventory $ctx.candidateDirectory)
+$expectedFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+foreach ($name in @('levnote-native.exe', 'release-manifest.json', 'README.md', 'LICENSE',
+        'THIRD_PARTY_NOTICES.md')) {
+    $expectedFiles.Add($name) | Out-Null
+}
+$fixedEngines = @(
+    [pscustomobject]@{ Engine = 'levnote.markdown-export'; Format = 'html'; RelativePath = 'engines/markdown-export'; Filename = 'levnote-markdown-export.exe' },
+    [pscustomobject]@{ Engine = 'levnote.mindmap-svg'; Format = 'svg'; RelativePath = 'engines/mindmap-svg'; Filename = 'levnote-mindmap-svg.exe' },
+    [pscustomobject]@{ Engine = 'levnote.mindmap-preview'; Format = 'mindmap-scene-v1'; RelativePath = 'engines/mindmap-preview'; Filename = 'levnote-mindmap-preview.exe' },
+    [pscustomobject]@{ Engine = 'levnote.drawio-svg'; Format = 'svg'; RelativePath = 'engines/drawio-svg'; Filename = 'levnote-drawio-svg.exe' }
+)
+foreach ($engine in $fixedEngines) {
+    $expectedFiles.Add($engine.RelativePath + '/' + $engine.Filename) | Out-Null
+    $expectedFiles.Add($engine.RelativePath + '/manifest.json') | Out-Null
+}
+if (@($package.Engines).Count -ne $fixedEngines.Count) {
+    throw "Package result contains $(@($package.Engines).Count) engines, expected four."
+}
+$packageEngineBad = @(
+    foreach ($fixed in $fixedEngines) {
+        $matches = @($package.Engines | Where-Object {
+            $_.Engine -ceq $fixed.Engine -and $_.Format -ceq $fixed.Format -and
+            $_.RelativePath -ceq $fixed.RelativePath
+        })
+        if ($matches.Count -ne 1) { $fixed.Engine }
+    }
+)
+if ($packageEngineBad.Count -ne 0) {
+    throw "Fixed catalog engine identities are incomplete or duplicated: $($packageEngineBad -join ', ')"
+}
+. (Join-Path $evidenceRoot 'source-scope.ps1')
+. (Join-Path $ctx.nativeRoot 'scripts/portable-package-lib.ps1')
+$portableCopies = @(Get-PortableAssetCopies $ctx.nativeRoot)
+$packageCopies = @($package.SourceCopies)
+$portableRelative = @($portableCopies | ForEach-Object { [string]$_.Relative } | Sort-Object -CaseSensitive)
+$reportedRelative = @($packageCopies | ForEach-Object { [string]$_.RelativePath } | Sort-Object -CaseSensitive)
+if ((@(Compare-Object $portableRelative $reportedRelative).Count -ne 0) -or
+    $portableRelative.Count -ne $reportedRelative.Count) {
+    throw 'Package SourceCopies differ from the actual portable asset definitions.'
+}
+foreach ($copy in $packageCopies) {
+    $expectedFiles.Add([string]$copy.RelativePath) | Out-Null
+}
+$actualNames = @($candidate | ForEach-Object { $_.RelativePath })
+$missing = @($expectedFiles | Where-Object { $actualNames -notcontains $_ } | Sort-Object)
+$unexpected = @($actualNames | Where-Object { -not $expectedFiles.Contains($_) } | Sort-Object)
+$expectedCandidateFiles = $expectedFiles.Count
+$expectedReleaseManifestEntries = $expectedCandidateFiles - 1
+if ($candidate.Count -ne $expectedCandidateFiles -or
+    $missing.Count -ne 0 -or $unexpected.Count -ne 0) {
+    throw "Candidate artifact set differs: count=$($candidate.Count), expectedSet=$($expectedFiles.Count), missing=$($missing -join ','); unexpected=$($unexpected -join ',')"
+}
+
+$releasePath = Join-Path $ctx.candidateDirectory 'release-manifest.json'
+$release = Read-JsonFile $releasePath
+$releaseEntries = @($release.files)
+$releaseBad = @(
+    foreach ($entry in $releaseEntries) {
+        $actual = @($candidate | Where-Object { $_.RelativePath -ceq [string]$entry.path })
+        if ($actual.Count -ne 1 -or
+            [Int64]$actual[0].Bytes -ne [Int64]$entry.size -or
+            $actual[0].SHA256.ToLowerInvariant() -cne ([string]$entry.sha256).ToLowerInvariant()) {
+            [string]$entry.path
+        }
+    }
+)
+if ($release.schema -ne 1 -or $release.version -cne $ctx.version -or
+    $release.goos -cne 'windows' -or $release.goarch -cne 'amd64' -or
+    $release.goamd64 -cne 'v1' -or
+    $releaseEntries.Count -ne $expectedReleaseManifestEntries -or
+    $releaseEntries.Count -ne $expectedCandidateFiles - 1 -or
+    @($release.excludes).Count -ne 1 -or
+    @($release.excludes)[0] -cne 'release-manifest.json' -or
+    $releaseBad.Count -ne 0) {
+    throw "Release manifest schema1 or payload identities differ: bad=$($releaseBad -join ',')"
+}
+
+$engineChecks = @(
+    foreach ($fixed in $fixedEngines) {
+        $manifestPath = Join-Path $ctx.candidateDirectory ($fixed.RelativePath + '/manifest.json')
+        $manifest = Read-JsonFile $manifestPath
+        $workerPath = Join-Path $ctx.candidateDirectory ($fixed.RelativePath + '/' + $fixed.Filename)
+        $worker = Get-FileFingerprint $workerPath
+        $manifestFile = Get-FileFingerprint $manifestPath
+        $pass = $manifest.schema -eq 1 -and $manifest.engine -ceq $fixed.Engine -and
+            $manifest.format -ceq $fixed.Format -and
+            $manifest.engineVersion -ceq $ctx.version -and
+            $manifest.filename -ceq $fixed.Filename -and
+            [Int64]$manifest.size -eq $worker.Bytes -and
+            ([string]$manifest.sha256).ToLowerInvariant() -ceq $worker.SHA256.ToLowerInvariant()
+        [ordered]@{
+            Engine = $fixed.Engine
+            Format = $fixed.Format
+            RelativePath = $fixed.RelativePath
+            Worker = $worker
+            Manifest = $manifestFile
+            Pass = $pass
+        }
+    }
+)
+if (@($engineChecks | Where-Object { -not $_.Pass }).Count -ne 0) {
+    throw 'One or more fixed engine manifests do not match the .23 payload identity.'
+}
+
+$peFacts = @(
+    foreach ($entry in $candidate | Where-Object { $_.RelativePath.EndsWith('.exe') }) {
+        Get-PEInfo $entry.Path $entry.SHA256
+    }
+)
+if ($peFacts.Count -ne 5 -or @($peFacts | Where-Object { -not $_.Pass }).Count -ne 0) {
+    throw 'Expected five Windows amd64 GUI PE executables.'
+}
+
+$assetChecks = @(
+    foreach ($copy in $packageCopies) {
+        $source = Get-FileFingerprint ([string]$copy.Source)
+        $shipped = Get-FileFingerprint (
+            Join-Path $ctx.candidateDirectory ([string]$copy.RelativePath))
+        [ordered]@{
+            RelativePath = [string]$copy.RelativePath
+            Source = $source
+            Shipped = $shipped
+            Pass = $source.SHA256 -ceq ([string]$copy.SHA256) -and
+                $source.SHA256 -ceq $shipped.SHA256
+        }
+    }
+)
+if ($assetChecks.Count -eq 0 -or
+    @($assetChecks | Where-Object { -not $_.Pass }).Count -ne 0) {
+    throw 'Portable source-copy assets do not retain their exact hashes.'
+}
+$bitmapAsset = @($assetChecks | Where-Object {
+    $_.RelativePath -ceq 'attribution/mygo-v0.8.3-bitmap-dispose.patch'
+})
+$startupAsset = @($assetChecks | Where-Object {
+    $_.RelativePath -ceq 'attribution/mygo-v0.8.3-no-startup-cleanup.patch'
+})
+if ($bitmapAsset.Count -ne 1 -or $startupAsset.Count -ne 1 -or
+    $bitmapAsset[0].Shipped.SHA256 -cne
+        '995D5505C3B5B1BD869547DF3F1AD5954C2DD57F1C9F32E53554851B5DB0D4D1' -or
+    $bitmapAsset[0].Shipped.Bytes -ne 47176 -or
+    $startupAsset[0].Shipped.SHA256 -cne
+        '1DD7D35B0E6CFD66510F9CF0D82F703AD7656C740BC682CCF1D0C21E0F8B110A' -or
+    $startupAsset[0].Shipped.Bytes -ne 516) {
+    throw 'Portable startup/bitmap patch attribution copies differ from acceptance.'
+}
+$noticeText = [IO.File]::ReadAllText(
+    (Join-Path $ctx.candidateDirectory 'THIRD_PARTY_NOTICES.md'), [Text.Encoding]::UTF8)
+Assert-ExpectedText $noticeText 'attribution/mygo-v0.8.3-bitmap-dispose.patch' 'Portable notices'
+Assert-ExpectedText $noticeText '位图' 'Portable notices'
+
+$sourceReadme = Get-FileFingerprint $ctx.portableSourceReadme
+$sourceReadmeBefore = [pscustomobject]$ctx.PortableSourceReadmeFingerprint
+if (-not (Test-FingerprintEqual $sourceReadmeBefore $sourceReadme)) {
+    throw 'Portable source README differs from its initialization identity.'
+}
+$sourceReadmeText = [IO.File]::ReadAllText(
+    $ctx.portableSourceReadme, [Text.Encoding]::UTF8)
+$jsonMatches = [regex]::Matches($sourceReadmeText, '(?m)^\{"schema":3,"id":"[^\r\n]+\}$')
+$jsonRoutes = @(
+    foreach ($match in $jsonMatches) {
+        try {
+            $manifest = $match.Value | ConvertFrom-Json
+        } catch {
+            throw "Portable README contains invalid inline schema3 JSON: $($match.Value)"
+        }
+        [string]$manifest.nativeRoute
+    }
+)
+$packageReadmePath = Join-Path $ctx.candidateDirectory 'README.md'
+$packageReadme = Get-FileFingerprint $packageReadmePath
+$expectedRenderedReadme = $sourceReadmeText.Replace('{{VERSION}}', $ctx.version)
+$actualRenderedReadme = [IO.File]::ReadAllText($packageReadmePath, [Text.Encoding]::UTF8)
+if (([regex]::Matches($sourceReadmeText, '\{\{VERSION\}\}')).Count -ne 1 -or
+    $jsonMatches.Count -ne 3 -or
+    (@($jsonRoutes | Sort-Object) -join ',') -cne
+        (@('builtin.drawio', 'builtin.markdown', 'builtin.mindmap') -join ',') -or
+    $packageReadme.SHA256 -ceq $sourceReadme.SHA256 -or
+    ([regex]::Matches($actualRenderedReadme, '\{\{VERSION\}\}')).Count -ne 0 -or
+    $actualRenderedReadme -cne $expectedRenderedReadme) {
+    throw 'Portable README marker, three inline JSON manifests, version render or route wording differ.'
+}
+if (-not [bool]$package.LocalAuthoredLinksChecked) {
+    throw 'The package did not report authored local-link validation.'
+}
+
+$sourcePaths = @(Get-ChildItem -LiteralPath $ctx.candidateDirectory -File -Recurse)
+New-Item -ItemType Directory -Path $packageCopy -ErrorAction Stop | Out-Null
+foreach ($source in $sourcePaths) {
+    $relative = [IO.Path]::GetRelativePath($ctx.candidateDirectory, $source.FullName)
+    $destination = Join-Path $packageCopy $relative
+    $parent = Split-Path $destination -Parent
+    if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
+        New-Item -ItemType Directory -Path $parent -ErrorAction Stop | Out-Null
+    }
+    Copy-Item -LiteralPath $source.FullName -Destination $destination -ErrorAction Stop
+}
+$copyInventory = @(Get-DirectoryInventory $packageCopy)
+Assert-InventoryContainsExact $candidate $copyInventory 'Complete package copy' $false
+
+$sourceAfter = @(
+    Get-DeliverySourceInputPaths $ctx.repositoryRoot $ctx.nativeRoot |
+        ForEach-Object { Get-FileFingerprint $_ }
+)
+Assert-InventoriesEqual $sourceBefore $sourceAfter 'Scoped source/build input' $true
+$sourceIdentityAfter = Get-InventoryIdentity $sourceAfter
+if ($sourceIdentityAfter -cne $sourceIdentityBefore) {
+    throw 'Scoped source identity changed during the single package invocation.'
+}
+$frozenAfter = Get-FrozenBitmapFacts $ctx.nativeRoot $ctx.FrozenBitmapFilesPath
+$patchAfter = Get-PinnedPatchFacts $ctx.nativeRoot $frozenAfter
+if (-not (Test-FingerprintEqual $frozenBefore.FrozenFiles $frozenAfter.FrozenFiles) -or
+    -not (Test-FingerprintEqual $patchBefore.Manifest $patchAfter.Manifest) -or
+    -not (Test-FingerprintEqual $patchBefore.BitmapPatch $patchAfter.BitmapPatch) -or
+    -not (Test-FingerprintEqual $patchBefore.StartupPatch $patchAfter.StartupPatch)) {
+    throw 'Frozen bitmap lifecycle or pinned patch identities changed during packaging.'
+}
+
+$packageHost = Get-FileFingerprint (Join-Path $ctx.candidateDirectory 'levnote-native.exe')
+$manifestFingerprint = Get-FileFingerprint $releasePath
+$result = [ordered]@{
+    Schema = 1
+    CreatedAtUtc = [DateTime]::UtcNow.ToString('o')
+    Status = 'PASS'
+    PackageInvocationCount = 1
+    GuiBuildCount = $builds.Count
+    Builds = $builds
+    Version = $ctx.version
+    CandidateDirectory = $ctx.candidateDirectory
+    CandidateFileCount = $candidate.Count
+    CandidateTotalBytes = Get-InventoryTotalBytes $candidate
+    CandidateInventoryIdentity = Get-InventoryIdentity $candidate
+    ExpectedCandidateFileCount = $expectedCandidateFiles
+    ExpectedCandidateFileSetPass = $true
+    PackageCopyDirectory = $packageCopy
+    PackageCopyFileCount = $copyInventory.Count
+    PackageCopyTotalBytes = Get-InventoryTotalBytes $copyInventory
+    Host = $packageHost
+    ReleaseManifest = $manifestFingerprint
+    ReleaseManifestPayloadEntries = $releaseEntries.Count
+    ExpectedReleaseManifestPayloadEntries = $expectedReleaseManifestEntries
+    ReleaseManifestSchema = $release.schema
+    EngineChecks = $engineChecks
+    PEFacts = $peFacts
+    SourceCopyCount = $assetChecks.Count
+    SourceCopies = $assetChecks
+    BitmapPatchAsset = $bitmapAsset
+    StartupPatchAsset = $startupAsset
+    BitmapPatchAttributionPresent = $true
+    SourceInputCount = $sourceAfter.Count
+    SourceInputTotalBytes = Get-InventoryTotalBytes $sourceAfter
+    SourceInputIdentity = $sourceIdentityAfter
+    FrozenBitmapFileCount = $frozenAfter.FileCount
+    FrozenBitmapIdentity = $frozenAfter.FrozenFiles.SHA256
+    PatchManifestEntryCount = @($patchAfter.Entries).Count
+    GuardedFilesMatchFrozenList = $patchAfter.GuardedFilesMatchFrozenList
+    LocalAuthoredLinksChecked = [bool]$package.LocalAuthoredLinksChecked
+    PortableReadmeSource = $sourceReadme
+    PortableReadmePackage = $packageReadme
+    PortableReadmeMarkerCount = 1
+    PortableReadmeInlineSchema3JSONCount = $jsonMatches.Count
+    PortableReadmeRoutes = $jsonRoutes
+}
+Write-JsonFile (Join-Path $evidenceRoot 'package-result.json') $result 16
+$result | ConvertTo-Json -Depth 7

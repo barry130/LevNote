@@ -1,0 +1,17 @@
+{
+  "step": "focused",
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\focused.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\binary-copy-receipt-evidence-20261110\\focused.output.txt",
+  "goArguments": [
+    "test",
+    "./core/document",
+    "-run",
+    "^TestBinaryCopy",
+    "-count=1",
+    "-v"
+  ],
+  "startedUtc": "2026-11-10T03:28:27.2109538+00:00",
+  "finishedUtc": "2026-11-10T03:28:29.3484978+00:00",
+  "durationSeconds": 2.138,
+  "exitCode": 0
+}

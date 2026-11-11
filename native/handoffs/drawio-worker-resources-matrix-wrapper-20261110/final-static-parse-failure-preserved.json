@@ -1,0 +1,11 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:37:39.1664865Z",
+  "Scope": "Preserved first final-parse invocation failure before any parse record was written: Measure-Object could not access ParseErrorCount under Windows PowerShell strict-mode function output semantics. This was a wrapper-only static-parse helper failure; no wrapper, tester, worker, host, build, preflight, or product execution occurred.",
+  "ExitCode": 1,
+  "OriginalCommand": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-static-parse-command.txt",
+  "OriginalStdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-static-parse-stdout.txt",
+  "OriginalStderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\final-static-parse-stderr.txt",
+  "ResultWritten": false,
+  "Correction": "Compute ParseErrorCount from an explicit list of script records instead of Measure-Object."
+}

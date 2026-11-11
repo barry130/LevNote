@@ -1,0 +1,5 @@
+=== RUN   TestDrawioWorkerResourcesHarnessPreflight
+    drawio_worker_resources_test.go:76: draw.io worker resource harness requires explicit LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS=1
+--- SKIP: TestDrawioWorkerResourcesHarnessPreflight (0.00s)
+PASS
+ok  	levnote.local/native/core/engineruntime	0.847s

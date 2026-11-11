@@ -1,0 +1,25 @@
+Fresh GLM-5.3 crouter READ-ONLY independent reviewer. Root plans/coordinates,
+children implement. No child delegation; context compact before200K. Workspace
+F:\AIproject\LevNote, Windows PowerShell, no sandbox_permissions.
+
+Read native/AGENTS.md top ownership and handoffs/markdown-worker-contract.md.
+Astra now owns core/engineipc/**, cmd/levnote-markdown-export/**,
+core/engineruntime/**, scripts/package-markdown-worker.ps1. DeepSeek owns app.
+Review ONLY existing runtime production files and packaging first; no execution,
+no tests/build/launch, no source edits. Protocol and app are being implemented;
+do not report their temporary absence as a defect. Root has already reviewed
+most runtime, but independent lifecycle reasoning is valuable.
+
+Specific review targets: every Start exactlyoneWait; writer/pipe/Job joins;
+all concurrent Close wait same barrier; cancellation versus success linearizes;
+source exact-size/timeout/bounds; immutable snapshots; bundle locking/read/hash
+validation and reparse/rename races; no hidden fallback or arbitrary commands.
+Assess concrete behavioral bugs only, not stylistic preferences/speculation.
+Read enough Go1.27.3 stdlib/vendor source if needed; do not invoke test/run.
+
+Write <=1page material findings (file+line, trigger, effect, suggested fix) to
+native/handoffs/markdown-worker-independent-review.md. State no-findings if so.
+Include actual files/mtime inspected and limits of incomplete-code review. Send
+ACK promptly and deliver this first review without waiting for app/protocol.
+After root follow-up, review final protocol/app source separately. Do not edit
+other owner's code or claim acceptance. Root will route any fix.

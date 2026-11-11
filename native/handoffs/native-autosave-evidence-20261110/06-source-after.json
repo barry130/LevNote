@@ -1,0 +1,127 @@
+{
+  "recordedUtc": "2026-11-10T06:12:28.7139730+00:00",
+  "sourceCount": 15,
+  "allMatch": true,
+  "sources": [
+    {
+      "path": "native/app/autosave.go",
+      "bytes": 2892,
+      "sha256": "EF68DDEA9ECE3C2B118DB9579065F73672FF1354E8CF577302A63B9732612B40",
+      "expectedBytes": 2892,
+      "expectedSHA256": "EF68DDEA9ECE3C2B118DB9579065F73672FF1354E8CF577302A63B9732612B40",
+      "matches": true
+    },
+    {
+      "path": "native/app/autosave_test.go",
+      "bytes": 12162,
+      "sha256": "DD0DDEEB176149E7471AEF6B485AF04AA92745098BB4975639180ED2D4A54F75",
+      "expectedBytes": 12162,
+      "expectedSHA256": "DD0DDEEB176149E7471AEF6B485AF04AA92745098BB4975639180ED2D4A54F75",
+      "matches": true
+    },
+    {
+      "path": "native/app/app.go",
+      "bytes": 36168,
+      "sha256": "1E21F465208AEABBD66047A83E86388FCFA78C5C9DCB21025A7579BEF554FA5D",
+      "expectedBytes": 36168,
+      "expectedSHA256": "1E21F465208AEABBD66047A83E86388FCFA78C5C9DCB21025A7579BEF554FA5D",
+      "matches": true
+    },
+    {
+      "path": "native/app/state.go",
+      "bytes": 13575,
+      "sha256": "41B36D11C9D20415638530E754F2D15C058EC9EF7046A385E7248C5294701F74",
+      "expectedBytes": 13575,
+      "expectedSHA256": "41B36D11C9D20415638530E754F2D15C058EC9EF7046A385E7248C5294701F74",
+      "matches": true
+    },
+    {
+      "path": "native/app/view.go",
+      "bytes": 22883,
+      "sha256": "D9E7059E53A09E8E40EAFA78888CF89011BF36A2E3D06EB3CE5C7A9D470D20FC",
+      "expectedBytes": 22883,
+      "expectedSHA256": "D9E7059E53A09E8E40EAFA78888CF89011BF36A2E3D06EB3CE5C7A9D470D20FC",
+      "matches": true
+    },
+    {
+      "path": "native/app/workspace.go",
+      "bytes": 6693,
+      "sha256": "A43DF6A13E2AC58DDE166013554153D35C79009E7DB317FF9E46A99A63CF1206",
+      "expectedBytes": 6693,
+      "expectedSHA256": "A43DF6A13E2AC58DDE166013554153D35C79009E7DB317FF9E46A99A63CF1206",
+      "matches": true
+    },
+    {
+      "path": "native/app/export_worker.go",
+      "bytes": 15591,
+      "sha256": "7833AE2E4128FF7B6A0DA1E34812921709F3A516E72E1C40B9A06EB7C306CCD3",
+      "expectedBytes": 15591,
+      "expectedSHA256": "7833AE2E4128FF7B6A0DA1E34812921709F3A516E72E1C40B9A06EB7C306CCD3",
+      "matches": true
+    },
+    {
+      "path": "native/app/binary_actions.go",
+      "bytes": 9077,
+      "sha256": "E77C4AB79098D51971885CF0D6AA5A29201BEA2041A4B969B333469C5045BED2",
+      "expectedBytes": 9077,
+      "expectedSHA256": "E77C4AB79098D51971885CF0D6AA5A29201BEA2041A4B969B333469C5045BED2",
+      "matches": true
+    },
+    {
+      "path": "native/app/outline.go",
+      "bytes": 13766,
+      "sha256": "A5AFC0E69BA870ABDDFC9C7D9CEF7B46A79C4BD2C839EFE871EB7054C3EAFBB8",
+      "expectedBytes": 13766,
+      "expectedSHA256": "A5AFC0E69BA870ABDDFC9C7D9CEF7B46A79C4BD2C839EFE871EB7054C3EAFBB8",
+      "matches": true
+    },
+    {
+      "path": "native/app/plugins.go",
+      "bytes": 11174,
+      "sha256": "FA881DEB3AE0435B85B9EB2DF6B27EAD1CE2E1DEEAED9647691C990996944F23",
+      "expectedBytes": 11174,
+      "expectedSHA256": "FA881DEB3AE0435B85B9EB2DF6B27EAD1CE2E1DEEAED9647691C990996944F23",
+      "matches": true
+    },
+    {
+      "path": "native/app/source_navigation.go",
+      "bytes": 8452,
+      "sha256": "C2948CF459ED04772A27C587EE0618B018B44D19D2EE8F07B5005710E2807E55",
+      "expectedBytes": 8452,
+      "expectedSHA256": "C2948CF459ED04772A27C587EE0618B018B44D19D2EE8F07B5005710E2807E55",
+      "matches": true
+    },
+    {
+      "path": "native/modules/imageview/input.go",
+      "bytes": 2963,
+      "sha256": "76D1AB17A3F9B4DC99A153782305AB490904F547A6C7239F2A548248BB2601DE",
+      "expectedBytes": 2963,
+      "expectedSHA256": "76D1AB17A3F9B4DC99A153782305AB490904F547A6C7239F2A548248BB2601DE",
+      "matches": true
+    },
+    {
+      "path": "native/modules/imageview/ui.go",
+      "bytes": 6227,
+      "sha256": "9BA8160171861C08A3655171BC6DBE8B5084AB022C3993A62473B6336EC9A494",
+      "expectedBytes": 6227,
+      "expectedSHA256": "9BA8160171861C08A3655171BC6DBE8B5084AB022C3993A62473B6336EC9A494",
+      "matches": true
+    },
+    {
+      "path": "native/modules/imageview/imageview_test.go",
+      "bytes": 39849,
+      "sha256": "E019EC67C75A12D16C89EDD6E69E2B839E9D4ED05FB9C2DF29D6B36B031260BE",
+      "expectedBytes": 39849,
+      "expectedSHA256": "E019EC67C75A12D16C89EDD6E69E2B839E9D4ED05FB9C2DF29D6B36B031260BE",
+      "matches": true
+    },
+    {
+      "path": "native/app/binary_keyboard_test.go",
+      "bytes": 5793,
+      "sha256": "77856CCE4BA1FBA6E2FF2E1E6044C0149FC145948320F8E5171BFA3BF137050D",
+      "expectedBytes": 5793,
+      "expectedSHA256": "77856CCE4BA1FBA6E2FF2E1E6044C0149FC145948320F8E5171BFA3BF137050D",
+      "matches": true
+    }
+  ]
+}

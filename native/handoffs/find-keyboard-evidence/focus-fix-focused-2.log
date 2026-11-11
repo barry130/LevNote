@@ -1,0 +1,16 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard","-count=1","-v")
+=== RUN   TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState
+--- PASS: TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState (0.41s)
+=== RUN   TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus
+--- PASS: TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus (0.03s)
+=== RUN   TestFindKeyboardReplacementEnterAndEscape
+--- PASS: TestFindKeyboardReplacementEnterAndEscape (0.01s)
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/source
+--- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers (0.02s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape (0.01s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/source (0.01s)
+PASS
+ok  	levnote.local/native/app	1.930s
+EXIT_CODE=0

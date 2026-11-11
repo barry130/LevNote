@@ -1,0 +1,8 @@
+=== RUN   TestEnginePackagePanelCaptures
+=== RUN   TestEnginePackagePanelCaptures/light
+=== RUN   TestEnginePackagePanelCaptures/dark
+--- PASS: TestEnginePackagePanelCaptures (0.26s)
+    --- PASS: TestEnginePackagePanelCaptures/light (0.14s)
+    --- PASS: TestEnginePackagePanelCaptures/dark (0.12s)
+PASS
+ok  	levnote.local/native/app	2.013s

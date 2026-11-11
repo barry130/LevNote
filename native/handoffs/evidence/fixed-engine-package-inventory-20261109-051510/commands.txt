@@ -1,0 +1,2 @@
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\go.ps1 test -run '^TestPackageInventory$' ./core/engineruntime
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\go.ps1 vet ./core/engineruntime

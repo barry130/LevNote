@@ -1,0 +1,20 @@
+=== RUN   TestReopenClosedFailedCloseNeverRecords
+=== RUN   TestReopenClosedFailedCloseNeverRecords/cancel
+=== RUN   TestReopenClosedFailedCloseNeverRecords/flush
+=== RUN   TestReopenClosedFailedCloseNeverRecords/save
+=== RUN   TestReopenClosedFailedCloseNeverRecords/persistence
+=== RUN   TestReopenClosedFailedCloseNeverRecords/slot-reentry
+=== RUN   TestReopenClosedFailedCloseNeverRecords/shutdown-reentry
+--- PASS: TestReopenClosedFailedCloseNeverRecords (0.09s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/cancel (0.02s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/flush (0.02s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/save (0.02s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/persistence (0.02s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/slot-reentry (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/shutdown-reentry (0.01s)
+=== RUN   TestReopenClosedWindowCloseCancelsRunningImage
+--- PASS: TestReopenClosedWindowCloseCancelsRunningImage (0.02s)
+=== RUN   TestReopenClosedMenuGeometryAndEmptyState
+--- PASS: TestReopenClosedMenuGeometryAndEmptyState (0.06s)
+PASS
+ok  	levnote.local/native/app	2.142s

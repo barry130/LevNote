@@ -1,0 +1,19 @@
+--- FAIL: TestMindmapWorkerStaleSnapshotNoFallbackAndStatus (0.05s)
+    --- FAIL: TestMindmapWorkerStaleSnapshotNoFallbackAndStatus/source (0.01s)
+        export_mindmap_worker_test.go:256: status inspected or called SVG HTML 本地引擎 SVG 导出 · 未检查，导出时验证；界面与编辑原生运行，只读导图场景由所选程序计算
+    --- FAIL: TestMindmapWorkerStaleSnapshotNoFallbackAndStatus/adapter (0.01s)
+        export_mindmap_worker_test.go:256: status inspected or called SVG HTML 本地引擎 SVG 导出 · 未检查，导出时验证；界面与编辑原生运行，只读导图场景由所选程序计算
+    --- FAIL: TestMindmapWorkerStaleSnapshotNoFallbackAndStatus/capability (0.01s)
+        export_mindmap_worker_test.go:256: status inspected or called SVG HTML 本地引擎 SVG 导出 · 未检查，导出时验证；界面与编辑原生运行，只读导图场景由所选程序计算
+    --- FAIL: TestMindmapWorkerStaleSnapshotNoFallbackAndStatus/missing (0.01s)
+        export_mindmap_worker_test.go:256: status inspected or called SVG HTML 本地引擎 SVG 导出 · 未检查，导出时验证；界面与编辑原生运行，只读导图场景由所选程序计算
+    --- FAIL: TestMindmapWorkerStaleSnapshotNoFallbackAndStatus/corrupt (0.01s)
+        export_mindmap_worker_test.go:256: status inspected or called SVG HTML 本地引擎 SVG 导出 · 未检查，导出时验证；界面与编辑原生运行，只读导图场景由所选程序计算
+--- FAIL: TestWorkerExportNativeProgressCancelAndStatusImages (0.03s)
+    --- FAIL: TestWorkerExportNativeProgressCancelAndStatusImages/false (0.02s)
+        export_worker_test.go:610: cached engine status missing from native plugin panel
+    --- FAIL: TestWorkerExportNativeProgressCancelAndStatusImages/true (0.02s)
+        export_worker_test.go:610: cached engine status missing from native plugin panel
+FAIL
+FAIL	levnote.local/native/app	13.176s
+FAIL

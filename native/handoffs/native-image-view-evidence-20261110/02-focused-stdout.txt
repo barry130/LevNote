@@ -1,0 +1,7 @@
+--- FAIL: TestOneRequestAndPublicToolbarInput (0.01s)
+    imageview_test.go:229: loading state missing: []string{"适合窗口", "适合窗口", "按百分之百显示", "100%", "减小图片显示", "减小", "100%", "增大图片显示", "增大", "查看只读字节", "查看只读源码", "图片查看区域"}
+--- FAIL: TestErrorSourceRefusalAndPixelsStayExplicit (0.00s)
+    imageview_test.go:319: decode error not explicit: bitmap=<nil> texts=[]string{"适合窗口", "适合窗口", "按百分之百显示", "100%", "减小图片显示", "减小", "100%", "增大图片显示", "增大", "查看只读字节", "查看只读源码", "图片查看区域"} warnings=[图片无法显示：JPEG 数据截断]
+FAIL
+FAIL	levnote.local/native/modules/imageview	0.973s
+FAIL

@@ -1,0 +1,7 @@
+--- FAIL: TestImageKeyboardGeometryThroughPublicEvents (15.89s)
+    --- FAIL: TestImageKeyboardGeometryThroughPublicEvents/sub-floor_fit_stays_fitted_on_no-op_zoom_and_pan (0.01s)
+        imageview_test.go:714: first plus did not enter the manual floor: imageview.viewport{zoom:0.01080322265625, panX:379.9945983886719, panY:24, fitMode:true}
+FAIL
+FAIL	levnote.local/native/modules/imageview	17.647s
+FAIL
+EXIT=1

@@ -1,0 +1,3 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindbarControlsFitMainPaneAtMinimumWindow$","-count=1")
+ok  	levnote.local/native/app	1.881s
+EXIT_CODE=0

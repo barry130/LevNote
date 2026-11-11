@@ -1,0 +1,42 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard|^TestReplaceCurrentRejectsIdentityChangingFlush$","-count=1","-v")
+=== RUN   TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState
+--- PASS: TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState (0.10s)
+=== RUN   TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus
+--- PASS: TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus (0.01s)
+=== RUN   TestFindKeyboardReplacementEnterAndEscape
+--- PASS: TestFindKeyboardReplacementEnterAndEscape (0.01s)
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/source
+--- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers (0.02s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape (0.01s)
+    --- PASS: TestFindKeyboardCompositionAndSourceCompositionBarriers/source (0.01s)
+=== RUN   TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects
+--- PASS: TestFindKeyboardTypedQueryUsesCurrentFieldAndStaleTabRejects (0.01s)
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly
+    find_keyboard_test.go:282: search selection = text.Range{Anchor:0, Head:6}, want ordered bounds [0,0)
+=== RUN   TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition
+    find_keyboard_test.go:303: replacement composition is not visible: ui.AccessInfo{Role:0xb, Name:"替换内容", Value:"", Description:"", Placeholder:"替换为", RoleDescription:"", Bounds:ui.Rect{X:240, Y:130.51025, W:260, H:30.510254}, Checked:false, Mixed:false, Expanded:false, Expandable:false, Selected:false, Selectable:false, Multiselectable:false, Busy:false, Disabled:false, Invalid:false, Focusable:true, Focused:true, ReadOnly:false, Multiline:false, Password:false, Search:false, Sort:0x0, HasPopup:0x0, Controls:[]string(nil), DescribedBy:[]string(nil), ErrorMessage:[]string(nil), Vertical:false, Horizontal:false, Segment:false, Offscreen:false, Current:0x0, AutoComplete:0x0, KeyShortcuts:"", Level:0, PosInSet:0, SetSize:0, RowCount:0, ColumnCount:0, RowIndex:0, ColumnIndex:0, RowSpan:0, ColumnSpan:0, Min:0, Max:0, Now:0, Step:0}
+--- FAIL: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition (0.04s)
+    --- PASS: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/fresh_text_and_shift (0.01s)
+    --- FAIL: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/readonly (0.01s)
+    --- FAIL: TestFindKeyboardReplacementFreshTextShiftReadonlyAndComposition/composition (0.01s)
+=== RUN   TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross
+    find_keyboard_test.go:343: query composition is not visible: ui.AccessInfo{Role:0xb, Name:"查找内容", Value:"", Description:"", Placeholder:"查找文本或正则表达式", RoleDescription:"", Bounds:ui.Rect{X:240, Y:94, W:260, H:30.510254}, Checked:false, Mixed:false, Expanded:false, Expandable:false, Selected:false, Selectable:false, Multiselectable:false, Busy:false, Disabled:false, Invalid:false, Focusable:true, Focused:true, ReadOnly:false, Multiline:false, Password:false, Search:false, Sort:0x0, HasPopup:0x0, Controls:[]string(nil), DescribedBy:[]string(nil), ErrorMessage:[]string(nil), Vertical:false, Horizontal:false, Segment:false, Offscreen:false, Current:0x0, AutoComplete:0x0, KeyShortcuts:"", Level:0, PosInSet:0, SetSize:0, RowCount:0, ColumnCount:0, RowIndex:0, ColumnIndex:0, RowSpan:0, ColumnSpan:0, Min:0, Max:0, Now:0, Step:0}
+--- FAIL: TestFindKeyboardQueryCompositionAndPointerActionsDoNotCross (0.01s)
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button
+=== RUN   TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview
+--- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused (0.02s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/button (0.01s)
+    --- PASS: TestFindKeyboardEscapeClosesFromFindButtonAndPreviewStaysUnfocused/preview (0.01s)
+=== RUN   TestFindKeyboardRealMarkdownCompositionBlocksOpen
+--- PASS: TestFindKeyboardRealMarkdownCompositionBlocksOpen (0.01s)
+=== RUN   TestReplaceCurrentRejectsIdentityChangingFlush
+--- PASS: TestReplaceCurrentRejectsIdentityChangingFlush (0.01s)
+FAIL
+FAIL	levnote.local/native/app	2.077s
+FAIL
+EXIT_CODE=1

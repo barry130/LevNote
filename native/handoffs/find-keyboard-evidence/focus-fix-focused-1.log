@@ -1,0 +1,2 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard","-count=1","-v")
+EXIT_CODE=

@@ -1,0 +1,65 @@
+{
+    "Schema":  1,
+    "Operation":  "ordinary byte copy/archive/hash; no product execution",
+    "StartedUtc":  "2026-11-11T02:50:33.0382220Z",
+    "FinishedUtc":  "2026-11-11T02:50:43.4138701Z",
+    "Repository":  "F:/AIproject/LevNote",
+    "PathBase":  "repository root; forward slash",
+    "SnapshotDirectory":  "snapshot-02",
+    "TreeRoots":  [
+                      "native/app",
+                      "native/cmd",
+                      "native/core",
+                      "native/dependency-patches",
+                      "native/examples",
+                      "native/formats",
+                      "native/licenses",
+                      "native/modules",
+                      "native/portable",
+                      "native/scripts",
+                      "native/ui",
+                      "native/vendor"
+                  ],
+    "SingleFiles":  [
+                        "LICENSE",
+                        "README.md",
+                        "native/README.md",
+                        "native/THIRD_PARTY_NOTICES.md",
+                        "native/go.mod",
+                        "native/go.sum",
+                        "native/handoffs/open-document-picker-key-correction-evidence-20261110/source-frozen.json"
+                    ],
+    "Files":  1208,
+    "Bytes":  17045848,
+    "InputIdentity":  "96e0a103b8538f9810333082ed05217e47b1360e963a7dbc8dbef0585654e12d",
+    "IdentityAlgorithm":  "SHA256 of UTF8 sorted-ordinal records Path + TAB + decimal Length + TAB + lowercase Sha256 + LF",
+    "Manifest":  {
+                     "Path":  "inputs-02.json",
+                     "Length":  244715,
+                     "Sha256":  "A51734C0E9B40051AD1BA06AD4B5E0ACC4D92EF1A3DE5261259FA435B5DF2E51"
+                 },
+    "Archive":  {
+                    "Path":  "levnote-source-inputs-20261111-02.zip",
+                    "Length":  5227577,
+                    "Sha256":  "457503DEECBCF0A534CC3240027048454BDF758076E0EE8D3A0A64F7773DB7F9"
+                },
+    "SourceCopyArchiveSourceAfterIdentical":  true,
+    "FixedPinCount":  6,
+    "PickerFiles":  5,
+    "PatchFiles":  26,
+    "ReparseOrCollisionCount":  0,
+    "Excluded":  [
+                     "native/modules/markdownview/artifacts/acceptance/markdown-cell-view-20261108-final (4 historical output PNGs, 121014 bytes)",
+                     "all new remote-box preparation/results/preflight",
+                     "native/tools",
+                     "native/build-cache",
+                     "native/bin",
+                     "native/artifacts",
+                     "native/native/handoffs",
+                     "native/drawio-resources.test.exe",
+                     "other historical handoffs",
+                     "legacy web/Tauri tree",
+                     "Git/credentials/configuration",
+                     "nondependency historical validation docs"
+                 ]
+}

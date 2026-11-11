@@ -1,0 +1,80 @@
+{
+  "CreatedAtUtc": "2026-11-09T05:29:49.9551875Z",
+  "Records": [
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_types.go",
+      "Bytes": 3954,
+      "SHA256": "78FAB10B1F80F4F4E929DF5D58D38BE34E1D581F7CB9B07603E1D64726298086"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_files.go",
+      "Bytes": 6313,
+      "SHA256": "BCA39FF8FF78DAD77E5AEC06137B25B18F1FAEE1544D0B8D332CE08BD25A4CC4"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_verify.go",
+      "Bytes": 6711,
+      "SHA256": "E663DBDEF0280AF0FD4B88A351FB414831D80860E5F7C47CD6514D954C92F119"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_state.go",
+      "Bytes": 9173,
+      "SHA256": "CF230F4F1FC8027A2CFEB5C39B1A67D51931460B9C4CE70B0E0F964F1B2E363D"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_store.go",
+      "Bytes": 9265,
+      "SHA256": "2E17E8FA07A31C8B49108315EF0AFE2E4B7ADCBFA9A76AEC071C9D525CCCD852"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_windows.go",
+      "Bytes": 3203,
+      "SHA256": "77BE206EBB9F5C7644FB1B781958F2615EF97DD4C6B02AF4A890224D272858E6"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_other.go",
+      "Bytes": 567,
+      "SHA256": "F8703C24F844F1E1807C99DAF92BD582C4B4F01CA5A7CE2D8AAC781C7177BF6C"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_store_test.go",
+      "Bytes": 24776,
+      "SHA256": "8C4C257755F2CBD3B13EF9BB9A1F5203B67D08DEA6E28F2979C95660FC71AA67"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_inventory.go",
+      "Bytes": 9206,
+      "SHA256": "45B148C4DD16AF512DF2EF7FF96D2D62237583BB142DBBBB0569FA937AE40F32"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\core\\engineruntime\\package_inventory_test.go",
+      "Bytes": 10222,
+      "SHA256": "D1AC9A896A5EF253CD7F392C3E4034D40D0B94C9FD83423C237C26F6BD38A81C"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\fixed-engine-package-store-20261109-131851-attempt01\\result.json",
+      "Bytes": 735,
+      "SHA256": "83547AE4C7A010DADF4A81AC9B64B017CC0189A5CC7F87A71E9ABD47E43B1E5F"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\fixed-engine-package-store-20261109-131851-attempt01\\test.stdout",
+      "Bytes": 5710,
+      "SHA256": "F1348D6619BDF8C4419FB6DF019E421A9B1D6948DB16CE85A369B72F97387A17"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\fixed-engine-package-store-20261109-132244-followup02\\result.json",
+      "Bytes": 841,
+      "SHA256": "54CDD524F90DA3E03356F035DA780952636989DB50FB25EFD5CC34F591504325"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\fixed-engine-package-store-20261109-132244-followup02\\test.stdout",
+      "Bytes": 385,
+      "SHA256": "6D665C69980C0525A22C865BE75B2A756F346AF90A1E90A803E7377771B75862"
+    },
+    {
+      "Path": "F:\\AIproject\\LevNote\\native\\artifacts\\acceptance\\fixed-engine-package-store-20261109-132244-followup02\\source-after.json",
+      "Bytes": 3497,
+      "SHA256": "B8B6EB7E4D06664733D027ED8C026DB414157134B07D3D88372DA69F1DBA972C"
+    }
+  ]
+}

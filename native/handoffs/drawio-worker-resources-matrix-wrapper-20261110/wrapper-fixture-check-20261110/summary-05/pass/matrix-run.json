@@ -1,0 +1,61 @@
+{
+    "Schema":  1,
+    "Status":  "FAIL",
+    "StoppedAtFirstFailure":  true,
+    "Rows":  [
+                 {
+                     "Index":  1,
+                     "MatrixPosition":  1,
+                     "Fixture":  "NormalMultiPage",
+                     "Version":  "native-worker.20261110.20",
+                     "Ordinal":  1,
+                     "Status":  "PASS",
+                     "ExitCode":  0,
+                     "TimedOut":  false,
+                     "Violations":  [
+
+                                    ],
+                     "MeasurementSummary":  {
+                                                "Failures":  [
+
+                                                             ],
+                                                "Limitations":  [
+                                                                    "fixture-only limitation"
+                                                                ],
+                                                "ActualWarnings":  [
+
+                                                                   ],
+                                                "ExportElapsedNS":  100,
+                                                "SampleIntervalNS":  2000000,
+                                                "MaxAttempts":  20000,
+                                                "ProbeAttempts":  3,
+                                                "ProbeFailedReads":  0,
+                                                "SampledMaxWorkingSetBytes":  1024,
+                                                "SampledMaxPrivateUsageBytes":  2048,
+                                                "ObservedOSPeakWorkingSetBytes":  4096,
+                                                "ObservedOSPeakPagefileBytes":  8192,
+                                                "FinalMemoryReadOK":  true,
+                                                "FinalCPUReadOK":  true,
+                                                "LifetimePeakCountersComplete":  false,
+                                                "PeakCoverage":  "fixture-only incomplete coverage",
+                                                "CPUKernel100ns":  10,
+                                                "CPUUser100ns":  20,
+                                                "ProcessLifetimeNS":  300
+                                            }
+                 },
+                 {
+                     "Index":  2,
+                     "MatrixPosition":  2,
+                     "Fixture":  "NormalMultiPage",
+                     "Version":  "native-worker.20261110.21",
+                     "Ordinal":  1,
+                     "Status":  "FAIL",
+                     "ExitCode":  2,
+                     "TimedOut":  false,
+                     "Violations":  [
+                                        "measurement.json missing"
+                                    ],
+                     "MeasurementSummary":  null
+                 }
+             ]
+}

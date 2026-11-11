@@ -1,0 +1,37 @@
+MyGo startup safety — delegated owner: DeepSeek app/plugin agent
+
+Root reviewed v0.8.3 app.go: Application.Run unconditionally starts
+cleanUpdateLeftovers; updater.go expands executable-dir/.*.old-* and calls
+os.RemoveAll. LevNote never uses the updater. Removing unrelated neighboring
+data is outside this application's startup responsibilities.
+
+This is a Stage A/B release blocker, not a warning to defer to the user.
+Check for a documented public opt-out first. If absent, use standard Go
+vendoring and one narrowly documented local patch removing the automatic
+cleanup call. Standard vendor mode must make ordinary go build/test use the
+patched dependency, not only one wrapper invocation. Do not edit module
+cache, use go:linkname, mutate private variables at runtime, race cleanup,
+move/delete user files, or introduce an updater/network flow.
+
+Additional ownership granted to DeepSeek for native/vendor/** and
+native/dependency-patches/**. Preserve all applicable upstream notices.
+Coordinate scripts/** changes with Astra (Astra owns scripts). GLM owns
+human-facing license docs; tell GLM the exact patch/provenance paths.
+
+Requirements:
+- Pin the same verified v0.8.3 source and Go dependency graph.
+- Keep a minimal textual patch plus rationale and reproducible refresh steps.
+- Verify patched startup path, including a regression that checks the risky
+  call does not return after refresh. Do not delete or weaken normal tests.
+- A refresh/build verification should fail clearly when the local safety
+  patch is missing rather than silently produce the upstream behavior.
+- Avoid deleting unused vendor content speculatively; standard vendoring is
+  auditable. Record actual size and files, not assumed distribution overhead.
+- Include an isolated startup smoke if feasible: unrelated .*.old-* fixtures
+  beside only the test executable must survive. Never run the original
+  cleanup against the real project or arbitrary user directory.
+- Explain that this is a toolkit startup patch, not an independently authored
+  replacement of licensed toolkit code. Keep its license and provenance.
+
+Finish focused validation and integrate with the full native test/vet/build.
+Write result, commands and patch paths into handoffs/integration.md.

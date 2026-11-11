@@ -1,0 +1,7 @@
+Measure-Object : The property "ParseErrorCount" cannot be found in the input for any objects.
+At F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-matrix-wrapper-20261110\final-static-parse.ps1:32 char:
+41
++ ... orCount = [int](($records | Measure-Object ParseErrorCount -Sum).Sum)
++                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [Measure-Object], PSArgumentException
+    + FullyQualifiedErrorId : GenericMeasurePropertyNotFound,Microsoft.PowerShell.Commands.MeasureObjectCommand

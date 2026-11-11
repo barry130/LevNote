@@ -1,0 +1,1 @@
+pwsh -NoProfile -File F:\AIproject\LevNote\native\handoffs\native-image-release23-preparation-20261110\static-parse.ps1 -ResultPath F:\AIproject\LevNote\native\handoffs\native-image-release23-preparation-20261110\static-parse-corrected-20261110.json

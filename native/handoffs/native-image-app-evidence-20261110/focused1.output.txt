@@ -1,0 +1,18 @@
+=== RUN   TestNativeImageOpenMixedAuthorityAndCapabilities
+--- PASS: TestNativeImageOpenMixedAuthorityAndCapabilities (0.03s)
+=== RUN   TestNativeImageSignatureDisabledCorruptMismatchAndOversize
+--- PASS: TestNativeImageSignatureDisabledCorruptMismatchAndOversize (0.04s)
+=== RUN   TestNativeImageCopiesHeldBytesAndReloadsExplicitly
+--- PASS: TestNativeImageCopiesHeldBytesAndReloadsExplicitly (0.03s)
+=== RUN   TestNativeImageModalStaleAndFailedFlushKeepAuthority
+--- PASS: TestNativeImageModalStaleAndFailedFlushKeepAuthority (0.01s)
+=== RUN   TestNativeImageSessionOrderAndPathOnlyRestore
+--- PASS: TestNativeImageSessionOrderAndPathOnlyRestore (0.03s)
+=== RUN   TestNativeImageLaneLatestPendingAndShutdownJoin
+--- PASS: TestNativeImageLaneLatestPendingAndShutdownJoin (0.03s)
+=== RUN   TestNativeImageCopySurvivesNavigationAndClosedTabOutcome
+--- PASS: TestNativeImageCopySurvivesNavigationAndClosedTabOutcome (0.02s)
+=== RUN   TestNativeImageExternalObservationAndReacquireFailure
+--- PASS: TestNativeImageExternalObservationAndReacquireFailure (0.03s)
+PASS
+ok  	levnote.local/native/app	1.642s

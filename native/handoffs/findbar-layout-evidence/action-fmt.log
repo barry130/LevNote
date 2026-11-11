@@ -1,0 +1,5 @@
+$ .\native\scripts\go.ps1 -GoArguments @("fmt","./app")
+app\findbar_layout_test.go:244:3: expected declaration, found "查找内容"
+app\findbar_layout_test.go:258:2: expected declaration, found 'for'
+exit status 2
+EXIT_CODE=1

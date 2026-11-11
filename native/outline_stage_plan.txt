@@ -1,0 +1,55 @@
+Next product stage: native document outline and reliable navigation
+
+ACTIVATED after root accepted the12:55 resource/test/vet/build/runtime checkpoint.
+First agree and publish additive contracts in handoffs/outline-contract.md;
+root reviews the design while documentation finishes. Then implement this
+finite usability increment inspired by familiar document outlines in mature
+editors, independently built.
+
+Goal: navigate a long Markdown document or mindmap from the existing sidebar
+without a second window, extra runtime, full-document redraw, or lost draft.
+Preserve the restrained UI. Reuse current fonts/colors/list virtualization.
+
+Current ownership:
+- Astra: optional editor contracts and Markdown/mindmap OutlineProvider,
+  bounded/cached extraction and source/preview navigation; view tests.
+- DeepSeek: sidebar outline toggle, keyboard/far-item navigation, current-tab
+  integration, mode/flush barriers and app tests/screenshots.
+- GLM performs independent read-only contract/docs/code review via
+  outline_review_task.txt; previous implementation ownership stays revoked.
+  Astra may implement needed pure Markdown outline helper
+  in formats/markdown after the accepted resource checkpoint; no parser budget
+  redesign or unrelated format changes. Core/search/document stay frozen.
+
+Contract expectations to agree in handoffs before code:
+- Reuse OutlineItem and OutlineProvider where possible. Optional addition is
+  preferable to a breaking change; host cannot inspect concrete view types.
+- Markdown IDs have deterministic documented slugs for ordinary links, with
+  duplicate headings disambiguated. Outline list items identify the current
+  heading, never stale absolute coordinates. Unicode headings are supported.
+- Offset uses UTF16 for source navigation; formats with no source position
+  must explicitly distinguish that case (e.g. negative), not fabricate 0.
+- Outline collection must not mutate the document or commit a draft. Visible
+  activation first passes the same fallible Flush gate as save/mode switch.
+  If version changed, resolve the item again; stale/missing items fail visibly.
+- Markdown preview uses virtual-row scrolling. Source/split navigation reveals
+  the correct heading in the source editor; do not force a mode switch. Avoid
+  constructing a heavy graph canvas merely to list outlines in source mode.
+- Mindmap IDs come from the format. Navigating to a hidden node may uncollapse
+  ancestors only as an explicit undoable document edit in writable documents.
+  Readonly navigation never changes file fields; show the limitation clearly.
+  Preserve selection/page/pan/zoom and unknown metadata.
+- Bound outline count and display label lengths, cache on document version and
+  release inactive heavyweight state. Disclose a partial outline. Large lists
+  use the existing native virtual-list API, not thousands of widgets/frame.
+
+Scope: Markdown and mindmap first. Other formats have an explicit empty or
+unsupported state. Do not add tables, task toggles, metadata editing, plugin
+SDK, network activation or image loading in this stage.
+
+Acceptance routes: duplicate/Unicode Markdown headings and anchor links;
+source insertion then activate far item; pending Compose then navigation;
+failed/conflicting Flush retains draft/tab/mode; mindmap collapsed/read-only
+and undo/unknown metadata; source/preview/split and tab/plugin changes; narrow
+760x480 and dark UI; bounded row work on a large outline. Focused tests then
+one integration pass. No repetitive broad test runs without changed code.

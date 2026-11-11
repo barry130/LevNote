@@ -1,0 +1,12 @@
+goos: windows
+goarch: amd64
+pkg: levnote.local/native/formats/drawio
+cpu: AMD Ryzen 7 6800H with Radeon Graphics         
+BenchmarkDrawioSourceRetention/ParseRetained-16         	      20	   1082480 ns/op	  31.40 MB/s	  764502 B/op	    8335 allocs/op
+BenchmarkDrawioSourceRetention/ParseRetained-16         	      20	   1051475 ns/op	  32.32 MB/s	  764244 B/op	    8335 allocs/op
+BenchmarkDrawioSourceRetention/ParseRetained-16         	      20	   1082925 ns/op	  31.38 MB/s	  764241 B/op	    8335 allocs/op
+BenchmarkDrawioSourceRetention/UpdateSerialize-16       	      20	   2314060 ns/op	  14.69 MB/s	 1733705 B/op	   16688 allocs/op
+BenchmarkDrawioSourceRetention/UpdateSerialize-16       	      20	   2244080 ns/op	  15.14 MB/s	 1733697 B/op	   16688 allocs/op
+BenchmarkDrawioSourceRetention/UpdateSerialize-16       	      20	   2291545 ns/op	  14.83 MB/s	 1733706 B/op	   16688 allocs/op
+PASS
+ok  	levnote.local/native/formats/drawio	0.752s

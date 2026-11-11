@@ -1,0 +1,12 @@
+{
+  "Schema": 1,
+  "CreatedAtUtc": "2026-11-10T01:28:29.7665871Z",
+  "FixtureOnly": true,
+  "Scope": "Preserved failure from the first authorized no-process fixture check. The summary generator used strict-mode direct property access for a named field and threw on the first missing RequestElapsedNS field. The field lookup is now guarded by property presence. This is a wrapper-only fixture failure, not a tester, worker, host, build, preflight, or product failure.",
+  "ExitCode": 1,
+  "OriginalStdout": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-stdout.txt",
+  "OriginalStderr": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check-stderr.txt",
+  "OriginalResultExpected": "F:\\AIproject\\LevNote\\native\\handoffs\\drawio-worker-resources-matrix-wrapper-20261110\\wrapper-fixture-check-20261110\\fixture-check.json",
+  "ResultWritten": false,
+  "Correction": "Get-Values now checks PSObject property presence before accessing the requested measurementSummary field."
+}

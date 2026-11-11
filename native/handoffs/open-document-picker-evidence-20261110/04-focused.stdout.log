@@ -1,0 +1,81 @@
+=== RUN   TestOpenDocumentsModalKeyboardAndOpener
+--- PASS: TestOpenDocumentsModalKeyboardAndOpener (0.04s)
+=== RUN   TestOpenDocumentsModalQueryComposition
+=== RUN   TestOpenDocumentsModalQueryComposition/commit
+=== RUN   TestOpenDocumentsModalQueryComposition/cancel
+--- PASS: TestOpenDocumentsModalQueryComposition (0.04s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/commit (0.02s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/cancel (0.02s)
+=== RUN   TestOpenDocumentsSinglePointerSelect
+--- PASS: TestOpenDocumentsSinglePointerSelect (0.01s)
+=== RUN   TestOpenDocumentsMetadataUnicodeBoundsAndReuse
+--- PASS: TestOpenDocumentsMetadataUnicodeBoundsAndReuse (0.04s)
+=== RUN   TestOpenDocumentsHundredVirtualRowsAndQueryNavigation
+--- PASS: TestOpenDocumentsHundredVirtualRowsAndQueryNavigation (0.31s)
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/source
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-first
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-ongoing
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/find
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/replacement
+=== RUN   TestOpenDocumentsSourceAndUtilityCompositionBarriers/goto
+--- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers (0.11s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/source (0.02s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-first (0.02s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/refused-ongoing (0.02s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/find (0.02s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/replacement (0.02s)
+    --- PASS: TestOpenDocumentsSourceAndUtilityCompositionBarriers/goto (0.02s)
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/fail
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/remove
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/reorder
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/open/activate
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/fail
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/remove
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/reorder
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/select/activate
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/fail
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/remove
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/reorder
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/same/activate
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/restore
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/modal
+=== RUN   TestOpenDocumentsAdmissionAndReentrantIdentity/shutdown
+--- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity (0.21s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/fail (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/remove (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/reorder (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/open/activate (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/fail (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/remove (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/reorder (0.02s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/select/activate (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/fail (0.02s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/remove (0.02s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/reorder (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/same/activate (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/restore (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/modal (0.01s)
+    --- PASS: TestOpenDocumentsAdmissionAndReentrantIdentity/shutdown (0.01s)
+=== RUN   TestOpenDocumentsAsyncSelectionInvalidatesRows
+--- PASS: TestOpenDocumentsAsyncSelectionInvalidatesRows (0.02s)
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/escape
+    open_documents_test.go:486: real rich field lost value: {Role:11 Name:文档编辑区 Value: Description: Placeholder: RoleDescription: Bounds:{X:247 Y:160.97021 W:494 H:48} Checked:false Mixed:false Expanded:false Expandable:false Selected:false Selectable:false Multiselectable:false Busy:false Disabled:false Invalid:false Focusable:true Focused:true ReadOnly:false Multiline:false Password:false Search:false Sort:0 HasPopup:0 Controls:[] DescribedBy:[] ErrorMessage:[] Vertical:false Horizontal:false Segment:false Offscreen:false Current:0 AutoComplete:0 KeyShortcuts: Level:0 PosInSet:0 SetSize:0 RowCount:0 ColumnCount:0 RowIndex:0 ColumnIndex:0 RowSpan:0 ColumnSpan:0 Min:0 Max:0 Now:0 Step:0}
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/same
+    open_documents_test.go:486: real rich field lost value: {Role:11 Name:文档编辑区 Value: Description: Placeholder: RoleDescription: Bounds:{X:247 Y:160.97021 W:494 H:48} Checked:false Mixed:false Expanded:false Expandable:false Selected:false Selectable:false Multiselectable:false Busy:false Disabled:false Invalid:false Focusable:true Focused:true ReadOnly:false Multiline:false Password:false Search:false Sort:0 HasPopup:0 Controls:[] DescribedBy:[] ErrorMessage:[] Vertical:false Horizontal:false Segment:false Offscreen:false Current:0 AutoComplete:0 KeyShortcuts: Level:0 PosInSet:0 SetSize:0 RowCount:0 ColumnCount:0 RowIndex:0 ColumnIndex:0 RowSpan:0 ColumnSpan:0 Min:0 Max:0 Now:0 Step:0}
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-other
+    open_documents_test.go:482: rich opener/draft not preserved: ending=failed-other message=输入法正在组合文本；请先完成或取消组合后再打开文档列表 texts=[轻笺 新建 打开 最近关闭的文件 ▾ 文件夹 保存 查找 插件 设置 工作区 切换文件树与文档大纲 大纲 刷新文件树 ↻ 打开一个文件夹，
+        把资料放在一起。 打开文件夹 新建文档 Markdown 纯文本 思维导图 图纸 • note.md 关闭 note.md × • other.txt 关闭 other.txt × 已打开文档 文档编辑区 输入法正在组合文本；请先完成或取消组合后再打开文档列表 问题 1]
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-same
+    open_documents_test.go:482: rich opener/draft not preserved: ending=failed-same message=输入法正在组合文本；请先完成或取消组合后再打开文档列表 texts=[轻笺 新建 打开 最近关闭的文件 ▾ 文件夹 保存 查找 插件 设置 工作区 切换文件树与文档大纲 大纲 刷新文件树 ↻ 打开一个文件夹，
+        把资料放在一起。 打开文件夹 新建文档 Markdown 纯文本 思维导图 图纸 • note.md 关闭 note.md × • other.txt 关闭 other.txt × 已打开文档 Markdown 阅读 / 编辑 源码 分屏 导出 导出 双击内容编辑 · Ctrl+Enter 完成 external 正文 添加段落 输入法正在组合文本；请先完成或取消组合后再打开文档列表 问题 1]
+--- FAIL: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus (0.09s)
+    --- FAIL: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/escape (0.02s)
+    --- FAIL: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/same (0.02s)
+    --- FAIL: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-other (0.03s)
+    --- FAIL: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-same (0.02s)
+FAIL
+FAIL	levnote.local/native/app	2.487s
+FAIL

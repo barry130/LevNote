@@ -1,0 +1,43 @@
+{
+  "production_files": [
+    "core/enginecatalog/catalog.go",
+    "core/engineipc/protocol.go"
+  ],
+  "test_files": [
+    "core/enginecatalog/catalog_test.go",
+    "core/engineipc/protocol_test.go"
+  ],
+  "module_imports": [
+    "core/enginecatalog imports core/enginescene for the fixed preview payload limit",
+    "core/engineipc imports core/enginecatalog only for identities"
+  ],
+  "markdown_wrapper": "ReadRequest remains ReadRequestFor(enginecatalog.MarkdownHTML, r), unchanged in production",
+  "evidence": [
+    "handoffs/evidence/preview-ipc-20261109/test-full.stdout.txt",
+    "handoffs/evidence/preview-ipc-20261109/test-full.stderr.txt",
+    "handoffs/evidence/preview-ipc-20261109/vet.stdout.txt",
+    "handoffs/evidence/preview-ipc-20261109/vet.stderr.txt"
+  ],
+  "captured_after": [
+    {
+      "path": "core/enginecatalog/catalog.go",
+      "size_bytes": 2154,
+      "sha256": "E408322D9CD155CF978BA74572802CCDFE9E67D4240275D02007F11DFDFFFA43"
+    },
+    {
+      "path": "core/enginecatalog/catalog_test.go",
+      "size_bytes": 2582,
+      "sha256": "0AFB7F4E6745C936EFADFA01F3B859DFD1E063557EBA2CDEE9318163E2322116"
+    },
+    {
+      "path": "core/engineipc/protocol.go",
+      "size_bytes": 8270,
+      "sha256": "C948D5610D8D29089EB77CE517F59D0E6822510B08C5B0A30F0379E1A2778F37"
+    },
+    {
+      "path": "core/engineipc/protocol_test.go",
+      "size_bytes": 27219,
+      "sha256": "445752381ED63BF55BB1037521BAC134F26F99C2B65FADFD4753FFD80E878813"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+Integrated native acceptance — implementation/build owner: DeepSeek
+
+Read handoffs/stages.md, plan.md and all owner checkpoint reports. Do not
+start final build acceptance until Markdown and graph safety checkpoints pass.
+You may prepare acceptance fixtures/screenshots in owned app tests now.
+No subagents/commits/pushes. Root plans/reviews, you execute tests/builds.
+
+1. Run current native go test ./... and go vet ./... through scripts/go.ps1.
+   Route failures outside ownership through handoffs plus root. Do not alter
+   tests merely to skip a failing user route. Record command+result, including
+   the unavailable Windows race runner rather than calling it passed.
+2. Build stripped windowsgui executable with the wrapper into bin/. Record
+   absolute path, exact bytes, SHA256, Go version, commit/worktree status and
+   UTC/local measurement time. Do not reuse the stale previous executable.
+3. Add deterministic end-to-end tester fixtures in app-owned tests for native
+   source, Markdown block edit, mindmap, drawio, plugin manager, readonly text
+   and encoding fallback. Exercise inputs through UI where feasible.
+   Validate save/switch/close/reopen outcomes, not just rendering a component.
+4. Produce current PNGs to artifacts/acceptance/: source-light/dark, Markdown
+   preview/split, mindmap, drawio, plugin manager, minimum window 760x480.
+   At least one dark graph/Markdown and narrow panel case. Actually inspect
+   each image, then send root paths for review. No unnecessary gradients,
+   animation, decorative icons or extra persistent widgets.
+5. Resource evidence: test inactive views release their parsed/layout caches
+   while retaining lightweight location state; active editor idle frames don't
+   schedule repeated work. Existing editor benchmarks may be referenced with
+   exact conditions; do not rerun unchanged microbenchmarks unnecessarily.
+6. If actual desktop smoke is possible, use computer-use skill and report
+   only observed outcomes. Existing tester Compose/caret screenshots do not
+   verify Windows IME candidate window. No silent automated global IME or
+   display settings changes. Use isolated temporary config/sample files.
+7. Audit first-party runtime and invoked startup path for no WebView, old
+   document engines or networking. Record which toolkit primitives are used.
+   Dependency license/notices and docs belong to GLM; report gaps there.
+
+Handoff: native/handoffs/integration.md. Once baseline passes, root will
+assign bounded watcher/UI resource improvements and mature editing workflows.

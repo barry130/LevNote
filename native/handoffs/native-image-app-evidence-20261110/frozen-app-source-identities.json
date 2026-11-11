@@ -1,0 +1,81 @@
+{
+  "recordedUtc": "2026-11-10T04:52:08.5955156+00:00",
+  "scope": "App-owned native image integration source and focused tests; no before snapshot claimed",
+  "files": [
+    {
+      "path": "app/app.go",
+      "bytes": 36131,
+      "sha256": "37E74A96C029B0B74771DF38EA7121620CC11B161A54F179AFF770D917C72326"
+    },
+    {
+      "path": "app/binary.go",
+      "bytes": 10141,
+      "sha256": "600617961026A6E5DA745B0FC507C12E25C6AAC6E018D2422EA87835904A3D7C"
+    },
+    {
+      "path": "app/binary_lane.go",
+      "bytes": 6499,
+      "sha256": "44D9066F3F64CAECE90D469D66AE6CB76C8368BD9AED934036F120DCC150BCA4"
+    },
+    {
+      "path": "app/binary_actions.go",
+      "bytes": 9079,
+      "sha256": "2A8C9F8F2510740F247981B873AB78794B92450036EB9E3B27B5AC541A510857"
+    },
+    {
+      "path": "app/binary_test.go",
+      "bytes": 26564,
+      "sha256": "1D150577CF49C01F9C14D18A18611171243492EECB412B60AB544DBBE78D4981"
+    },
+    {
+      "path": "app/state.go",
+      "bytes": 13553,
+      "sha256": "A402F032AF42A411D141CC1445190552506289DC3B8340A33CDE036EB707E491"
+    },
+    {
+      "path": "app/view.go",
+      "bytes": 22988,
+      "sha256": "60BFF7598B8FACC90B5B99F423AFDD4B4C0F935848E9822001FD409EBAA38EC1"
+    },
+    {
+      "path": "app/plugins.go",
+      "bytes": 11175,
+      "sha256": "E909E430DBDA7EAC789D3F0D0221D3B5536F6E58538754D2DD06E8118107431C"
+    },
+    {
+      "path": "app/reference.go",
+      "bytes": 7427,
+      "sha256": "CCD60358E9938A6C8BAEED89F1EA12365B05DFCDDFD5628834C1592E57322DA7"
+    },
+    {
+      "path": "app/workspace.go",
+      "bytes": 6673,
+      "sha256": "9D8FC9AFD46B6F9286D7DFA9151A2939315F8CE7D165779C882068F09682C1FF"
+    },
+    {
+      "path": "app/workers.go",
+      "bytes": 8114,
+      "sha256": "D6DBC465014B4E7DD1FF4FBC26F3064ABF42542682069461C2F2C37411F0EAB6"
+    },
+    {
+      "path": "app/export.go",
+      "bytes": 1584,
+      "sha256": "98B3779D7C63799EDD78214802920B5886CEFECCFC7BF2513A867F7AF30CF365"
+    },
+    {
+      "path": "app/export_worker.go",
+      "bytes": 15567,
+      "sha256": "04D6371E12415AB3049762EEA013838F879AFA0663BBD098F220DC7381984057"
+    },
+    {
+      "path": "app/search_navigation.go",
+      "bytes": 9783,
+      "sha256": "C585759102FBCAEB3B14E8D4D61511CE98D189C17FB96F4AFF6BE98A3EBF475E"
+    },
+    {
+      "path": "app/outline.go",
+      "bytes": 13767,
+      "sha256": "802C5E7BFC30B46B31F53B7DC18E074F08606163DFAEFB37EE480ECF3E30ADCD"
+    }
+  ]
+}

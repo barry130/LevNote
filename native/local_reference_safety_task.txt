@@ -1,0 +1,27 @@
+Local reference activation — small Stage A integration task, DeepSeek owner
+
+The host currently blindly joins document directory with any reference in
+app/view.go. Both Markdown doc-block and graph hyperlinks call this path.
+Fix before describing local-only reference support as complete.
+
+Implement a pure classifier/resolver in owned app code. It must distinguish:
+- #anchor: use an existing optional outline/anchor route when available,
+  otherwise visibly report unsupported navigation; never treat as file name.
+- Local relative and absolute Windows disk paths: resolve relative paths
+  against a saved document's directory. Unsaved documents must request saving
+  first through a clear message rather than using the process cwd.
+- http/https, protocol-relative //host, UNC \\host, mailto/javascript/data and
+  other URL schemes: never activate network/OS shell; show an explicit local
+  app limitation. File URI handling must be deliberate, with remote hosts and
+  encoded UNC forms rejected rather than blindly passed to filepath.Join.
+
+Preserve valid spaces and Unicode; distinguish drive prefixes from URL
+schemes; decode file URL escaping at most once. Normal local relative parent
+segments are allowed (the application is a local editor, not a workspace
+sandbox). No new network or shell-opening API. Keep all actual opening behind
+the existing flush and sequential-open barriers.
+
+Test pure classification and one actual Host.OpenReference route with a
+saved local source/target, unsaved source rejection, external URL and remote
+file rejection. Do not change another owner's view files. Share findings and
+API with Astra; document the limits in the integration handoff.

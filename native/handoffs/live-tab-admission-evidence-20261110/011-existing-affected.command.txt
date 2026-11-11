@@ -1,0 +1,3 @@
+command: .\\native\\scripts\\go.ps1 -GoArguments @('test','./app','-run','^(TestOpenMany.*|TestReopenClosed.*|TestNativeImageOpenMixedAuthorityAndCapabilities|TestNativeImageSessionOrderAndPathOnlyRestore|TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft)$','-count=1')
+exit_code: 0
+elapsed: 4.406s

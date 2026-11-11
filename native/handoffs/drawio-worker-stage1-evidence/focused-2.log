@@ -1,0 +1,22 @@
+COMMAND: & .\native\scripts\go.ps1 -GoArguments @('test','./cmd/levnote-drawio-svg','./formats/drawio')
+WORKDIR: F:\AIproject\LevNote
+--- FAIL: TestDrawioWorkerWarningOrderAndScope (0.00s)
+    main_test.go:109: warning 4 message="page 1: cell wrapper <future> is preserved but not rendered" want prefix "page 1: unsupported"
+--- FAIL: TestDrawioWorkerInvalidPageIDAndIndexRefuseWithoutPayload (0.00s)
+    main_test.go:127: page={Index:1 ID:only} meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3516eb84b460} error=invalid-page: draw.io page index and identity do not match payload=[]
+--- FAIL: TestDrawioWorkerOutputAndWarningLimitsReturnNilPayload (0.00s)
+    main_test.go:165: output-limit meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3516eb84b8e0} error=output-limit: draw.io SVG output exceeds the export limit payload=[]
+--- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent (0.00s)
+    --- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent/extra (0.00s)
+        main_test.go:222: protocol error meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3516eb84bae0} error=invalid-request: draw.io SVG export request was refused payload=[]
+    --- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent/truncated (0.00s)
+        main_test.go:222: protocol error meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3516eb84bb60} error=invalid-request: draw.io SVG export request was refused payload=[]
+    --- FAIL: TestDrawioWorkerProtocolErrorsRemainCoherent/utf8 (0.00s)
+        main_test.go:222: protocol error meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3516eb84bbe0} error=invalid-utf8: draw.io SVG export request was refused payload=[]
+--- FAIL: TestDrawioWorkerForeignRequestDoesNotReadPayload (0.00s)
+    main_test.go:254: foreign request meta={Engine:levnote.drawio-svg EngineVersion:development Format:svg Status:error Warnings:[] Error:0x3516eb84bc60} error=invalid-request: draw.io SVG export request was refused payload=[] reads=2 remaining="source"
+FAIL
+FAIL	levnote.local/native/cmd/levnote-drawio-svg	0.724s
+ok  	levnote.local/native/formats/drawio	0.759s
+FAIL
+EXIT_CODE=1

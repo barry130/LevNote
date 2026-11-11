@@ -1,0 +1,18 @@
+# levnote.local/native/core/session [levnote.local/native/core/session.test]
+core\session\output_benchmark_test.go:67:15: undefined: writeSnapshotJSON
+core\session\output_test.go:112:12: undefined: newEncodedSessionWriter
+core\session\output_test.go:144:14: undefined: errEncodedSessionTruncated
+core\session\output_test.go:150:14: undefined: errEncodedSessionTruncated
+core\session\output_test.go:156:14: undefined: errEncodedSessionTruncated
+core\session\output_test.go:162:14: undefined: errEncodedSessionTooLarge
+core\session\output_test.go:167:14: undefined: newEncodedSessionWriter
+core\session\output_test.go:196:14: undefined: newEncodedSessionWriter
+core\session\output_test.go:311:10: undefined: errEncodedSessionTruncated
+core\session\output_test.go:331:23: undefined: document.WritePrivateStateTo
+core\session\output_test.go:331:23: too many errors
+# levnote.local/native/core/document [levnote.local/native/core/document.test]
+core\document\state_test.go:13:12: undefined: WritePrivateStateTo
+core\document\state_test.go:55:14: undefined: WritePrivateStateTo
+FAIL	levnote.local/native/core/document [build failed]
+FAIL	levnote.local/native/core/session [build failed]
+FAIL

@@ -1,0 +1,15 @@
+{
+  "name": "imageview-final1",
+  "step": "imageview-final",
+  "goArguments": [
+    "test",
+    "./modules/imageview",
+    "-count=1"
+  ],
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\imageview-final1.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\imageview-final1.output.txt",
+  "startedUtc": "2026-11-10T04:55:36.2859795+00:00",
+  "finishedUtc": "2026-11-10T04:55:39.0877845+00:00",
+  "durationSeconds": 2.802,
+  "exitCode": 0
+}

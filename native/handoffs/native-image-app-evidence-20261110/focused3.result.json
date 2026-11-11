@@ -1,0 +1,18 @@
+{
+  "name": "focused3",
+  "step": "focused",
+  "goArguments": [
+    "test",
+    "./app",
+    "-run",
+    "^TestNativeImage",
+    "-count=1",
+    "-v"
+  ],
+  "commandFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\focused3.command.ps1",
+  "outputFile": "F:\\AIproject\\LevNote\\native\\handoffs\\native-image-app-evidence-20261110\\focused3.output.txt",
+  "startedUtc": "2026-11-10T04:43:54.5249733+00:00",
+  "finishedUtc": "2026-11-10T04:44:00.6881150+00:00",
+  "durationSeconds": 6.163,
+  "exitCode": 0
+}

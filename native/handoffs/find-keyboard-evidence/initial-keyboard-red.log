@@ -1,0 +1,22 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard","-count=1","-v")
+=== RUN   TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState
+    find_keyboard_test.go:23: Ctrl+F did not open and focus query: show=true texts=["轻笺" "新建" "打开" "文件夹" "保存" "查找" "插件" "设置" "工作区" "切换文件树与文档大纲" "大纲" "刷新文件树" "↻" "打开一个文件夹，\n把资料放在一起。" "打开文件夹" "新建文档" "Markdown" "纯文本" "思维导图" "图纸" "• 未命名.txt" "关闭 未命名.txt" "×" "查找内容" "上一个" "下一个" "区分大小写" "正则" "关闭查找" "×" "替换内容" "替换当前" "全部替换" "搜索工作区" "文档编辑区" "本地文件 · 原生编辑" "转到源码行；当前第 1 行，第 14 列" "第 1 行，第 14 列" "UTF-8" "未保存"]
+--- FAIL: TestFindKeyboardCtrlFFocusesQueryOnceAndPreservesFieldState (0.41s)
+=== RUN   TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus
+    find_keyboard_test.go:91: search selection = text.Range{Anchor:13, Head:13}, want ordered bounds [0,6)
+--- FAIL: TestFindKeyboardEnterNavigationUsesRepeatedQueryFocus (0.02s)
+=== RUN   TestFindKeyboardReplacementEnterAndEscape
+    find_keyboard_test.go:127: replacement Enter = text="needle needle" history={UndoDepth:1 RedoDepth:0 RetainedBytes:13 Truncated:false} focus=true show=true
+--- FAIL: TestFindKeyboardReplacementEnterAndEscape (0.01s)
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape
+    find_keyboard_test.go:162: Escape crossed Find composition: show=false focus=false query="" selection={Anchor:13 Head:13}/{Anchor:13 Head:13}
+=== RUN   TestFindKeyboardCompositionAndSourceCompositionBarriers/source
+    find_keyboard_test.go:175: source composition did not block Find opening: show=true message=""
+--- FAIL: TestFindKeyboardCompositionAndSourceCompositionBarriers (0.02s)
+    --- FAIL: TestFindKeyboardCompositionAndSourceCompositionBarriers/Find_Escape (0.01s)
+    --- FAIL: TestFindKeyboardCompositionAndSourceCompositionBarriers/source (0.01s)
+FAIL
+FAIL	levnote.local/native/app	2.063s
+FAIL
+EXIT_CODE=1

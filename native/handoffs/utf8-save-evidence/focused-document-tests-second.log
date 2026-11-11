@@ -1,0 +1,5 @@
+--- FAIL: TestUTF8StreamingSavePreservesNoopAndFailureSemantics (0.01s)
+    document_test.go:391: wrong digest advanced saved state
+FAIL
+FAIL	levnote.local/native/core/document	0.802s
+FAIL

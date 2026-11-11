@@ -1,0 +1,120 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^(TestFindbar|TestFind|TestReplaceCurrentInvalidatesNavigationCacheAndFindsFreshText|TestShutdownClearsFindCache)","-count=1","-v")
+=== RUN   TestFindFlushesPendingRichEditFirst
+--- PASS: TestFindFlushesPendingRichEditFirst (0.01s)
+=== RUN   TestFindRevealsSourceInsteadOfLeavingPreviewVisible
+--- PASS: TestFindRevealsSourceInsteadOfLeavingPreviewVisible (0.02s)
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-default
+    findbar_layout_test.go:33: light-default control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-default control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: light-default control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: light-default control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: light-default control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-default control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-default control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-default control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:40: light-default editor area: ui.Rect{X:228, Y:246.04102, W:532, H:203.95898}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default
+    findbar_layout_test.go:33: dark-default control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: dark-default control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: dark-default control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: dark-default control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:40: dark-default editor area: ui.Rect{X:228, Y:246.04102, W:532, H:203.95898}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font
+    findbar_layout_test.go:33: light-maximum-editor-font control "查找内容": ui.Rect{X:240, Y:94, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "上一个": ui.Rect{X:508, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "下一个": ui.Rect{X:585, Y:94, W:69, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "区分大小写": ui.Rect{X:240, Y:139.51025, W:89, H:16.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "正则": ui.Rect{X:337, Y:139.51025, W:50, H:16.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "关闭查找": ui.Rect{X:708.3579, Y:132.51025, W:39.64209, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换内容": ui.Rect{X:240, Y:169.02051, W:260, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换当前": ui.Rect{X:508, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "全部替换": ui.Rect{X:598, Y:169.02051, W:82, H:30.510254}
+    findbar_layout_test.go:33: light-maximum-editor-font control "搜索工作区": ui.Rect{X:240, Y:207.53076, W:95, H:30.510254}
+    findbar_layout_test.go:40: light-maximum-editor-font editor area: ui.Rect{X:228, Y:246.04102, W:532, H:203.95898}
+--- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow (0.03s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/light-default (0.01s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default (0.01s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font (0.01s)
+=== RUN   TestFindbarActionsAndFocusSurviveMinimumReflow
+--- PASS: TestFindbarActionsAndFocusSurviveMinimumReflow (0.02s)
+=== RUN   TestFindbarTabFocusAtMinimumWindow
+--- PASS: TestFindbarTabFocusAtMinimumWindow (0.01s)
+=== RUN   TestFindbarLayoutScreenshots
+    findbar_layout_test.go:201: set LEVNOTE_FINDBAR_LAYOUT_SCREENSHOT_DIR for Find-bar layout captures
+--- SKIP: TestFindbarLayoutScreenshots (0.00s)
+=== RUN   TestFindAdjacentMatchesProgress
+--- PASS: TestFindAdjacentMatchesProgress (0.01s)
+=== RUN   TestFindSingleResultWrapsToItself
+--- PASS: TestFindSingleResultWrapsToItself (0.01s)
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/between_previous
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/between_next
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_includes_match_forward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_uses_previous_when_going_backward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_includes_match_backward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_advances_forward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_forward
+=== RUN   TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_previous
+--- PASS: TestFindNearestMatchUsesOrderedSelectionBounds (0.06s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/between_previous (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/between_next (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_includes_match_forward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_start_uses_previous_when_going_backward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_includes_match_backward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/caret_at_match_end_advances_forward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_forward (0.01s)
+    --- PASS: TestFindNearestMatchUsesOrderedSelectionBounds/reversed_selection_ignores_head_for_previous (0.01s)
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_next
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_next
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_previous
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_previous
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/next_wraps
+=== RUN   TestFindExactSelectionAdvancesInEitherDirectionAndWraps/previous_wraps
+--- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps (0.04s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_next (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_next (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/normal_previous (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/reversed_previous (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/next_wraps (0.01s)
+    --- PASS: TestFindExactSelectionAdvancesInEitherDirectionAndWraps/previous_wraps (0.01s)
+=== RUN   TestFindZeroWidthAndUTF16OffsetsProgress
+--- PASS: TestFindZeroWidthAndUTF16OffsetsProgress (0.01s)
+=== RUN   TestFindCacheReusesColdOffsetsAndTracksSourceVersion
+--- PASS: TestFindCacheReusesColdOffsetsAndTracksSourceVersion (0.01s)
+=== RUN   TestFindCacheRefusesPartialLimitResultAndKeepsOffsetsOnly
+--- PASS: TestFindCacheRefusesPartialLimitResultAndKeepsOffsetsOnly (0.01s)
+=== RUN   TestFindCacheNoResultAndSearchErrorClearCursor
+--- PASS: TestFindCacheNoResultAndSearchErrorClearCursor (0.01s)
+=== RUN   TestFindAbandonsResultsWhenActiveTabChangesDuringScan
+--- PASS: TestFindAbandonsResultsWhenActiveTabChangesDuringScan (0.01s)
+=== RUN   TestFindWarmCacheStillFlushesAndFailedFlushPreservesState
+--- PASS: TestFindWarmCacheStillFlushesAndFailedFlushPreservesState (0.01s)
+=== RUN   TestFindUsesVersionAfterSourceChangingRichFlush
+--- PASS: TestFindUsesVersionAfterSourceChangingRichFlush (0.01s)
+=== RUN   TestFindAcceptsNoResultAfterFlushChangesBufferIdentity
+--- PASS: TestFindAcceptsNoResultAfterFlushChangesBufferIdentity (0.01s)
+=== RUN   TestFindCacheLifecycleClearsOnCommitNotFailedTransitions
+--- PASS: TestFindCacheLifecycleClearsOnCommitNotFailedTransitions (0.01s)
+=== RUN   TestFindCacheExpiresOnNextFrameForQueryAndVersion
+--- PASS: TestFindCacheExpiresOnNextFrameForQueryAndVersion (0.01s)
+=== RUN   TestFindCacheDropsOnReloadAndPluginRematch
+--- PASS: TestFindCacheDropsOnReloadAndPluginRematch (0.01s)
+=== RUN   TestShutdownClearsFindCache
+--- PASS: TestShutdownClearsFindCache (0.01s)
+=== RUN   TestReplaceCurrentInvalidatesNavigationCacheAndFindsFreshText
+--- PASS: TestReplaceCurrentInvalidatesNavigationCacheAndFindsFreshText (0.01s)
+=== RUN   TestFindReadonlySourceReveal
+--- PASS: TestFindReadonlySourceReveal (0.01s)
+PASS
+ok  	levnote.local/native/app	2.213s
+EXIT_CODE=0

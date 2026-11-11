@@ -1,0 +1,1 @@
+$env:LEVNOTE_IMAGEVIEW_CAPTURE_DIR='F:\AIproject\LevNote\native\handoffs\native-image-view-evidence-20261110'; $env:LEVNOTE_IMAGEVIEW_CAPTURE_SUFFIX='review-fix'; native/scripts/go.ps1 -GoArguments @('test','./modules/imageview','-run','TestSyntheticTesterCaptures','-count=1')

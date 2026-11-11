@@ -1,0 +1,27 @@
+Independent review assignment — outline stage, 2026-11-08
+
+GLM is reactivated for READ-ONLY REVIEW ONLY. Do not resume any previous
+implementation ownership and do not edit product sources. Root still plans
+and accepts; Astra owns editor/views/docs, DeepSeek owns app integration.
+Do not spawn agents. Compact before 200K tokens.
+
+First review current handoffs/outline-contract.md against outline_stage_plan.txt
+and inspect the existing app/view lifecycle and format architecture. Identify
+specific likely correctness gaps in the proposed API: stale duplicate headings,
+UTF16 positions, Flush failure, source-only lightweight providers, readonly
+collapsed-node navigation, and bounded extraction/virtualization. Send concise
+actionable findings to root and record in handoffs/outline-review.md. Do not
+block the implementers on a broad redesign; propose smallest additive fix.
+
+Also perform a read-only factual audit of the native documentation checkpoint:
+native README/ARCHITECTURE/formats/API/VALIDATION/THIRD_PARTY_NOTICES plus root
+README/ROADMAP/CHANGELOG and ADR0063/index. Compare claims to actual source and
+handoffs/integration.md, resources.md, search.md and view-resources.md. Old
+historical evidence must not be presented as current; no copyright immunity,
+Tauri/native memory comparison, complete third-party format SDK claim, or real
+Windows IME verification without evidence. Report only material discrepancies.
+
+When implementation is published, root will explicitly assign a second review
+of the changed code and regressions. Until then do not run broad tests, builds,
+benchmarks or modify any files beyond your handoff. This is review ownership,
+not reinstatement of core/search, core/document, parser or documentation edits.

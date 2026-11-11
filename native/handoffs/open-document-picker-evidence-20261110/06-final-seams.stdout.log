@@ -1,0 +1,14 @@
+=== RUN   TestOpenDocumentsModalQueryComposition
+=== RUN   TestOpenDocumentsModalQueryComposition/commit
+=== RUN   TestOpenDocumentsModalQueryComposition/cancel
+--- PASS: TestOpenDocumentsModalQueryComposition (0.05s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/commit (0.03s)
+    --- PASS: TestOpenDocumentsModalQueryComposition/cancel (0.02s)
+=== RUN   TestOpenDocumentsMetadataUnicodeBoundsAndReuse
+--- PASS: TestOpenDocumentsMetadataUnicodeBoundsAndReuse (0.04s)
+=== RUN   TestOpenDocumentsHundredVirtualRowsAndQueryNavigation
+--- PASS: TestOpenDocumentsHundredVirtualRowsAndQueryNavigation (0.31s)
+=== RUN   TestOpenDocumentsMinimumWindowCapture
+--- PASS: TestOpenDocumentsMinimumWindowCapture (0.04s)
+PASS
+ok  	levnote.local/native/app	1.931s

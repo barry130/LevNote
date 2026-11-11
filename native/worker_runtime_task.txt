@@ -1,0 +1,26 @@
+Owner /root/astra_marker_view, user-approved zzzcoding/gpt-6-astra. Root plans
+and reviews only. No child delegation. Workspace F:\AIproject\LevNote.
+
+Root accepted marker exact release17E014EB6F61E671F6FCCA439719E8831B7591042A6F29EE5354960C120C0466.
+Finish its final product/handoff documentation FIRST and report; then runtime
+implementation is authorized under handoffs/markdown-worker-contract.md ACTIVE
+WITH STAGED OWNERSHIP. This controlling contract supersedes the proposal.
+
+Sole ownership: new core/engineruntime/** and new
+scripts/package-markdown-worker.ps1, own focused runtime tests/helpers/evidence.
+Do not edit protocol/worker/app/editor/parser/vendor/go-wrapper files. Fresh
+protocol GLM owns engineipc/worker; fresh app GLM is currently design-review
+only. Publish exact runtime APIs promptly to handoffs/markdown-worker-runtime.md
+and message peers/root. Source immutable WriterTo, exact-size send, one admitted
+operation, all concurrent Close callers join, fixed locked Windows bundle,
+WithHandle attach before sending, full cleanup before release. Read root's
+protocol review resolutions and directory-lock addition. Result.Engine is
+populated after verification even on later failures; no HTML on error.
+
+Focused runtime tests/vet and repository-built owned helper child launches are
+authorized; use exact owned process identity and unrelated sentinels. Actual
+streams/timing/exit evidence in fresh directories. No full-suite/release-package
+execution or resource matrix yet. Preserve current accepted exe and artifacts.
+You may implement the packaging script but running full release packaging waits
+for root focused gate. Missing bundle must not prevent ordinary editor startup.
+Go1.27.3 via native/scripts/go.ps1 only, no sandbox_permissions argument.

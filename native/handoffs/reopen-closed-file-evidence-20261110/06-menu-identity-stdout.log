@@ -1,0 +1,4 @@
+=== RUN   TestReopenClosedSuccessfulShortcutRepeatAndStaleMenuID
+--- PASS: TestReopenClosedSuccessfulShortcutRepeatAndStaleMenuID (0.06s)
+PASS
+ok  	levnote.local/native/app	1.648s

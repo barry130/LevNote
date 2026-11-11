@@ -1,0 +1,7 @@
+{
+  "ProcessId": 20652,
+  "Exited": true,
+  "GoExitCode": 1,
+  "ShellExitCode": null,
+  "Note": "Process handle was not retained across exec; Go exit saved; no shell exit claimed"
+}

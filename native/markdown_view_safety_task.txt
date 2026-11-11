@@ -1,0 +1,50 @@
+Markdown native view safety — root assignment to Astra
+
+GLM was interrupted at a tool boundary to ensure exclusive handoff.
+You now own modules/markdownview/** as well as existing editor/graph scope.
+GLM keeps formats/markdown parser/export and document/session/search, docs.
+Read plan.md, formats.md and current source. No other owners' code edits.
+Write native/handoffs/markdown-view.md, run focused test/vet when finished.
+
+Fix actual lifecycle behavior first, then correct obsolete test assertions.
+The two remaining test failures are not the full safety checklist:
+
+- Existing IME test expects replacing heading after double-click; observe
+  whether whole content was actually selected. Use explicit selectAll if the
+  test intends replacement, while separately testing true double-click entry.
+- RecoverDraft old test expects overwriting source. Required behavior is
+  Host.RecoverDraft into new unsaved copy, successful clear only; failure
+  keeps draft; source unchanged. Do not weaken to mere absence of errors.
+- Release currently drops drafts even after failed Flush, closes group before
+  unmarking; syncDraft mixes old doc.Raw block with updated prefix/suffix.
+  Preserve current baseline/range/version and buffer identity. Keep original
+  CRLF/syntax outside the block and preserve unrelated split/source edits.
+  Conflict must not write to another block. Foreign transaction ownership is
+  never stolen. Chinese/emoji multiline/delta edit + deletion regressions.
+- begin(new block) currently uses stale cached Block ranges while editing
+  changed preceding block lengths; revalidate/reparse/remap target before
+  clearing old draft. Undo/source-change while block editor open must not
+  be silently reapplied on save. Distinguish unchanged draft from user input.
+- Export reparses host Buffer but leaves stale draft bookkeeping. Active
+  block edit -> export -> more editing -> save must all preserve content.
+- Add paragraph/source/table actions cannot mutate around pending draft
+  without successful Flush. Failed draft must remain visible and recoverable.
+- Oversize Markdown parse currently returns zero blocks/warning. Show actual
+  parse-limit/source-mode guidance, never say document empty when not empty.
+  Avoid shaping huge unsupported/oversized text merely to display fallback.
+- Optional Outline contract exists but leave new features until safety passes.
+
+Input findings already sent to GLM:
+Tester.ClickAt does count double clicks. The nearest selectable RichText child
+becomes the pointer target; pressTextSelection returns before doubleClicks is
+recorded on parent. GLM has begun a block HandleInput implementation. Review
+actual source/current tests before deciding whether another fix is needed.
+Use actual input events in regression; direct begin() alone hides broken UI.
+
+App now retains released view pointers across source/tab switches, disposes
+only reconfigure/reload/close. Release clears parsed/layout caches but preserves
+lightweight scroll/read position and must leave conflicting draft alive if
+called directly; host normally blocks action after failed Flush.
+
+No parser edits: report exact API or parse behavior gaps to GLM and root.
+Current app snapshot/build acceptance is waiting for this checkpoint.

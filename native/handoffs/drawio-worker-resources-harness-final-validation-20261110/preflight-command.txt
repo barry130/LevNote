@@ -1,0 +1,3 @@
+$env:LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS = '1'
+$env:LEVNOTE_DRAWIO_WORKER_RESOURCES_HARNESS_OUTPUT = 'F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-harness-final-validation-20261110\preflight-output'
+& 'F:\AIproject\LevNote\native\handoffs\drawio-worker-resources-harness-final-validation-20261110\drawio-resources.test.exe' @('-test.run','^TestDrawioWorkerResourcesHarnessPreflight$','-test.count=1','-test.v')

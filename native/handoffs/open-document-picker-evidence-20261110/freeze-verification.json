@@ -1,0 +1,40 @@
+{
+  "RecordedUtc": "2026-11-10T12:15:58.9160546Z",
+  "Prior07Manifest": "07-source-after.json",
+  "FinalManifest": "source-frozen.json",
+  "SourceCount": 5,
+  "UnchangedFrom07Count": 4,
+  "OnlyChangedPath": "app/open_documents.go",
+  "Change": "Selected row path and badge use Theme.AccentText; unselected remain Theme.TextMuted",
+  "Reconstructed07RuntimeSha256": "7CB014CDF3365AE0AD62CAF5F2D11E5EC38824B48E1D5C8D2C760C1B77930339",
+  "ReconstructionMatches07": true,
+  "FinalCapture": "08-contrast-capture.go-result.json",
+  "Note": "07 behavior union preceded color-only correction;08 is the one scoped replacement capture after it. No08 pre-run manifest claimed.",
+  "Files": [
+    {
+      "Path": "app/open_documents.go",
+      "MatchesFrozen": true,
+      "UnchangedFrom07": false
+    },
+    {
+      "Path": "app/open_documents_test.go",
+      "MatchesFrozen": true,
+      "UnchangedFrom07": true
+    },
+    {
+      "Path": "app/app.go",
+      "MatchesFrozen": true,
+      "UnchangedFrom07": true
+    },
+    {
+      "Path": "app/view.go",
+      "MatchesFrozen": true,
+      "UnchangedFrom07": true
+    },
+    {
+      "Path": "app/workspace.go",
+      "MatchesFrozen": true,
+      "UnchangedFrom07": true
+    }
+  ]
+}

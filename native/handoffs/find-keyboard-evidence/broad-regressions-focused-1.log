@@ -1,0 +1,8 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindKeyboard|^TestReplaceCurrentRejectsIdentityChangingFlush$","-count=1","-v")
+FAIL	levnote.local/native/app [build failed]
+# levnote.local/native/app [levnote.local/native/app.test]
+app\find_keyboard_test.go:269:6: invalid operation: tab.Doc.Buffer.Snapshot() != before (struct containing []"levnote.local/native/core/text".piece cannot be compared)
+app\find_keyboard_test.go:293:52: invalid operation: tab.Doc.Buffer.Snapshot() != before (struct containing []"levnote.local/native/core/text".piece cannot be compared)
+app\find_keyboard_test.go:393:6: invalid operation: tab.Doc.Buffer.Snapshot() != before (struct containing []"levnote.local/native/core/text".piece cannot be compared)
+FAIL
+EXIT_CODE=1

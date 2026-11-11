@@ -1,0 +1,7 @@
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindAdjacentMatchesProgress$","-count=1")
+--- FAIL: TestFindAdjacentMatchesProgress (0.01s)
+    search_navigation_test.go:25: search selection = text.Range{Anchor:2, Head:4}, want ordered bounds [0,2)
+FAIL
+FAIL	levnote.local/native/app	1.908s
+FAIL
+EXIT_CODE=1

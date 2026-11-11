@@ -1,0 +1,14 @@
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/escape
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/same
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-other
+=== RUN   TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-same
+--- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus (0.10s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/escape (0.04s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/same (0.02s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-other (0.02s)
+    --- PASS: TestOpenDocumentsRealMarkdownDraftBarriersAndFocus/failed-same (0.02s)
+=== RUN   TestOpenDocumentsRealRichGrowthRefusalKeepsEditableDraft
+--- PASS: TestOpenDocumentsRealRichGrowthRefusalKeepsEditableDraft (0.02s)
+PASS
+ok  	levnote.local/native/app	2.129s

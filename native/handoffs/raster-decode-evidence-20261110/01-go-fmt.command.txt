@@ -1,0 +1,1 @@
+native/scripts/go.ps1 -GoArguments @('fmt','./formats/raster')

@@ -1,0 +1,6 @@
+# levnote.local/native/formats/raster [levnote.local/native/formats/raster.test]
+formats\raster\jpeg.go:106:10: cannot use parsedSOF (variable of struct type jpegSOF) as []byte value in assignment
+formats\raster\png.go:109:6: undefined: seenIDAT
+formats\raster\png.go:116:19: undefined: seenIDAT
+formats\raster\png.go:128:7: undefined: seenIDAT
+formats\raster\png.go:147:7: undefined: seenIDAT

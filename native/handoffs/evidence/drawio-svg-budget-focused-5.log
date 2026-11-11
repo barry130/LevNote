@@ -1,0 +1,24 @@
+=== RUN   TestSVGIsSelfContainedAndEscaped
+--- PASS: TestSVGIsSelfContainedAndEscaped (0.00s)
+=== RUN   TestSVGSuccessMatchesPreChangeOracle
+--- PASS: TestSVGSuccessMatchesPreChangeOracle (0.00s)
+=== RUN   TestSVGOutputLimitContract
+--- PASS: TestSVGOutputLimitContract (0.00s)
+=== RUN   TestSVGOutputLimitNormalization
+--- PASS: TestSVGOutputLimitNormalization (0.00s)
+=== RUN   TestSVGEscapingChunksPreserveEncodingXMLSemantics
+=== RUN   TestSVGEscapingChunksPreserveEncodingXMLSemantics/valid-boundaries
+=== RUN   TestSVGEscapingChunksPreserveEncodingXMLSemantics/invalid-and-controls
+--- PASS: TestSVGEscapingChunksPreserveEncodingXMLSemantics (0.00s)
+    --- PASS: TestSVGEscapingChunksPreserveEncodingXMLSemantics/valid-boundaries (0.00s)
+    --- PASS: TestSVGEscapingChunksPreserveEncodingXMLSemantics/invalid-and-controls (0.00s)
+=== RUN   TestSVGNewlineExpansionHonorsCapWithoutPartialOutput
+--- PASS: TestSVGNewlineExpansionHonorsCapWithoutPartialOutput (0.00s)
+=== RUN   TestSVGSelectedPageAndPageLookupPrecedence
+--- PASS: TestSVGSelectedPageAndPageLookupPrecedence (0.00s)
+PASS
+ok  	levnote.local/native/formats/drawio	0.706s
+=== RUN   TestDrawioSVGExportUsesSelectedPageWithDefaultBudget
+--- PASS: TestDrawioSVGExportUsesSelectedPageWithDefaultBudget (0.00s)
+PASS
+ok  	levnote.local/native/modules/graphview	1.344s

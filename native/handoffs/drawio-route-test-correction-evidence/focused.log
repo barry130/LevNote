@@ -1,0 +1,5 @@
+--- FAIL: TestDrawioRouteSameIDRefreshRejectsLateExport (0.26s)
+    drawio_route_test.go:378: late custom draw.io export passed a publication gate: dialogs=0 job=<nil> ready=true responseDrained=false cleared=true laneReleased=true
+FAIL
+FAIL	levnote.local/native/app	1.696s
+FAIL

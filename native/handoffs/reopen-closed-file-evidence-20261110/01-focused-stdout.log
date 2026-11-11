@@ -1,0 +1,124 @@
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf8.txt
+    reopen_closed_test.go:103: text="replacement\r\n" want="replacement\n"
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/bom.txt
+    reopen_closed_test.go:103: text="BOM\r\n" want="BOM\n"
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf16.txt
+    reopen_closed_test.go:103: text="hi\r\n" want="hi\n"
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/bytes.bin
+    reopen_closed_test.go:100: not adopted from fresh bytes: current=0x3ba84bd883c0 old=0x3ba84bb08d20 history=[] message=已按当前磁盘内容重新打开 bytes.bin
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/legacy.txt
+--- FAIL: TestReopenClosedReadsCurrentDiskAndPreservesBytes (0.10s)
+    --- FAIL: TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf8.txt (0.02s)
+    --- FAIL: TestReopenClosedReadsCurrentDiskAndPreservesBytes/bom.txt (0.02s)
+    --- FAIL: TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf16.txt (0.02s)
+    --- FAIL: TestReopenClosedReadsCurrentDiskAndPreservesBytes/bytes.bin (0.02s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/legacy.txt (0.02s)
+=== RUN   TestReopenClosedDoesNotRememberLegacyEncoding
+--- PASS: TestReopenClosedDoesNotRememberLegacyEncoding (0.03s)
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority/1
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority/2
+--- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority (0.05s)
+    --- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority/1 (0.03s)
+    --- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority/2 (0.01s)
+=== RUN   TestReopenClosedFailedCloseNeverRecords
+=== RUN   TestReopenClosedFailedCloseNeverRecords/cancel
+=== RUN   TestReopenClosedFailedCloseNeverRecords/flush
+=== RUN   TestReopenClosedFailedCloseNeverRecords/save
+=== RUN   TestReopenClosedFailedCloseNeverRecords/persistence
+=== RUN   TestReopenClosedFailedCloseNeverRecords/slot-reentry
+--- PASS: TestReopenClosedFailedCloseNeverRecords (0.05s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/cancel (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/flush (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/save (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/persistence (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/slot-reentry (0.01s)
+=== RUN   TestReopenClosedBoundDedupAndShutdownClearBacking
+--- PASS: TestReopenClosedBoundDedupAndShutdownClearBacking (0.18s)
+=== RUN   TestReopenClosedUnusualPathsAndBoundedLabels
+--- PASS: TestReopenClosedUnusualPathsAndBoundedLabels (0.04s)
+=== RUN   TestReopenClosedMissingTopRetainedMenuOpensOlder
+--- PASS: TestReopenClosedMissingTopRetainedMenuOpensOlder (0.04s)
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition/false
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition/true
+--- PASS: TestReopenClosedSyntheticSourceAndRichComposition (0.05s)
+    --- PASS: TestReopenClosedSyntheticSourceAndRichComposition/false (0.03s)
+    --- PASS: TestReopenClosedSyntheticSourceAndRichComposition/true (0.03s)
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/query
+    reopen_closed_test.go:380: menu/key lost utility preedit: focused=false caret={0 0 0 0}/{277 101 1 16.510254} message=输入法正在组合文本；请先完成组合后再重新打开文件
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/replacement
+    reopen_closed_test.go:380: menu/key lost utility preedit: focused=false caret={0 0 0 0}/{277 176.02051 1 16.510254} message=输入法正在组合文本；请先完成组合后再重新打开文件
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/goto
+    reopen_closed_test.go:380: menu/key lost utility preedit: focused=false caret={0 0 0 0}/{271.24707 101 1 16.510254} message=输入法正在组合文本；请先完成组合后再重新打开文件
+--- FAIL: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus (0.06s)
+    --- FAIL: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/query (0.02s)
+    --- FAIL: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/replacement (0.02s)
+    --- FAIL: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/goto (0.02s)
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/newer
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/reclose
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/evict
+--- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction (0.15s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/newer (0.02s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/reclose (0.02s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/evict (0.10s)
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/false
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/true
+--- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal (0.05s)
+    --- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/false (0.02s)
+    --- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/true (0.02s)
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/text
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/existing
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/png
+--- PASS: TestReopenClosedSynchronousRecoveryDuringFlush (0.07s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/text (0.02s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/existing (0.02s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/png (0.02s)
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/modal
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/restoring
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/query
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/replacement
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/goto
+--- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit (0.11s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/modal (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/restoring (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/query (0.03s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/replacement (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/goto (0.02s)
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/lookup-timeout
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/adoption-timeout
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/shutdown
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/window-close
+--- FAIL: TestReopenClosedTimeoutShutdownAndLateCallbacks (0.18s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/lookup-timeout (0.07s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/adoption-timeout (0.07s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/shutdown (0.02s)
+    --- FAIL: TestReopenClosedTimeoutShutdownAndLateCallbacks/window-close (0.02s)
+panic: close of closed channel [recovered, repanicked]
+
+goroutine 242 [running]:
+testing.tRunner.func1.2({0x7ff743fa2a88, 0x7ff743a0b080})
+	F:/AIproject/LevNote/native/tools/go/src/testing/testing.go:2125 +0x239
+testing.tRunner.func1()
+	F:/AIproject/LevNote/native/tools/go/src/testing/testing.go:2128 +0x329
+panic({0x7ff743fa2a88?, 0x7ff743a0b080?})
+	F:/AIproject/LevNote/native/tools/go/src/runtime/panic.go:859 +0x125
+levnote.local/native/app.(*App).updateWait.func1()
+	F:/AIproject/LevNote/native/app/app.go:318 +0xef
+levnote.local/native/app.(*App).update.func1()
+	F:/AIproject/LevNote/native/app/app.go:290 +0x23
+levnote.local/native/app.TestReopenClosedTimeoutShutdownAndLateCallbacks.func1(0x3ba84b976400)
+	F:/AIproject/LevNote/native/app/reopen_closed_test.go:615 +0x36f
+testing.tRunner(0x3ba84b976400, 0x3ba84bab43f0)
+	F:/AIproject/LevNote/native/tools/go/src/testing/testing.go:2195 +0xc3
+created by testing.(*T).Run in goroutine 133
+	F:/AIproject/LevNote/native/tools/go/src/testing/testing.go:2260 +0x4b4
+FAIL	levnote.local/native/app	2.619s
+FAIL

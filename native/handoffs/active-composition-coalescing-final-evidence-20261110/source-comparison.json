@@ -1,0 +1,27 @@
+{
+  "VerifiedUtc": "2026-11-10T11:34:24.3642482Z",
+  "Count": 4,
+  "AllUnchanged": true,
+  "Files": [
+    {
+      "Path": "core/text/buffer.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "ui/editor/editor.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "core/text/composition_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    },
+    {
+      "Path": "ui/editor/composition_test.go",
+      "LengthUnchanged": true,
+      "Sha256Unchanged": true
+    }
+  ]
+}

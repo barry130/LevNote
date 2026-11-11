@@ -1,0 +1,46 @@
+[
+  {
+    "Path": "core/text/buffer.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "core/text/growth_test.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "core/document/document.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "core/document/growth_test.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "core/search/find.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "core/search/growth_test.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "ui/editor/editor.go",
+    "UnchangedSince01": false
+  },
+  {
+    "Path": "ui/editor/growth_test.go",
+    "UnchangedSince01": false
+  },
+  {
+    "Path": "modules/markdownview/growth_test.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "modules/graphview/growth_test.go",
+    "UnchangedSince01": true
+  },
+  {
+    "Path": "app/document_growth_test.go",
+    "UnchangedSince01": true
+  }
+]

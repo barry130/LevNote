@@ -1,0 +1,46 @@
+{
+  "FrozenAtUtc": "2026-11-10T07:11:58.8702505+00:00",
+  "Files": [
+    {
+      "Path": "native/modules/markdownview/table_actions.go",
+      "Bytes": 13048,
+      "SHA256": "1CFE1B0C2C876B39FE262ACF354B63162B36FBBCFBB0E2406E94CBE1BB9AD141"
+    },
+    {
+      "Path": "native/modules/markdownview/table_rows.go",
+      "Bytes": 2311,
+      "SHA256": "2B59DDB8B16D607E1E535F20069DB2B09925995E55DEFCC1BDBBAF1AABEAC345"
+    },
+    {
+      "Path": "native/modules/markdownview/table_alignment.go",
+      "Bytes": 2768,
+      "SHA256": "418356BD18CAC2FFFEB910036322FA3097BB5D49658CBE4FAE78397707D6C614"
+    },
+    {
+      "Path": "native/modules/markdownview/table_columns.go",
+      "Bytes": 2353,
+      "SHA256": "8E39C1CD4D63BD7BF649BF4D20E5D659E43F828CF8242DC1336F8D12FAFF74DF"
+    },
+    {
+      "Path": "native/modules/markdownview/table_columns_test.go",
+      "Bytes": 23456,
+      "SHA256": "165FC4221EB49735091FDF4B823A9CE371B56B8052EE13FC75A28E59C3533888"
+    },
+    {
+      "Path": "native/modules/markdownview/table_alignment_test.go",
+      "Bytes": 22344,
+      "SHA256": "851A47223DDFB553D9CC8461A0BE218E980BD592EDB5CCAA8CF4397B544DE7A4"
+    },
+    {
+      "Path": "native/app/markdown_columns_app_test.go",
+      "Bytes": 4096,
+      "SHA256": "2F414217DF18DEBE1D345EEDA81D608D1FBDE2DAC99739AEFB0392B278EF135A"
+    },
+    {
+      "Path": "native/app/markdown_alignment_app_test.go",
+      "Bytes": 19927,
+      "SHA256": "AE0CFF94B3953ACA418410865F1597A784D1FE8DB93748039DBBF78EFFBB76DD"
+    }
+  ],
+  "Count": 8
+}

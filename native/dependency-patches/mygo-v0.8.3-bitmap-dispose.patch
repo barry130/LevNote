@@ -1,0 +1,1327 @@
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/d3d11/d3d11.go b/vendor/github.com/egoist/mygo/internal/gpu/d3d11/d3d11.go
+--- a/vendor/github.com/egoist/mygo/internal/gpu/d3d11/d3d11.go
++++ b/vendor/github.com/egoist/mygo/internal/gpu/d3d11/d3d11.go
+@@ -260,6 +260,7 @@
+ }
+ 
+ type texture struct {
++	image     weak.Pointer[scene.Image]
+ 	tex, srv  uintptr
+ 	rtv       uintptr // of a texture drawn into
+ 	w, h      int
+@@ -341,6 +342,7 @@
+ 
+ 	mask, color texture
+ 	images      map[uint64]*texture
++	retirement  gpu.ImageRetirement
+ 	frame       uint64
+ 	swept       uint64 // the frame of the last sweep
+ 	// canvases are the textures canvases are drawn into, and drawing the
+@@ -807,6 +809,8 @@
+ 	r.lat.release()
+ 	r.cost.release()
+ 	r.b.Release()
++	r.diff.Release()
++	r.pipelines, r.part, r.held = gpu.Pipelines{}, gpu.Part{}, false
+ 	if settling[r.hwnd] {
+ 		delete(settling, r.hwnd)
+ 		procKillTimer.Call(r.hwnd, settleTimer)
+@@ -905,6 +909,9 @@
+ // imageView returns the texture view of an image, uploading it when new or
+ // changed.
+ func (r *Renderer) imageView(img *scene.Image) uintptr {
++	if img.Retired() {
++		return 0
++	}
+ 	if img.Scene != nil {
+ 		// A canvas, drawn before the scene showing it.
+ 		if c := r.canvases[img.ID()]; c != nil {
+@@ -918,7 +925,7 @@
+ 		if pix == nil {
+ 			return 0
+ 		}
+-		t = &texture{}
++		t = &texture{image: weak.Make(img)}
+ 		if err := r.newTexture(t, img.W, img.H, formatR8G8B8A8Unorm, pix, 4); err != nil {
+ 			return 0
+ 		}
+@@ -1017,6 +1024,7 @@
+ // changed since the last frame when the swap chain shows that one, and
+ // reports whether it drew: a frame that changed nothing draws nothing.
+ func (r *Renderer) drawFrame(s *scene.Scene) (bool, error) {
++	r.retireImages()
+ 	r.frame++
+ 	r.used = 0
+ 	if err := r.resize(s.Width, s.Height); err != nil {
+@@ -1136,6 +1144,49 @@
+ 	free(&t.srv)
+ 	free(&t.tex)
+ 	t.b.Release()
++}
++
++// retireImages runs before damage can skip a frame. D3D context bindings
++// retain COM objects too, so unbind them before releasing cache ownership.
++func (r *Renderer) retireImages() bool {
++	return r.retirement.Check(func() {
++		if r.ctx != 0 {
++			var empty [10]uintptr
++			call(r.ctx, ctxPSSetShaderResources, 0, uintptr(len(empty)), uintptr(unsafe.Pointer(&empty[0])))
++			call(r.ctx, ctxOMSetRenderTargets, 0, 0, 0)
++		}
++		r.drawing = 0
++	}, func() {
++		drop := func(key uint64) {
++			if t := r.images[key]; t != nil {
++				freeImageTexture(t)
++				delete(r.images, key)
++			}
++		}
++		r.b.ForgetImages(drop)
++		for key, t := range r.canvases {
++			t.b.ForgetImages(drop)
++			freeCanvas(t)
++			delete(r.canvases, key)
++		}
++		gpu.SweepRetired(r.images, func(t *texture) weak.Pointer[scene.Image] { return t.image }, freeImageTexture)
++		for i := range r.blurred {
++			freeImageTexture(&r.blurred[i])
++		}
++		r.blurred, r.used = nil, 0
++		for _, t := range []*texture{&r.grab, &r.backdrop[0], &r.backdrop[1], &r.blurTmp[0], &r.blurTmp[1]} {
++			freeImageTexture(t)
++		}
++		r.diff.Release()
++		r.pipelines, r.part, r.held = gpu.Pipelines{}, gpu.Part{}, false
++	})
++}
++
++func freeImageTexture(t *texture) {
++	free(&t.rtv)
++	free(&t.srv)
++	free(&t.tex)
++	*t = texture{}
+ }
+ 
+ // drawScene draws s into the render target rtv with b.
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/d3d11/retirement_test.go b/vendor/github.com/egoist/mygo/internal/gpu/d3d11/retirement_test.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/gpu/d3d11/retirement_test.go
+@@ -0,0 +1,83 @@
++//go:build windows
++
++package d3d11
++
++import (
++	"runtime"
++	"syscall"
++	"testing"
++	"unsafe"
++	"weak"
++
++	"github.com/egoist/mygo/internal/scene"
++)
++
++func TestRetirementUnbindsBeforeCOMRelease(t *testing.T) {
++	var order []string
++	var table [112]uintptr
++	table[release] = syscall.NewCallback(func(uintptr) uintptr { order = append(order, "release"); return 0 })
++	table[ctxPSSetShaderResources] = syscall.NewCallback(func(_, start, count, views uintptr) uintptr {
++		if start != 0 || count != 10 {
++			t.Error("wrong SRV unbind range")
++		}
++		for _, v := range unsafe.Slice((*uintptr)(ptr(views)), 10) {
++			if v != 0 {
++				t.Error("bound SRV survived")
++			}
++		}
++		order = append(order, "srvs")
++		return 0
++	})
++	table[ctxOMSetRenderTargets] = syscall.NewCallback(func(_, count, _, _ uintptr) uintptr {
++		if count != 0 {
++			t.Error("render target stayed bound")
++		}
++		order = append(order, "targets")
++		return 0
++	})
++	table[devCreateTexture2D] = syscall.NewCallback(func(_, _, _, _ uintptr) uintptr { return 0x80004005 })
++	obj := uintptr(unsafe.Pointer(&table[0]))
++	handle := uintptr(unsafe.Pointer(&obj))
++	dead, live := scene.NewImageRGBA(1, 1, nil), scene.NewImageRGBA(1, 1, nil)
++	r := Renderer{ctx: handle, ctx1: handle, device: handle, swapChain: handle, w: 1, h: 1, bgSet: true, held: true, images: map[uint64]*texture{
++		dead.ID(): {tex: handle, srv: handle, image: weak.Make(dead)},
++		live.ID(): {tex: handle, srv: handle, image: weak.Make(live)},
++	}, canvases: map[uint64]*canvasTexture{99: {texture: texture{tex: handle, srv: handle, rtv: handle}}}, grab: texture{tex: handle, srv: handle}, mask: texture{tex: handle}, stops: texture{tex: handle}}
++	r.retirement.Check(nil, func() {})
++	s := scene.Scene{Width: 1, Height: 1, MaskAtlas: &scene.Atlas{W: 1, H: 1, BPP: 1, Pix: []byte{255}}}
++	r.diff.Diff(&s)
++	r.diff.Remember(&s)
++	dead.Retire()
++	if r.imageView(dead) != 0 {
++		t.Fatal("cached retired image returned")
++	}
++	// Same remembered scene would return unchanged before touching the fake
++	// device. Retirement must run first and force the next upload attempt,
++	// whose intentional failure stops before any real drawing API is needed.
++	if drew, err := r.drawFrame(&s); drew || err == nil {
++		t.Fatal("retirement was skipped by no-damage return")
++	}
++	if r.retireImages() {
++		t.Fatal("repeated checkpoint")
++	}
++	if len(order) != 10 || order[0] != "srvs" || order[1] != "targets" {
++		t.Fatalf("unbind/release order %v", order)
++	}
++	if len(r.images) != 1 || r.images[live.ID()] == nil || len(r.canvases) != 0 || r.grab.tex != 0 || r.held || r.color.tex != 0 || r.stops.tex != handle {
++		t.Fatal("wrong cache invalidation")
++	}
++	if _, known := r.diff.Diff(&s); known {
++		t.Fatal("retirement could take no-damage return")
++	}
++	// No native renderer/device exists: final Release only frees fake objects.
++	r.ctx = 0
++	r.Release()
++	n := len(order)
++	r.Release()
++	if len(order) != n {
++		t.Fatal("double release after retirement/teardown")
++	}
++	runtime.KeepAlive(obj)
++	runtime.KeepAlive(table)
++	runtime.KeepAlive(live)
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/gl/gl.go b/vendor/github.com/egoist/mygo/internal/gpu/gl/gl.go
+--- a/vendor/github.com/egoist/mygo/internal/gpu/gl/gl.go
++++ b/vendor/github.com/egoist/mygo/internal/gpu/gl/gl.go
+@@ -95,6 +95,7 @@
+ )
+ 
+ type texture struct {
++	image     weak.Pointer[scene.Image]
+ 	tex       uint32
+ 	w, h      int
+ 	gen, ver  uint64
+@@ -121,16 +122,17 @@
+ 	// shader (OpenGL 3.3, or GLES with EXT_blend_func_extended).
+ 	dual bool
+ 	// software tells that the context draws on the CPU (Software).
+-	software bool
+-	maxSize  int
+-	program  uint32
+-	vao, buf uint32
+-	uSize    int32
+-	mask     texture
+-	color    texture
+-	empty    uint32 // a texture to bind where there is none
+-	images   map[uint64]*texture
+-	frame    uint64
++	software   bool
++	maxSize    int
++	program    uint32
++	vao, buf   uint32
++	uSize      int32
++	mask       texture
++	color      texture
++	empty      uint32 // a texture to bind where there is none
++	images     map[uint64]*texture
++	retirement gpu.ImageRetirement
++	frame      uint64
+ 	// canvases are the textures canvases are drawn into, and canvasTex
+ 	// the names of those textures.
+ 	canvases  map[uint64]*canvasTexture
+@@ -528,6 +530,9 @@
+ }
+ 
+ func (r *Renderer) imageTexture(img *scene.Image) uintptr {
++	if img.Retired() {
++		return 0
++	}
+ 	if img.W > r.maxSize || img.H > r.maxSize {
+ 		return 0
+ 	}
+@@ -544,7 +549,7 @@
+ 		if pix == nil {
+ 			return 0
+ 		}
+-		t = &texture{tex: newTexture(glRGBA8, glRGBA, img.W, img.H, pix, img.W*4), w: img.W, h: img.H, ver: img.Version()}
++		t = &texture{tex: newTexture(glRGBA8, glRGBA, img.W, img.H, pix, img.W*4), w: img.W, h: img.H, ver: img.Version(), image: weak.Make(img)}
+ 		r.images[img.ID()] = t
+ 		img.Uploaded()
+ 	} else if t.w != img.W || t.h != img.H {
+@@ -593,6 +598,7 @@
+ }
+ 
+ func (r *Renderer) draw(s *scene.Scene) error {
++	r.retireImages()
+ 	r.frame++
+ 	r.used = 0
+ 	glActiveTexture(glTexture0)
+@@ -1157,6 +1163,7 @@
+ 
+ // forget drops the objects of a context that is gone.
+ func (r *Renderer) forget() {
++	r.b.ForgetImages(func(uint64) {})
+ 	r.program, r.vao, r.buf, r.empty, r.ubo = 0, 0, 0, 0, 0
+ 	r.down, r.blur, r.passVAO = passProgram{}, passProgram{}, 0
+ 	clear(r.effects)
+@@ -1170,6 +1177,52 @@
+ 	clear(r.canvasTex)
+ 	r.stops, r.stopsTex, r.blurred, r.used, r.blurTmp = texture{}, 0, nil, 0, [2]target{}
+ 	r.held = false
++	r.diff.Release()
++	r.pipelines, r.part = gpu.Pipelines{}, gpu.Part{}
++}
++
++// retireImages is called only after Render has selected/initialized the owning
++// context. Never delete an old context's names in a different context.
++func (r *Renderer) retireImages() bool {
++	if currentContext() != r.context {
++		return false
++	}
++	return r.retirement.Check(nil, func() {
++		drop := func(key uint64) {
++			if t := r.images[key]; t != nil {
++				glDeleteTextures(1, &t.tex)
++				delete(r.images, key)
++			}
++		}
++		r.b.ForgetImages(drop)
++		for key, t := range r.canvases {
++			t.b.ForgetImages(drop)
++			r.deleteCanvas(t)
++			delete(r.canvases, key)
++		}
++		gpu.SweepRetired(r.images, func(t *texture) weak.Pointer[scene.Image] { return t.image }, func(t *texture) { glDeleteTextures(1, &t.tex) })
++		for i := range r.blurred {
++			r.blurred[i].release()
++		}
++		r.blurred, r.used = nil, 0
++		for i := range r.blurTmp {
++			r.blurTmp[i].release()
++		}
++		for _, t := range []*texture{&r.grab, &r.backdrop[0], &r.backdrop[1]} {
++			if t.tex != 0 {
++				glDeleteTextures(1, &t.tex)
++			}
++			*t = texture{}
++		}
++		for i := range r.backdropFB {
++			if r.backdropFB[i] != 0 {
++				glDeleteFramebuffers(1, &r.backdropFB[i])
++				r.backdropFB[i] = 0
++			}
++		}
++		r.diff.Release()
++		r.pipelines, r.part, r.held = gpu.Pipelines{}, gpu.Part{}, false
++	})
+ }
+ 
+ // Software reports whether the context draws on the CPU, as Mesa's
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/gl/retirement_test.go b/vendor/github.com/egoist/mygo/internal/gpu/gl/retirement_test.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/gpu/gl/retirement_test.go
+@@ -0,0 +1,42 @@
++//go:build linux && (amd64 || arm64)
++
++package gl
++
++import (
++	"runtime"
++	"testing"
++	"weak"
++
++	"github.com/egoist/mygo/internal/scene"
++)
++
++func TestRetirementOnlyDeletesOwningContext(t *testing.T) {
++	oldContext, oldDelete, oldFB := currentGDKContext, glDeleteTextures, glDeleteFramebuffers
++	defer func() { currentGDKContext, glDeleteTextures, glDeleteFramebuffers = oldContext, oldDelete, oldFB }()
++	current := uintptr(2)
++	currentGDKContext = func() uintptr { return current }
++	var deleted []uint32
++	glDeleteTextures = func(_ int32, p *uint32) { deleted = append(deleted, *p) }
++	glDeleteFramebuffers = func(_ int32, p *uint32) { deleted = append(deleted, *p) }
++	img, live := scene.NewImageRGBA(1, 1, nil), scene.NewImageRGBA(1, 1, nil)
++	r := Renderer{context: 1, held: true, images: map[uint64]*texture{img.ID(): {tex: 7, image: weak.Make(img)}, live.ID(): {tex: 8, image: weak.Make(live)}},
++		canvases: map[uint64]*canvasTexture{99: {texture: texture{tex: 9}, fb: 10}}, canvasTex: map[uint32]bool{9: true}, mask: texture{tex: 11}, stops: texture{tex: 12}, grab: texture{tex: 13}}
++	r.retirement.Check(nil, func() {})
++	img.Retire()
++	if r.retireImages() || len(deleted) != 0 {
++		t.Fatal("deleted on wrong context")
++	}
++	current = 1
++	if !r.retireImages() || r.retireImages() || len(deleted) != 4 || len(r.images) != 1 || len(r.canvases) != 0 || len(r.canvasTex) != 0 || r.held || r.mask.tex != 11 || r.stops.tex != 12 {
++		t.Fatal("incorrect retirement")
++	}
++	if r.imageTexture(img) != 0 {
++		t.Fatal("retired cached hit")
++	}
++	current = 2
++	r.Release()
++	if len(deleted) != 4 || len(r.images) != 0 {
++		t.Fatal("wrong-context teardown deleted handles")
++	}
++	runtime.KeepAlive(live)
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/gpu.go b/vendor/github.com/egoist/mygo/internal/gpu/gpu.go
+--- a/vendor/github.com/egoist/mygo/internal/gpu/gpu.go
++++ b/vendor/github.com/egoist/mygo/internal/gpu/gpu.go
+@@ -601,7 +601,7 @@
+ 			}
+ 		case scene.OpImage:
+ 			img := op.Image
+-			if img == nil || op.Rect.Empty() || img.W == 0 || img.H == 0 {
++			if img.Retired() || op.Rect.Empty() || img.W == 0 || img.H == 0 {
+ 				continue
+ 			}
+ 			src := op.Src
+@@ -1093,7 +1093,7 @@
+ 	if fx.Effect.Shader != nil {
+ 		batch.Shader, batch.Uniforms = fx, b.uniformsOf(fx)
+ 		for i, img := range fx.Images {
+-			if img != nil && img.W > 0 && img.H > 0 && b.imageTexture != nil {
++			if !img.Retired() && img.W > 0 && img.H > 0 && b.imageTexture != nil {
+ 				batch.Textures[i] = b.imageTexture(img)
+ 			}
+ 		}
+@@ -1124,7 +1124,7 @@
+ 	}
+ 	batch := Batch{Start: len(b.Instances), Scissor: cur.scissor, Effect: fx.Effect, Shader: fx, Uniforms: b.uniformsOf(fx)}
+ 	for i, img := range fx.Images {
+-		if img != nil && img.W > 0 && img.H > 0 && b.imageTexture != nil {
++		if !img.Retired() && img.W > 0 && img.H > 0 && b.imageTexture != nil {
+ 			batch.Textures[i] = b.imageTexture(img)
+ 		}
+ 	}
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/metal/metal.go b/vendor/github.com/egoist/mygo/internal/gpu/metal/metal.go
+--- a/vendor/github.com/egoist/mygo/internal/gpu/metal/metal.go
++++ b/vendor/github.com/egoist/mygo/internal/gpu/metal/metal.go
+@@ -341,6 +341,7 @@
+ }
+ 
+ type texture struct {
++	image     weak.Pointer[scene.Image]
+ 	tex       id
+ 	w, h      int
+ 	gen, ver  uint64
+@@ -445,10 +446,11 @@
+ 	fetched func()
+ 	wake    func()
+ 
+-	mask   texture
+-	color  texture
+-	empty  id // a texture to bind where there is none
+-	images map[uint64]*texture
++	mask       texture
++	color      texture
++	empty      id // a texture to bind where there is none
++	images     map[uint64]*texture
++	retirement gpu.ImageRetirement
+ 	// canvases are the textures canvases are drawn into.
+ 	canvases map[uint64]*canvasTexture
+ 	// blurred are the textures of the images the frame draws blurred
+@@ -960,6 +962,9 @@
+ // imageTexture returns the texture of an image, uploading it when new or
+ // changed.
+ func (r *Renderer) imageTexture(img *scene.Image) uintptr {
++	if img.Retired() {
++		return 0
++	}
+ 	if img.Scene != nil {
+ 		// A canvas, drawn before the scene showing it.
+ 		if c := r.canvases[img.ID()]; c != nil {
+@@ -977,7 +982,7 @@
+ 		if tex == 0 {
+ 			return 0
+ 		}
+-		t = &texture{tex: tex, w: img.W, h: img.H, ver: img.Version()}
++		t = &texture{tex: tex, w: img.W, h: img.H, ver: img.Version(), image: weak.Make(img)}
+ 		r.images[img.ID()] = t
+ 		img.Uploaded()
+ 	} else if t.w != img.W || t.h != img.H {
+@@ -1054,6 +1059,7 @@
+ // prepare starts the command buffer of a frame of s, with its canvases,
+ // and builds the frame (build), returning the scene built.
+ func (r *Renderer) prepare(s *scene.Scene) (cb id, built *scene.Scene, err error) {
++	r.retireImages()
+ 	if err := r.initGPU(); err != nil {
+ 		return 0, nil, err
+ 	}
+@@ -1610,6 +1616,7 @@
+ }
+ 
+ func (r *Renderer) render(s *scene.Scene) error {
++	r.retireImages()
+ 	if r.err != nil {
+ 		return r.err
+ 	}
+@@ -1812,6 +1819,50 @@
+ 	r.diff.Invalidate()
+ }
+ 
++// retireImages drops unencoded pending batches before freeing their handles.
++// Already encoded work is committed/tracked by dropPending; ordinary Metal
++// command buffers retain its resources until completion.
++func (r *Renderer) retireImages() bool {
++	changed := r.retirement.Check(r.discardPending, func() {
++		drop := func(key uint64) {
++			if t := r.images[key]; t != nil {
++				release(&t.tex)
++				delete(r.images, key)
++			}
++		}
++		r.b.ForgetImages(drop)
++		r.drawState.pipes = nil
++		for key, t := range r.canvases {
++			t.b.ForgetImages(drop)
++			release(&t.tex)
++			t.drawState.release()
++			delete(r.canvases, key)
++		}
++		gpu.SweepRetired(r.images, func(t *texture) weak.Pointer[scene.Image] { return t.image }, func(t *texture) { release(&t.tex) })
++		for i := range r.blurred {
++			release(&r.blurred[i].tex)
++		}
++		r.blurred, r.used = nil, 0
++		for i := range r.blurTmp {
++			release(&r.blurTmp[i].tex)
++			r.blurTmp[i] = texture{}
++		}
++		for i := range r.formats {
++			for j := range r.formats[i].backdrop {
++				release(&r.formats[i].backdrop[j].tex)
++				r.formats[i].backdrop[j] = texture{}
++			}
++		}
++		r.diff.Release()
++		r.ages.Reset()
++		r.pipelines, r.part = gpu.Pipelines{}, gpu.Part{}
++	})
++	if changed {
++		r.wakeContent()
++	}
++	return changed
++}
++
+ // fit sizes the layer and its drawables for frames of w×h pixels at
+ // scale, and as its view, and reports whether they changed.
+ func (r *Renderer) fit(w, h int, scale float64) (changed bool) {
+@@ -1964,6 +2015,8 @@
+ 	pool(r.dropPending)
+ 	r.pre.stop()
+ 	r.b.Release()
++	r.diff.Release()
++	r.pipelines, r.part = gpu.Pipelines{}, gpu.Part{}
+ 	if r.trimTimer != 0 {
+ 		purego.SyscallN(cfRunLoopTimerInvalidate, r.trimTimer)
+ 		purego.SyscallN(cfRelease, r.trimTimer)
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/metal/present.go b/vendor/github.com/egoist/mygo/internal/gpu/metal/present.go
+--- a/vendor/github.com/egoist/mygo/internal/gpu/metal/present.go
++++ b/vendor/github.com/egoist/mygo/internal/gpu/metal/present.go
+@@ -221,6 +221,10 @@
+ // when called before the presenter has it, and presents it, then has the
+ // presenter fetch the next frame's drawable if prefetch.
+ func (r *Renderer) finishPending(prefetch bool) error {
++	// Check before extracting pending: its batches can name retired textures.
++	if r.retireImages() || r.pending.cb == 0 {
++		return nil
++	}
+ 	p := r.pending
+ 	r.pending = pendingFrame{}
+ 	defer r.wakeContent()
+@@ -267,12 +271,21 @@
+ 	if r.pending.cb == 0 {
+ 		return
+ 	}
++	r.discardPending()
++	r.wakeContent()
++}
++
++// discardPending relinquishes batches without waking reentrant content until
++// the caller has finished releasing/invalidation (bitmap retirement).
++func (r *Renderer) discardPending() {
++	if r.pending.cb == 0 {
++		return
++	}
+ 	r.forgetFrames()
+ 	send(r.pending.cb, "commit")
+ 	r.track(r.pending.cb)
+ 	release(&r.pending.cb)
+ 	r.pending = pendingFrame{}
+-	r.wakeContent()
+ }
+ 
+ // wakeContent runs what Ready was given while a frame was pending.
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/metal/retirement_test.go b/vendor/github.com/egoist/mygo/internal/gpu/metal/retirement_test.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/gpu/metal/retirement_test.go
+@@ -0,0 +1,44 @@
++//go:build darwin
++
++package metal
++
++import (
++	"runtime"
++	"testing"
++	"weak"
++
++	"github.com/ebitengine/purego"
++	"github.com/ebitengine/purego/objc"
++	"github.com/egoist/mygo/internal/scene"
++)
++
++func TestRetirementDropsPendingBeforeRelease(t *testing.T) {
++	oldSend, oldSelectors := msgSend, selectors
++	defer func() { msgSend, selectors = oldSend, oldSelectors }()
++	selectors = map[string]objc.SEL{"commit": 1, "retain": 2, "release": 3}
++	var order []uintptr
++	msgSend = purego.NewCallback(func(obj, selector uintptr) uintptr { order = append(order, selector); return obj })
++	img := scene.NewImageRGBA(1, 1, nil)
++	r := Renderer{pending: pendingFrame{cb: 101}, images: map[uint64]*texture{img.ID(): {tex: 102, image: weak.Make(img)}}}
++	r.retirement.Check(nil, func() {})
++	woken := 0
++	r.wake = func() {
++		woken++
++		if len(r.images) != 0 || r.pending.cb != 0 {
++			t.Error("woke content before completing purge")
++		}
++	}
++	img.Retire()
++	if err := r.finishPending(false); err != nil {
++		t.Fatal(err)
++	}
++	if len(order) != 4 || order[0] != 1 || order[1] != 2 || order[2] != 3 || order[3] != 3 || r.pending.cb != 0 || r.inflight[0] != 101 || len(r.images) != 0 || woken != 1 {
++		t.Fatalf("pending/cache order: %v", order)
++	}
++	if r.imageTexture(img) != 0 || r.retireImages() {
++		t.Fatal("retired texture revived")
++	}
++	// Fake encoded buffer retains its own resource ownership until completion.
++	release(&r.inflight[0])
++	runtime.KeepAlive(img)
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/retirement.go b/vendor/github.com/egoist/mygo/internal/gpu/retirement.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/gpu/retirement.go
+@@ -0,0 +1,54 @@
++package gpu
++
++import (
++	"weak"
++
++	"github.com/egoist/mygo/internal/scene"
++)
++
++// ImageRetirement is one renderer's cursor, not a globally consumed event.
++// Check runs before an unchanged-frame return. before relinquishes pending
++// batches/bindings before purge frees the handles those batches reference.
++type ImageRetirement struct{ epoch uint64 }
++
++func (r *ImageRetirement) Check(before, purge func()) bool {
++	epoch := scene.RetirementEpoch()
++	if r.epoch == epoch {
++		return false
++	}
++	r.epoch = epoch
++	if before != nil {
++		before()
++	}
++	purge()
++	return true
++}
++
++// SweepRetired removes retired or unreachable image owners, releasing each
++// cache entry once. Texture caches must not keep pixels or decoder closures.
++func SweepRetired[T any](images map[uint64]*T, owner func(*T) weak.Pointer[scene.Image], release func(*T)) {
++	for key, t := range images {
++		if owner(t).Value().Retired() {
++			delete(images, key)
++			release(t)
++		}
++	}
++}
++
++// ForgetImages drops retained scene/batch references and derived clip masks,
++// preserving builder options and unrelated font/gradient texture caches.
++// drop removes each mask's texture from this renderer's ordinary image cache;
++// these private masks need no further global retirement notification.
++func (b *Builder) ForgetImages(drop func(uint64)) {
++	for _, m := range b.maskSlots {
++		if m.image != nil {
++			drop(m.image.ID())
++		}
++	}
++	b.maskSlots, b.clipShapes, b.stack, b.planStack = nil, nil, nil, nil
++	b.Batches = nil
++	b.fold = scene.TranslationFolder{}
++	b.corners = scene.ClipCorners{}
++	b.imageTexture, b.BlurredImage = nil, nil
++	b.preparedMask = 0
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/gpu/retirement_test.go b/vendor/github.com/egoist/mygo/internal/gpu/retirement_test.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/gpu/retirement_test.go
+@@ -0,0 +1,75 @@
++package gpu
++
++import (
++	"runtime"
++	"testing"
++	"weak"
++
++	"github.com/egoist/mygo/internal/scene"
++)
++
++func TestIndependentRetirementAndReleaseOrdering(t *testing.T) {
++	type entry struct {
++		owner    weak.Pointer[scene.Image]
++		releases int
++	}
++	dead, live := scene.NewImageRGBA(1, 1, nil), scene.NewImageRGBA(1, 1, nil)
++	a, b := &entry{owner: weak.Make(dead)}, &entry{owner: weak.Make(dead)}
++	l := &entry{owner: weak.Make(live)}
++	maps := []map[uint64]*entry{{dead.ID(): a, live.ID(): l}, {dead.ID(): b}}
++	var cursors [2]ImageRetirement
++	for i := range cursors {
++		cursors[i].Check(nil, func() {})
++	}
++	dead.Retire()
++	for i := range cursors {
++		pending := true
++		purge := func() {
++			if pending {
++				t.Fatal("released before pending batches/bindings dropped")
++			}
++			SweepRetired(maps[i], func(e *entry) weak.Pointer[scene.Image] { return e.owner }, func(e *entry) { e.releases++ })
++		}
++		if !cursors[i].Check(func() { pending = false }, purge) || cursors[i].Check(nil, purge) {
++			t.Fatal("renderer missed/repeated retirement")
++		}
++		SweepRetired(maps[i], func(e *entry) weak.Pointer[scene.Image] { return e.owner }, func(e *entry) { e.releases++ })
++	}
++	if a.releases != 1 || b.releases != 1 || l.releases != 0 || len(maps[0]) != 1 || len(maps[1]) != 0 {
++		t.Fatal("cache ownership incorrect")
++	}
++	// A dead weak owner is also eligible, without any GC timing assumption.
++	maps[0][99] = &entry{}
++	SweepRetired(maps[0], func(e *entry) weak.Pointer[scene.Image] { return e.owner }, func(e *entry) { e.releases++ })
++	if len(maps[0]) != 1 {
++		t.Fatal("unreachable entry retained")
++	}
++	runtime.KeepAlive(live)
++}
++
++func TestForgetImagesDropsDerivedMasksAndKeepsOptions(t *testing.T) {
++	m := scene.NewImageRGBA(1, 1, make([]byte, 4))
++	b := Builder{Classes: true, Opaque: true, NoFold: true, GeneralClasses: 7,
++		maskSlots: []clipMaskSlot{{image: m}}, Batches: []Batch{{Image: 42}}}
++	var dropped []uint64
++	b.ForgetImages(func(id uint64) { dropped = append(dropped, id) })
++	b.ForgetImages(func(id uint64) { dropped = append(dropped, id) })
++	if len(dropped) != 1 || dropped[0] != m.ID() || b.maskSlots != nil || b.Batches != nil || !b.Classes || !b.Opaque || !b.NoFold || b.GeneralClasses != 7 {
++		t.Fatal("lost options or retained/double-freed masks")
++	}
++}
++
++func TestRetiredImageAndShaderInputsDoNotRequestTextures(t *testing.T) {
++	img := scene.NewImageRGBA(1, 1, []byte{255, 0, 0, 255})
++	img.Retire()
++	f := &scene.Effect{Shader: &scene.ShaderLayout{}}
++	s := scene.Scene{Width: 8, Height: 8, Ops: []scene.Op{
++		{Kind: scene.OpImage, Image: img, Rect: scene.Rect{W: 8, H: 8}, Src: scene.Rect{W: 1, H: 1}, Blur: 2},
++		{Kind: scene.OpEffect, Rect: scene.Rect{W: 8, H: 8}},
++	}, Effects: []scene.EffectOp{{Effect: f, Images: [4]*scene.Image{img}}}}
++	b := Builder{BlurredImage: func(*scene.Image, scene.Backdrop) uintptr { t.Fatal("blurred retired input"); return 0 }}
++	b.Build(&s, func(*scene.Image) uintptr { t.Fatal("uploaded retired input"); return 0 })
++	if len(b.Batches) != 1 || b.Batches[0].Textures != [4]uintptr{} {
++		t.Fatal("retired inputs emitted handles")
++	}
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/raster/blur.go b/vendor/github.com/egoist/mygo/internal/raster/blur.go
+--- a/vendor/github.com/egoist/mygo/internal/raster/blur.go
++++ b/vendor/github.com/egoist/mygo/internal/raster/blur.go
+@@ -22,7 +22,7 @@
+ 	var out []*blurredImage
+ 	for i := range s.Ops {
+ 		op := &s.Ops[i]
+-		if op.Kind != scene.OpImage || op.Blur <= 0 || op.Image == nil || op.Image.W == 0 || op.Image.H == 0 || !bounds[i].Overlaps(area) {
++		if op.Kind != scene.OpImage || op.Blur <= 0 || op.Image.Retired() || op.Image.W == 0 || op.Image.H == 0 || !bounds[i].Overlaps(area) {
+ 			continue
+ 		}
+ 		if out == nil {
+diff --git a/vendor/github.com/egoist/mygo/internal/raster/canvas.go b/vendor/github.com/egoist/mygo/internal/raster/canvas.go
+--- a/vendor/github.com/egoist/mygo/internal/raster/canvas.go
++++ b/vendor/github.com/egoist/mygo/internal/raster/canvas.go
+@@ -10,8 +10,9 @@
+ // those changed since, each before the canvases and the scene that show
+ // it.
+ func drawCanvases(s *scene.Scene) {
++	epoch := scene.RetirementEpoch()
+ 	s.EachCanvas(func(c *scene.Image) {
+-		if c.PixVersion == c.Version() && len(c.Pix) == 4*c.W*c.H {
++		if c.PixEpoch == epoch && c.PixVersion == c.Version() && len(c.Pix) == 4*c.W*c.H {
+ 			return
+ 		}
+ 		cs := c.Scene
+@@ -27,5 +28,6 @@
+ 			c.Pix[i], c.Pix[i+1], c.Pix[i+2], c.Pix[i+3] = img.Pix[i+2], img.Pix[i+1], img.Pix[i], img.Pix[i+3]
+ 		}
+ 		c.PixVersion = c.Version()
++		c.PixEpoch = epoch
+ 	})
+ }
+diff --git a/vendor/github.com/egoist/mygo/internal/raster/damage.go b/vendor/github.com/egoist/mygo/internal/raster/damage.go
+--- a/vendor/github.com/egoist/mygo/internal/raster/damage.go
++++ b/vendor/github.com/egoist/mygo/internal/raster/damage.go
+@@ -17,14 +17,22 @@
+ 	mem   *pixels
+ 
+ 	// d draws the bands of large damage.
+-	d      drawer
+-	diff   scene.Differ
+-	damage []image.Rectangle
++	d          drawer
++	diff       scene.Differ
++	damage     []image.Rectangle
++	retirement uint64
+ }
+ 
+ // Render draws s, and returns the rectangles of Image it changed. s may
+ // change once Render returns.
+ func (r *Renderer) Render(s *scene.Scene) []image.Rectangle {
++	if epoch := scene.RetirementEpoch(); r.retirement != epoch {
++		r.retirement = epoch
++		r.diff.Release()
++		// draw's teams join before Render returns; no worker owns this
++		// scratch now. Drop effect/backdrop copies and retained scenes.
++		r.d = drawer{}
++	}
+ 	drawCanvases(s)
+ 	if r.whole(s) || r.Image.W != s.Width || r.Image.H != s.Height {
+ 		// A new size, or Image was released (Release).
+diff --git a/vendor/github.com/egoist/mygo/internal/raster/raster.go b/vendor/github.com/egoist/mygo/internal/raster/raster.go
+--- a/vendor/github.com/egoist/mygo/internal/raster/raster.go
++++ b/vendor/github.com/egoist/mygo/internal/raster/raster.go
+@@ -1576,7 +1576,7 @@
+ // sample reads a premultiplied pixel at (u, v) with bilinear filtering,
+ // clamped to src.
+ func sample(img *scene.Image, u, v float32, src scene.Rect) [4]float32 {
+-	if len(img.Pix) < 4*img.W*img.H {
++	if img.Retired() || img.W <= 0 || img.H <= 0 || len(img.Pix) < 4*img.W*img.H {
+ 		// Pixels an owner dropped and a renderer did not restore: draw
+ 		// nothing rather than read past the slice.
+ 		return [4]float32{}
+diff --git a/vendor/github.com/egoist/mygo/internal/raster/retirement_test.go b/vendor/github.com/egoist/mygo/internal/raster/retirement_test.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/raster/retirement_test.go
+@@ -0,0 +1,102 @@
++package raster
++
++import (
++	"testing"
++
++	"github.com/egoist/mygo/internal/scene"
++)
++
++func retirementPicture() *scene.Image {
++	pix := make([]byte, 4*8*8)
++	for i := 0; i < len(pix); i += 4 {
++		pix[i], pix[i+3] = 255, 255
++	}
++	return scene.NewImageRGBA(8, 8, pix)
++}
++
++func retirementOp(img *scene.Image) scene.Op {
++	return scene.Op{Kind: scene.OpImage, Image: img, Rect: scene.Rect{X: 2, Y: 2, W: 8, H: 8}, Src: scene.Rect{W: float32(img.W), H: float32(img.H)}}
++}
++
++func hasRetirementPixels(pix []byte) bool {
++	for _, b := range pix {
++		if b != 0 {
++			return true
++		}
++	}
++	return false
++}
++
++func TestRetirementStaleScenesAndIndependentRenderers(t *testing.T) {
++	for _, kind := range []string{"direct", "transform", "blur", "nested-canvas", "effect-canvas", "clip-canvas"} {
++		t.Run(kind, func(t *testing.T) {
++			img := retirementPicture()
++			op := retirementOp(img)
++			s := scene.Scene{Width: 16, Height: 16, Scale: 1}
++			var inner, outer *scene.Image
++			switch kind {
++			case "transform":
++				op.Transform = scene.Affine{Set: true, A: 1, B: .12, C: .1, D: 1}
++			case "blur":
++				op.Blur = 1
++			case "nested-canvas", "effect-canvas", "clip-canvas":
++				inner, outer = scene.NewCanvas(12, 12), scene.NewCanvas(12, 12)
++				inner.Scene.Ops = []scene.Op{op}
++				outer.Scene.Ops = []scene.Op{retirementOp(inner)}
++				op = retirementOp(outer)
++			}
++			if kind == "effect-canvas" {
++				fx := &scene.Effect{Pixels: func() scene.EffectPixels { return &retirementEffect{} }}
++				s.Effects = []scene.EffectOp{{Effect: fx, Images: [4]*scene.Image{outer}}}
++				s.Ops = []scene.Op{{Kind: scene.OpEffect, Rect: scene.Rect{W: 16, H: 16}}}
++			} else if kind == "clip-canvas" {
++				s.Ops = []scene.Op{
++					{Kind: scene.OpPushClip, Rect: scene.Rect{W: 16, H: 16}, Image: outer, Src: scene.Rect{W: 12, H: 12}},
++					{Kind: scene.OpFill, Rect: scene.Rect{W: 16, H: 16}, Color: scene.Color{R: 255, A: 255}},
++					{Kind: scene.OpPopClip},
++				}
++			} else {
++				s.Ops = []scene.Op{op}
++			}
++			var a, b Renderer
++			defer a.Release()
++			defer b.Release()
++			for _, r := range []*Renderer{&a, &b} {
++				r.Render(&s)
++				if !hasRetirementPixels(r.Image.Pix) {
++					t.Fatal("fixture drew no image")
++				}
++				if kind != "effect-canvas" && len(r.Render(&s)) != 0 {
++					t.Fatal("fixture not unchanged before retirement")
++				}
++			}
++			img.Retire()
++			img.Restore = func() []byte { t.Fatal("retired pixels restored"); return nil }
++			for _, r := range []*Renderer{&a, &b} {
++				if len(r.Render(&s)) == 0 || hasRetirementPixels(r.Image.Pix) {
++					t.Fatal("retired stale scene was not cleared")
++				}
++			}
++			if inner != nil && (hasRetirementPixels(inner.Pix) || hasRetirementPixels(outer.Pix)) {
++				t.Fatal("nested derived pixels survived")
++			}
++			a.Release()
++			a.Render(&s)
++			if hasRetirementPixels(a.Image.Pix) {
++				t.Fatal("recreated renderer revived image")
++			}
++		})
++	}
++}
++
++type retirementEffect struct{ pixels []byte }
++
++func (e *retirementEffect) Begin(op *scene.EffectOp, _ scene.Rect, _ [4]float32) {
++	e.pixels = op.Images[0].Pixels()
++}
++func (e *retirementEffect) Color(_, _ float32, _ *scene.BackdropImage) [4]float32 {
++	if hasRetirementPixels(e.pixels) {
++		return [4]float32{1, 0, 0, 1}
++	}
++	return [4]float32{}
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/scene/image_retirement_test.go b/vendor/github.com/egoist/mygo/internal/scene/image_retirement_test.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/scene/image_retirement_test.go
+@@ -0,0 +1,24 @@
++package scene
++
++import "testing"
++
++func TestImageRetirementTombstone(t *testing.T) {
++	m := NewImageRGBA(2, 3, make([]byte, 24))
++	id, version, epoch := m.ID(), m.Version(), RetirementEpoch()
++	m.Restore = func() []byte { t.Fatal("restored retired image"); return nil }
++	m.Dropped = func() { t.Fatal("uploaded retired image") }
++	if !m.Retire() || !m.Retire() || !(*Image)(nil).Retire() {
++		t.Fatal("retirement must be nil/repeat safe")
++	}
++	m.Changed()
++	m.Resize(8, 9)
++	m.Uploaded()
++	if !m.Retired() || m.ID() != id || m.Version() != version+1 || m.W != 2 || m.H != 3 ||
++		m.Pixels() != nil || m.Pix != nil || m.Restore != nil || m.Dropped != nil || RetirementEpoch() != epoch+1 {
++		t.Fatal("tombstone changed identity/geometry, retained ownership, or repeated notification")
++	}
++	c := NewCanvas(2, 3)
++	if c.Retire() || c.Retired() || c.Version() != 1 || RetirementEpoch() != epoch+1 {
++		t.Fatal("borrowed canvas was mutated")
++	}
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/scene/retirement.go b/vendor/github.com/egoist/mygo/internal/scene/retirement.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/internal/scene/retirement.go
+@@ -0,0 +1,30 @@
++package scene
++
++import "sync/atomic"
++
++// RetirementEpoch is shared notification, not a consumable queue. Every
++// renderer observes it independently. Image mutation remains main-thread only,
++// after any synchronous CPU rendering workers have joined.
++func RetirementEpoch() uint64 { return imageRetirements.Load() }
++
++var imageRetirements atomic.Uint64
++
++// Retired includes nil, which every image lookup treats as transparent.
++func (m *Image) Retired() bool { return m == nil || m.retired }
++
++// Retire drops owned pixels and restoration closures, once. Old display lists
++// keep a small tombstone with its original identity and geometry. Canvases are
++// shared retained scenes, not owned bitmaps, and cannot be retired this way.
++func (m *Image) Retire() bool {
++	if m.Retired() {
++		return true
++	}
++	if m.Scene != nil {
++		return false
++	}
++	m.retired = true
++	m.version++
++	m.Pix, m.Restore, m.Dropped = nil, nil, nil
++	imageRetirements.Add(1)
++	return true
++}
+diff --git a/vendor/github.com/egoist/mygo/internal/scene/scene.go b/vendor/github.com/egoist/mygo/internal/scene/scene.go
+--- a/vendor/github.com/egoist/mygo/internal/scene/scene.go
++++ b/vendor/github.com/egoist/mygo/internal/scene/scene.go
+@@ -416,7 +416,7 @@
+ // shaders read.
+ func (s *Scene) eachShown(fn func(*Image)) {
+ 	for i := range s.Ops {
+-		if op := &s.Ops[i]; op.Kind == OpImage && op.Image != nil && op.Image.Scene != nil {
++		if op := &s.Ops[i]; (op.Kind == OpImage || op.Kind == OpPushClip) && op.Image != nil && op.Image.Scene != nil {
+ 			fn(op.Image)
+ 		}
+ 	}
+@@ -454,6 +454,7 @@
+ type Image struct {
+ 	id      uint64
+ 	version uint64
++	retired bool
+ 	// W and H are the size in pixels; Pix holds premultiplied RGBA rows of
+ 	// 4*W bytes.
+ 	W, H int
+@@ -464,6 +465,8 @@
+ 	// PixVersion is the version Pix holds.
+ 	Scene      *Scene
+ 	PixVersion uint64
++	// PixEpoch is the retirement epoch at which a CPU canvas was drawn.
++	PixEpoch uint64
+ 	// Transient marks a canvas drawn anew in every frame that shows it,
+ 	// as an element's effect layer: renderers free its texture once
+ 	// frames stop drawing it, rather than once it is collected, which
+@@ -506,12 +509,19 @@
+ func (m *Image) Version() uint64 { return m.version }
+ 
+ // Changed records that Pix was modified.
+-func (m *Image) Changed() { m.version++ }
++func (m *Image) Changed() {
++	if !m.Retired() {
++		m.version++
++	}
++}
+ 
+ // Pixels returns the pixels a renderer uploads or draws, re-creating them
+ // from Restore when an owner dropped them. The pixels stay then, until
+ // the owner drops them again or a renderer's upload does (Uploaded).
+ func (m *Image) Pixels() []byte {
++	if m.Retired() {
++		return nil
++	}
+ 	if m.Pix == nil && m.Restore != nil {
+ 		m.Pix = m.Restore()
+ 	}
+@@ -521,7 +531,7 @@
+ // Uploaded tells that a renderer uploaded the pixels, which an owner may
+ // drop again.
+ func (m *Image) Uploaded() {
+-	if m.Dropped != nil {
++	if !m.Retired() && m.Dropped != nil {
+ 		m.Dropped()
+ 	}
+ }
+@@ -534,6 +544,9 @@
+ // than a quarter of it: an image that shrank much doesn't keep its
+ // largest size, as a clip mask that turned would (#1407).
+ func (m *Image) Resize(w, h int) {
++	if m.Retired() {
++		return
++	}
+ 	m.W, m.H = w, h
+ 	n := 4 * w * h
+ 	switch {
+diff --git a/vendor/github.com/egoist/mygo/ui/bitmap.go b/vendor/github.com/egoist/mygo/ui/bitmap.go
+--- a/vendor/github.com/egoist/mygo/ui/bitmap.go
++++ b/vendor/github.com/egoist/mygo/ui/bitmap.go
+@@ -17,7 +17,7 @@
+ )
+ 
+ // Bitmap is an image to show with Image. Create it once: converting an
+-// image is not free.
++// image is not free. Do not copy Bitmap values; share their pointers instead.
+ type Bitmap struct {
+ 	img  *scene.Image
+ 	w, h int
+@@ -41,6 +41,7 @@
+ 	// uploaded. All of this runs on the main thread, as drawing does.
+ 	remake   func() (*scene.Image, error)
+ 	released bool
++	disposed bool
+ 	// source returns the image NewBitmap converted while the app keeps
+ 	// it, and nil once it no longer does: a weak reference, which keeps
+ 	// nothing, for ReleasePixels to convert it again from (#1281). nil for
+@@ -57,7 +58,9 @@
+ // FilterPixelated. Where it shows smaller, it is as smooth as any. It
+ // returns the bitmap.
+ func (b *Bitmap) Pixelated() *Bitmap {
+-	b.pixelated = true
++	if b != nil && !b.disposed {
++		b.pixelated = true
++	}
+ 	return b
+ }
+ 
+@@ -149,7 +152,7 @@
+ // thread, in the view or through Window.Update, which redraws the window
+ // to show it.
+ func (b *Bitmap) Update(img image.Image) {
+-	if b.img.Scene != nil {
++	if b == nil || b.disposed || b.img == nil || b.img.Scene != nil {
+ 		return // a canvas's: Canvas.Draw draws it
+ 	}
+ 	// The picture is no longer data's, nor the image's NewBitmap
+@@ -168,6 +171,7 @@
+ 		b.img.Pix = s.Pix
+ 		b.img.Changed()
+ 	} else {
++		b.retireImages()
+ 		b.img = s
+ 		b.w, b.h = s.W, s.H
+ 		b.levels = nil
+@@ -176,7 +180,46 @@
+ }
+ 
+ // Size returns the bitmap's size in pixels, which Image shows as DIPs.
+-func (b *Bitmap) Size() (w, h int) { return b.w, b.h }
++func (b *Bitmap) Size() (w, h int) {
++	if b == nil {
++		return 0, 0
++	}
++	return b.w, b.h
++}
++
++// Dispose permanently retires an owned bitmap. Nil and repeated calls succeed;
++// a borrowed Canvas bitmap returns false without changing the canvas. Size is
++// then zero, drawing is transparent, and Update, ReleasePixels and Pixelated
++// cannot revive it. Create a new Bitmap to show another picture.
++//
++// Call on the main thread, after rendering, in the ordinary state update that
++// removes the image. Dispose does not request a frame. CPU pixels and retained
++// source/decoder closures go immediately; each renderer drops its textures and
++// derived canvas/effect caches at its next drawable render or Release. Idle or
++// minimized renderers and in-flight GPU work may keep them until then. This
++// does not erase external pixel aliases or independent captures, nor promise
++// an immediate reduction of process memory or VRAM.
++func (b *Bitmap) Dispose() bool {
++	// LEVNOTE PATCH: terminal bitmap ownership, independently observed by renderers.
++	if b == nil || b.disposed {
++		return true
++	}
++	if b.img != nil && b.img.Scene != nil {
++		return false
++	}
++	b.retireImages()
++	b.img, b.levels, b.remake, b.source = nil, nil, nil, nil
++	b.w, b.h, b.fresh = 0, 0, 0
++	b.released, b.disposed = false, true
++	return true
++}
++
++func (b *Bitmap) retireImages() {
++	b.img.Retire()
++	for _, lvl := range b.levels {
++		lvl.Retire()
++	}
++}
+ 
+ // ReleasePixels drops the CPU pixels of a bitmap, those of its picture and
+ // of its levels, keeping the copies a GPU renderer uploaded: the bitmap
+@@ -191,7 +234,7 @@
+ // else to make them from and keeps them. Call it once the bitmap has
+ // shown, on the main thread, as drawing does.
+ func (b *Bitmap) ReleasePixels() {
+-	if b.img.Scene != nil {
++	if b == nil || b.disposed || b.img == nil || b.img.Scene != nil {
+ 		return
+ 	}
+ 	if b.remake == nil {
+@@ -254,6 +297,9 @@
+ // sampling a bitmap far larger than it shows sees only some of its
+ // pixels, which shimmer, where a level averages them all.
+ func (b *Bitmap) smaller(shrink float32) *scene.Image {
++	if b == nil || b.disposed || b.img.Retired() {
++		return nil
++	}
+ 	if b.img.Scene != nil {
+ 		return b.img // a canvas, whose pixels the GPU keeps
+ 	}
+diff --git a/vendor/github.com/egoist/mygo/ui/bitmap_retirement_test.go b/vendor/github.com/egoist/mygo/ui/bitmap_retirement_test.go
+new file mode 100644
+--- /dev/null
++++ b/vendor/github.com/egoist/mygo/ui/bitmap_retirement_test.go
+@@ -0,0 +1,93 @@
++package ui
++
++import (
++	"bytes"
++	"image"
++	"image/color"
++	"image/png"
++	"testing"
++
++	"github.com/egoist/mygo/internal/scene"
++)
++
++type noConversion struct{}
++
++func (noConversion) Bounds() image.Rectangle { panic("disposed Update converted input") }
++func (noConversion) ColorModel() color.Model { panic("disposed Update converted input") }
++func (noConversion) At(int, int) color.Color { panic("disposed Update converted input") }
++
++func TestBitmapDisposeOwnsBaseMipsAndDecoder(t *testing.T) {
++	var data bytes.Buffer
++	if err := png.Encode(&data, image.NewRGBA(image.Rect(0, 0, 16, 16))); err != nil {
++		t.Fatal(err)
++	}
++	b, err := DecodeBitmap(data.Bytes())
++	if err != nil {
++		t.Fatal(err)
++	}
++	b.smaller(8)
++	base, levels := b.img, append([]*scene.Image(nil), b.levels...)
++	b.ReleasePixels()
++	if b.remake == nil || base.Restore == nil || len(levels) != 3 {
++		t.Fatal("missing restoration setup")
++	}
++	// If any stale callback is invoked, fail before a real decode can occur.
++	b.remake = func() (*scene.Image, error) { t.Fatal("decoded after Dispose"); return nil, nil }
++	if !b.Dispose() || !b.Dispose() || !(*Bitmap)(nil).Dispose() {
++		t.Fatal("Dispose failed")
++	}
++	b.Update(noConversion{})
++	b.ReleasePixels()
++	if b.Pixelated() != b || b.pixelated || (*Bitmap)(nil).Pixelated() != nil {
++		t.Fatal("Pixelated revived bitmap")
++	}
++	if w, h := b.Size(); w != 0 || h != 0 {
++		t.Fatal("disposed size")
++	}
++	if b.img != nil || b.levels != nil || b.remake != nil || b.source != nil || b.released || b.fresh != 0 || b.smaller(8) != nil {
++		t.Fatal("bitmap still owns source data")
++	}
++	for _, img := range append(levels, base) {
++		img.Uploaded()
++		if !img.Retired() || img.Pixels() != nil || img.Restore != nil || img.Dropped != nil {
++			t.Fatal("stale image restored")
++		}
++	}
++	p := &Painter{} // safe before any painter/window state is needed
++	p.drawBitmap(b, Rect{W: 5, H: 5}, 0, [2]float32{}, [4]float32{}, false)
++	p.ImageRegion(b, Rect{}, Rect{W: 5, H: 5}, ImageOptions{})
++	in := ShaderInput{Images: [4]*Bitmap{b}}
++	if in.op(nil).Images != [4]*scene.Image{} {
++		t.Fatal("disposed shader input")
++	}
++}
++
++func TestBitmapUpdateRetiresOnlyReplacedSize(t *testing.T) {
++	b := NewBitmap(image.NewRGBA(image.Rect(0, 0, 8, 8)))
++	base, mip := b.img, b.smaller(2)
++	b.Update(image.NewRGBA(image.Rect(0, 0, 8, 8)))
++	if b.img != base || base.Retired() || b.smaller(2) != mip || mip.Retired() {
++		t.Fatal("same-size update lost identities")
++	}
++	b.Update(image.NewRGBA(image.Rect(0, 0, 9, 7)))
++	if !base.Retired() || !mip.Retired() || base.Pixels() != nil || mip.Pixels() != nil || b.img == base || b.img.Retired() || len(b.levels) != 0 {
++		t.Fatal("size replacement kept old pixels")
++	}
++	b.Dispose()
++}
++
++func TestBitmapCanvasBorrowedDisposeRefused(t *testing.T) {
++	c := NewCanvas(8, 8)
++	for _, b := range []*Bitmap{c.Bitmap(), c.region(4, 4)} {
++		img, w, h := b.img, b.w, b.h
++		if b.Dispose() || b.disposed || b.img != img || b.w != w || b.h != h || img.Retired() {
++			t.Fatal("borrow changed")
++		}
++		b.Update(noConversion{})
++		b.ReleasePixels()
++	}
++	c.resize(3, 4)
++	if c.Bitmap().img != c.img || c.img.Retired() {
++		t.Fatal("canvas unusable after rejected Dispose")
++	}
++}
+diff --git a/vendor/github.com/egoist/mygo/ui/canvas.go b/vendor/github.com/egoist/mygo/ui/canvas.go
+--- a/vendor/github.com/egoist/mygo/ui/canvas.go
++++ b/vendor/github.com/egoist/mygo/ui/canvas.go
+@@ -15,7 +15,9 @@
+ // crisp (game.IntegerFit, in the game plugin).
+ //
+ // It keeps what was last drawn into it until Draw draws it anew, and
+-// shows anywhere a bitmap does, through Bitmap.
++// shows anywhere a bitmap does, through Bitmap. It retains drawing operations:
++// disposing an input bitmap makes that input transparent on the next render,
++// including in nested canvases. It is not an independent pixel capture.
+ type Canvas struct {
+ 	img *scene.Image
+ 	bm  *Bitmap
+@@ -35,6 +37,7 @@
+ 
+ // Bitmap returns the bitmap the canvas shows as, for Image, Painter.Image
+ // and Painter.ImageRegion; make it Pixelated to scale pixel art up crisp.
++// The bitmap borrows this canvas; its Dispose returns false without mutation.
+ func (cv *Canvas) Bitmap() *Bitmap { return cv.bm }
+ 
+ // Size returns the canvas's size in pixels, the units it is drawn in.
+diff --git a/vendor/github.com/egoist/mygo/ui/material.go b/vendor/github.com/egoist/mygo/ui/material.go
+--- a/vendor/github.com/egoist/mygo/ui/material.go
++++ b/vendor/github.com/egoist/mygo/ui/material.go
+@@ -132,7 +132,7 @@
+ func (in *ShaderInput) op(fx *scene.Effect) scene.EffectOp {
+ 	op := scene.EffectOp{Effect: fx, Uniforms: in.Uniforms, WideUniforms: in.WideUniforms, Blur: in.Blur}
+ 	for i, b := range in.Images {
+-		if b != nil {
++		if b != nil && !b.disposed && !b.img.Retired() {
+ 			op.Images[i] = b.img
+ 		}
+ 	}
+diff --git a/vendor/github.com/egoist/mygo/ui/paint.go b/vendor/github.com/egoist/mygo/ui/paint.go
+--- a/vendor/github.com/egoist/mygo/ui/paint.go
++++ b/vendor/github.com/egoist/mygo/ui/paint.go
+@@ -1358,6 +1358,9 @@
+ }
+ 
+ func (p *Painter) drawBitmap(img *Bitmap, box Rect, fit Fit, pos [2]float32, radius [4]float32, gray bool) {
++	if img == nil || img.disposed || img.img.Retired() || img.w <= 0 || img.h <= 0 {
++		return
++	}
+ 	// A bitmap's own size is its pixels in DIPs, as an Image lays it out.
+ 	iw, ih := float32(img.w), float32(img.h)
+ 	dst, frac := fitIn(box, iw, ih, fit, pos)
+@@ -1642,7 +1645,7 @@
+ //
+ //	p.ImageRegion(icons, ui.Rect{X: 32, W: 16, H: 16}, box, ui.ImageOptions{})
+ func (p *Painter) ImageRegion(b *Bitmap, src, dst Rect, o ImageOptions) {
+-	if b == nil || b.w == 0 || b.h == 0 || dst.W <= 0 || dst.H <= 0 || !p.visible(dst, 1) {
++	if b == nil || b.disposed || b.img.Retired() || b.w == 0 || b.h == 0 || dst.W <= 0 || dst.H <= 0 || !p.visible(dst, 1) {
+ 		return
+ 	}
+ 	if src.W <= 0 || src.H <= 0 {

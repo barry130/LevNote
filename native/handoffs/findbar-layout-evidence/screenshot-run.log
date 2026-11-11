@@ -1,0 +1,7 @@
+$ $env:LEVNOTE_FINDBAR_LAYOUT_SCREENSHOT_DIR="native/handoffs/findbar-layout-evidence"
+$ .\native\scripts\go.ps1 -GoArguments @("test","./app","-run","^TestFindbarLayoutScreenshots$","-count=1","-v")
+=== RUN   TestFindbarLayoutScreenshots
+--- PASS: TestFindbarLayoutScreenshots (0.52s)
+PASS
+ok  	levnote.local/native/app	2.027s
+EXIT_CODE=0

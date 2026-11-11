@@ -1,0 +1,7 @@
+{
+  "StartedUtc": "2026-11-10T10:55:57.1955465Z",
+  "FinishedUtc": "2026-11-10T10:56:06.8852332Z",
+  "ExitCode": 1,
+  "ProcessId": 10848,
+  "Script": "01-focused.ps1"
+}

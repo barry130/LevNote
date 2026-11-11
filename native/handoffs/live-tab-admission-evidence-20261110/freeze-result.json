@@ -1,0 +1,14 @@
+{
+  "frozenAtUtc": "2026-11-10T09:51:46.6404226Z",
+  "unionFiles": 9,
+  "unionBytes": 160306,
+  "changedFiles": [
+    "app/app.go",
+    "app/binary_actions.go",
+    "app/state.go",
+    "app/live_tab_admission_test.go"
+  ],
+  "manifestPath": "native\\handoffs\\live-tab-admission-evidence-20261110\\source-frozen.json",
+  "manifestBytes": 1348,
+  "manifestSha256": "940C698E0B0195258649E6A0747A8F1EBAF1F754BAE05E6539B790B023098DAF"
+}
