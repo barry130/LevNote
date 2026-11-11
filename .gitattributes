@@ -36,6 +36,16 @@
 tests/fixtures/** -text
 
 # ---------------------------------------------------------------------------
+# 冻结交接/验收证据（native/handoffs）：字节即证据，任何转换都是改写证据。
+# 2026-11-11 实测：* text=auto eol=lf 把钉死的 inputs-02.json（244,715B，
+# 混排行尾，SHA256 a51734c0…）归一成 238,674B 的 LF blob，Linux 检出后
+# 失配，守卫 prepare 的 pinned_file 直接拒绝。同 tests/fixtures 先例，进出原样。
+native/handoffs/** -text
+
+# native 测试样本同 tests/fixtures：逐字节敏感的被测对象。
+native/formats/mindmap/testdata/** -text
+
+# ---------------------------------------------------------------------------
 # 真·二进制
 # ---------------------------------------------------------------------------
 *.png  binary
