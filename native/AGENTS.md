@@ -1,13 +1,32 @@
 # Native migration: current coordination
 
 Updated2026-11-11. User requests Go + MyGo native Surface UI, project-authored
-engines, local plugins, simple UI and low resource use. Root plans, reads/reviews
-and accepts only. Children implement, test, build, launch, measure and write
-product docs. Root may edit planning/handoff files. No commits/pushes/branches.
+engines, local plugins, simple UI and low resource use. Since2026-11-11 the
+DSH lead session is the main responsible party (user ruling); it plans,
+reviews, accepts and executes remote-only product work on the authorized
+box. Root may edit planning/handoff files. Commits/pushes to CNB+GitHub
+main are user-authorized; no branches.
 
 ## Active ownership
 
 Latest sequential stage2026-11-11 (takes precedence over historical entries):
+- 2026-11-11 user ruling: the DSH lead session is the main responsible
+  party; Codex-root review duties transfer here, the historical baseline
+  and all freeze rules continue. Remote guard prepare01 returned
+  GUARD_READY and is
+  [accepted on review](handoffs/remote-box-guard-prepare-01-root-review-20261111.md)
+  after delivery-fidelity fix 12b420b (git text=auto eol=lf normalization
+  had rewritten the pinned inputs-02.json in transit; native/handoffs and
+  mindmap testdata are now stored byte-exact via -text). Product stage is
+  authorized once per phase with the reviewed guard receipt
+  (da70b0421c48165f9c3db880c75cac31c59f7901f9f55de583f05b0a135e0853) and
+  --activate-product-stage picker-final-app-linux-20261111 on run root
+  /home/user/levnote-remote-20261111-01: single test, then vet only after
+  a passed test; no retry on failure, a fresh run root plus a new review
+  is required. .30 stays inactive until test/vet results and its own
+  activation; Linux results prove no Windows IME or delivery.
+  User-authorized commits/pushes to CNB and GitHub replace the old
+  no-commit rule.
 - Picker key-correction independent review is COMPLETE; reviewer released.
   Remote preparation02 is COMPLETE and accepted as an unexecuted draft:
   [root preparation review](handoffs/remote-box-preparation-20261111/root-preparation-acceptance-02.md).
