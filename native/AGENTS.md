@@ -4,14 +4,44 @@ Updated2026-11-12. User requests Go + MyGo native Surface UI, project-authored
 engines, local plugins, simple UI and low resource use. Since2026-11-11 the
 DSH lead session is the main responsible party (user ruling); it plans,
 assigns, reviews and accepts. Children execute explicitly assigned product
-work only on the authorized remote box; no local fallback. Responsibility
-transfer does not relax source freezes, evidence or platform gates. Root
-may edit planning/handoff files. Commits/pushes to CNB+GitHub main are
+work only on the authorized remote box; no local fallback. The latest full-app
+autonomous-development directive below opens the current working source for
+new iterations; closed evidence and accepted packages remain immutable.
+Root may edit planning/handoff files. Commits/pushes to CNB+GitHub main are
 user-authorized; no branches.
 
 ## Active ownership
 
-Latest sequential stage2026-11-12 (takes precedence over historical entries):
+Latest autonomous development directive2026-11-12 (takes precedence over all
+historical phase holds below):
+- User requests all remaining application development until lead judges it
+  deliverable. Lead owns ordinary technical/product decisions, sequencing,
+  child assignments and review; do not pause for routine approvals or keep
+  asking for Windows before continuing development. Windows and other final
+  platform acceptance move to the consolidated stage after feature convergence.
+- New working-tree source/tests/helpers and separately recorded development
+  runs may iterate. Prior picker source freeze and docs-only/no-new-run holds
+  below describe the closed original stage, not the newly authorized work.
+  Preserve original prepare02 assets, failed caller/phase/run-root/toolchain
+  snapshot, raw failures, .29 package and all closed historical evidence;
+  never relaunch or overwrite the consumed original test/vet namespace.
+- Lead remains planning/review/acceptance only. Explicitly assigned children
+  implement and execute new product tests/builds only on the existing main
+  box. Maximum3 parallel children, no child delegation. Use new isolated dev
+  work/evidence paths; do not mutate the old guarded source/toolchain or source
+  the ordinary dev env into that old guard namespace. Preserve real commands,
+  outputs/exits and failures. No local product execution or alternative box.
+- New product source may be revised to fix genuine defects; existing Windows
+  assertions and platform semantics must not be weakened merely to make Linux
+  green. Linux development evidence is not Windows/IME/PE/WM_CLOSE acceptance.
+  .29 stays the latest accepted runnable until a new version earns acceptance.
+- Current autonomous plan and fresh task scopes are published by lead in
+  handoffs/autonomous-native-delivery-plan-20261112.md. Historical named owners
+  do not restart automatically; only fresh explicit assignments confer scope.
+  Pure-local/no-network/no-telemetry, byte fidelity, explicit failures,
+  self-authored engines and local plugin constraints remain in force.
+
+Closed sequential stage2026-11-12 (historical, original execution stays closed):
 - Interrupted review delivery reconciled: local/CNB/GitHub and the authorized
   box clone all matched 23054e7. The prepared product run root remains separate
   from that clone. Before the 2026-11-12 caller-launch request, only
