@@ -6,7 +6,7 @@ Date: 2026-11-12. Lead: DSH. Development baseline: main 77454291ce1aad7c5a617ab1
 
 The latest direct user request authorizes all remaining development, ordinary technical/product decisions and continued task sequencing without repeated phase approval. Windows and other final platform acceptance are consolidated after feature convergence; their absence does not hold ordinary development. This plan supersedes the former docs-only/current-source freeze, not historical evidence.
 
-Lead plans, assigns, reviews and accepts. At most three explicitly assigned children implement and execute new product commands on the existing authorized main box; children must not delegate. Local product tests, vet, builds, runs and static-acceptance commands remain prohibited. Local source editing and Git delivery are allowed. CNB and GitHub main are the existing delivery channels; no new branch.
+Lead plans, assigns, reviews and accepts. At most three explicitly assigned children implement source/tests/helpers and execute new product commands on the existing authorized main box; children must not delegate. Local product implementation, tests, vet, builds, runs and static-acceptance fallback remain prohibited. The local checkout is for source reading, planning/handoffs, byte-exact mirrors of box-authored output for review, and Git delivery, not an implementation lane. CNB and GitHub main are the existing delivery channels; no new branch.
 
 ## Protected historical artifacts
 
@@ -32,6 +32,19 @@ Converge the existing Go1.27.3 + MyGo native Surface application rather than inv
 - native-readiness: independently audit actual originating requirements against current native capabilities and evidence. Read-only product source; own a new readiness report and ordered, concrete follow-up backlog. Do not turn inherited historical claims into current passes.
 
 Shared task board descriptions supply the exact current scopes and acceptance criteria. Old named children/tasks are not automatically resumed.
+
+## Source-confirmed convergence backlog
+
+The initial readiness audit reports five concrete supported-workflow/bounded-work gaps. They are engineering tasks, not evidence of a passed implementation or an instruction to replicate unlimited legacy parity:
+
+- task-8, after task-7: native-readiness implements draw.io selected vertex/edge deletion. Protect root/layer and readonly pages, preserve untouched source ranges, refuse unsupported parent/reference structures, handle incident known edges as one explicit undoable transaction, and wire actual canvas key/button entry.
+- task-9, after the current list group: add Markdown preview main-document Undo/Redo user entry while preserving local draft-editor history/composition priority, Flush refusal and readonly state. Also retain that module's public List Handle across Release/dropPreviewCache, cancel obsolete focus and reset only outside a live frame; abandoned handles are a source lifecycle gap, not measured RSS.
+- task-10, after task-6: native-experience adds explicit local Copy All issues, clipboard-failure disclosure, visible ordinary-history `Truncated` notices, and correct preference action labels. Keep the existing 256-item/32 MiB budget; do not infer a lost-history signal identifies one exact edit.
+- task-11, after task-5: native-reliability bounds synchronous save fingerprint reads by authoritative expected encoded lengths plus one, with stat/identity revalidation and exact digest. Preserve save conflict and post-publication semantics, actual BOM/encoding lengths and visible failures.
+
+Source origin is the existing authorized box: isolated reliability, experience and draw.io work roots, with disjoint shared-task file scopes. Native-reliability is the sole product-command owner and combines only explicitly frozen input bytes into fresh validation snapshots. The local initial unexecuted test/list drafts were declared and moved to box-authoritative work before further implementation; they are not claimed as accepted source or local execution.
+
+Coordination commit 8897244ffa4f00f5ec51f95545e7a3ca27d37d97 is synchronized to both delivery remotes and the ordinary box clone. New source remains unaccepted until concrete review and recorded affected regression; the ordinary clone and original guarded namespace are not interchangeable.
 
 ## Development validation policy
 

@@ -26,11 +26,14 @@ historical phase holds below):
   snapshot, raw failures, .29 package and all closed historical evidence;
   never relaunch or overwrite the consumed original test/vet namespace.
 - Lead remains planning/review/acceptance only. Explicitly assigned children
-  implement and execute new product tests/builds only on the existing main
-  box. Maximum3 parallel children, no child delegation. Use new isolated dev
-  work/evidence paths; do not mutate the old guarded source/toolchain or source
-  the ordinary dev env into that old guard namespace. Preserve real commands,
-  outputs/exits and failures. No local product execution or alternative box.
+  implement source/tests/helpers and execute new product commands only on the
+  existing main box. The local checkout is for reading, planning/handoffs,
+  byte-exact mirrors of box-authored output for review, and Git delivery; it is
+  not a product implementation or execution fallback. Maximum3 parallel
+  children, no child delegation. Use new isolated dev work/evidence paths;
+  do not mutate the old guarded source/toolchain or source the ordinary dev env
+  into that old guard namespace. Preserve real commands, outputs/exits and
+  failures. No alternative box.
 - New product source may be revised to fix genuine defects; existing Windows
   assertions and platform semantics must not be weakened merely to make Linux
   green. Linux development evidence is not Windows/IME/PE/WM_CLOSE acceptance.
@@ -394,7 +397,14 @@ named handoffs. Historical task instructions are inactive unless reactivated.
 
 ## Accepted runnable package
 
-Current `bin/levnote-native-worker-20261110.27/levnote-native.exe`:
+Latest accepted runnable: [levnote-native.exe](<F:/AIproject/LevNote/bin/levnote-native-worker-20261110.29/levnote-native.exe>),
+version native-worker.20261110.29. Its exact package and delivery evidence are
+[accepted separately](<F:/AIproject/LevNote/native/handoffs/composition-release29-root-acceptance.md>).
+No current autonomous source or .30 preparation has earned a replacement
+runnable acceptance. The older package paragraphs below are historical;
+their bytes, prior exits and acceptance records remain unchanged.
+
+Historical `bin/levnote-native-worker-20261110.27/levnote-native.exe`:
 native-worker.20261110.27,26files/27,382,619bytes; host14,556,160bytes SHA256
 3B6734F30033569337A111353BD1BF661FB69F1782983688B0D3D863D0E8212C.
 Manifest4,674bytes SHA256
