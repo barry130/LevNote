@@ -1,15 +1,48 @@
 # Native migration: current coordination
 
-Updated2026-11-11. User requests Go + MyGo native Surface UI, project-authored
+Updated2026-11-12. User requests Go + MyGo native Surface UI, project-authored
 engines, local plugins, simple UI and low resource use. Since2026-11-11 the
 DSH lead session is the main responsible party (user ruling); it plans,
-reviews, accepts and executes remote-only product work on the authorized
-box. Root may edit planning/handoff files. Commits/pushes to CNB+GitHub
-main are user-authorized; no branches.
+assigns, reviews and accepts. Children execute explicitly assigned product
+work only on the authorized remote box; no local fallback. Responsibility
+transfer does not relax source freezes, evidence or platform gates. Root
+may edit planning/handoff files. Commits/pushes to CNB+GitHub main are
+user-authorized; no branches.
 
 ## Active ownership
 
-Latest sequential stage2026-11-11 (takes precedence over historical entries):
+Latest sequential stage2026-11-12 (takes precedence over historical entries):
+- Interrupted review delivery reconciled: local/CNB/GitHub and the authorized
+  box clone all matched 23054e7. The prepared product run root remains separate
+  from that clone. Before the 2026-11-12 caller-launch request, only
+  prepare-01 existed and no test/vet/guard process was present. The single
+  launch request returned box-agent-unreachable without a PID receipt;
+  report01 preserves that connector fault, not a Go failure or pass. The
+  lead's fresh 02:52:42Z primary readback found no caller/phase/process and
+  unchanged receipt/wrapper pins. The explicit manual transport resumption
+  created caller PID6819 at 03:11:27Z in the original create-only path.
+  That original test is now FAILED: Go PID6830 exit1, wrapper exit2,
+  TimedOut=false, cleanup/postguards empty, inputs/toolchain identities equal.
+  Go ran 03:13:00.727256Z to 03:21:52.160271Z within its original 900s limit.
+  Complete stdout has 54 top-level/102 nested FAIL headers and terminates
+  in reopen_closed_test.go:234 index-out-of-range panic; remaining suite and
+  unreported picker coverage are not accepted. All failures are not assumed
+  platform-only. The negative fallback-log gate does not prove a backend.
+  Task-4 is closed as failed execution evidence, not product acceptance;
+  report02 contains actual outcomes, report01/old evidence stay frozen.
+  DSH lead has accepted child guard-evidence-review's task-3 real-receipt
+  review in handoffs/remote-box-guard-prepare-01-independent-review-20261112.md.
+  The remote-transfer startup failed without claiming task-4 or product work;
+  do not restart it. Former task-4 executor guard-evidence-review has stopped
+  all product work. Current review and report:
+  handoffs/remote-box-product-validation-01-root-review-20261112.md and
+  handoffs/remote-box-product-validation-02-20261112.md.
+  No further test launch, vet, new run-root, source/assertion/skip/helper edit,
+  packaging or .30 activation is authorized. Only closed-evidence preservation
+  and documentation synchronization continue; a compatible remote Windows
+  environment and separate approval are required for Windows delivery.
+  The .30 Windows GUI PE/C:config/WM_CLOSE/Job delivery gates cannot be replaced
+  by Linux test, cross-compilation or Wine; .29 remains latest accepted runnable.
 - 2026-11-11 user ruling: the DSH lead session is the main responsible
   party; Codex-root review duties transfer here, the historical baseline
   and all freeze rules continue. Remote guard prepare01 returned
@@ -37,7 +70,7 @@ Latest sequential stage2026-11-11 (takes precedence over historical entries):
   The five source files/all26patches and original source/helpers/.29/old evidence
   remain frozen. DSH exclusively owns handoffs/remote-box-preflight-20261111.md.
   NEXT is controlled private transfer and separately activated remote migration
-  guards on main/cb-698f697fed7c. No box/byte-transfer tool is connected here.
+  guards on the authorized main box. No box/byte-transfer tool is connected here.
   App final test/vet and .30 remain inactive. All future product operations are
   remote-only; no local fallback. Prior ACTIVE entries below are historical only.
 - Picker raw-key correction is frozen after13behavior tests PASS, source
