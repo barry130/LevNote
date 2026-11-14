@@ -81,6 +81,7 @@ type clipboardRequest struct {
 	version    uint64
 	generation uint64
 	selection  text.Range
+	owner      text.CompositionToken
 }
 
 func New(buffer *text.Buffer) *Editor {
@@ -668,6 +669,12 @@ func (e *Editor) finishClipboard(request *clipboardRequest, err error) {
 		e.fail(err)
 		return
 	}
+	// A new same-text preedit can preserve both version and selection. The
+	// completed write must not delete or settle that host's composition.
+	if e.compositionToken != request.owner {
+		e.fail(errors.New("输入法组合已改变，未删除原内容"))
+		return
+	}
 	if e.ReadOnly || e.Buffer != request.buffer || e.Buffer.Version() != request.version || e.Buffer.Selection() != request.selection || e.viewGeneration != request.generation {
 		e.fail(errors.New("复制已完成；文档或选区已改变，未删除原内容"))
 		return
@@ -701,7 +708,7 @@ func (e *Editor) Command(command string) bool {
 			return true
 		}
 		e.UnmarkText()
-		request := &clipboardRequest{value: value, cut: command == "cut" && !e.ReadOnly, buffer: e.Buffer, version: e.Buffer.Version(), generation: e.viewGeneration, selection: selection}
+		request := &clipboardRequest{value: value, cut: command == "cut" && !e.ReadOnly, buffer: e.Buffer, version: e.Buffer.Version(), generation: e.viewGeneration, selection: selection, owner: e.compositionToken}
 		e.pendingClipboard = request
 		if e.Copy != nil {
 			e.finishClipboard(request, e.Copy(value))
