@@ -714,6 +714,7 @@ func (e *Editor) Command(command string) bool {
 		return true
 	case "paste", "pasteAndMatchStyle":
 		if !e.ReadOnly {
+			buffer, version, generation := e.Buffer, e.Buffer.Version(), e.viewGeneration
 			var value string
 			if e.Paste != nil {
 				var err error
@@ -724,6 +725,10 @@ func (e *Editor) Command(command string) bool {
 				}
 			} else {
 				value = e.services.ReadClipboard()
+			}
+			if e.ReadOnly || e.Buffer != buffer || e.Buffer.Version() != version || e.Buffer.Selection() != selection || e.viewGeneration != generation {
+				e.fail(errors.New("剪贴板已读取；文档或选区已改变，未粘贴内容"))
+				return true
 			}
 			e.ReplaceText(nil, value)
 		}
