@@ -132,13 +132,13 @@ func (v *view) drawDrawioToolbar(c *ui.Context, readOnly bool) {
 	if v.connectSource != "" {
 		connectLabel = "选终点…"
 	}
-	if ui.Button(c, connectLabel).Shrink(0).Label("连接两个节点").Disabled(readOnly || pageReadOnly || len(page.Model.Nodes) < 2).Clicked() {
+	if ui.Button(c, connectLabel).Shrink(0).Label("连接两个节点").Disabled(readOnly || pageReadOnly || len(page.Model.Nodes) < 2 || v.selectedDrawioNode() == nil).Clicked() {
 		if err := v.Flush(); err != nil {
 			return
 		}
 		if v.connectSource == "" {
-			if v.selectedID != "" {
-				v.connectSource = v.selectedID
+			if node := v.selectedDrawioNode(); node != nil {
+				v.connectSource = node.ID
 				v.reparentSource = ""
 			}
 		} else {
@@ -188,6 +188,19 @@ func (v *view) drawInspector(c *ui.Context) {
 					ui.Text(c, "本地引用；网页和其他协议会被拒绝。清空后移除链接。").FontSize(11).TextColor(theme.TextMuted)
 				}
 			}
+			if v.draftError != nil {
+				ui.Text(c, "节点草稿尚未写回："+v.draftError.Error()).MaxLines(2).Ellipsis("…").Tooltip(v.draftError.Error()).FontSize(11).TextColor(theme.Warning)
+				ui.Row(c).FillWidth().Shrink(0).Gap(6).Children(func() {
+					if ui.Button(c, "重试写回").Grow(1).Height(28).FontSize(11).Clicked() {
+						v.setDraftError(v.Flush())
+					}
+					if v.pendingTagDraft() {
+						v.drawTagButton(c, v.tagPresentation(), tagRecover, false, true)
+					} else if ui.Button(c, "恢复为新文档").Grow(1).Height(28).FontSize(11).Clicked() {
+						v.setDraftError(v.RecoverDraft())
+					}
+				})
+			}
 			if v.draft != nil {
 				v.draft.input.ReadOnly = readOnly && !v.pendingDraft()
 				height := float32(76)
@@ -209,19 +222,6 @@ func (v *view) drawInspector(c *ui.Context) {
 					}
 				}
 				fieldBox.Children(func() { v.draft.input.View(c) })
-			}
-			if v.draftError != nil {
-				ui.Text(c, "节点草稿尚未写回："+v.draftError.Error()).MaxLines(2).Ellipsis("…").Tooltip(v.draftError.Error()).FontSize(11).TextColor(theme.Warning)
-				ui.Row(c).FillWidth().Shrink(0).Gap(6).Children(func() {
-					if ui.Button(c, "重试写回").Grow(1).Height(28).FontSize(11).Clicked() {
-						v.setDraftError(v.Flush())
-					}
-					if v.pendingTagDraft() {
-						v.drawTagButton(c, v.tagPresentation(), tagRecover, false, true)
-					} else if ui.Button(c, "恢复为新文档").Grow(1).Height(28).FontSize(11).Clicked() {
-						v.setDraftError(v.RecoverDraft())
-					}
-				})
 			}
 			if v.kind == kindMindmap {
 				v.drawMarkers(c)
@@ -257,12 +257,12 @@ func (v *view) drawMindmapInspector(c *ui.Context, readOnly bool) {
 		return
 	}
 	theme := c.Theme()
-	ui.Text(c, fmt.Sprintf("子节点 %d 个", len(node.Children))).FontSize(11).TextColor(theme.TextMuted)
 	if v.drawFieldLink(c, node) {
 		// Host.OpenReference may synchronously Release the whole parsed view.
 		// Nothing below this point may dereference the released graph cache.
 		return
 	}
+	ui.Text(c, fmt.Sprintf("子节点 %d 个", len(node.Children))).FontSize(11).TextColor(theme.TextMuted)
 	if node.ID != v.mind.RootID() {
 		if ui.Button(c, "提升到祖父级").Label("提升选中主题").FillWidth().Disabled(readOnly).Clicked() {
 			v.promoteMindmapNode()

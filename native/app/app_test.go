@@ -1298,12 +1298,12 @@ func TestSettingsControlsRemainVisibleAtMinimumWidth(t *testing.T) {
 	a.ShowSettings = true
 	tester := ui.NewTester(a.View, 760, 480)
 	wrapLabel := "自动换行"
-	if !a.SoftWrap {
+	if a.SoftWrap {
 		wrapLabel = "关闭换行"
 	}
 	for _, label := range []string{
 		"外观", "关闭设置", "切换明暗", "A−", "16 px", "A+",
-		"显示行号", wrapLabel,
+		"隐藏行号", wrapLabel,
 	} {
 		rect, ok := tester.Find(label)
 		if !ok {

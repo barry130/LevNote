@@ -590,6 +590,7 @@ func populateAcceptanceLists(a *App, workspace string) {
 	a.TreeSelected = treeEntryLimit - 1
 	a.TreeList.ScrollTo(a.TreeSelected, ui.Center)
 
+	a.searchRoot = workspace
 	a.SearchResults = make([]search.FileMatch, 2000)
 	for i := range a.SearchResults {
 		name := fmt.Sprintf("archive-%04d.txt", i)

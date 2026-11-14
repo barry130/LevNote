@@ -14,10 +14,11 @@ import (
 func TestResolveLocalReferenceClassification(t *testing.T) {
 	base := filepath.Join(t.TempDir(), "来源 文件.md")
 	parent := filepath.Dir(base)
-	fileURL := (&url.URL{
-		Scheme: "file",
-		Path:   "/" + filepath.ToSlash(filepath.Join(parent, "子 目录", "目标 %20.txt")),
-	}).String()
+	urlPath := filepath.ToSlash(filepath.Join(parent, "子 目录", "目标 %20.txt"))
+	if filepath.VolumeName(base) != "" {
+		urlPath = "/" + urlPath
+	}
+	fileURL := (&url.URL{Scheme: "file", Path: urlPath}).String()
 
 	tests := []struct {
 		name      string

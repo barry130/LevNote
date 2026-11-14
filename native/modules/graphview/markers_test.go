@@ -293,6 +293,41 @@ func TestMarkersNativeHeldGestureIdentityRefusalAndMerge(t *testing.T) {
 	}
 }
 
+func TestMarkersHeldSelectionRoundTripMergesOnReturn(t *testing.T) {
+	source := markerFixture([]string{"custom", "1️⃣"}, true)
+	buffer := text.New(source)
+	changed := 0
+	v := newView(kindMindmap, editor.Host{Buffer: buffer, Changed: func() { changed++ }})
+	tester := ui.NewTester(v.Draw, 760, 480)
+	openMarkers(t, tester, 760, 480)
+	revealFieldControl(t, tester, "优先级 2", 760, 480)
+	r, _ := tester.Find("优先级 2")
+	x, y := r.X+r.W/2, r.Y+r.H/2
+	tester.Press(x, y)
+	if !v.markerPress.active || v.markerPress.nodeID != "root" || v.markerPress.action != 1 {
+		t.Fatal("press did not capture the displayed node identity")
+	}
+	// selectedID is compared separately at release: a selection round trip
+	// through another node and back must not turn into a flat refusal, a
+	// retarget, or a discarded unrelated source edit.
+	if !v.selectNode("left") || !v.selectNode("root") {
+		t.Fatal("selection round trip failed")
+	}
+	replaceSource(t, buffer, `"topic":"中心"`, `"topic":"外部主题"`)
+	tester.Frame() // fixed-key controls rebuilt before original release
+	tester.Release(x, y)
+	expectMarkers(t, buffer, []string{"custom", "2️⃣"}, true)
+	if values, present := readMarkers(t, buffer, "left"); !present || !slices.Equal(values, []string{"❓"}) {
+		t.Fatalf("action retargeted to the visited node: %#v present=%t", values, present)
+	}
+	if parseMind(t, buffer).Root.Topic != "外部主题" || changed != 1 || v.markerError != nil {
+		t.Fatal("round trip did not merge the unrelated edit", changed, v.markerError)
+	}
+	if v.markerPress.active || v.markerPress.icons != nil {
+		t.Fatal("completed gesture retained snapshot")
+	}
+}
+
 func TestMarkersNativeStaleWithoutDrawAndKeyboardIdentity(t *testing.T) {
 	for _, mode := range []string{"pointer", "enter", "space"} {
 		t.Run(mode, func(t *testing.T) {

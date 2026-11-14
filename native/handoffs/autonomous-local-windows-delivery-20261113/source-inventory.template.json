@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "repositoryRoot": "F:/AIproject/LevNote",
+  "directories": [
+    "native/app",
+    "native/cmd",
+    "native/core",
+    "native/formats",
+    "native/modules",
+    "native/ui",
+    "native/vendor",
+    "native/dependency-patches",
+    "native/scripts",
+    "native/portable",
+    "native/examples",
+    "native/licenses"
+  ],
+  "rootFiles": [
+    "LICENSE",
+    "native/go.mod",
+    "native/go.sum",
+    "native/THIRD_PARTY_NOTICES.md"
+  ],
+  "files": [
+    {
+      "path": "REPLACE_WITH_EACH_COMPLETE_SCOPED_REPOSITORY_RELATIVE_FILE_PATH",
+      "bytes": 0,
+      "sha256": "REQUIRED_REAL_SHA256",
+      "lastWriteUtcTicks": 0
+    }
+  ]
+}

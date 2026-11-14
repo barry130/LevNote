@@ -22,19 +22,20 @@ func (a *App) setOutlineVisible(visible bool) {
 		return
 	}
 	a.ShowOutline = visible
+	if visible {
+		a.TreeList.Handle.CancelFocus()
+	}
 	if !visible {
 		a.releaseOutline()
 		return
 	}
 	a.OutlineSelected = -1
-	a.OutlineList = ui.ListState{}
+	a.outlineListLifetime.reset(&a.OutlineList)
 }
 
 func (a *App) releaseOutline() {
 	a.outlineGeneration++
-	if a.OutlineSource != nil {
-		a.OutlineSource.Release()
-	}
+	source := a.OutlineSource
 	a.OutlineSource = nil
 	a.OutlineTabID = 0
 	a.OutlineBuffer = nil
@@ -46,7 +47,12 @@ func (a *App) releaseOutline() {
 	a.OutlineLoaded = false
 	a.OutlineError = ""
 	a.OutlineSelected = -1
-	a.OutlineList = ui.ListState{}
+	a.outlineListLifetime.reset(&a.OutlineList)
+	// Detach all application ownership before invoking a controller callback.
+	// A reentrant release cannot see or release this controller a second time.
+	if source != nil {
+		source.Release()
+	}
 }
 
 func (a *App) outlineSourceFor(t *Tab) (editor.OutlineSource, error) {
@@ -66,7 +72,12 @@ func (a *App) outlineSourceFor(t *Tab) (editor.OutlineSource, error) {
 		a.OutlineFactoryGeneration == t.OutlineFactoryGeneration {
 		return a.OutlineSource, nil
 	}
-	a.releaseOutline()
+	// A detached controller was already invalidated at hide/tab/retry time.
+	// Do not cancel a later deliberate list-focus request merely to create
+	// its fresh controller on the next visible frame.
+	if a.OutlineSource != nil || a.OutlineTabID != 0 || a.OutlineBuffer != nil {
+		a.releaseOutline()
+	}
 	source := factory(a.editorHost(t))
 	if source == nil {
 		return nil, editor.ErrOutlineUnsupported
@@ -86,10 +97,12 @@ func (a *App) outlineSidebar(c *ui.Context) {
 	}
 	ui.Column(c.Key("outline-panel")).Grow(1).MinHeight(0).Padding(8, 10).Gap(5).Children(func() {
 		if a.Current() == nil {
+			a.OutlineList.Handle.CancelFocus()
 			ui.Text(c, "尚未打开文档。").FontSize(12).TextColor(t.TextMuted)
 			return
 		}
 		if a.OutlineError != "" {
+			a.OutlineList.Handle.CancelFocus()
 			ui.Text(c, a.OutlineError).FontSize(12).TextColor(t.Warning)
 			if a.OutlineError != editor.ErrOutlineUnsupported.Error() && ui.Button(c, "重试大纲").Height(25).Clicked() {
 				a.releaseOutline()
@@ -101,6 +114,7 @@ func (a *App) outlineSidebar(c *ui.Context) {
 				FontSize(11).TextColor(t.Warning)
 		}
 		if a.OutlineLoaded && len(a.OutlineItems) == 0 {
+			a.OutlineList.Handle.CancelFocus()
 			if !a.OutlineTruncated {
 				ui.Text(c, "此文档没有可显示的大纲项。").FontSize(12).TextColor(t.TextMuted)
 			}
@@ -108,37 +122,56 @@ func (a *App) outlineSidebar(c *ui.Context) {
 		}
 		items := a.OutlineItems
 		if len(items) == 0 {
+			a.OutlineList.Handle.CancelFocus()
 			return
 		}
-		a.OutlineList.Selected = &a.OutlineSelected
+		tab := a.Current()
+		tabID, adapter, factoryGeneration := tab.ID, tab.Adapter, tab.OutlineFactoryGeneration
+		path, mode, buffer := tab.Doc.Path, tab.Mode, tab.Doc.Buffer
+		generation, version := a.outlineGeneration, a.OutlineSnapshotVersion
+		current := func() bool {
+			return !a.shuttingDown.Load() && a.ShowOutline && a.OutlineSnapshotVersion == version && buffer.Version() == version &&
+				a.outlineNavigationContextMatches(tab, tabID, adapter, factoryGeneration, path, mode, buffer, generation)
+		}
+		selected := a.OutlineSelected
+		a.OutlineList.Selected = &selected
+		// Release may run while rows are constructed. Their captured
+		// identities must stay distinct although their content expires.
 		a.OutlineList.Key = func(i int) any {
 			if i < 0 || i >= len(items) {
-				return ""
+				return i
 			}
 			return items[i].ID
 		}
 		a.OutlineList.Label = func(i int) string {
-			if i < 0 || i >= len(items) {
+			if !current() || i < 0 || i >= len(items) {
 				return ""
 			}
 			return items[i].Text
 		}
+		a.outlineListLifetime.built = true
 		list := ui.List(c.Key("outline-list"), &a.OutlineList, len(items), func(i int) {
-			if i < 0 || i >= len(items) {
+			if !current() || i < 0 || i >= len(items) {
 				return
 			}
 			if a.outlineRowBuilt != nil {
 				a.outlineRowBuilt(i)
 			}
+			if !current() {
+				return
+			}
 			item := items[i]
 			indent := float32(min(max(item.Level-1, 0), 5) * 10)
 			ui.Row(c).FillWidth().Height(28).Padding(4, indent).Children(func() {
-				ui.Text(c, item.Text).SingleLine().Tooltip(item.Text)
+				ui.Text(c, item.Text).SingleLine().Grow(1).MinWidth(0).Tooltip(item.Text)
 			})
 		}).Grow(1)
-		_ = list
-		if list.Submitted() {
-			a.activateSelectedOutlineItem()
+		if current() {
+			a.OutlineSelected = selected
+			if list.Submitted() && selected >= 0 && selected < len(items) && selected < len(a.OutlineItems) &&
+				a.OutlineItems[selected].ID == items[selected].ID {
+				a.activateSelectedOutlineItem()
+			}
 		}
 	})
 }
@@ -162,7 +195,7 @@ func (a *App) ensureOutlineSnapshot(t *Tab, preferredID string, force bool) erro
 		a.OutlineItems = nil
 		a.OutlineTruncated = false
 		a.OutlineSelected = -1
-		a.OutlineList = ui.ListState{}
+		a.outlineListLifetime.reset(&a.OutlineList)
 		return err
 	}
 	version := t.Doc.Buffer.Version()
@@ -181,7 +214,7 @@ func (a *App) ensureOutlineSnapshot(t *Tab, preferredID string, force bool) erro
 		a.OutlineItems = nil
 		a.OutlineTruncated = false
 		a.OutlineSelected = -1
-		a.OutlineList = ui.ListState{}
+		a.outlineListLifetime.reset(&a.OutlineList)
 		return err
 	}
 	if snapshot.Version != version {
@@ -190,10 +223,13 @@ func (a *App) ensureOutlineSnapshot(t *Tab, preferredID string, force bool) erro
 		a.OutlineItems = nil
 		a.OutlineTruncated = false
 		a.OutlineSelected = -1
-		a.OutlineList = ui.ListState{}
+		a.outlineListLifetime.reset(&a.OutlineList)
 		return err
 	}
 	items, truncated := boundedOutlineItems(snapshot.Items)
+	if len(items) == 0 {
+		a.outlineListLifetime.reset(&a.OutlineList)
+	}
 	a.OutlineItems = items
 	a.OutlineSnapshotVersion = version
 	a.OutlineTruncated = snapshot.Truncated || truncated
@@ -264,7 +300,7 @@ func (a *App) selectOutlineItem(id string, scroll bool) {
 		if item.ID == id {
 			a.OutlineSelected = i
 			if scroll {
-				a.OutlineList.ScrollIntoView(i)
+				a.outlineListLifetime.reveal(&a.OutlineList, i)
 			}
 			return
 		}

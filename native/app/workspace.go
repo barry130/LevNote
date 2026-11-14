@@ -68,6 +68,7 @@ func (a *App) Shutdown() {
 		a.report(fmt.Errorf("导出进程清理失败：%w", err))
 	}
 	a.releaseOutline()
+	a.closeAppLists()
 	close(a.shutdownDone)
 	if a.searchCancel != nil {
 		a.searchCancel()
@@ -95,10 +96,11 @@ func (a *App) searchWorkspace() {
 	a.SearchIssues = nil
 	a.SearchIssuesDropped = 0
 	a.SearchSelected = -1
-	a.SearchList = ui.ListState{}
-	a.SearchList.ScrollTo(0, ui.Start)
+	a.searchListLifetime.reset(&a.SearchList)
+	a.SearchSummary = ""
 	a.ShowWorkspaceSearch = true
 	root, opts := a.Root, a.findOptions()
+	a.searchRoot = root
 	go func() {
 		summary, err := search.Workspace(ctx, root, search.WorkspaceOptions{Options: opts}, func(batch search.Batch) {
 			a.update(func() {
@@ -139,60 +141,94 @@ func (a *App) addSearchIssues(issues []search.FileIssue) {
 }
 
 func (a *App) workspaceResults(c *ui.Context) {
-	ui.Column(c).Height(230).Border(1, c.Theme().Border).Children(func() {
+	panelHeight := float32(230)
+	if _, height := c.Size(); height > 0 && height < 600 {
+		// Leave source input usable beside Find at the 760x480 minimum.
+		panelHeight = min(panelHeight, max(float32(110), height-260))
+	}
+	ui.Column(c).Height(panelHeight).Shrink(1).MinHeight(110).Border(1, c.Theme().Border).Children(func() {
 		ui.Row(c).Padding(8, 12).Gap(8).Children(func() {
 			label := a.SearchSummary
 			if a.Searching {
 				label = "正在搜索工作区…"
 			}
-			ui.Text(c, label).FontSize(12).Grow(1)
-			if a.Searching && ui.Button(c, "取消搜索").Clicked() {
+			ui.Text(c, label).FontSize(12).SingleLine().Grow(1).Shrink(1).MinWidth(0).Tooltip(label)
+			if a.Searching && ui.Button(c, "取消搜索").Shrink(0).Clicked() && a.searchCancel != nil {
 				a.searchCancel()
 			}
-			if len(a.SearchIssues) > 0 && ui.Button(c, "查看跳过详情").Clicked() {
+			if len(a.SearchIssues) > 0 && ui.Button(c, "查看跳过详情").Shrink(0).Clicked() {
 				a.ShowIssues = true
 			}
-			if ui.Button(c, "收起结果").Clicked() {
+			if ui.Button(c, "收起结果").Shrink(0).Clicked() {
 				a.ShowWorkspaceSearch = false
+				a.SearchList.Handle.CancelFocus()
 			}
 		})
+		if !a.ShowWorkspaceSearch {
+			return // Collapse preserves the current results and scroll place.
+		}
+		if a.searchRoot != a.Root {
+			a.SearchList.Handle.CancelFocus()
+			ui.Text(c, "工作区已变化，请重新搜索。").FontSize(12).TextColor(c.Theme().TextMuted).Padding(10, 14)
+			return
+		}
 		results := a.SearchResults
 		if len(results) == 0 {
+			a.SearchList.Handle.CancelFocus()
 			label := "没有匹配结果。"
 			if a.Searching {
 				label = "正在读取结果…"
 			}
 			ui.Text(c, label).FontSize(12).TextColor(c.Theme().TextMuted).Padding(10, 14)
 		} else {
-			a.SearchList.Selected = &a.SearchSelected
+			id, root := a.searchID, a.searchRoot
+			current := func() bool {
+				return !a.shuttingDown.Load() && a.ShowWorkspaceSearch && !a.ShowPlugins &&
+					a.searchID == id && a.searchRoot == root && a.Root == root
+			}
+			selected := a.SearchSelected
+			a.SearchList.Selected = &selected
+			// Captured keys stay distinct until this frame finishes, even
+			// when a newer search makes its labels and actions obsolete.
 			a.SearchList.Key = func(i int) any {
 				if i < 0 || i >= len(results) {
-					return searchRowKey{}
+					return i
 				}
 				result := results[i]
 				return searchRowKey{Path: result.Path, Start: result.Start, End: result.End}
 			}
 			a.SearchList.Label = func(i int) string {
-				if i < 0 || i >= len(results) {
+				if !current() || i < 0 || i >= len(results) {
 					return ""
 				}
 				result := results[i]
 				return fmt.Sprintf("%s:%d  %s", filepath.Base(result.Path), result.Line, result.Preview)
 			}
+			a.searchListLifetime.built = true
 			list := ui.List(c, &a.SearchList, len(results), func(i int) {
-				if i < 0 || i >= len(results) {
+				if !current() || i < 0 || i >= len(results) {
 					return
 				}
 				if a.searchRowBuilt != nil {
 					a.searchRowBuilt(i)
 				}
+				if !current() {
+					return
+				}
 				result := results[i]
+				label := fmt.Sprintf("%s:%d  %s", filepath.Base(result.Path), result.Line, result.Preview)
 				ui.Row(c).FillWidth().Height(28).Padding(4, 8).Children(func() {
-					ui.Text(c, fmt.Sprintf("%s:%d  %s", filepath.Base(result.Path), result.Line, result.Preview))
+					ui.Text(c, label).SingleLine().Grow(1).MinWidth(0).Tooltip(result.Path + "\n" + label)
 				})
 			}).Grow(1)
-			if list.Submitted() {
-				a.activateSearchResult(a.SearchSelected)
+			if current() {
+				a.SearchSelected = selected
+				if list.Submitted() && selected >= 0 && selected < len(results) && selected < len(a.SearchResults) {
+					old, now := results[selected], a.SearchResults[selected]
+					if old.Path == now.Path && old.Start == now.Start && old.End == now.End {
+						a.activateSearchResult(selected)
+					}
+				}
 			}
 		}
 	})

@@ -1,14 +1,13 @@
 # Native migration: current coordination
 
-Updated2026-11-12. User requests Go + MyGo native Surface UI, project-authored
+Updated2026-11-13. User requests Go + MyGo native Surface UI, project-authored
 engines, local plugins, simple UI and low resource use. Since2026-11-11 the
 DSH lead session is the main responsible party (user ruling); it plans,
-assigns, reviews and accepts. Children execute explicitly assigned product
-work only on the authorized remote box; no local fallback. The latest full-app
-autonomous-development directive below opens the current working source for
-new iterations; closed evidence and accepted packages remain immutable.
-Root may edit planning/handoff files. Commits/pushes to CNB+GitHub main are
-user-authorized; no branches.
+assigns, reviews and accepts. The latest execution-plane ruling moves all
+current source implementation and product validation to the local Windows
+checkout F:/AIproject/LevNote. MCP/box is no longer a development or validation
+dependency. Closed evidence and accepted packages remain immutable.
+Commits/pushes to CNB+GitHub main are user-authorized; no branches.
 
 ## Active ownership
 
@@ -25,15 +24,14 @@ historical phase holds below):
   Preserve original prepare02 assets, failed caller/phase/run-root/toolchain
   snapshot, raw failures, .29 package and all closed historical evidence;
   never relaunch or overwrite the consumed original test/vet namespace.
-- Lead remains planning/review/acceptance only. Explicitly assigned children
-  implement source/tests/helpers and execute new product commands only on the
-  existing main box. The local checkout is for reading, planning/handoffs,
-  byte-exact mirrors of box-authored output for review, and Git delivery; it is
-  not a product implementation or execution fallback. Maximum3 parallel
-  children, no child delegation. Use new isolated dev work/evidence paths;
-  do not mutate the old guarded source/toolchain or source the ordinary dev env
-  into that old guard namespace. Preserve real commands, outputs/exits and
-  failures. No alternative box.
+- Latest execution-plane ruling2026-11-13 supersedes the previous box-only
+  assignment: all current implementation, tests, vet, builds and runs use the
+  local Windows checkout F:/AIproject/LevNote. No MCP/box call is needed.
+  Lead owns planning/review/acceptance and may implement or delegate current
+  local work. Maximum3 parallel children, no child delegation. Declare disjoint
+  write scopes and preserve actual commands, outputs/exits and failures in new
+  local development evidence paths. Never modify or restart the old guarded
+  source/toolchain/run namespaces.
 - New product source may be revised to fix genuine defects; existing Windows
   assertions and platform semantics must not be weakened merely to make Linux
   green. Linux development evidence is not Windows/IME/PE/WM_CLOSE acceptance.
@@ -397,7 +395,7 @@ named handoffs. Historical task instructions are inactive unless reactivated.
 
 ## Accepted runnable package
 
-Latest accepted runnable: [levnote-native.exe](<F:/AIproject/LevNote/bin/levnote-native-worker-20261110.29/levnote-native.exe>),
+Latest accepted runnable: [levnote-native.exe](<F:/AIproject/LevNote/native/bin/levnote-native-worker-20261110.29/levnote-native.exe>),
 version native-worker.20261110.29. Its exact package and delivery evidence are
 [accepted separately](<F:/AIproject/LevNote/native/handoffs/composition-release29-root-acceptance.md>).
 No current autonomous source or .30 preparation has earned a replacement
@@ -567,10 +565,15 @@ engine-panel images remain historical .10 captures, not physical UI/IME tests.
 
 ## Development and product constraints
 
-- All Go uses `native/scripts/go.ps1 -GoArguments @(...)` from repo root, selecting
-  Go1.27.3/local cache/vendor/startup patch. No raw/system Go. Preserve actual
-  command/output/exit and failures. `native/` untracked: empty git diff proves
-  nothing. Use small scoped inventories only where needed, no toolchain hashes.
+- Current local development uses `bash .localtools/gate.sh test <packages>`,
+  `bash .localtools/gate.sh vet` and `bash .localtools/gate.sh build`, selecting
+  Go1.27.3 from `.localtools/go1.27.3`, workspace-local cache/tmp, offline vendor
+  and telemetry-off. Product roots are `./app/ ./cmd/... ./core/... ./formats/...
+  ./modules/... ./ui/...`; never include handoff snapshots through `./...`.
+  The legacy packaging wrapper `native/scripts/go.ps1` still checks startup/
+  bitmap patches; its toolchain path must be reviewed before current packaging.
+  No raw/system Go. Preserve actual command/output/exit and failures; untracked
+  files are part of the review even when git diff is empty. Use scoped inventories.
 - MyGo drawing/font shaping/native input primitives only; no prebuilt document
   editors. Small utility controls permitted. Format views use neutral host
   contracts, no direct filesystem or introspection of toolkit widget trees.
@@ -587,7 +590,8 @@ engine-panel images remain historical .10 captures, not physical UI/IME tests.
   list remain usable. Damaged selection state differs from individual bad
   package. Never release writable drafts just to switch engines.
 - Avoid duplicate gates/unrelated suites. Run substantive focused tests and one
-  final affected full suite after corrections. Root never executes tests/builds.
+  final affected full suite after corrections. The local execution-plane ruling
+  permits lead or its explicitly assigned child to execute those current gates.
 - Computer Use helper failed3bounded native-pipe probes before launch; see
   [result](handoffs/release10-ui-feasibility-result.md). No helper retry/resource
   matrix active. Don't bypass with homemade UI automation. Tester captures and

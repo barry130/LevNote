@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -45,15 +46,18 @@ func resolveLocalReference(sourcePath, reference string) referenceResolution {
 		return referenceResolution{kind: referenceAnchor, anchor: anchor}
 	}
 
-	if strings.HasPrefix(reference, "//") || strings.HasPrefix(reference, `\\`) {
+	if hasDoublePathRoot(reference) {
 		return rejectedReference("本地版不会打开网络地址或远程 UNC 路径。")
+	}
+	if filepath.IsAbs(reference) {
+		return referenceResolution{kind: referenceLocal, path: filepath.Clean(reference)}
 	}
 	if strings.HasPrefix(reference, "/") || strings.HasPrefix(reference, `\`) {
 		return rejectedReference("本地版不会使用当前盘符解析根相对路径；请使用完整的 Windows 绝对路径。")
 	}
 
 	if isWindowsDriveAbsolute(reference) {
-		return referenceResolution{kind: referenceLocal, path: filepath.Clean(filepath.FromSlash(reference))}
+		return referenceResolution{kind: referenceLocal, path: cleanWindowsDriveAbsolute(reference)}
 	}
 	if hasWindowsDrivePrefix(reference) {
 		return rejectedReference("本地版不会打开盘符相对路径；请使用完整的 Windows 绝对路径。")
@@ -65,9 +69,6 @@ func resolveLocalReference(sourcePath, reference string) referenceResolution {
 		return resolveFileURL(reference)
 	}
 
-	if filepath.IsAbs(reference) {
-		return referenceResolution{kind: referenceLocal, path: filepath.Clean(reference)}
-	}
 	if sourcePath == "" {
 		return rejectedReference("当前文档尚未保存，无法解析本地相对引用；请先保存文档。")
 	}
@@ -78,6 +79,19 @@ func resolveLocalReference(sourcePath, reference string) referenceResolution {
 		kind: referenceLocal,
 		path: filepath.Clean(filepath.Join(filepath.Dir(sourcePath), filepath.FromSlash(reference))),
 	}
+}
+
+// Reject UNC, device, and mixed-separator double roots before any cleaning.
+func hasDoublePathRoot(value string) bool {
+	return len(value) >= 2 && (value[0] == '/' || value[0] == '\\') &&
+		(value[1] == '/' || value[1] == '\\')
+}
+
+// Windows literals keep Windows lexical semantics on every test host.
+// The leading slash in the path package prevents .. from escaping the drive.
+func cleanWindowsDriveAbsolute(value string) string {
+	tail := path.Clean("/" + strings.ReplaceAll(value[3:], `\`, "/"))
+	return value[:2] + strings.ReplaceAll(tail, "/", `\`)
 }
 
 func isWindowsDriveAbsolute(value string) bool {
@@ -122,7 +136,7 @@ func resolveFileURL(reference string) referenceResolution {
 	if parsed.Host != "" || parsed.User != nil {
 		return rejectedReference("本地版只支持不带主机名的本机文件 URL；远程主机或共享路径不会打开。")
 	}
-	if parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.RawFragment != "" {
+	if parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.RawFragment != "" || strings.Contains(reference, "#") {
 		return rejectedReference("文件 URL 含有查询或片段，未执行打开。")
 	}
 
@@ -139,23 +153,25 @@ func resolveFileURL(reference string) referenceResolution {
 	if strings.ContainsRune(decoded, '\x00') {
 		return rejectedReference("文件 URL 含有空字符，未执行打开。")
 	}
-	if strings.HasPrefix(decoded, "//") || strings.HasPrefix(decoded, `\\`) {
+	if hasDoublePathRoot(decoded) {
 		return rejectedReference("本地版不会打开编码后的远程 UNC 路径。")
 	}
 
-	// Standard Windows file URLs use /C:/path. Remove that one URL separator;
-	// the decoded path is not unescaped a second time.
-	if strings.HasPrefix(decoded, "/") {
+	// Only /C:/path contributes an extra URL separator. A genuine Unix root
+	// stays intact, and the already-decoded path is never unescaped twice.
+	if strings.HasPrefix(decoded, "/") && isWindowsDriveAbsolute(decoded[1:]) {
 		decoded = decoded[1:]
 	}
-	if strings.HasPrefix(decoded, "//") || strings.HasPrefix(decoded, `\\`) {
+	if hasDoublePathRoot(decoded) {
 		return rejectedReference("本地版不会打开编码后的远程 UNC 路径。")
 	}
-	localPath := filepath.Clean(filepath.FromSlash(decoded))
-	if !filepath.IsAbs(localPath) {
+	if isWindowsDriveAbsolute(decoded) {
+		return referenceResolution{kind: referenceLocal, path: cleanWindowsDriveAbsolute(decoded)}
+	}
+	if !isNativeAbsoluteFilePath(decoded) {
 		return rejectedReference("文件 URL 必须指向本机绝对路径。")
 	}
-	return referenceResolution{kind: referenceLocal, path: localPath}
+	return referenceResolution{kind: referenceLocal, path: filepath.Clean(decoded)}
 }
 
 func (a *App) editorHost(t *Tab) editor.Host {

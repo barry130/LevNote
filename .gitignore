@@ -46,3 +46,6 @@ native/build-cache/
 native/bin/
 native/artifacts/
 native/*.exe
+
+# Current local Windows toolchain/cache/evidence; not product source.
+.localtools/

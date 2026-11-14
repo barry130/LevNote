@@ -11,6 +11,7 @@ import (
 )
 
 func (a *App) View(c *ui.Context) {
+	a.beginAppListFrame()
 	a.deliverBinary()
 	a.expireFindCache()
 	a.deliverPackageWork()
@@ -39,6 +40,8 @@ func (a *App) View(c *ui.Context) {
 		a.closeGoToLine()
 	}
 	a.shortcuts(c)
+	a.cancelHiddenListFocus()
+	a.consumeHistoryNotices()
 	ui.Column(c).Fill().Background(theme.Background).Children(func() {
 		ui.Row(c.Key("toolbar")).Height(46).Padding(7, 16).Gap(8).Background(theme.Surface).Children(func() {
 			ui.Text(c, "轻笺").Bold().FontSize(16).Margin(0, 12, 0, 0)
@@ -115,6 +118,12 @@ func (a *App) View(c *ui.Context) {
 					a.workspaceResults(c)
 				}
 				if t := a.Current(); t != nil {
+					if t.textCapable() && t.Doc.Buffer != nil && t.Doc.Buffer.History().Truncated {
+						ui.Row(c.Key("history-budget-notice")).Height(30).Shrink(0).Padding(7, 18).Children(func() {
+							ui.Text(c, historyBudgetNotice).FontSize(11).TextColor(theme.Warning).
+								SingleLine().Tooltip(historyBudgetNotice).Grow(1)
+						})
+					}
 					if t.Conflict {
 						a.conflictBar(c, t)
 					}
@@ -219,27 +228,42 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 			entries := a.Entries
 			if len(entries) == 0 {
+				a.TreeList.Handle.CancelFocus()
 				ui.Text(c, "此文件夹为空。").FontSize(12).TextColor(t.TextMuted).Padding(10, 12)
 			} else {
-				a.TreeList.Selected = &a.TreeSelected
+				root, generation := a.Root, a.treeGeneration
+				current := func() bool {
+					return !a.shuttingDown.Load() && !a.ShowOutline && a.Root == root &&
+						a.treeRoot == root && a.treeGeneration == generation
+				}
+				// List input may finish after a row callback changes the root. A
+				// pass-local choice cannot write back into the replacement model.
+				selected := a.TreeSelected
+				a.TreeList.Selected = &selected
+				// A built frame still owns all captured row identities after a
+				// root change. Content and actions, not structural keys, expire.
 				a.TreeList.Key = func(i int) any {
 					if i < 0 || i >= len(entries) {
-						return ""
+						return i
 					}
 					return entries[i].Path
 				}
 				a.TreeList.Label = func(i int) string {
-					if i < 0 || i >= len(entries) {
+					if !current() || i < 0 || i >= len(entries) {
 						return ""
 					}
 					return entries[i].Name
 				}
+				a.treeListLifetime.built = true
 				list := ui.List(c, &a.TreeList, len(entries), func(i int) {
-					if i < 0 || i >= len(entries) {
+					if !current() || i < 0 || i >= len(entries) {
 						return
 					}
 					if a.treeRowBuilt != nil {
 						a.treeRowBuilt(i)
+					}
+					if !current() {
+						return
 					}
 					entry := entries[i]
 					prefix := "  "
@@ -250,11 +274,15 @@ func (a *App) sidebar(c *ui.Context) {
 						}
 					}
 					ui.Row(c).FillWidth().Height(29).Padding(4, 10+float32(entry.Depth)*14).Children(func() {
-						ui.Text(c, prefix+entry.Name)
+						ui.Text(c, prefix+entry.Name).SingleLine().Grow(1).MinWidth(0).Tooltip(entry.Path)
 					})
 				}).Grow(1)
-				if list.Submitted() {
-					a.activateTreeEntry(a.TreeSelected)
+				if current() {
+					a.TreeSelected = selected
+					if list.Submitted() && selected >= 0 && selected < len(entries) &&
+						selected < len(a.Entries) && a.Entries[selected].Path == entries[selected].Path {
+						a.activateTreeEntry(selected)
+					}
 				}
 			}
 		}
@@ -362,7 +390,7 @@ func (a *App) settings(c *ui.Context) {
 				a.font(1)
 			}
 			lineLabel := "显示行号"
-			if !a.LineNumbers {
+			if a.LineNumbers {
 				lineLabel = "隐藏行号"
 			}
 			if ui.Button(c, lineLabel).Clicked() {
@@ -371,7 +399,7 @@ func (a *App) settings(c *ui.Context) {
 				a.Persist()
 			}
 			wrapLabel := "自动换行"
-			if !a.SoftWrap {
+			if a.SoftWrap {
 				wrapLabel = "关闭换行"
 			}
 			if ui.Button(c, wrapLabel).Clicked() {
@@ -533,6 +561,9 @@ func (a *App) issues(c *ui.Context) {
 		}
 		for i, issue := range a.Issues {
 			ui.Text(c.Key(i), issue).FontSize(12)
+		}
+		if ui.Button(c, "复制全部").Clicked() {
+			a.copyIssues(a.writeIssuesClipboard)
 		}
 		if ui.Button(c, "收起问题").Clicked() {
 			a.ShowIssues = false

@@ -55,6 +55,21 @@ func (e *Error) Error() string {
 }
 func (e *Error) Unwrap() error { return e.Kind }
 
+// PublicationError means atomic publication completed, but durability or
+// read-back verification failed. The target cannot safely be rolled back and
+// no clean saved baseline was established. MetadataAdopted identifies SaveAs
+// failures after Path/IsNew/ReadOnly changed; Cause remains available to Is/As.
+type PublicationError struct {
+	Path            string
+	MetadataAdopted bool
+	Cause           error
+}
+
+func (e *PublicationError) Error() string {
+	return fmt.Sprintf("save incomplete; bytes may already be on target %s (metadata adopted: %t): %v", e.Path, e.MetadataAdopted, e.Cause)
+}
+func (e *PublicationError) Unwrap() error { return e.Cause }
+
 type identity struct {
 	hash [32]byte
 	info os.FileInfo
@@ -74,6 +89,7 @@ type Document struct {
 	dirtyVersion     uint64
 	dirtyValue       bool
 	dirtyCached      bool
+	unverifiedSave   bool
 }
 
 func New(value string) *Document {
@@ -138,7 +154,7 @@ func open(path string, forced Encoding) (*Document, error) {
 }
 
 func (d *Document) Dirty() bool {
-	if d.IsNew || d.Encoding != d.savedEncoding || d.BOM != d.savedBOM {
+	if d.IsNew || d.unverifiedSave || d.Encoding != d.savedEncoding || d.BOM != d.savedBOM {
 		return true
 	}
 	if !d.dirtyCached || d.dirtyVersion != d.Buffer.Version() {
@@ -153,8 +169,11 @@ func (d *Document) CheckExternalChange() (bool, error) {
 	if d.IsNew || d.Path == "" {
 		return false, nil
 	}
-	id, err := fingerprint(d.Path)
-	if errors.Is(err, os.ErrNotExist) {
+	if d.disk.info == nil {
+		return true, nil
+	}
+	id, err := fingerprint(d.Path, d.disk.info.Size(), d.disk.info)
+	if errors.Is(err, os.ErrNotExist) || errors.Is(err, ErrConflict) {
 		return true, nil
 	}
 	if err != nil {
@@ -201,15 +220,30 @@ func (d *Document) Save() error {
 	if d.ReadOnly {
 		return &Error{"save", d.Path, ErrReadOnly, nil}
 	}
+	path, buffer, version := d.Path, d.Buffer, d.Buffer.Version()
+	encoding, bom, disk, revision := d.Encoding, d.BOM, d.disk, d.baselineRevision
 	check := func() error {
-		id, err := fingerprint(d.Path)
+		if d.ReadOnly {
+			return &Error{"save", path, ErrReadOnly, nil}
+		}
+		if d.Buffer != buffer || d.Path != path || d.IsNew || d.Encoding != encoding || d.BOM != bom ||
+			buffer.Version() != version || d.baselineRevision != revision || disk.info != nil && !sameIdentity(d.disk, disk) {
+			return &Error{"save", path, ErrDirty, nil}
+		}
+		if buffer.InGroup() {
+			return ErrComposition
+		}
+		if disk.info == nil {
+			return &Error{"save", d.Path, ErrConflict, nil}
+		}
+		id, err := fingerprint(path, disk.info.Size(), disk.info)
 		if errors.Is(err, os.ErrNotExist) {
 			return &Error{"save", d.Path, ErrConflict, err}
 		}
 		if err != nil {
 			return err
 		}
-		if !sameIdentity(d.disk, id) {
+		if !sameIdentity(disk, id) {
 			return &Error{"save", d.Path, ErrConflict, nil}
 		}
 		if id.info.Mode().Perm()&0200 == 0 {
@@ -228,20 +262,21 @@ func (d *Document) Save() error {
 		return nil
 	}
 	if d.Encoding == UTF8 {
-		digest, err := writeUTF8Atomic(d.Path, d.disk.info.Mode(), false, check, d.Buffer.Snapshot(), d.BOM)
+		digest, encodedLength, outcome, err := writeUTF8AtomicOutcome(d.Path, d.disk.info.Mode(), false, check, d.Buffer.Snapshot(), d.BOM)
 		if err != nil {
-			return err
+			return publicationFailure(d.Path, outcome, false, err)
 		}
-		return d.didSave(digest)
+		return d.finishSave(digest, encodedLength, outcome.info, false)
 	}
 	bytes, err := encode(d.Buffer.String(), d.Encoding, d.BOM)
 	if err != nil {
 		return err
 	}
-	if err = writeAtomic(d.Path, bytes, d.disk.info.Mode(), false, check); err != nil {
-		return err
+	outcome, err := writeAtomicOutcome(d.Path, bytes, d.disk.info.Mode(), false, check)
+	if err != nil {
+		return publicationFailure(d.Path, outcome, false, err)
 	}
-	return d.didSave(sha256.Sum256(bytes))
+	return d.finishSave(sha256.Sum256(bytes), int64(len(bytes)), outcome.info, false)
 }
 
 // SaveAs is deliberately non-overwriting. The host may offer a separate
@@ -263,45 +298,62 @@ func (d *Document) SaveAs(path string) error {
 		return err
 	}
 	if d.Encoding == UTF8 {
-		digest, err := writeUTF8Atomic(path, 0600, true, nil, d.Buffer.Snapshot(), d.BOM)
+		digest, encodedLength, outcome, err := writeUTF8AtomicOutcome(path, 0600, true, nil, d.Buffer.Snapshot(), d.BOM)
 		if err != nil {
-			return err
+			return publicationFailure(path, outcome, false, err)
 		}
 		d.Path = path
 		d.IsNew = false
 		d.ReadOnly = false
-		return d.didSave(digest)
-	} else {
-		bytes, err := encode(d.Buffer.String(), d.Encoding, d.BOM)
-		if err != nil {
-			return err
-		}
-		if err = writeAtomic(path, bytes, 0600, true, nil); err != nil {
-			return err
-		}
-		d.Path = path
-		d.IsNew = false
-		d.ReadOnly = false
-		return d.didSave(sha256.Sum256(bytes))
+		return d.finishSave(digest, encodedLength, outcome.info, true)
 	}
-}
-
-func (d *Document) didSave(expected [32]byte) error {
-	info, err := os.Stat(d.Path)
-	if err != nil {
-		return &Error{"verify save", d.Path, err, nil}
-	}
-	// Read back the committed file so successful saves never silently establish
-	// a baseline for another process's content written immediately after ours.
-	id, err := fingerprint(d.Path)
+	bytes, err := encode(d.Buffer.String(), d.Encoding, d.BOM)
 	if err != nil {
 		return err
+	}
+	outcome, err := writeAtomicOutcome(path, bytes, 0600, true, nil)
+	if err != nil {
+		return publicationFailure(path, outcome, false, err)
+	}
+	d.Path = path
+	d.IsNew = false
+	d.ReadOnly = false
+	return d.finishSave(sha256.Sum256(bytes), int64(len(bytes)), outcome.info, true)
+}
+
+func publicationFailure(path string, outcome atomicOutcome, metadataAdopted bool, err error) error {
+	if outcome.Committed {
+		return &PublicationError{Path: path, MetadataAdopted: metadataAdopted, Cause: err}
+	}
+	return err
+}
+
+func (d *Document) finishSave(expected [32]byte, encodedLength int64, expectedInfo os.FileInfo, metadataAdopted bool) error {
+	if err := d.didSave(expected, encodedLength, expectedInfo); err != nil {
+		// SaveAs already adopted the target metadata, but even a new buffer
+		// equal to its initial snapshot must remain an unverified dirty draft.
+		d.unverifiedSave = true
+		return &PublicationError{Path: d.Path, MetadataAdopted: metadataAdopted, Cause: err}
+	}
+	return nil
+}
+
+func (d *Document) didSave(expected [32]byte, encodedLength int64, expectedInfo os.FileInfo) error {
+	// Read back at most the exact published encoded length plus one. The real
+	// intended temp-file identity, not another writer's post-publication Stat,
+	// anchors verification. Published bytes cannot be rolled back here; refuse
+	// visibly without adopting the live buffer or saved/disk state. SaveAs has
+	// already changed Path/IsNew/ReadOnly after successful publication.
+	id, err := fingerprint(d.Path, encodedLength, expectedInfo)
+	if err != nil {
+		return &Error{"verify save", d.Path, err, nil}
 	}
 	if id.hash != expected {
 		return &Error{"verify save", d.Path, ErrConflict, nil}
 	}
 	d.disk = id
-	d.ReadOnly = info.Mode().Perm()&0200 == 0
+	d.unverifiedSave = false
+	d.ReadOnly = id.info.Mode().Perm()&0200 == 0
 	d.baselineRevision++
 	d.saved = d.Buffer.Snapshot()
 	d.savedEncoding, d.savedBOM = d.Encoding, d.BOM
@@ -376,12 +428,35 @@ func readStable(path string, limit int64) ([]byte, identity, error) {
 	}
 	return bytes, identity{sha256.Sum256(bytes), after}, nil
 }
-func fingerprint(path string) (identity, error) {
+func fingerprint(path string, expectedLength int64, expectedInfo os.FileInfo) (identity, error) {
+	current, err := os.Stat(path)
+	if err != nil {
+		return identity{}, err
+	}
+	if !current.Mode().IsRegular() {
+		return identity{}, ErrNotRegular
+	}
+	if current.Size() != expectedLength || expectedInfo != nil && !os.SameFile(expectedInfo, current) {
+		return identity{}, ErrConflict
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return identity{}, err
 	}
 	defer f.Close()
+	return fingerprintOpened(path, f, expectedLength, expectedInfo)
+}
+
+type fingerprintFile interface {
+	io.Reader
+	Stat() (os.FileInfo, error)
+}
+
+// fingerprintOpened hashes at most the expected encoded bytes plus one. Expected
+// info establishes size and file identity, never baseline mtime: a same-file,
+// same-content touch is not a conflict. Only observations during this read must
+// agree on mtime, so concurrent writes cannot establish a successful identity.
+func fingerprintOpened(path string, f fingerprintFile, expectedLength int64, expectedInfo os.FileInfo) (identity, error) {
 	before, err := f.Stat()
 	if err != nil {
 		return identity{}, err
@@ -389,8 +464,13 @@ func fingerprint(path string) (identity, error) {
 	if !before.Mode().IsRegular() {
 		return identity{}, ErrNotRegular
 	}
+	if expectedLength < 0 || expectedLength == 1<<63-1 || before.Size() != expectedLength ||
+		expectedInfo != nil && (expectedInfo.Size() != expectedLength || !os.SameFile(expectedInfo, before)) {
+		return identity{}, ErrConflict
+	}
 	h := sha256.New()
-	if _, err = io.Copy(h, f); err != nil {
+	count, err := io.Copy(h, io.LimitReader(f, expectedLength+1))
+	if err != nil {
 		return identity{}, err
 	}
 	after, err := f.Stat()
@@ -401,7 +481,8 @@ func fingerprint(path string) (identity, error) {
 	if err != nil {
 		return identity{}, err
 	}
-	if before.Size() != after.Size() || !before.ModTime().Equal(after.ModTime()) ||
+	if count != expectedLength || !after.Mode().IsRegular() || !current.Mode().IsRegular() ||
+		before.Size() != after.Size() || !before.ModTime().Equal(after.ModTime()) || !os.SameFile(before, after) ||
 		after.Size() != current.Size() || !after.ModTime().Equal(current.ModTime()) || !os.SameFile(after, current) {
 		return identity{}, ErrConflict
 	}

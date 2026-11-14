@@ -22,6 +22,9 @@ type View struct {
 	docBuffer                      *text.Buffer
 	loaded                         bool
 	previewError                   error // cached size refusal; never owns source text
+	historyError                   error
+	historyReleased                uint64
+	historyControls                ui.Handle
 	editing                        int
 	draft                          *editor.Editor
 	editBuffer                     *text.Buffer
@@ -149,6 +152,10 @@ func (v *View) refresh() {
 }
 
 func (v *View) Release() {
+	v.historyReleased++
+	v.historyError = nil
+	v.list.Handle.CancelFocus()
+	v.historyControls.CancelFocus()
 	v.linkReleased++
 	v.linkPointerUp, v.linkGestureBuilt, v.linkPointerContinuation = false, false, false
 	v.tableActionReleased++
@@ -179,7 +186,7 @@ func (v *View) Release() {
 	// Navigation may synchronously release us during a List row callback.
 	// Swap ownership; the active immutable build keeps its old state pointer
 	// until MyGo finishes that pass, rather than zeroing it underneath MyGo.
-	v.list = &ui.ListState{}
+	v.resetPreviewList()
 	if v.outline != nil {
 		v.outline.Release()
 		v.outline = nil
@@ -212,6 +219,9 @@ func (v *View) Warnings() []string {
 	}
 	if v.tableActionError != nil {
 		warnings = append(warnings, v.tableActionError.Error())
+	}
+	if v.historyError != nil {
+		warnings = append(warnings, v.historyError.Error())
 	}
 	return warnings
 }
@@ -257,6 +267,7 @@ func (v *View) Export(format string) ([]byte, error) {
 }
 
 func (v *View) Draw(c *ui.Context) {
+	history := v.historyTarget()
 	heldInlineGesture := v.linkActivation.buffer != nil
 	defer func() {
 		if v.linkPointerUp || v.linkActivation.buffer != nil && !v.linkGestureBuilt {
@@ -315,6 +326,11 @@ func (v *View) Draw(c *ui.Context) {
 			ui.Text(c, "没有可用的文档缓冲区").TextColor(c.Theme().Warning)
 			return
 		}
+		v.drawHistoryControls(c, history)
+		if v.historyError != nil {
+			ui.Text(c, v.historyError.Error()).MaxLines(2).Ellipsis("…").
+				Tooltip(v.historyError.Error()).FontSize(11).TextColor(c.Theme().Warning).Shrink(0)
+		}
 		if v.tableActionError != nil && v.cellEdit == nil {
 			ui.Text(c, v.tableActionError.Error()).Label("表格操作问题").MaxLines(2).Ellipsis("…").
 				Tooltip(v.tableActionError.Error()).FontSize(11).TextColor(c.Theme().Warning).Shrink(0)
@@ -345,6 +361,7 @@ func (v *View) Draw(c *ui.Context) {
 		preview := previewSnapshot{v.doc, v.rows, v.docBuffer, v.version}
 		list := ui.List(c.Key("preview-list"), v.list, len(preview.rows)).Grow(1).MinHeight(0).Clip().TrackScroll(&v.scroll).Padding(8, 18).Gap(6).
 			ItemKey(func(i int) any { return preview.rows[i].id }).Rows(func(row ui.ListRow) { v.drawPreviewRow(row.Context, preview, row.Index) })
+		list.ObserveInput(func(event ui.InputEvent) { v.historyCommand(history, event) })
 		list.Draw(func(_ *ui.Painter, r ui.Rect) {
 			if !v.hasTables {
 				return
@@ -358,6 +375,13 @@ func (v *View) Draw(c *ui.Context) {
 				c.Invalidate() // one settle frame after a first layout or resize
 			}
 		})
+		// Resolve shortcuts only after bindings/construction. The draft editor
+		// is outside the preview subtree and consumes its own history/IME keys.
+		// A row callback can Release during this build; its old receipt then
+		// cannot mutate or refocus a newly mounted preview.
+		history.list.Handle.OnShortcut(c, ui.Cmd, ui.KeyZ, func() { v.changeHistory(history, false) })
+		history.list.Handle.OnShortcut(c, ui.Cmd, ui.KeyY, func() { v.changeHistory(history, true) })
+		history.list.Handle.OnShortcut(c, ui.Cmd|ui.Shift, ui.KeyZ, func() { v.changeHistory(history, true) })
 		if !v.host.ReadOnly && ui.Button(c, "添加段落").Height(28).Shrink(0).Margin(0, 18).Clicked() {
 			v.addParagraph()
 		}

@@ -13,6 +13,36 @@ import (
 	"levnote.local/native/ui/editor"
 )
 
+const historyBudgetNotice = "较早或本次撤销历史因预算未保留"
+
+// consumeHistoryNotices runs on the normal UI frame, not on inspector queries.
+// Reading a budget flag must not flush input, end a group or reset core history.
+func (a *App) consumeHistoryNotices() {
+	for _, t := range a.Tabs {
+		if t == nil {
+			continue
+		}
+		var buffer *text.Buffer
+		if t.textCapable() {
+			buffer = t.Doc.Buffer
+		}
+		if buffer != t.historyNoticeBuffer {
+			t.historyNoticeBuffer = buffer
+			t.seenTruncated = false
+		}
+		if buffer == nil || !buffer.History().Truncated {
+			// Reload/ResetHistory can keep the same buffer. Only an observed
+			// false flag (or a different buffer) rearms this disclosure.
+			t.seenTruncated = false
+			continue
+		}
+		if !t.seenTruncated {
+			t.seenTruncated = true
+			a.report(fmt.Errorf("%s：%s", t.Name, historyBudgetNotice))
+		}
+	}
+}
+
 func (a *App) Restore() {
 	// Startup restore is one synchronous ownership transaction. Binary IO still
 	// executes on the shared lane; no nested UI callbacks can replace its tabs,

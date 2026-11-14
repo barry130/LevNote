@@ -149,7 +149,7 @@ func TestUTF8StreamingSaveRejectsWrongDigestWithoutStateChange(t *testing.T) {
 	beforeDisk := doc.disk
 	token := doc.DiskToken()
 	wrong := sha256.Sum256([]byte("wrong expected"))
-	if err = doc.didSave(wrong); !errors.Is(err, ErrConflict) {
+	if err = doc.didSave(wrong, int64(len("baseline")), beforeDisk.info); !errors.Is(err, ErrConflict) {
 		t.Fatalf("wrong digest accepted: %v", err)
 	}
 	if doc.Path != before.Path || doc.Encoding != before.Encoding || doc.BOM != before.BOM ||

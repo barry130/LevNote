@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "executionAuthorized": false,
+  "sourceFrozen": false,
+  "packageFrozen": false,
+  "repositoryRoot": "F:/AIproject/LevNote",
+  "candidateDirectory": "REQUIRED_ABSOLUTE_FRESH_NATIVE_BIN_CANDIDATE",
+  "version": "REQUIRED_FRESH_CANDIDATE_VERSION",
+  "evidenceDirectory": "REQUIRED_ABSENT_AUTONOMOUS_LOCAL_WINDOWS_EVIDENCE_DIRECTORY",
+  "expectedWindowTitle": "轻笺 · 原生版",
+  "readinessMilliseconds": 20000,
+  "settlingMilliseconds": 5000,
+  "closeExitMilliseconds": 15000,
+  "powerShellRuntime": {
+    "path": "REQUIRED_REVIEWED_ABSOLUTE_PWSH_EXE",
+    "sha256": "REQUIRED_REAL_SHA256",
+    "version": "REQUIRED_EXACT_PSVERSION"
+  },
+  "helpers": [
+    { "name": "run-host-smoke.ps1", "sha256": "REQUIRED_FINAL_REAL_SHA256" },
+    { "name": "delivery-lib.ps1", "sha256": "REQUIRED_FINAL_REAL_SHA256" },
+    { "name": "owned-host.cs", "sha256": "REQUIRED_FINAL_REAL_SHA256" }
+  ],
+  "sourceInventory": { "path": "REQUIRED_FRESH_COMPLETE_SHIPPING_SOURCE_INVENTORY", "sha256": "REQUIRED_REAL_SHA256" },
+  "sourceAcceptance": { "path": "REQUIRED_ROOT_EXACT_SOURCE_ACCEPTANCE_RECEIPT", "sha256": "REQUIRED_REAL_SHA256" },
+  "rootReview": { "path": "REQUIRED_ROOT_HELPER_RUNTIME_AND_HOST_ACTIVATION_REVIEW", "sha256": "REQUIRED_REAL_SHA256" },
+  "packageRecord": { "path": "REQUIRED_CURRENT_PACKAGE_RESULT_JSON", "sha256": "REQUIRED_REAL_SHA256" },
+  "packageManifestSHA256": "REQUIRED_CURRENT_RELEASE_MANIFEST_SHA256",
+  "textFixture": { "path": "REQUIRED_REVIEWED_UTF8_BOM_CRLF_DRAWIO_TEXT_FIXTURE", "sha256": "REQUIRED_REAL_SHA256" },
+  "pngFixture": { "path": "REQUIRED_REVIEWED_REAL_PNG_FIXTURE", "sha256": "REQUIRED_REAL_SHA256" },
+  "diagramNotes": { "path": "F:/AIproject/LevNote/native/examples/plugins/diagram-notes.json", "sha256": "REQUIRED_CURRENT_REVIEWED_PLUGIN_SHA256" }
+}

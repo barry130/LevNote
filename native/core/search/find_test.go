@@ -267,7 +267,13 @@ func TestWorkspaceEnforcesActualReadLimitAndEntryBudget(t *testing.T) {
 }
 
 func TestWorkspaceDirectoryReadsAreBoundedAndCancellable(t *testing.T) {
-	root := t.TempDir()
+	// Workspace normalizes its root with filepath.Abs before traversing. Windows
+	// TempDir returns mixed separators ("F:/x\\TestName001"), so fixture keys
+	// must be built from the same normalized form the reader is asked to open.
+	root, err := filepath.Abs(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(root, "find.txt"), []byte("find"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -341,7 +347,12 @@ func TestWorkspaceDirectoryReadsAreBoundedAndCancellable(t *testing.T) {
 }
 
 func TestWorkspaceDirectoryTraversalContinuesPastOneBatch(t *testing.T) {
-	root := t.TempDir()
+	// The reader is opened with Workspace's normalized (filepath.Abs) root, so
+	// the fixture map must be keyed by that same form on every platform.
+	root, err := filepath.Abs(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	entries := make([]fs.DirEntry, 0, directoryReadBatch+1)
 	for i := 0; i < directoryReadBatch+1; i++ {
 		entries = append(entries, fakeDirEntry{name: fmt.Sprintf("%04d.txt", i)})

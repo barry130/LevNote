@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"levnote.local/native/core/document"
 )
@@ -225,7 +224,7 @@ func (a *App) completeBinaryExplicit(j *binaryJob, out binaryOutput) {
 		path = out.inspection.Path
 	}
 	for index, existing := range a.Tabs {
-		if strings.EqualFold(canonical(existing.path()), canonical(path)) {
+		if sameNativeFilePath(canonical(existing.path()), canonical(path)) {
 			if j.reopen != nil {
 				a.selectOpenDuplicate(canonical(path), openRequest{reopen: j.reopen})
 				return

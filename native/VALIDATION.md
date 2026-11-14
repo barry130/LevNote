@@ -1,5 +1,57 @@
 # 原生验证记录与测量口径
 
+<a id="current-source-convergence-20261114"></a>
+## 本地源码收敛与未接受的新交付：2026-11-14
+
+**当前有限源码收敛及六根test/vet/build完成；新应用交付 NO-GO。**
+本段依据已存[根独立原始回执审计](<F:/AIproject/LevNote/.localtools/root-integrated-audit-20261114-01/result.json>)，
+28,952B/SHA256 `415388947b57e847921f47aef6537358ac6fdb50fa7f52e17cc5eed5783619a9`。
+Root报告实际审计exit0，状态`RAW_SOURCE_AND_FINITE_COMMAND_EVIDENCE_VERIFIED_APPLICATION_NO_GO`；
+1,211源码成员/1,239shipping输入、UTCticks、Task19全部88回执成员与原件/current8pins、
+Task21原16测试与current修正已核对。完整freeze/shippingSHA、逐命令结果身份、双轴结论
+和边界见[源码收敛摘要（root有限审阅已接收）](<F:/AIproject/LevNote/native/handoffs/autonomous-local-source-convergence-root-20261114.md>)。
+这些清单是本轮文档变更前输入，不是新的发行包或后续文档的同一字节集合。
+
+| 已存门禁 | 实际结果 |
+|---|---|
+| 六根test，一次 | Go1.27.3 windows/amd64，exit0；RUN3068（1228parent+1840nested），PASS3019（1181parent+1838nested）、0FAIL、49SKIP（47parent+2nested）；26测试包PASS+1host无测试，wall45.295191s；stderr0B、原输入不变。 |
+| 六根vet，一次 | exit0；stdout/stderr0B、原输入不变。 |
+| 六根build，一次 | exit0；stdout/stderr0B、原输入不变；不是五个Windows GUI PE的完整打包。 |
+| 只读gofmt | 实际Goexit0，报告8项债务（5原有+3新增）、stdout478B；root报告wrapper1，FAILED_PRESERVED/held，不是format PASS，ACL/写入修复通道不再重试。 |
+| 原guard All | 原line20 tools Junction创建拒绝访问、exit1，stdout0B/stderr266B；所有case尚未运行，不能称guard PASS。 |
+| 新包调用 | 原line24 evidence目录New-Item Access denied、exit1，stdout0B/stderr385B；拟议`.31`与产品证据目录不存在，本次打包GUI PE构建0、该候选host/worker启动0，无copy/precreate/换shell/ACL绕过重跑。 |
+
+打包候选的0PE/0launch仅指上述失败调用；源码tests可能另建/启动test helper fixtures，
+不宣称整个会话零PE/零进程，也不把helper fixture当真实shipping worker验收。
+
+[原打包stderr](<F:/AIproject/LevNote/.localtools/package-root-20261114-01/stderr.raw>)SHA256
+`39df0306422b71fc88a02baae14574149d58a0a09c539b76a866697016ad0cb1`；
+[原guardstderr](<F:/AIproject/LevNote/.localtools/build-guard-root-20261114-01/stderr.raw>)SHA256
+`80a19c758990c9ec4ef2c57b5bc29d76047d98dde86734194027c18e7d0bd1fe`。
+实际源码门使用固定offline vendor/cache/tmp和六模式`./app/ ./cmd/... ./core/... ./formats/... ./modules/... ./ui/...`，
+不包含handoff；当前命令见[原生说明](<F:/AIproject/LevNote/native/README.md>)。
+49SKIP的完整名字/真实原因在[根审计](<F:/AIproject/LevNote/.localtools/root-integrated-audit-20261114-01/result.json#L34-L279>)，
+含未启用视觉/真实包/worker/资源门、symlink权限和C:TEMP条件，不把skip当PASS。
+
+Root已报告读接收[Task22 Standards](<F:/AIproject/LevNote/native/handoffs/autonomous-final-standards-addendum-20261114.md>)
+与[Task23 Spec](<F:/AIproject/LevNote/native/handoffs/autonomous-final-spec-addendum-20261114.md>)补篇：
+旧S1 draw.io Redo释放/替换有限路径闭合，新增hard0、H1=P3非阻断启发项；旧两项P2/T05
+snapshot身份/实时UTCtime和有界复制缺口源码闭合，无新actionable；原跨秒snapshot相等测试
+flakiness风险保留，不能用cache/fakeclock改生产语义。原报告不改写。
+
+[Task20禁用草案](<F:/AIproject/LevNote/native/handoffs/autonomous-native-ci-preparation-20261114/native-windows-ci.yml.disabled>)
+仍disabled/inactive。Root[单独PS7.7 parser结果](<F:/AIproject/LevNote/.localtools/ci-preparation-parser-20261114-01/result.json>)
+为4,464B/SHA256 `b63b6f6c69d88ff39a3dd91a6b3c9f73d01a868da0c0bb658239d6fdb28179ca`，
+两PS ParseFile errors0、模板JSON数据检查、9inputs bytes/SHA/UTCticks前后一致、root报告actualexit0；
+状态`PREPARATION_PARSE_PASS_NOT_CI_OR_APPLICATION_ACCEPTANCE`。未dot-source/compiler/native/Go/
+worker/产品进程，不能宣称runner/checker运行通过或CI激活；原unexecuted准备收据冻结。
+Root全文接收[路径字面量静态澄清](<F:/AIproject/LevNote/native/handoffs/autonomous-native-ci-preparation-errata-20261114.md>)：实际源码分隔符仅一个U+005C，疑似缺陷来自工具显示转义，未新增prepared-runner或产品缺陷。此有限字面表达式核验不是CI运行验证；root仍禁止激活，parser0不是runtime validated或ready。
+
+**最新accepted runnable仍`.29`。** 当前新包五PE/完整manifest/资产许可、四worker真实请求与清理、
+ownedhost/Job/正常关闭/会话恢复/第二次启动、物理Windows键鼠/IME/剪贴板/选择器/视觉、
+真实资源工作量与完整应用交付仍须独立验证；旧`.29`接受、Tester、allocation或源码PASS均不替代。
+旧1,918frontend测试不作为native门禁。以下2026-11-08–10记录完整保留为原历史范围。
+
 本页记录 2026-11-08–10 原生迁移验收的证据，功能边界以 [README](README.md)
 为准。所有时间为单台 Windows amd64 机器的样本，不能代表所有设备。
 

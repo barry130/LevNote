@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 
 	"levnote.local/native/core/document"
@@ -256,6 +257,9 @@ func scanTree(ctx context.Context, root string, expanded map[string]bool) treeSc
 		if truncated {
 			result.truncated = true
 		}
+		sort.SliceStable(entries, func(i, j int) bool {
+			return entries[i].Name() < entries[j].Name()
+		})
 		for _, isDir := range []bool{true, false} {
 			for _, entry := range entries {
 				if ctx.Err() != nil {

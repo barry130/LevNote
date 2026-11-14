@@ -8,6 +8,48 @@ MyGo **原生 Surface**，界面不在浏览器页面中运行；文本编辑、
 Milkdown、CodeMirror、mind-elixir 功能属于旧 Tauri 实现，不能当作本版的
 能力清单。迁移理由见 [ADR 0063](../docs/decisions/0063-native-migration.md)。
 
+## 2026-11-14 当前源码收敛与交付边界
+
+**有限源码收敛已完成；当前新应用交付仍 NO-GO，未产生替代 `.29` 的包。**
+本地Windows/Go1.27.3、vendor/offline/telemetry-off的六根产品门禁，按
+[根独立原始回执审计](<F:/AIproject/LevNote/.localtools/root-integrated-audit-20261114-01/result.json>)：
+一次test RUN3068、PASS3019（1181parent+1838nested）、0FAIL、49SKIP（47parent+2nested），
+26测试包PASS+1host无测试，wall45.295191s；vet/build各一次exit0、stdout/stderr0B。
+这是源码/命令证据，不是完整五GUI PE打包、物理UI或应用验收。所有skip及原跨秒snapshot
+相等断言的flakiness风险保留，不改成PASS，也不通过缓存时间/fakeclock改生产语义。
+
+Root已报告全文阅读并接收[Standards补篇](<F:/AIproject/LevNote/native/handoffs/autonomous-final-standards-addendum-20261114.md>)
+与[Spec补篇](<F:/AIproject/LevNote/native/handoffs/autonomous-final-spec-addendum-20261114.md>)：
+旧draw.io同步Redo释放/替换S1在有限路径关闭，新增hard0；H1仍为P3非阻断启发项；
+旧两项P2/T05 Issues导出身份/真实UTCtime及64KiB构造预算缺口在源码层闭合，无新actionable。
+原5+新3格式债务仍held，guard All因Junction创建失败尚未运行任何case，新打包line24 evidence目录
+创建Access denied/exit1，在任何GUI build前失败；拟议`.31`和产品证据目录均未生成，
+本次打包候选实际0GUI PE、0host/worker；不排除源码测试另建/启动helper fixture。
+没有copy/预建目录/换shell/ACL绕过或重跑。
+
+当前开发从仓库根目录使用下列**六个产品模式**，不把handoff快照加入`./...`：
+
+```bash
+bash .localtools/gate.sh test -json -count=1 -timeout=300s ./app/ ./cmd/... ./core/... ./formats/... ./modules/... ./ui/...
+bash .localtools/gate.sh vet
+bash .localtools/gate.sh build
+```
+
+[本地gate](<F:/AIproject/LevNote/.localtools/gate.sh#L6-L21>)固定项目内Go/cache/tmp与离线环境；
+其`fmt`分支实际是vet，不作为formatter通过。下文原包装器/bootstrap及`./...`示例保留为
+`.29`时期的历史工具说明，不是本轮运行指令，不能绕过当前六根/固定工具链与权限边界。
+旧1,918frontend测试不能替代native验收。
+
+[Task20准备](<F:/AIproject/LevNote/native/handoffs/autonomous-native-ci-preparation-20261114/PREPARATION-RESULT.md>)
+保持冻结，CI仍disabled/inactive；root[独立parser回执](<F:/AIproject/LevNote/.localtools/ci-preparation-parser-20261114-01/result.json>)
+只在PS7.7对两PS解析错误0并检查JSON，9输入前后pins/UTCticks一致；不是runner运行验证，
+没有dot-source/compiler/native/Go/worker/产品进程或CI激活。[路径字面量静态复核](<F:/AIproject/LevNote/native/handoffs/autonomous-native-ci-preparation-errata-20261114.md>)
+已否定显示转义造成的疑似缺陷；root仍禁止激活，parser0不等于runtime validated或ready。物理GUI/IME/剪贴板、当前新包
+四worker真实请求/失败清理、Job/正常关闭/会话恢复/第二次启动与资源工作量仍另立门禁。
+详细counts、完整SHA和失败见[源码收敛摘要（root有限审阅已接收）](<F:/AIproject/LevNote/native/handoffs/autonomous-local-source-convergence-root-20261114.md>)
+及[最新验证段](<F:/AIproject/LevNote/native/VALIDATION.md#current-source-convergence-20261114>)。
+以下原交付说明与历史接受仍各自保持原范围，不外推到当前源码。
+
 当前可运行交付位于 [bin/levnote-native-worker-20261110.29](bin/levnote-native-worker-20261110.29/README.md)，
 版本`native-worker.20261110.29`：
 

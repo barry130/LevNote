@@ -4,7 +4,7 @@ package document
 
 import "os"
 
-func replaceExisting(from, to string) error { return os.Rename(from, to) }
+func replaceExisting(from, to string, _ func() error) error { return os.Rename(from, to) }
 func publishNew(from, to string) error {
 	// Linking is an atomic create-if-absent within the same filesystem. Rename
 	// alone would silently replace a target created between the check and save.

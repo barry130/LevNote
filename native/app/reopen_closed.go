@@ -35,6 +35,18 @@ type reopenReceipt struct {
 	finished atomic.Bool
 }
 
+// Accept only a complete path on the actual host. UNC/device/root-relative
+// Windows paths and mixed double-root paths never become local via cleaning.
+func isNativeAbsoluteFilePath(path string) bool {
+	if !filepath.IsAbs(path) {
+		return false
+	}
+	if hasDoublePathRoot(path) {
+		return false
+	}
+	return filepath.Separator != '\\' || isWindowsDriveAbsolute(path)
+}
+
 func closedFilePath(t *Tab) (string, string) {
 	if t == nil || !t.isBinary() && (t.Doc == nil || t.Doc.IsNew || t.Doc.Path == "") {
 		return "", ""
@@ -42,7 +54,7 @@ func closedFilePath(t *Tab) (string, string) {
 	path := t.path()
 	valid := func(p string) bool {
 		return len(p) <= closedPathLimit && utf8.ValidString(p) &&
-			isWindowsDriveAbsolute(p) && !strings.ContainsRune(p, '\x00')
+			isNativeAbsoluteFilePath(p) && !strings.ContainsRune(p, '\x00')
 	}
 	if !valid(path) {
 		return "", "标签已关闭；路径过长或不是完整本地路径，未加入最近关闭的文件"
@@ -54,9 +66,18 @@ func closedFilePath(t *Tab) (string, string) {
 	return strings.Clone(path), ""
 }
 
+// Callers compare canonical native paths. Windows keeps folded identity;
+// Unix must not merge two real files that differ only by letter case.
+func sameNativeFilePath(left, right string) bool {
+	if filepath.Separator == '\\' {
+		return strings.EqualFold(left, right)
+	}
+	return left == right
+}
+
 func (a *App) recordClosedFile(path string) {
 	for i, entry := range a.closedFiles {
-		if strings.EqualFold(entry.path, path) {
+		if sameNativeFilePath(entry.path, path) {
 			a.removeClosedFile(i)
 			break
 		}
@@ -189,7 +210,7 @@ func (a *App) reopenClosedFile(id uint64) <-chan struct{} {
 
 func (a *App) selectOpenDuplicate(path string, request openRequest) bool {
 	for index, tab := range a.Tabs {
-		if !strings.EqualFold(canonical(tab.path()), path) {
+		if !sameNativeFilePath(canonical(tab.path()), path) {
 			continue
 		}
 		var beforeSelect func() error

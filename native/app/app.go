@@ -66,6 +66,9 @@ type Tab struct {
 	Conflict                 bool
 	ByteInspector            bool
 	CanReinterpret           bool
+	// The disclosure latch belongs to this tab's actual text buffer, not its ID.
+	historyNoticeBuffer *text.Buffer
+	seenTruncated       bool
 }
 type Entry struct {
 	Path, Name string
@@ -76,6 +79,8 @@ type App struct {
 	Window                                          *mygo.Window
 	uiDispatch                                      func(func())
 	saveDialog                                      func(*Tab) (string, error)
+	// Optional save-outcome seam; production always calls Document.Save/SaveAs.
+	saveDocument func(*document.Document, string) error
 	closeDialog                                     func(*Tab) (closeDecision, error)
 	openDialog                                      func(mygo.OpenDialogOptions) ([]string, error)
 	exportDialog                                    func(mygo.SaveDialogOptions) (string, error)
@@ -150,6 +155,7 @@ type App struct {
 	watches                                         map[string]context.CancelFunc
 	searchCancel                                    context.CancelFunc
 	searchID                                        int
+	searchRoot                                      string
 	SearchResults                                   []search.FileMatch
 	SearchIssues                                    []search.FileIssue
 	SearchIssuesDropped                             int
@@ -160,6 +166,9 @@ type App struct {
 	TreeList                                        ui.ListState
 	SearchList                                      ui.ListState
 	OutlineList                                     ui.ListState
+	treeListLifetime                                appListLifetime
+	searchListLifetime                              appListLifetime
+	outlineListLifetime                             appListLifetime
 	TreeSelected                                    int
 	SearchSelected                                  int
 	OutlineSelected                                 int
@@ -912,7 +921,12 @@ func (a *App) resetTreeIdentity(root string) {
 	}
 	a.treeRoot = root
 	a.TreeSelected = -1
-	a.TreeList = ui.ListState{}
+	a.treeListLifetime.reset(&a.TreeList)
+	// An asynchronous scan must not leave the previous root's rows actionable
+	// under the new root label while the replacement is still pending.
+	a.Entries = nil
+	a.TreeTruncated = false
+	a.TreeIssues = nil
 }
 func (a *App) Save(t *Tab, as bool) bool {
 	defer a.deferExportDelivery()()
@@ -951,6 +965,15 @@ func (a *App) Save(t *Tab, as bool) bool {
 	if t.Doc.ReadOnly {
 		as = true
 	}
+	save := a.saveDocument
+	if save == nil {
+		save = func(doc *document.Document, path string) error {
+			if path != "" {
+				return doc.SaveAs(path)
+			}
+			return doc.Save()
+		}
+	}
 	var err error
 	if as || t.Doc.IsNew || t.Doc.Path == "" {
 		path, dialogErr := a.chooseSavePath(t)
@@ -972,19 +995,44 @@ func (a *App) Save(t *Tab, as bool) bool {
 			a.report(errors.New("另存为前文档或格式已变化，请重新保存"))
 			return false
 		}
-		err = t.Doc.SaveAs(path)
+		err = save(t.Doc, path)
 	} else {
-		err = t.Doc.Save()
+		err = save(t.Doc, "")
 	}
 	if err != nil {
 		if errors.Is(err, document.ErrConflict) {
 			t.Conflict = true
 		}
-		a.report(err)
+		var publication *document.PublicationError
+		if errors.As(err, &publication) {
+			state := "文档元数据保持原状态"
+			if publication.MetadataAdopted {
+				// The flush/ownership barriers above succeeded. Rebind only the
+				// presentation metadata; the original saved/disk baseline and
+				// current source-buffer draft remain owned by the document.
+				a.reconcileSavedMetadata(t, oldPath, oldMode)
+				a.markPersistPending()
+				state = "文档路径/新建/只读元数据已采用目标，保存基线未确认"
+			}
+			a.report(fmt.Errorf("保存未完成：字节可能已写入目标 %s；%s；草稿仍未保存；重试前请检查目标或另存新副本：%w", publication.Path, state, err))
+		} else {
+			a.report(err)
+		}
 		return false
 	}
 	t.Name = filepath.Base(t.Doc.Path)
 	t.Conflict = false
+	a.reconcileSavedMetadata(t, oldPath, oldMode)
+	a.Message = "已保存 " + t.Name
+	a.Persist()
+	return true
+}
+
+// reconcileSavedMetadata also serves SaveAs failures after target adoption.
+// It is not a success transition: it never clears conflict, marks the document
+// clean, persists a clean receipt, or reports completion.
+func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string) {
+	t.Name = filepath.Base(t.Doc.Path)
 	t.Editor.ReadOnly = t.Doc.ReadOnly
 	a.invalidateDiskChecks()
 	if !strings.EqualFold(oldPath, t.Doc.Path) {
@@ -1003,9 +1051,6 @@ func (a *App) Save(t *Tab, as bool) bool {
 		}
 		a.startWatch(t.Doc.Path, false)
 	}
-	a.Message = "已保存 " + t.Name
-	a.Persist()
-	return true
 }
 
 func (a *App) chooseSavePath(t *Tab) (string, error) {

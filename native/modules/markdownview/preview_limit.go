@@ -3,7 +3,6 @@ package markdownview
 import (
 	"fmt"
 
-	"github.com/egoist/mygo/ui"
 	"levnote.local/native/formats/markdown"
 )
 
@@ -45,7 +44,7 @@ func (v *View) dropPreviewCache() {
 	v.tableViewport, v.tableViewportKnown = 0, false
 	v.tableWindowWidth, v.tableWindowHeight, v.tableWindowKnown = 0, 0, false
 	v.hasTables = false
-	v.list = &ui.ListState{}
+	v.resetPreviewList()
 	v.outlineCurrent, v.outlineCaret = "", 0
 	if v.outline != nil {
 		v.outline.Release()

@@ -8,6 +8,12 @@ import (
 )
 
 func (v *view) handleCanvasInput(ev ui.InputEvent) bool {
+	// Deletion captures its owner before sync can call Host.Report. The local
+	// property editor still owns its focused input before this canvas route.
+	if v.kind == kindDrawio && (ev.Kind == ui.InputCommand && ev.Text == "delete" ||
+		ev.Kind == ui.InputKeyDown && (ev.Key == ui.KeyDelete || ev.Key == ui.KeyBackspace)) {
+		return v.deleteKey()
+	}
 	v.ensureSynced(nil)
 	switch ev.Kind {
 	case ui.InputPointerDown:
@@ -108,6 +114,15 @@ func (v *view) pointerDown(ev ui.InputEvent) bool {
 		id, hit = v.mindmapNodeAt(ev.X, ev.Y)
 	} else {
 		id, hit = v.drawioNodeAt(ev.X, ev.Y)
+		if !hit {
+			if edgeID, edgeHit := v.drawioEdgeAt(ev.X, ev.Y); edgeHit {
+				// An edge is selectable, not a node drag, label or connector target.
+				v.panning = false
+				v.cancelGraphGesture()
+				v.selectNode(edgeID)
+				return true
+			}
+		}
 	}
 	if !hit {
 		v.selectNode("")
@@ -214,12 +229,26 @@ func (v *view) undo() bool {
 	if v.host.Buffer == nil || v.host.ReadOnly || !v.host.Buffer.CanUndo() {
 		return true
 	}
-	if v.host.Buffer.Undo() {
+	buffer, released, pageEpoch, page := v.host.Buffer, v.releaseEpoch, v.pageEpoch, v.pageIndex
+	if buffer.Undo() {
+		version, selection := buffer.Version(), buffer.Selection()
 		v.lastSynced = ^uint64(0)
 		if v.host.Changed != nil {
 			v.host.Changed()
 		}
+		if v.kind == kindDrawio && (v.host.Buffer != buffer || v.releaseEpoch != released ||
+			v.pageEpoch != pageEpoch || v.pageIndex != page || v.host.ReadOnly ||
+			buffer.InGroup() || buffer.Version() != version || buffer.Selection() != selection) {
+			return true
+		}
 		v.ensureSynced(nil)
+		// A compatibility/status row may disappear after Undo and re-key the
+		// canvas parent. Follow its new binding only for this live receipt.
+		if v.kind == kindDrawio && v.host.Buffer == buffer && v.releaseEpoch == released &&
+			v.pageEpoch == pageEpoch && v.pageIndex == page && !v.host.ReadOnly &&
+			!buffer.InGroup() && buffer.Version() == version && buffer.Selection() == selection {
+			v.canvasHandle.Focus()
+		}
 	}
 	return true
 }
@@ -231,17 +260,32 @@ func (v *view) redo() bool {
 	if v.host.Buffer == nil || v.host.ReadOnly || !v.host.Buffer.CanRedo() {
 		return true
 	}
-	if v.host.Buffer.Redo() {
+	buffer, released, pageEpoch, page := v.host.Buffer, v.releaseEpoch, v.pageEpoch, v.pageIndex
+	if buffer.Redo() {
+		version, selection := buffer.Version(), buffer.Selection()
 		v.lastSynced = ^uint64(0)
 		if v.host.Changed != nil {
 			v.host.Changed()
 		}
+		if v.kind == kindDrawio && (v.host.Buffer != buffer || v.releaseEpoch != released ||
+			v.pageEpoch != pageEpoch || v.pageIndex != page || v.host.ReadOnly ||
+			buffer.InGroup() || buffer.Version() != version || buffer.Selection() != selection) {
+			return true
+		}
 		v.ensureSynced(nil)
+		if v.kind == kindDrawio && v.host.Buffer == buffer && v.releaseEpoch == released &&
+			v.pageEpoch == pageEpoch && v.pageIndex == page && !v.host.ReadOnly &&
+			!buffer.InGroup() && buffer.Version() == version && buffer.Selection() == selection {
+			v.canvasHandle.Focus()
+		}
 	}
 	return true
 }
 
 func (v *view) deleteKey() bool {
+	if v.kind == kindDrawio {
+		return v.deleteDrawioCell()
+	}
 	if v.kind == kindMindmap {
 		v.deleteMindmapNode()
 	}

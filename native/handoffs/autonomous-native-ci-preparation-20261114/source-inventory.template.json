@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "repositoryRoot": "",
+  "scope": "All files, including untracked fixtures, under native/app,cmd,core,formats,modules,ui,vendor,dependency-patches,scripts,portable,examples,licenses; root LICENSE; native go.mod,go.sum,THIRD_PARTY_NOTICES.md,AGENTS.md,README.md,VALIDATION.md. No handoff snapshots or evidence/toolchains/caches.",
+  "files": []
+}

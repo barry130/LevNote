@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "target": "native-windows-amd64",
+  "executeAuthorized": false,
+  "sourceFrozen": false,
+  "helpersReviewed": false,
+  "ephemeralCheckout": false,
+  "repositoryRoot": "",
+  "evidenceRoot": "",
+  "packageVersion": "",
+  "commandTimeoutSeconds": 1200,
+  "runtime": {
+    "path": "",
+    "version": "",
+    "sha256": ""
+  },
+  "goArchive": {
+    "filename": "go1.27.3.windows-amd64.zip",
+    "path": "",
+    "bytes": 79010309,
+    "sha256": "f26081f438319757f8a1b46d7d0b2c5ec7583d4038e485e0aa725cfde7885fff"
+  },
+  "helpers": {
+    "runnerSHA256": "",
+    "librarySHA256": ""
+  },
+  "rootReview": {
+    "path": "",
+    "sha256": ""
+  },
+  "sourceInventory": {
+    "path": "",
+    "sha256": ""
+  }
+}

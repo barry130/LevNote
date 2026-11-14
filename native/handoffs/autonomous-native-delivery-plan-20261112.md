@@ -4,6 +4,25 @@ Date: 2026-11-12. Lead: DSH. Development baseline: main 77454291ce1aad7c5a617ab1
 
 ## Authority and boundary
 
+**Current execution-plane amendment (2026-11-13):** The user required the MCP
+source to be brought back and all further development to happen on the local
+Windows checkout F:/AIproject/LevNote. Current implementation, tests, vet,
+builds and runs therefore use that checkout and the reviewed project-local
+Go1.27.3 gate. MCP/box is no longer required; no historical lane is resumed.
+The remote-only paragraphs below describe the earlier assignments and are
+superseded for current work. Historical source/evidence/packages remain frozen.
+
+Current local assignments: `markdown-history / task-13` owns Markdown history
+and its List lifecycle; `windows-save / task-15` owns retry conflict revalidation
+and publication-error disclosure/state reconciliation. The read-only Task11
+review draft (`save-review / task-14`) is complete but its findings remain open
+until corrected evidence is reviewed. `windows-delivery / task-16` prepares a
+fresh process-acceptance harness without running the product. Lead coordinates
+the final fixed snapshot, test/vet/build, packaging, actual available Windows
+gates, documentation, native-aligned CI restoration and dual-main delivery.
+Go1.27.3 is verified in both `.localtools/go1.27.3` and `native/tools/go`.
+No previous source-pass or hidden startup is acceptance for this new snapshot.
+
 The latest direct user request authorizes all remaining development, ordinary technical/product decisions and continued task sequencing without repeated phase approval. Windows and other final platform acceptance are consolidated after feature convergence; their absence does not hold ordinary development. This plan supersedes the former docs-only/current-source freeze, not historical evidence.
 
 Lead plans, assigns, reviews and accepts. At most three explicitly assigned children implement source/tests/helpers and execute new product commands on the existing authorized main box; children must not delegate. Local product implementation, tests, vet, builds, runs and static-acceptance fallback remain prohibited. The local checkout is for source reading, planning/handoffs, byte-exact mirrors of box-authored output for review, and Git delivery, not an implementation lane. CNB and GitHub main are the existing delivery channels; no new branch.
