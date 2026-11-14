@@ -299,6 +299,10 @@ func (a *App) replace(all bool) {
 		a.Message = "替换时文档已变化；未替换"
 		return
 	}
+	if doc.ReadOnly {
+		a.Message = "文档已变为只读；未替换"
+		return
+	}
 	input.UnmarkText()
 	opts := a.findOptions()
 	changed := false
