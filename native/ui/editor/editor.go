@@ -954,7 +954,11 @@ func (e *Editor) Reveal(start, end int) {
 		e.Focus()
 		return
 	}
-	e.fail(e.Buffer.SetSelection(start, end))
+	if err := e.Buffer.SetSelection(start, end); err != nil {
+		e.fail(err)
+	} else {
+		e.hasDesiredX = false
+	}
 	e.ensureCaret()
 	e.Focus()
 }
