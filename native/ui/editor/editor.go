@@ -715,6 +715,7 @@ func (e *Editor) Command(command string) bool {
 	case "paste", "pasteAndMatchStyle":
 		if !e.ReadOnly {
 			buffer, version, generation := e.Buffer, e.Buffer.Version(), e.viewGeneration
+			composition := e.compositionToken
 			var value string
 			if e.Paste != nil {
 				var err error
@@ -725,6 +726,14 @@ func (e *Editor) Command(command string) bool {
 				}
 			} else {
 				value = e.services.ReadClipboard()
+			}
+			if err := e.compositionIssue(); err != nil {
+				e.fail(err)
+				return true
+			}
+			if e.compositionToken != composition {
+				e.fail(errors.New("输入法组合已改变，未粘贴内容"))
+				return true
 			}
 			if e.ReadOnly || e.Buffer != buffer || e.Buffer.Version() != version || e.Buffer.Selection() != selection || e.viewGeneration != generation {
 				e.fail(errors.New("剪贴板已读取；文档或选区已改变，未粘贴内容"))
