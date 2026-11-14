@@ -250,7 +250,8 @@ func (v *View) RecoverDraft() error {
 	if v.draft == nil {
 		return nil
 	}
-	_ = v.draft.Flush()
+	draft := v.draft
+	_ = draft.Flush()
 	if v.host.RecoverDraft == nil {
 		err := errors.New("宿主无法创建草稿副本；当前草稿仍保留")
 		v.setDraftError(err)
@@ -260,9 +261,25 @@ func (v *View) RecoverDraft() error {
 	if name == "" || name == "." {
 		name = "Markdown"
 	}
-	if err := v.host.RecoverDraft(name+"-块草稿.txt", v.draft.Buffer.String()); err != nil {
-		v.setDraftError(err)
+	value, version := draft.Buffer.String(), draft.Buffer.Version()
+	inputChanged, onChange := false, draft.OnChange
+	draft.OnChange = func() {
+		inputChanged = true
+		if onChange != nil {
+			onChange()
+		}
+	}
+	defer func() { draft.OnChange = onChange }()
+	if err := v.host.RecoverDraft(name+"-块草稿.txt", value); err != nil {
+		if v.draft == draft {
+			v.setDraftError(err)
+		} else {
+			v.report(err)
+		}
 		return err
+	}
+	if v.draft != draft || draft.Buffer.Version() != version || inputChanged {
+		return nil
 	}
 	v.clearDraft()
 	v.doc, v.docBuffer, v.loaded = markdown.Document{}, nil, false
