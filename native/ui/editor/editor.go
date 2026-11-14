@@ -495,6 +495,40 @@ func (e *Editor) word(pos, dir int) int {
 	return pos
 }
 
+// selectionWordBoundary stops before the delimiter; navigation word deliberately
+// consumes it. Keep the same grapheme stepping and bounded work as navigation.
+func (e *Editor) selectionWordBoundary(pos, dir int) int {
+	for n := 0; n < 4096; n++ {
+		next := e.boundary(pos, dir)
+		if next == pos {
+			break
+		}
+		value, _ := e.Buffer.SliceUTF16(min(pos, next), max(pos, next))
+		if strings.ContainsAny(value, " \t\r\n.,;:()[]{}") {
+			break
+		}
+		pos = next
+	}
+	return pos
+}
+
+// A pointer query reports an insertion point, not the glyph side clicked.
+// Limit the new selection rule to points surrounded by word graphemes; retain
+// the existing interpretation at delimiters, word edges and document edges.
+func (e *Editor) insideSelectionWord(pos int) bool {
+	for _, dir := range []int{-1, 1} {
+		next := e.boundary(pos, dir)
+		if next == pos {
+			return false
+		}
+		value, _ := e.Buffer.SliceUTF16(min(pos, next), max(pos, next))
+		if strings.ContainsAny(value, " \t\r\n.,;:()[]{}") {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Editor) selectedLines() (int, int) {
 	selection := e.Buffer.Selection()
 	startLine, _, err := e.Buffer.LineColumn(selection.Start())
@@ -770,7 +804,9 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 		pos := position.Index
 		e.selectTo(pos, ev.Mods&ui.Shift != 0)
 		e.dragging = true
-		if ev.Clicks >= 2 {
+		if ev.Clicks == 2 && e.insideSelectionWord(pos) {
+			e.fail(e.Buffer.SetSelection(e.selectionWordBoundary(pos, -1), e.selectionWordBoundary(pos, 1)))
+		} else if ev.Clicks >= 2 {
 			e.fail(e.Buffer.SetSelection(e.word(pos, -1), e.word(pos, 1)))
 		}
 		return true
