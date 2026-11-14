@@ -240,6 +240,63 @@ func (a *App) activateSearchResult(i int) {
 	}
 	a.SearchSelected = i
 	result := a.SearchResults[i]
+	path := canonical(result.Path)
+	for index, t := range a.Tabs {
+		if t == nil || t.Doc == nil || t.Doc.Path == "" || !sameNativeFilePath(canonical(t.Doc.Path), path) {
+			continue
+		}
+		if !t.textCapable() {
+			a.Message = "工作区搜索目标已变化；未跳转"
+			return
+		}
+		doc, input, buffer := t.Doc, t.Editor, t.Doc.Buffer
+		capturedPath, version := doc.Path, buffer.Version()
+		id, root, origin := a.searchID, a.searchRoot, a.Current()
+		check := func() error {
+			if a.shuttingDown.Load() || !a.ShowWorkspaceSearch || a.ShowPlugins || a.searchID != id ||
+				a.searchRoot != root || a.Root != root || i >= len(a.SearchResults) ||
+				a.SearchResults[i].Path != result.Path || a.SearchResults[i].Start != result.Start || a.SearchResults[i].End != result.End {
+				return fmt.Errorf("工作区搜索结果已变化；未跳转")
+			}
+			if a.Current() != origin || index >= len(a.Tabs) || a.Tabs[index] != t ||
+				t.Doc != doc || t.Editor != input || doc.Buffer != buffer || input.Buffer != buffer || doc.Path != capturedPath {
+				return fmt.Errorf("工作区搜索目标已变化；未跳转")
+			}
+			// Disk-result coordinates do not describe an unsaved live draft.
+			// Check before flushing too: preserve already-dirty presentations.
+			if doc.Dirty() {
+				return fmt.Errorf("工作区结果来自磁盘；文档已有未保存修改，未跳转")
+			}
+			if buffer.Version() != version {
+				return fmt.Errorf("同步输入期间文档已变化；工作区结果未跳转")
+			}
+			return nil
+		}
+		if err := check(); err != nil {
+			a.report(err)
+			return
+		}
+		if !a.flushTab(t, "工作区搜索定位") {
+			return
+		}
+		if err := check(); err != nil {
+			a.report(err)
+			return
+		}
+		// Switching may flush another tab. Recheck before Select releases it,
+		// and reveal synchronously without OpenAt's second target flush.
+		if !a.selectChecked(index, check) {
+			return
+		}
+		origin = t
+		if err := check(); err != nil {
+			a.report(err)
+			return
+		}
+		a.revealSource(t, revealTarget{Start: result.Start, End: result.End})
+		return
+	}
+	// Unopened files retain the existing open/load path.
 	a.OpenAt(result.Path, result.Start, result.End)
 }
 func (a *App) conflictBar(c *ui.Context, t *Tab) {
