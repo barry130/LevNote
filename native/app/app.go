@@ -76,11 +76,11 @@ type Entry struct {
 	Depth      int
 }
 type App struct {
-	Window                                          *mygo.Window
-	uiDispatch                                      func(func())
-	saveDialog                                      func(*Tab) (string, error)
+	Window     *mygo.Window
+	uiDispatch func(func())
+	saveDialog func(*Tab) (string, error)
 	// Optional save-outcome seam; production always calls Document.Save/SaveAs.
-	saveDocument func(*document.Document, string) error
+	saveDocument                                    func(*document.Document, string) error
 	closeDialog                                     func(*Tab) (closeDecision, error)
 	openDialog                                      func(mygo.OpenDialogOptions) ([]string, error)
 	exportDialog                                    func(mygo.SaveDialogOptions) (string, error)
@@ -222,6 +222,7 @@ type openRequest struct {
 	path   string
 	reveal *revealTarget
 	reopen *reopenReceipt
+	search *workspaceSearchTarget
 }
 
 type closeDecision uint8
@@ -739,8 +740,12 @@ func (a *App) openRequests(requests []openRequest) <-chan struct{} {
 					a.report(err)
 					return
 				}
+				if err := a.checkWorkspaceSearch(request.search); err != nil {
+					a.report(err)
+					return
+				}
 				allowed = true
-				existing = a.selectOpenDuplicate(path, request)
+				existing = a.selectRequestedDuplicate(path, request)
 				if !existing {
 					if admissionErr = a.admitNewTab(); admissionErr != nil {
 						a.report(fmt.Errorf("打开 %s：%w", filepath.Base(path), admissionErr))
@@ -759,7 +764,7 @@ func (a *App) openRequests(requests []openRequest) <-chan struct{} {
 			if admissionErr != nil {
 				continue
 			}
-			if candidate, kind, notice := probeImage(path); candidate {
+			if candidate, kind, notice := probeImage(path); candidate && request.search == nil {
 				if !a.openBinaryRequest(path, kind, notice, request.reopen) {
 					return
 				}
@@ -775,15 +780,35 @@ func (a *App) openRequests(requests []openRequest) <-chan struct{} {
 					a.report(err)
 					return
 				}
-				if a.selectOpenDuplicate(path, request) {
+				if err := a.checkWorkspaceSearch(request.search); err != nil {
+					a.report(err)
 					return
+				}
+				if a.selectRequestedDuplicate(path, request) {
+					return
+				}
+				beforeAdd := a.workspaceSearchAdoptionCheck(request.search, d, inspector, a.reopenAdoptionCheck(request.reopen))
+				if request.search != nil && beforeAdd != nil {
+					if err := beforeAdd(); err != nil {
+						a.report(err)
+						return
+					}
 				}
 				if issueDetail != "" {
 					a.report(errors.New(issueDetail))
 				}
-				beforeAdd := a.reopenAdoptionCheck(request.reopen)
 				if t := a.addDocumentChecked(d, filepath.Base(path), warning, inspector, canReinterpret, beforeAdd); t != nil {
 					a.acknowledgeReopen(request.reopen)
+					if request.search != nil {
+						request.search.origin = t
+						if err := a.checkWorkspaceSearch(request.search); err != nil {
+							a.report(err)
+							return
+						}
+						a.Message = "已打开 " + filepath.Base(path)
+						a.activateSearchResult(request.search.index)
+						return
+					}
 					if request.reveal != nil && !a.revealTab(t, *request.reveal) {
 						return
 					}

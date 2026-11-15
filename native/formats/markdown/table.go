@@ -152,14 +152,14 @@ func tableFailed(source string, lines []line, first, usedCells int, reason strin
 	problem := boundedProblem(reason, maxTableProblemBytes)
 	rng := rangeAt(rawStart, rawEnd)
 	return Block{
-			Kind:      BlockTable,
-			Range:     rng,
-			TextRange: rng,
-			Raw:       source[rawStart:rawEnd],
-			Table:     TableRef{Problem: problem},
-		}, end, []Warning{{
-			Code: "unsupported-table", Message: problem, Range: rng,
-		}}, usedCells, true
+		Kind:      BlockTable,
+		Range:     rng,
+		TextRange: rng,
+		Raw:       source[rawStart:rawEnd],
+		Table:     TableRef{Problem: problem},
+	}, end, []Warning{{
+		Code: "unsupported-table", Message: problem, Range: rng,
+	}}, usedCells, true
 }
 
 func boundedProblem(value string, limit int) string {

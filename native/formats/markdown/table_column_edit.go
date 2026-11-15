@@ -210,11 +210,11 @@ func scanColumnPhysicalRow(source string, rowRange SourceRange, columns int) (ta
 		return tableColumnRow{}, err
 	}
 	return tableColumnRow{
-		ref:               scan.row,
-		indent:            scan.indent,
-		pipes:             pipes,
-		leading:           leading,
-		trailing:          trailing,
+		ref:      scan.row,
+		indent:   scan.indent,
+		pipes:    pipes,
+		leading:  leading,
+		trailing: trailing,
 		degenerateOnePipe: columns == 1 && pipes == 1 &&
 			scan.row.Cells[0].Range.Start == scan.row.Cells[0].Range.End,
 	}, nil
@@ -615,4 +615,3 @@ func sameSurvivingColumnCell(source, candidate string, before, after TableCellRe
 	return source[before.Range.Start:before.Range.End] == candidate[after.Range.Start:after.Range.End] &&
 		source[before.TextRange.Start:before.TextRange.End] == candidate[after.TextRange.Start:after.TextRange.End]
 }
-

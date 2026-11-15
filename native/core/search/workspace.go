@@ -25,6 +25,7 @@ type FileMatch struct {
 	Line, Column int
 	Start, End   int
 	Preview      string
+	snapshot     *workspaceSnapshot
 }
 type FileIssue struct{ Path, Reason, Detail string }
 type Batch struct {
@@ -33,8 +34,8 @@ type Batch struct {
 }
 type Summary struct {
 	Files, Matches, Skipped int
-	Entries, Dirs            int
-	Cancelled, Truncated     bool
+	Entries, Dirs           int
+	Cancelled, Truncated    bool
 }
 
 const previewRunes = 240
@@ -186,6 +187,10 @@ func Workspace(ctx context.Context, root string, opts WorkspaceOptions, emit fun
 			issue(path, "search-failed", findErr.Error())
 			return true
 		}
+		var snapshot *workspaceSnapshot
+		if len(matches) > 0 {
+			snapshot = snapshotSource(source)
+		}
 		previewLine := -1
 		preview := ""
 		for _, m := range matches {
@@ -194,7 +199,7 @@ func Workspace(ctx context.Context, root string, opts WorkspaceOptions, emit fun
 				previewLine = line
 				preview = boundedPreview(doc.Buffer, line, m.Start, previewRunes)
 			}
-			batch.Matches = append(batch.Matches, FileMatch{path, line + 1, column + 1, m.Start, m.End, preview})
+			batch.Matches = append(batch.Matches, FileMatch{Path: path, Line: line + 1, Column: column + 1, Start: m.Start, End: m.End, Preview: preview, snapshot: snapshot})
 			summary.Matches++
 			if len(batch.Matches)+len(batch.Issues) >= 64 {
 				flush()

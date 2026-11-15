@@ -219,7 +219,9 @@ func TestOutlineListHandleReentrantFlushAndRetry(t *testing.T) {
 	if a.OutlineList.Handle != handle || a.OutlineSelected != 0 || a.OutlineItems[0].ID != "heading-63" {
 		t.Fatal("same-controller reparse lost the selected stable ID")
 	}
-	source.snapshotFn = func() (editor.OutlineSnapshot, error) { return editor.OutlineSnapshot{Version: tab.Doc.Buffer.Version()}, nil }
+	source.snapshotFn = func() (editor.OutlineSnapshot, error) {
+		return editor.OutlineSnapshot{Version: tab.Doc.Buffer.Version()}, nil
+	}
 	if err := a.ensureOutlineSnapshot(tab, "", true); err != nil {
 		t.Fatal(err)
 	}
@@ -245,53 +247,75 @@ func TestHiddenListFocusDoesNotStealEditorInput(t *testing.T) {
 		t.Run(kind, func(t *testing.T) {
 			root := t.TempDir()
 			for i := 0; i < 64; i++ {
-				if err := os.WriteFile(filepath.Join(root, fmt.Sprintf("file-%02d.txt", i)), []byte("needle"), 0600); err != nil { t.Fatal(err) }
+				if err := os.WriteFile(filepath.Join(root, fmt.Sprintf("file-%02d.txt", i)), []byte("needle"), 0600); err != nil {
+					t.Fatal(err)
+				}
 			}
-			a, tab := newSearchTextApp(t, "needle " + strings.Repeat("x", 128))
+			a, tab := newSearchTextApp(t, "needle "+strings.Repeat("x", 128))
 			a.Root = root
 			a.refreshTreeNow()
 			factoryCalls := 0
 			installSourceOutlineFactory(tab, listOutlineSource(tab, "focus"), &factoryCalls)
 			a.ShowWorkspaceSearch, a.searchRoot = true, root
 			for i := 0; i < 32; i++ {
-				a.SearchResults = append(a.SearchResults, search.FileMatch{Path: filepath.Join(root, "file-00.txt"), Line: i+1, Start: i, End: i+1, Preview: fmt.Sprintf("result-%02d", i)})
+				a.SearchResults = append(a.SearchResults, search.FileMatch{Path: filepath.Join(root, "file-00.txt"), Line: i + 1, Start: i, End: i + 1, Preview: fmt.Sprintf("result-%02d", i)})
 			}
 			tester := ui.NewTester(a.View, 1180, 780)
 			a.setOutlineVisible(true)
 			tester.Frame()
-			if kind != "outline" { a.setOutlineVisible(false) }
+			if kind != "outline" {
+				a.setOutlineVisible(false)
+			}
 			tester.Frame()
 			state, selected, want := &a.OutlineList, &a.OutlineSelected, 63
-			if kind == "tree" { state, selected = &a.TreeList, &a.TreeSelected }
-			if kind == "search" { state, selected, want = &a.SearchList, &a.SearchSelected, 31 }
+			if kind == "tree" {
+				state, selected = &a.TreeList, &a.TreeSelected
+			}
+			if kind == "search" {
+				state, selected, want = &a.SearchList, &a.SearchSelected, 31
+			}
 			handle := state.Handle
-			if handle == (ui.Handle{}) { t.Fatal("focus fixture did not bind") }
-			if err := tester.Click("文档编辑区"); err != nil { t.Fatal(err) }
+			if handle == (ui.Handle{}) {
+				t.Fatal("focus fixture did not bind")
+			}
+			if err := tester.Click("文档编辑区"); err != nil {
+				t.Fatal(err)
+			}
 			before, version := tab.Doc.Buffer.String(), tab.Doc.Buffer.Version()
 			handle.Focus()
 			switch kind {
-			case "tree": a.setOutlineVisible(true)
-			case "search": a.ShowWorkspaceSearch = false
-			case "outline": a.setOutlineVisible(false)
+			case "tree":
+				a.setOutlineVisible(true)
+			case "search":
+				a.ShowWorkspaceSearch = false
+			case "outline":
+				a.setOutlineVisible(false)
 			}
 			tester.Frame()
 			tester.Frame()
-			if !tester.Focused("文档编辑区") { t.Fatal("a hidden list stole the source input focus") }
+			if !tester.Focused("文档编辑区") {
+				t.Fatal("a hidden list stole the source input focus")
+			}
 			tester.Type("猫")
 			if strings.Count(tab.Doc.Buffer.String(), "猫") != 1 || strings.ReplaceAll(tab.Doc.Buffer.String(), "猫", "") != before ||
 				tab.Doc.Buffer.Version() == version || a.Query != "" {
 				t.Fatal("typed source input was stolen, duplicated or routed into Find")
 			}
 			switch kind {
-			case "tree": a.setOutlineVisible(false)
-			case "search": a.ShowWorkspaceSearch = true
-			case "outline": a.setOutlineVisible(true)
+			case "tree":
+				a.setOutlineVisible(false)
+			case "search":
+				a.ShowWorkspaceSearch = true
+			case "outline":
+				a.setOutlineVisible(true)
 			}
 			handle.Focus()
 			tester.Frame()
 			tester.Key(0, ui.KeyEnd)
 			tester.Frame()
-			if state.Handle != handle || *selected != want { t.Fatalf("later deliberate %s focus did not target the fresh list: selected=%d", kind, *selected) }
+			if state.Handle != handle || *selected != want {
+				t.Fatalf("later deliberate %s focus did not target the fresh list: selected=%d", kind, *selected)
+			}
 		})
 	}
 }
@@ -300,7 +324,9 @@ func TestTreeRootSwitchKeepsComposingQueryInput(t *testing.T) {
 	roots := []string{t.TempDir(), t.TempDir()}
 	for group, root := range roots {
 		for i := 0; i < 2; i++ {
-			if err := os.WriteFile(filepath.Join(root, fmt.Sprintf("root-%d-%d.txt", group, i)), []byte("needle"), 0600); err != nil { t.Fatal(err) }
+			if err := os.WriteFile(filepath.Join(root, fmt.Sprintf("root-%d-%d.txt", group, i)), []byte("needle"), 0600); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	a, tab := newSearchTextApp(t, "needle needle")
@@ -311,15 +337,23 @@ func TestTreeRootSwitchKeepsComposingQueryInput(t *testing.T) {
 	tester := ui.NewTester(a.View, 1180, 780)
 	tester.Frame()
 	handle := a.TreeList.Handle
-	if handle == (ui.Handle{}) { t.Fatal("root fixture did not bind the tree") }
-	if err := tester.Click("查找内容"); err != nil { t.Fatal(err) }
+	if handle == (ui.Handle{}) {
+		t.Fatal("root fixture did not bind the tree")
+	}
+	if err := tester.Click("查找内容"); err != nil {
+		t.Fatal(err)
+	}
 	tester.Compose("猫", 1)
 	preedit, ok := tester.AccessByRole(ui.RoleTextField, "查找内容")
-	if !ok || !preedit.Focused || !a.FindQueryComposing { t.Fatal("public query preedit did not initialize") }
+	if !ok || !preedit.Focused || !a.FindQueryComposing {
+		t.Fatal("public query preedit did not initialize")
+	}
 	before, version, history, selection := tab.Doc.Buffer.String(), tab.Doc.Buffer.Version(), tab.Doc.Buffer.History(), tab.Doc.Buffer.Selection()
 	handle.Focus()
 	a.openDialog = func(opts mygo.OpenDialogOptions) ([]string, error) {
-		if !opts.Directory { t.Fatal("root replacement did not use the folder contract") }
+		if !opts.Directory {
+			t.Fatal("root replacement did not use the folder contract")
+		}
 		return []string{roots[1]}, nil
 	}
 	// ChooseFolder is the app-owned root-transition boundary; a native OS
@@ -334,16 +368,24 @@ func TestTreeRootSwitchKeepsComposingQueryInput(t *testing.T) {
 		t.Fatalf("root transition stole focus, committed preedit or reused obsolete choice: input=%#v query=%q composing=%t selected=%d", after, a.Query, a.FindQueryComposing, a.TreeSelected)
 	}
 	tester.Key(0, ui.KeyEnter)
-	if tab.Doc.Buffer.Selection() != selection || a.Searching || a.searchID != 0 { t.Fatal("uncommitted query input submitted a document/workspace action") }
+	if tab.Doc.Buffer.Selection() != selection || a.Searching || a.searchID != 0 {
+		t.Fatal("uncommitted query input submitted a document/workspace action")
+	}
 	tester.Command("selectAll")
 	tester.Type("updated")
-	if a.Query != "updated" || a.FindQueryComposing { t.Fatal("query did not accept the later deliberate committed input") }
+	if a.Query != "updated" || a.FindQueryComposing {
+		t.Fatal("query did not accept the later deliberate committed input")
+	}
 	handle.Focus()
 	tester.Frame()
 	tester.Key(0, ui.KeyEnd)
 	tester.Frame()
-	if a.TreeSelected != 1 || a.TreeList.Handle != handle || !strings.HasPrefix(a.Entries[1].Name, "root-1-") { t.Fatal("later tree focus did not select the new root's row") }
-	if tab.Doc.Buffer.String() != before || tab.Doc.Buffer.Version() != version || tab.Doc.Buffer.History() != history { t.Fatal("root/query focus flow modified document bytes or history") }
+	if a.TreeSelected != 1 || a.TreeList.Handle != handle || !strings.HasPrefix(a.Entries[1].Name, "root-1-") {
+		t.Fatal("later tree focus did not select the new root's row")
+	}
+	if tab.Doc.Buffer.String() != before || tab.Doc.Buffer.Version() != version || tab.Doc.Buffer.History() != history {
+		t.Fatal("root/query focus flow modified document bytes or history")
+	}
 }
 
 func TestWorkspaceResultsMinimumWindowControls(t *testing.T) {
@@ -355,7 +397,7 @@ func TestWorkspaceResultsMinimumWindowControls(t *testing.T) {
 			a.ShowFind, a.ShowWorkspaceSearch = true, true
 			a.SearchSummary = strings.Repeat("123456 个匹配 · 长路径详情 ", 30)
 			a.SearchIssues = []search.FileIssue{{Path: strings.Repeat("long-path/", 20), Reason: "fixture skip"}}
-			a.SearchResults = []search.FileMatch{{Path: strings.Repeat("very-long-directory/", 20)+"match.txt", Line: 1, Start: 0, End: 1, Preview: strings.Repeat("内容 ", 200)}}
+			a.SearchResults = []search.FileMatch{{Path: strings.Repeat("very-long-directory/", 20) + "match.txt", Line: 1, Start: 0, End: 1, Preview: strings.Repeat("内容 ", 200)}}
 			cancelled := 0
 			a.searchCancel = func() { cancelled++ }
 			a.Searching = true
@@ -369,30 +411,53 @@ func TestWorkspaceResultsMinimumWindowControls(t *testing.T) {
 					t.Fatalf("minimum-window control %q is missing or clipped: %#v", label, info)
 				}
 				for _, other := range rects {
-					if other.X < info.Bounds.X+info.Bounds.W && info.Bounds.X < other.X+other.W && other.Y < info.Bounds.Y+info.Bounds.H && info.Bounds.Y < other.Y+other.H { t.Fatalf("minimum-window control %q overlaps: %#v %#v", label, info.Bounds, other) }
+					if other.X < info.Bounds.X+info.Bounds.W && info.Bounds.X < other.X+other.W && other.Y < info.Bounds.Y+info.Bounds.H && info.Bounds.Y < other.Y+other.H {
+						t.Fatalf("minimum-window control %q overlaps: %#v %#v", label, info.Bounds, other)
+					}
 				}
 				rects = append(rects, info.Bounds)
 			}
-			if source, ok := tester.Find("文档编辑区"); !ok || source.W < 200 || source.H < 64 { t.Fatalf("results+Find leave no usable source input: %#v", source) }
-			if err := tester.Click("取消搜索"); err != nil { t.Fatal(err) }
-			if cancelled != 1 { t.Fatal("visible cancel control did not invoke the current cancellation") }
+			if source, ok := tester.Find("文档编辑区"); !ok || source.W < 200 || source.H < 64 {
+				t.Fatalf("results+Find leave no usable source input: %#v", source)
+			}
+			if err := tester.Click("取消搜索"); err != nil {
+				t.Fatal(err)
+			}
+			if cancelled != 1 {
+				t.Fatal("visible cancel control did not invoke the current cancellation")
+			}
 			a.Searching = false
 			tester.Frame()
-			if err := tester.Click("查看跳过详情"); err != nil { t.Fatal(err) }
-			if !a.ShowIssues { t.Fatal("visible details control did not expose skip diagnostics") }
+			if err := tester.Click("查看跳过详情"); err != nil {
+				t.Fatal(err)
+			}
+			if !a.ShowIssues {
+				t.Fatal("visible details control did not expose skip diagnostics")
+			}
 			a.ShowIssues = false
 			tester.Frame()
-			if err := tester.Click("收起结果"); err != nil { t.Fatal(err) }
-			if a.ShowWorkspaceSearch { t.Fatal("visible collapse control did not hide results") }
+			if err := tester.Click("收起结果"); err != nil {
+				t.Fatal(err)
+			}
+			if a.ShowWorkspaceSearch {
+				t.Fatal("visible collapse control did not hide results")
+			}
 			// The public render is development evidence, not physical OS UI/IME.
 			a.ShowWorkspaceSearch = true
 			tester.Frame()
 			image := tester.Image()
 			path := filepath.Join(t.TempDir(), "workspace-results-minimum.png")
 			file, err := os.Create(path)
-			if err != nil { t.Fatal(err) }
-			if err := png.Encode(file, image); err != nil { _ = file.Close(); t.Fatal(err) }
-			if err := file.Close(); err != nil { t.Fatal(err) }
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := png.Encode(file, image); err != nil {
+				_ = file.Close()
+				t.Fatal(err)
+			}
+			if err := file.Close(); err != nil {
+				t.Fatal(err)
+			}
 			t.Logf("public Tester development render: %s", path)
 		})
 	}

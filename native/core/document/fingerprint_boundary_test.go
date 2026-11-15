@@ -13,14 +13,14 @@ var errFingerprintReadBoundary = errors.New("fingerprint delivered beyond expect
 // A non-embedded real file avoids exposing os.File.WriteTo: every byte delivered
 // to the production hash must pass this Reader. Stat always returns real OS data.
 type growingFingerprintFile struct {
-	file        *os.File
-	path        string
-	limit       int64
-	delivered   int64
-	before      os.FileInfo
-	statCalls   int
-	grew        bool
-	crossed     bool
+	file      *os.File
+	path      string
+	limit     int64
+	delivered int64
+	before    os.FileInfo
+	statCalls int
+	grew      bool
+	crossed   bool
 }
 
 func (f *growingFingerprintFile) Stat() (os.FileInfo, error) {

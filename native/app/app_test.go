@@ -1080,9 +1080,7 @@ func TestWorkspaceSearchVirtualizesFarResultAndReplacement(t *testing.T) {
 	if err := os.WriteFile(farPath, []byte("FAR-RESULT"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	a.SearchResults[len(a.SearchResults)-1] = search.FileMatch{
-		Path: farPath, Line: 1, Column: 1, Start: 0, End: 3, Preview: "FAR-RESULT",
-	}
+	a.SearchResults[len(a.SearchResults)-1] = workspaceSnapshotMatch(t, root, "FAR", farPath)
 	var built []int
 	a.searchRowBuilt = func(i int) { built = append(built, i) }
 	tester := ui.NewTester(a.View, 760, 480)

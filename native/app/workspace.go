@@ -8,6 +8,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"levnote.local/native/core/document"
 	"levnote.local/native/core/search"
 )
 
@@ -225,7 +226,7 @@ func (a *App) workspaceResults(c *ui.Context) {
 				a.SearchSelected = selected
 				if list.Submitted() && selected >= 0 && selected < len(results) && selected < len(a.SearchResults) {
 					old, now := results[selected], a.SearchResults[selected]
-					if old.Path == now.Path && old.Start == now.Start && old.End == now.End {
+					if old == now {
 						a.activateSearchResult(selected)
 					}
 				}
@@ -240,6 +241,10 @@ func (a *App) activateSearchResult(i int) {
 	}
 	a.SearchSelected = i
 	result := a.SearchResults[i]
+	if !result.HasSnapshot() {
+		a.report(fmt.Errorf("工作区搜索结果缺少内容快照；请重新搜索，未跳转"))
+		return
+	}
 	path := canonical(result.Path)
 	for index, t := range a.Tabs {
 		if t == nil || t.Doc == nil || t.Doc.Path == "" || !sameNativeFilePath(canonical(t.Doc.Path), path) {
@@ -255,7 +260,7 @@ func (a *App) activateSearchResult(i int) {
 		check := func() error {
 			if a.shuttingDown.Load() || !a.ShowWorkspaceSearch || a.ShowPlugins || a.searchID != id ||
 				a.searchRoot != root || a.Root != root || i >= len(a.SearchResults) ||
-				a.SearchResults[i].Path != result.Path || a.SearchResults[i].Start != result.Start || a.SearchResults[i].End != result.End {
+				a.SearchResults[i] != result {
 				return fmt.Errorf("工作区搜索结果已变化；未跳转")
 			}
 			if a.Current() != origin || index >= len(a.Tabs) || a.Tabs[index] != t ||
@@ -266,6 +271,9 @@ func (a *App) activateSearchResult(i int) {
 			// Check before flushing too: preserve already-dirty presentations.
 			if doc.Dirty() {
 				return fmt.Errorf("工作区结果来自磁盘；文档已有未保存修改，未跳转")
+			}
+			if !result.MatchesBuffer(buffer) {
+				return fmt.Errorf("工作区搜索结果对应的内容已变化；请重新搜索，未跳转")
 			}
 			if buffer.Version() != version {
 				return fmt.Errorf("同步输入期间文档已变化；工作区结果未跳转")
@@ -296,9 +304,67 @@ func (a *App) activateSearchResult(i int) {
 		a.revealSource(t, revealTarget{Start: result.Start, End: result.End})
 		return
 	}
-	// Unopened files retain the existing open/load path.
-	a.OpenAt(result.Path, result.Start, result.End)
+	// Carry the captured result through the existing asynchronous open path.
+	a.openRequests([]openRequest{{path: result.Path, search: &workspaceSearchTarget{
+		index: i, id: a.searchID, root: a.searchRoot, result: result, origin: a.Current(),
+	}}})
 }
+
+type workspaceSearchTarget struct {
+	index, id int
+	root      string
+	result    search.FileMatch
+	origin    *Tab
+}
+
+func (a *App) checkWorkspaceSearch(target *workspaceSearchTarget) error {
+	if target == nil {
+		return nil
+	}
+	if a.shuttingDown.Load() || !a.ShowWorkspaceSearch || a.ShowPlugins ||
+		a.searchID != target.id || a.searchRoot != target.root || a.Root != target.root ||
+		target.index < 0 || target.index >= len(a.SearchResults) || a.SearchResults[target.index] != target.result {
+		return fmt.Errorf("工作区搜索结果已变化；未跳转")
+	}
+	if a.Current() != target.origin {
+		return fmt.Errorf("工作区搜索目标已变化；未跳转")
+	}
+	return nil
+}
+
+func (a *App) selectRequestedDuplicate(path string, request openRequest) bool {
+	if request.search == nil {
+		return a.selectOpenDuplicate(path, request)
+	}
+	for _, tab := range a.Tabs {
+		if sameNativeFilePath(canonical(tab.path()), path) {
+			// A target opened while IO was pending must use the same checked
+			// activation as one that was already open at submission time.
+			a.activateSearchResult(request.search.index)
+			return true
+		}
+	}
+	return false
+}
+
+func (a *App) workspaceSearchAdoptionCheck(target *workspaceSearchTarget, doc *document.Document, inspector bool, next func() error) func() error {
+	if target == nil {
+		return next
+	}
+	return func() error {
+		if err := a.checkWorkspaceSearch(target); err != nil {
+			return err
+		}
+		if inspector || doc == nil || !target.result.MatchesBuffer(doc.Buffer) {
+			return fmt.Errorf("工作区搜索结果对应的内容已变化；请重新搜索，未跳转")
+		}
+		if next != nil {
+			return next()
+		}
+		return nil
+	}
+}
+
 func (a *App) conflictBar(c *ui.Context, t *Tab) {
 	ui.Row(c).Padding(8, 14).Gap(8).Background(c.Theme().Warning.Alpha(.12)).Children(func() {
 		ui.Text(c, "磁盘上的文件已改变。").Grow(1).FontSize(12)

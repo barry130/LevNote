@@ -43,36 +43,54 @@ func TestDocumentSaveWindowsLateRetryAndBudget(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "retry.txt")
 			put(t, path, []byte("old"))
 			doc, err := Open(path)
-			if err != nil { t.Fatal(err) }
+			if err != nil {
+				t.Fatal(err)
+			}
 			baseline := doc.DiskToken()
-			if err := doc.Buffer.ReplaceUTF16(0, 3, "draft"); err != nil { t.Fatal(err) }
+			if err := doc.Buffer.ReplaceUTF16(0, 3, "draft"); err != nil {
+				t.Fatal(err)
+			}
 			release := denyWindowsReplacement(t, path)
 			defer release()
 			wait := replaceRetryWait
 			defer func() { replaceRetryWait = wait }()
 			waits := 0
 			replaceRetryWait = func(delay time.Duration) {
-				if delay != 25*time.Millisecond { t.Fatalf("retry delay changed: %v", delay) }
+				if delay != 25*time.Millisecond {
+					t.Fatalf("retry delay changed: %v", delay)
+				}
 				wait(delay)
 				waits++
 				if waits == 5 && mode != "persistent" {
 					release()
-					if mode == "late-change" { put(t, path, []byte("out")) }
+					if mode == "late-change" {
+						put(t, path, []byte("out"))
+					}
 				}
 			}
 			err = doc.Save()
 			release()
-			if waits != 5 { t.Fatalf("real transient OS retries exceeded six-attempt/five-delay budget: waits=%d err=%v", waits, err) }
+			if waits != 5 {
+				t.Fatalf("real transient OS retries exceeded six-attempt/five-delay budget: waits=%d err=%v", waits, err)
+			}
 			switch mode {
 			case "late-change":
-				if !errors.Is(err, ErrConflict) || string(read(t, path)) != "out" || !doc.Dirty() || !doc.SameBaseline(baseline) { t.Fatalf("last delayed attempt overwrote changed bytes: %v", err) }
+				if !errors.Is(err, ErrConflict) || string(read(t, path)) != "out" || !doc.Dirty() || !doc.SameBaseline(baseline) {
+					t.Fatalf("last delayed attempt overwrote changed bytes: %v", err)
+				}
 			case "late-release":
-				if err != nil || string(read(t, path)) != "draft" || doc.Dirty() { t.Fatalf("sixth attempt could not save unchanged target after lock release: %v", err) }
+				if err != nil || string(read(t, path)) != "draft" || doc.Dirty() {
+					t.Fatalf("sixth attempt could not save unchanged target after lock release: %v", err)
+				}
 			case "persistent":
-				if err == nil || !isTransientReplaceError(err) || string(read(t, path)) != "old" || !doc.Dirty() || !doc.SameBaseline(baseline) { t.Fatalf("persistent real lock lost OS error/original draft: %v", err) }
+				if err == nil || !isTransientReplaceError(err) || string(read(t, path)) != "old" || !doc.Dirty() || !doc.SameBaseline(baseline) {
+					t.Fatalf("persistent real lock lost OS error/original draft: %v", err)
+				}
 			}
 			matches, err := filepath.Glob(filepath.Join(filepath.Dir(path), ".levnote-save-*"))
-			if err != nil || len(matches) != 0 { t.Fatalf("failed/successful retry left staging temps: %v %v", matches, err) }
+			if err != nil || len(matches) != 0 {
+				t.Fatalf("failed/successful retry left staging temps: %v %v", matches, err)
+			}
 		})
 	}
 }
