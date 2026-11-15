@@ -372,6 +372,9 @@ func (e *Editor) ReplaceText(r *ui.TextInputRange, value string) {
 		e.changed()
 	} else {
 		e.ensureCaret()
+		if e.OnChange != nil {
+			e.OnChange()
+		}
 		e.services.Invalidate()
 	}
 }

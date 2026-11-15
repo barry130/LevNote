@@ -388,11 +388,37 @@ func (v *view) RecoverDraft() error {
 		}
 		content += fmt.Sprintf("节点 ID: %s\n字段: 新标签（尚未添加）\n\n%s", tag.nodeID, tag.input.Buffer.String())
 	}
-	if err := v.host.RecoverDraft(name+"-节点草稿.txt", content); err != nil {
-		v.setDraftError(err)
+	fieldChanged, tagChanged := false, false
+	if d != nil {
+		onChange := d.input.OnChange
+		d.input.OnChange = func() {
+			fieldChanged = true
+			if onChange != nil {
+				onChange()
+			}
+		}
+		defer func() { d.input.OnChange = onChange }()
+	}
+	if tag != nil {
+		onChange := tag.input.OnChange
+		tag.input.OnChange = func() {
+			tagChanged = true
+			if onChange != nil {
+				onChange()
+			}
+		}
+		defer func() { tag.input.OnChange = onChange }()
+	}
+	err := v.host.RecoverDraft(name+"-节点草稿.txt", content)
+	sameField, sameTag := !fieldChanged && v.sameFieldIdentity(fieldID), !tagChanged && v.sameTagInput(tagID)
+	if err != nil {
+		if sameField && sameTag && v.host.Buffer == buffer && v.releaseEpoch == released {
+			v.setDraftError(err)
+		} else {
+			v.report(err)
+		}
 		return err
 	}
-	sameField, sameTag := v.sameFieldIdentity(fieldID), v.sameTagInput(tagID)
 	if fieldPending && sameField {
 		v.clearDraft()
 	}
