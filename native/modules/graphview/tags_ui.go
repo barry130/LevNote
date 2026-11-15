@@ -143,7 +143,9 @@ func (v *view) drawTagButton(c *ui.Context, info tagPresentation, action int, di
 					v.clearTagPendingWarning()
 					v.refreshTagDraft()
 				} else {
-					v.setTagError(v.RecoverDraft())
+					if err := v.RecoverDraft(); err == nil {
+						v.setTagError(nil)
+					}
 				}
 			} else {
 				v.setTagError(v.activateTag(g))
