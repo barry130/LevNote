@@ -1,0 +1,121 @@
+{
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/freeze-document-input-01.py",
+    "--label",
+    "document-public-conflict-format-01",
+    "--source",
+    "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native",
+    "--allow",
+    "core/document/document.go",
+    "--allow",
+    "core/document/atomic.go",
+    "--allow",
+    "core/document/utf8_save_test.go",
+    "--allow",
+    "core/document/fingerprint_boundary_test.go",
+    "--allow",
+    "core/document/fingerprint_public_test.go",
+    "--allow",
+    "core/document/fingerprint_conflict_public_test.go"
+  ],
+  "cwd": "/home/user/levnote-dev-reliability-20261112-01",
+  "pid": 4096,
+  "started_at": "2026-11-13T02:44:54.098051+00:00",
+  "script": {
+    "bytes": 5048,
+    "sha256": "dccc94dbe7d5e93528e84000e37f2ffe7f6d0c0e859e18a941eb443abfd9216e"
+  },
+  "runner": {
+    "bytes": 17964,
+    "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+  },
+  "source": "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native",
+  "allowed_changed_files": [
+    "core/document/document.go",
+    "core/document/atomic.go",
+    "core/document/utf8_save_test.go",
+    "core/document/fingerprint_boundary_test.go",
+    "core/document/fingerprint_public_test.go",
+    "core/document/fingerprint_conflict_public_test.go"
+  ],
+  "head": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "go_executed": false,
+  "expected_manifest": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-public-conflict-format-01/expected-manifest.json",
+    "bytes": 201756,
+    "sha256": "28aa5abeb0fab388b6b4aa6ef60077f103dea3b6a389c9094812db343663f780"
+  },
+  "input_source": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-public-conflict-format-01/native",
+  "input_count": 1194,
+  "input_bytes": 16984831,
+  "overlay": [
+    {
+      "path": "core/document/atomic.go",
+      "baseline": {
+        "bytes": 3516,
+        "sha256": "33d45a65253972d8547a5dc7acd1ac9fa04c0540ef11dd3de207676801a232cc"
+      },
+      "input": {
+        "bytes": 4867,
+        "sha256": "680e7f00aca4ba5a5079ee8a78644a69bdb2a8e75daad63cd1157d2209ba9c01"
+      }
+    },
+    {
+      "path": "core/document/document.go",
+      "baseline": {
+        "bytes": 12537,
+        "sha256": "6859017748c8884dd9cc84b185a405c0a78089aa0d84f191024489cb24c11219"
+      },
+      "input": {
+        "bytes": 14511,
+        "sha256": "44da6396913741a18ed5ebd1d0c668853d28ad399eba9b13abb02aa08f76a3fe"
+      }
+    },
+    {
+      "path": "core/document/fingerprint_boundary_test.go",
+      "baseline": null,
+      "input": {
+        "bytes": 3399,
+        "sha256": "f0d3204bf2b7430eb1a95ca183ade789816faf7752433cad06c2e6a74f434aef"
+      }
+    },
+    {
+      "path": "core/document/fingerprint_conflict_public_test.go",
+      "baseline": null,
+      "input": {
+        "bytes": 6993,
+        "sha256": "c0556277c6d7ae7c7cf4a72d75d3901a23aedcedec94aa00711dc5ac0ab20b69"
+      }
+    },
+    {
+      "path": "core/document/fingerprint_public_test.go",
+      "baseline": null,
+      "input": {
+        "bytes": 2957,
+        "sha256": "3c94db4b1ac0604f03ebb3cc26fdf62e661dadfd266ad74b06d6d9fe587955d5"
+      }
+    },
+    {
+      "path": "core/document/utf8_save_test.go",
+      "baseline": {
+        "bytes": 8197,
+        "sha256": "446f7542b0447fea4f29b92796f6cb4b32b3aeb249e914bfb279731f78302863"
+      },
+      "input": {
+        "bytes": 8238,
+        "sha256": "7c02ad0c795cadda2b93c443d6816d742ff13bf0e9ae26facb3e8149f31b3ec0"
+      }
+    }
+  ],
+  "source_before": {
+    "bytes": 199749,
+    "sha256": "7f6f06c9fd153c989260287a9b43238f51e5207ece79b426d3c0ba0d56e99d13"
+  },
+  "source_after": {
+    "bytes": 199749,
+    "sha256": "7f6f06c9fd153c989260287a9b43238f51e5207ece79b426d3c0ba0d56e99d13"
+  },
+  "outcome": "MATCHING_INPUT_CAPTURED_NOT_PRODUCT_ACCEPTANCE",
+  "exit_code": 0,
+  "ended_at": "2026-11-13T02:44:57.779282+00:00"
+}

@@ -1,0 +1,769 @@
+{
+  "argv": [
+    "-"
+  ],
+  "caller_pid": 26171,
+  "product_executed": false,
+  "collected_at": "2026-11-12T09:29:14.536768+00:00",
+  "primary_records_preserved": true,
+  "results": [
+    {
+      "label": "experience-tree-current-green-02",
+      "primary_result": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/evidence/result.json",
+        "bytes": 5792,
+        "sha256": "fa7341150b489d00e02d2cfeffe8f5c2c20869dedd0fc43c65d3407c7925ada7"
+      },
+      "command": {
+        "argv": [
+          "/home/user/go/bin/go",
+          "test",
+          "-v",
+          "-count=1",
+          "-timeout=120s",
+          "-run",
+          "^TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget$",
+          "./app"
+        ],
+        "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/source/native",
+        "environment": {
+          "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/env/home",
+          "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/env/config",
+          "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/env/cache",
+          "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/env/data",
+          "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/env/state",
+          "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+          "GOROOT": "/home/user/go",
+          "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+          "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+          "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/env/tmp",
+          "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/env/tmp",
+          "GOENV": "off",
+          "GOWORK": "off",
+          "GOVCS": "*:off",
+          "GOFLAGS": "-mod=vendor",
+          "GOTOOLCHAIN": "local",
+          "GOPROXY": "off",
+          "GOSUMDB": "off",
+          "GONOPROXY": "",
+          "GONOSUMDB": "",
+          "GOPRIVATE": "",
+          "CGO_ENABLED": "0",
+          "GOTELEMETRY": "off",
+          "GOOS": "linux",
+          "GOARCH": "amd64",
+          "GOEXPERIMENT": ""
+        },
+        "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+        "started_at": "2026-11-12T09:04:17.127797+00:00",
+        "timeout_s": 180,
+        "timed_out": false,
+        "owned_cleanup": [],
+        "status": "completed",
+        "pid": 21905,
+        "owned_pgid": 21905,
+        "launched_at": "2026-11-12T09:04:17.129302+00:00",
+        "exit_code": 1,
+        "owned_group_remaining_after_wait": false,
+        "ended_at": "2026-11-12T09:04:48.087628+00:00",
+        "elapsed_s": 30.95984562698868,
+        "stdout": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/evidence/05-product-command.stdout.bin",
+          "bytes": 268,
+          "sha256": "e1a01a3155070e4c00615c69cc25467c6e34af8608c2320e37dc5a902f86cdc3"
+        },
+        "stderr": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/evidence/05-product-command.stderr.bin",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "wrapper_exit": 2,
+      "outcome": "COMMAND_FAILED",
+      "expected_input": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/experience-tree-current-green-02/expected-manifest.json",
+        "bytes": 202370,
+        "sha256": "b3ed0e6264d4492c3ffedeec481b7a695b6f4fac179f4e4b136f5e9f465bd650"
+      },
+      "source_before": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      },
+      "source_after": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      },
+      "snapshot_after": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      },
+      "all_actual_inventories_equal": true,
+      "input_count": 1194,
+      "input_bytes": 17000388,
+      "printed_top_level": {
+        "run": [
+          "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget"
+        ],
+        "pass": [],
+        "fail": [
+          "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget"
+        ],
+        "skip": []
+      },
+      "printed_nested_counts": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "run": 0
+      },
+      "panic": false,
+      "test_headers_are_not_whole_suite_coverage": true,
+      "expected_top_level_names": [
+        "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget"
+      ]
+    },
+    {
+      "label": "experience-list-affected-01",
+      "primary_result": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/evidence/result.json",
+        "bytes": 8240,
+        "sha256": "5df58a28c30e8de487b0871c6360de71ae65f4adc2916415a3319ac22312c805"
+      },
+      "command": {
+        "argv": [
+          "/home/user/go/bin/go",
+          "test",
+          "-v",
+          "-count=1",
+          "-timeout=180s",
+          "-run",
+          "^(TestAppListHandlesSurviveSemanticResets|TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget|TestSearchListHandleNewSearchRejectsStaleDelivery|TestOutlineListHandleReleaseAfterSidebarBuild|TestOutlineListHandleReentrantFlushAndRetry|TestHiddenListFocusDoesNotStealEditorInput|TestTreeRootSwitchKeepsComposingQueryInput|TestWorkspaceResultsMinimumWindowControls|TestWorkspaceTreeDisclosesPerDirectoryLimit|TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor|TestWorkspaceSearchVirtualizesFarResultAndReplacement|TestWorkspaceSearchIssueDetailsAreBounded|TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration|TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView|TestOutlineActivationFlushesPendingNativeComposition|TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable|TestOutlineActivationRejectsLifecycleChangesDuringFlush|TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice|TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard|TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates|TestBuiltinOutlineReleasedOnPluginModeTabAndReload|TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows|TestFindKeyboardFocusLeaveReconcilesComposition|TestFindbarControlsFitMainPaneAtMinimumWindow|TestFindbarActionsAndFocusSurviveMinimumReflow)$",
+          "./app"
+        ],
+        "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native",
+        "environment": {
+          "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/env/home",
+          "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/env/config",
+          "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/env/cache",
+          "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/env/data",
+          "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/env/state",
+          "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+          "GOROOT": "/home/user/go",
+          "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+          "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+          "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/env/tmp",
+          "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/env/tmp",
+          "GOENV": "off",
+          "GOWORK": "off",
+          "GOVCS": "*:off",
+          "GOFLAGS": "-mod=vendor",
+          "GOTOOLCHAIN": "local",
+          "GOPROXY": "off",
+          "GOSUMDB": "off",
+          "GONOPROXY": "",
+          "GONOSUMDB": "",
+          "GOPRIVATE": "",
+          "CGO_ENABLED": "0",
+          "GOTELEMETRY": "off",
+          "GOOS": "linux",
+          "GOARCH": "amd64",
+          "GOEXPERIMENT": ""
+        },
+        "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+        "started_at": "2026-11-12T09:07:32.534624+00:00",
+        "timeout_s": 240,
+        "timed_out": false,
+        "owned_cleanup": [],
+        "status": "completed",
+        "pid": 22596,
+        "owned_pgid": 22596,
+        "launched_at": "2026-11-12T09:07:32.536079+00:00",
+        "exit_code": 1,
+        "owned_group_remaining_after_wait": false,
+        "ended_at": "2026-11-12T09:08:00.583027+00:00",
+        "elapsed_s": 28.048415450990433,
+        "stdout": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/evidence/05-product-command.stdout.bin",
+          "bytes": 14421,
+          "sha256": "8c9c7f67aef58329f17aa494e5152232c57f59339602f961a5d09aebfab9e289"
+        },
+        "stderr": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/evidence/05-product-command.stderr.bin",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "wrapper_exit": 2,
+      "outcome": "COMMAND_FAILED",
+      "expected_input": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/experience-list-affected-01/expected-manifest.json",
+        "bytes": 202365,
+        "sha256": "4a74107191d89dcdb24ed955e88ee95ef0bce0cfdd0332399c95b520fbbdef42"
+      },
+      "source_before": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      },
+      "source_after": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      },
+      "snapshot_after": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      },
+      "all_actual_inventories_equal": true,
+      "input_count": 1194,
+      "input_bytes": 17000388,
+      "printed_top_level": {
+        "run": [
+          "TestWorkspaceTreeDisclosesPerDirectoryLimit",
+          "TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor",
+          "TestWorkspaceSearchVirtualizesFarResultAndReplacement",
+          "TestWorkspaceSearchIssueDetailsAreBounded",
+          "TestFindKeyboardFocusLeaveReconcilesComposition",
+          "TestFindbarControlsFitMainPaneAtMinimumWindow",
+          "TestFindbarActionsAndFocusSurviveMinimumReflow",
+          "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget",
+          "TestSearchListHandleNewSearchRejectsStaleDelivery",
+          "TestAppListHandlesSurviveSemanticResets",
+          "TestOutlineListHandleReleaseAfterSidebarBuild"
+        ],
+        "pass": [
+          "TestWorkspaceTreeDisclosesPerDirectoryLimit",
+          "TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor",
+          "TestWorkspaceSearchVirtualizesFarResultAndReplacement",
+          "TestWorkspaceSearchIssueDetailsAreBounded",
+          "TestFindKeyboardFocusLeaveReconcilesComposition",
+          "TestFindbarControlsFitMainPaneAtMinimumWindow",
+          "TestFindbarActionsAndFocusSurviveMinimumReflow",
+          "TestSearchListHandleNewSearchRejectsStaleDelivery",
+          "TestAppListHandlesSurviveSemanticResets"
+        ],
+        "fail": [
+          "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget",
+          "TestOutlineListHandleReleaseAfterSidebarBuild"
+        ],
+        "skip": []
+      },
+      "printed_nested_counts": {
+        "pass": 10,
+        "fail": 0,
+        "skip": 0,
+        "run": 10
+      },
+      "panic": true,
+      "test_headers_are_not_whole_suite_coverage": true,
+      "expected_top_level_names": [
+        "TestWorkspaceTreeDisclosesPerDirectoryLimit",
+        "TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor",
+        "TestWorkspaceSearchVirtualizesFarResultAndReplacement",
+        "TestWorkspaceSearchIssueDetailsAreBounded",
+        "TestFindKeyboardFocusLeaveReconcilesComposition",
+        "TestFindbarControlsFitMainPaneAtMinimumWindow",
+        "TestFindbarActionsAndFocusSurviveMinimumReflow",
+        "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget",
+        "TestSearchListHandleNewSearchRejectsStaleDelivery",
+        "TestAppListHandlesSurviveSemanticResets",
+        "TestOutlineListHandleReleaseAfterSidebarBuild"
+      ],
+      "selected_top_level_count": 25,
+      "panic_aborted_not_started": [
+        "TestOutlineListHandleReentrantFlushAndRetry",
+        "TestHiddenListFocusDoesNotStealEditorInput",
+        "TestTreeRootSwitchKeepsComposingQueryInput",
+        "TestWorkspaceResultsMinimumWindowControls",
+        "TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration",
+        "TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView",
+        "TestOutlineActivationFlushesPendingNativeComposition",
+        "TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable",
+        "TestOutlineActivationRejectsLifecycleChangesDuringFlush",
+        "TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice",
+        "TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard",
+        "TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates",
+        "TestBuiltinOutlineReleasedOnPluginModeTabAndReload",
+        "TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows"
+      ]
+    },
+    {
+      "label": "drawio-ui-red-01",
+      "primary_result": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/evidence/result.json",
+        "bytes": 5535,
+        "sha256": "cfd30ee9a96c7b85df58a166f1b1beacc8dace300ea09e8ae7e39a80280f68d2"
+      },
+      "command": {
+        "argv": [
+          "/home/user/go/bin/go",
+          "test",
+          "-v",
+          "-count=1",
+          "-timeout=120s",
+          "-run",
+          "^TestDrawioCanvasDeleteUndoRedoPreservesSource$",
+          "./modules/graphview"
+        ],
+        "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/source/native",
+        "environment": {
+          "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/env/home",
+          "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/env/config",
+          "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/env/cache",
+          "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/env/data",
+          "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/env/state",
+          "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+          "GOROOT": "/home/user/go",
+          "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+          "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+          "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/env/tmp",
+          "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/env/tmp",
+          "GOENV": "off",
+          "GOWORK": "off",
+          "GOVCS": "*:off",
+          "GOFLAGS": "-mod=vendor",
+          "GOTOOLCHAIN": "local",
+          "GOPROXY": "off",
+          "GOSUMDB": "off",
+          "GONOPROXY": "",
+          "GONOSUMDB": "",
+          "GOPRIVATE": "",
+          "CGO_ENABLED": "0",
+          "GOTELEMETRY": "off",
+          "GOOS": "linux",
+          "GOARCH": "amd64",
+          "GOEXPERIMENT": ""
+        },
+        "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+        "started_at": "2026-11-12T09:13:55.118432+00:00",
+        "timeout_s": 180,
+        "timed_out": false,
+        "owned_cleanup": [],
+        "status": "completed",
+        "pid": 23334,
+        "owned_pgid": 23334,
+        "launched_at": "2026-11-12T09:13:55.119698+00:00",
+        "exit_code": 1,
+        "owned_group_remaining_after_wait": false,
+        "ended_at": "2026-11-12T09:14:09.337433+00:00",
+        "elapsed_s": 14.219004165002843,
+        "stdout": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/evidence/05-product-command.stdout.bin",
+          "bytes": 706,
+          "sha256": "7321405dc99f86f6c8ff4edd3379c0538301e4c778287503dd304dfcf9d5e84e"
+        },
+        "stderr": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/evidence/05-product-command.stderr.bin",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "wrapper_exit": 2,
+      "outcome": "COMMAND_FAILED",
+      "expected_input": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-ui-red-01/expected-manifest.json",
+        "bytes": 200784,
+        "sha256": "773637259d7eda579a8992cfe99a7468e7515afd010c2477edff98a1dd929531"
+      },
+      "source_before": {
+        "bytes": 199710,
+        "sha256": "8e033e300e8985f74b46a0f64c25f42def6b9a9dc63d21f7a6530dfff434b886"
+      },
+      "source_after": {
+        "bytes": 199710,
+        "sha256": "8e033e300e8985f74b46a0f64c25f42def6b9a9dc63d21f7a6530dfff434b886"
+      },
+      "snapshot_after": {
+        "bytes": 199710,
+        "sha256": "8e033e300e8985f74b46a0f64c25f42def6b9a9dc63d21f7a6530dfff434b886"
+      },
+      "all_actual_inventories_equal": true,
+      "input_count": 1194,
+      "input_bytes": 16981414,
+      "printed_top_level": {
+        "run": [
+          "TestDrawioCanvasDeleteUndoRedoPreservesSource"
+        ],
+        "pass": [],
+        "fail": [
+          "TestDrawioCanvasDeleteUndoRedoPreservesSource"
+        ],
+        "skip": []
+      },
+      "printed_nested_counts": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "run": 0
+      },
+      "panic": false,
+      "test_headers_are_not_whole_suite_coverage": true,
+      "expected_top_level_names": [
+        "TestDrawioCanvasDeleteUndoRedoPreservesSource"
+      ]
+    },
+    {
+      "label": "native-path-affected-01",
+      "primary_result": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/evidence/result.json",
+        "bytes": 5964,
+        "sha256": "f46a9e28c2dad71bfa07e10a05a68727e91fcd31302c09a0d605de80bee49b9d"
+      },
+      "command": {
+        "argv": [
+          "/home/user/go/bin/go",
+          "test",
+          "-v",
+          "-count=1",
+          "-timeout=300s",
+          "-run",
+          "^(TestAutonomousReliability.*|TestReopenClosed.*|TestResolveLocalReferenceClassification|TestEditorHost.*|TestNativeImage.*|TestBinaryInspectorLabelsOriginalBytes|TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate)$",
+          "./app"
+        ],
+        "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/source/native",
+        "environment": {
+          "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/env/home",
+          "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/env/config",
+          "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/env/cache",
+          "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/env/data",
+          "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/env/state",
+          "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+          "GOROOT": "/home/user/go",
+          "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+          "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+          "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/env/tmp",
+          "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/env/tmp",
+          "GOENV": "off",
+          "GOWORK": "off",
+          "GOVCS": "*:off",
+          "GOFLAGS": "-mod=vendor",
+          "GOTOOLCHAIN": "local",
+          "GOPROXY": "off",
+          "GOSUMDB": "off",
+          "GONOPROXY": "",
+          "GONOSUMDB": "",
+          "GOPRIVATE": "",
+          "CGO_ENABLED": "0",
+          "GOTELEMETRY": "off",
+          "GOOS": "linux",
+          "GOARCH": "amd64",
+          "GOEXPERIMENT": ""
+        },
+        "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+        "started_at": "2026-11-12T09:16:00.041505+00:00",
+        "timeout_s": 360,
+        "timed_out": false,
+        "owned_cleanup": [],
+        "status": "completed",
+        "pid": 23843,
+        "owned_pgid": 23843,
+        "launched_at": "2026-11-12T09:16:00.042582+00:00",
+        "exit_code": 1,
+        "owned_group_remaining_after_wait": false,
+        "ended_at": "2026-11-12T09:16:26.094242+00:00",
+        "elapsed_s": 26.052711416006787,
+        "stdout": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/evidence/05-product-command.stdout.bin",
+          "bytes": 17463,
+          "sha256": "d0440f9b2a8b9ac995985b175ff120998c80c49be80ecb1e5caa38b92291575e"
+        },
+        "stderr": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/evidence/05-product-command.stderr.bin",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "wrapper_exit": 2,
+      "outcome": "COMMAND_FAILED",
+      "expected_input": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/native-path-affected-01/expected-manifest.json",
+        "bytes": 201209,
+        "sha256": "f118f82abf54b7083289f953eb0b65097b15e3314caa999973df5b764b29a86f"
+      },
+      "source_before": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      },
+      "source_after": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      },
+      "snapshot_after": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      },
+      "all_actual_inventories_equal": true,
+      "input_count": 1192,
+      "input_bytes": 16978935,
+      "printed_top_level": {
+        "run": [
+          "TestBinaryInspectorLabelsOriginalBytes",
+          "TestAutonomousReliabilityReopenNativeFileReadsCurrentBytes",
+          "TestAutonomousReliabilityNativePathIdentity",
+          "TestAutonomousReliabilityEditorHostNativeReferences",
+          "TestAutonomousReliabilityFileURLTokens",
+          "TestAutonomousReliabilityFailedReopenRetainsHistory",
+          "TestNativeImageKeyboardByteAndTabBoundaries",
+          "TestNativeImageOpenMixedAuthorityAndCapabilities",
+          "TestNativeImageSignatureDisabledCorruptMismatchAndOversize",
+          "TestNativeImageCopiesHeldBytesAndReloadsExplicitly",
+          "TestNativeImageModalStaleAndFailedFlushKeepAuthority",
+          "TestNativeImageSessionOrderAndPathOnlyRestore",
+          "TestNativeImageLaneLatestPendingAndShutdownJoin",
+          "TestNativeImageCopySurvivesNavigationAndClosedTabOutcome",
+          "TestNativeImageExternalObservationAndReacquireFailure",
+          "TestNativeImageChooseOpenHeadlessAndDeliveryTimeout",
+          "TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing",
+          "TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin",
+          "TestNativeImageTransactionalReloadOverlapAndNewestPending",
+          "TestNativeImageCaptures",
+          "TestNativeImageDuplicateRecheckedAtPublication",
+          "TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft",
+          "TestNativeImageCallbacksAndReentrantCopyAreBounded",
+          "TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate",
+          "TestEditorHostStaleLocalReferenceIsRefused",
+          "TestResolveLocalReferenceClassification",
+          "TestEditorHostOpenReferenceUsesSavedSourceAndExistingBarriers",
+          "TestEditorHostOpenReferenceRejectsUnsavedExternalAndRemoteFile",
+          "TestEditorHostAnchorUsesOutlineSourceResolverAfterFlush",
+          "TestReopenClosedReadsCurrentDiskAndPreservesBytes",
+          "TestReopenClosedDoesNotRememberLegacyEncoding",
+          "TestReopenClosedSaveAsDiscardAndNoDraftAuthority",
+          "TestReopenClosedFailedCloseNeverRecords",
+          "TestReopenClosedWindowCloseCancelsRunningImage",
+          "TestReopenClosedBoundDedupAndShutdownClearBacking",
+          "TestReopenClosedUnusualPathsAndBoundedLabels",
+          "TestReopenClosedMissingTopRetainedMenuOpensOlder",
+          "TestReopenClosedSyntheticSourceAndRichComposition",
+          "TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus",
+          "TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction",
+          "TestReopenClosedExistingAndPublicationDuplicateFlushRefusal",
+          "TestReopenClosedSynchronousRecoveryDuringFlush",
+          "TestReopenClosedModalRestoringAndAdoptionPreedit",
+          "TestReopenClosedTimeoutShutdownAndLateCallbacks",
+          "TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout",
+          "TestReopenClosedMenuGeometryAndEmptyState",
+          "TestReopenClosedSuccessfulShortcutRepeatAndStaleMenuID"
+        ],
+        "pass": [
+          "TestBinaryInspectorLabelsOriginalBytes",
+          "TestAutonomousReliabilityReopenNativeFileReadsCurrentBytes",
+          "TestAutonomousReliabilityNativePathIdentity",
+          "TestAutonomousReliabilityEditorHostNativeReferences",
+          "TestAutonomousReliabilityFileURLTokens",
+          "TestAutonomousReliabilityFailedReopenRetainsHistory",
+          "TestNativeImageKeyboardByteAndTabBoundaries",
+          "TestNativeImageOpenMixedAuthorityAndCapabilities",
+          "TestNativeImageSignatureDisabledCorruptMismatchAndOversize",
+          "TestNativeImageCopiesHeldBytesAndReloadsExplicitly",
+          "TestNativeImageModalStaleAndFailedFlushKeepAuthority",
+          "TestNativeImageSessionOrderAndPathOnlyRestore",
+          "TestNativeImageLaneLatestPendingAndShutdownJoin",
+          "TestNativeImageCopySurvivesNavigationAndClosedTabOutcome",
+          "TestNativeImageExternalObservationAndReacquireFailure",
+          "TestNativeImageChooseOpenHeadlessAndDeliveryTimeout",
+          "TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing",
+          "TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin",
+          "TestNativeImageTransactionalReloadOverlapAndNewestPending",
+          "TestNativeImageDuplicateRecheckedAtPublication",
+          "TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft",
+          "TestNativeImageCallbacksAndReentrantCopyAreBounded",
+          "TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate",
+          "TestEditorHostStaleLocalReferenceIsRefused",
+          "TestResolveLocalReferenceClassification",
+          "TestEditorHostOpenReferenceUsesSavedSourceAndExistingBarriers",
+          "TestEditorHostOpenReferenceRejectsUnsavedExternalAndRemoteFile",
+          "TestEditorHostAnchorUsesOutlineSourceResolverAfterFlush",
+          "TestReopenClosedReadsCurrentDiskAndPreservesBytes",
+          "TestReopenClosedDoesNotRememberLegacyEncoding",
+          "TestReopenClosedSaveAsDiscardAndNoDraftAuthority",
+          "TestReopenClosedFailedCloseNeverRecords",
+          "TestReopenClosedWindowCloseCancelsRunningImage",
+          "TestReopenClosedUnusualPathsAndBoundedLabels",
+          "TestReopenClosedMissingTopRetainedMenuOpensOlder",
+          "TestReopenClosedSyntheticSourceAndRichComposition",
+          "TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus",
+          "TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction",
+          "TestReopenClosedExistingAndPublicationDuplicateFlushRefusal",
+          "TestReopenClosedSynchronousRecoveryDuringFlush",
+          "TestReopenClosedModalRestoringAndAdoptionPreedit",
+          "TestReopenClosedTimeoutShutdownAndLateCallbacks",
+          "TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout",
+          "TestReopenClosedMenuGeometryAndEmptyState",
+          "TestReopenClosedSuccessfulShortcutRepeatAndStaleMenuID"
+        ],
+        "fail": [
+          "TestReopenClosedBoundDedupAndShutdownClearBacking"
+        ],
+        "skip": [
+          "TestNativeImageCaptures"
+        ]
+      },
+      "printed_nested_counts": {
+        "pass": 76,
+        "fail": 0,
+        "skip": 0,
+        "run": 76
+      },
+      "panic": false,
+      "test_headers_are_not_whole_suite_coverage": true,
+      "expected_top_level_names": [
+        "TestBinaryInspectorLabelsOriginalBytes",
+        "TestAutonomousReliabilityReopenNativeFileReadsCurrentBytes",
+        "TestAutonomousReliabilityNativePathIdentity",
+        "TestAutonomousReliabilityEditorHostNativeReferences",
+        "TestAutonomousReliabilityFileURLTokens",
+        "TestAutonomousReliabilityFailedReopenRetainsHistory",
+        "TestNativeImageKeyboardByteAndTabBoundaries",
+        "TestNativeImageOpenMixedAuthorityAndCapabilities",
+        "TestNativeImageSignatureDisabledCorruptMismatchAndOversize",
+        "TestNativeImageCopiesHeldBytesAndReloadsExplicitly",
+        "TestNativeImageModalStaleAndFailedFlushKeepAuthority",
+        "TestNativeImageSessionOrderAndPathOnlyRestore",
+        "TestNativeImageLaneLatestPendingAndShutdownJoin",
+        "TestNativeImageCopySurvivesNavigationAndClosedTabOutcome",
+        "TestNativeImageExternalObservationAndReacquireFailure",
+        "TestNativeImageChooseOpenHeadlessAndDeliveryTimeout",
+        "TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing",
+        "TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin",
+        "TestNativeImageTransactionalReloadOverlapAndNewestPending",
+        "TestNativeImageCaptures",
+        "TestNativeImageDuplicateRecheckedAtPublication",
+        "TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft",
+        "TestNativeImageCallbacksAndReentrantCopyAreBounded",
+        "TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate",
+        "TestEditorHostStaleLocalReferenceIsRefused",
+        "TestResolveLocalReferenceClassification",
+        "TestEditorHostOpenReferenceUsesSavedSourceAndExistingBarriers",
+        "TestEditorHostOpenReferenceRejectsUnsavedExternalAndRemoteFile",
+        "TestEditorHostAnchorUsesOutlineSourceResolverAfterFlush",
+        "TestReopenClosedReadsCurrentDiskAndPreservesBytes",
+        "TestReopenClosedDoesNotRememberLegacyEncoding",
+        "TestReopenClosedSaveAsDiscardAndNoDraftAuthority",
+        "TestReopenClosedFailedCloseNeverRecords",
+        "TestReopenClosedWindowCloseCancelsRunningImage",
+        "TestReopenClosedBoundDedupAndShutdownClearBacking",
+        "TestReopenClosedUnusualPathsAndBoundedLabels",
+        "TestReopenClosedMissingTopRetainedMenuOpensOlder",
+        "TestReopenClosedSyntheticSourceAndRichComposition",
+        "TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus",
+        "TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction",
+        "TestReopenClosedExistingAndPublicationDuplicateFlushRefusal",
+        "TestReopenClosedSynchronousRecoveryDuringFlush",
+        "TestReopenClosedModalRestoringAndAdoptionPreedit",
+        "TestReopenClosedTimeoutShutdownAndLateCallbacks",
+        "TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout",
+        "TestReopenClosedMenuGeometryAndEmptyState",
+        "TestReopenClosedSuccessfulShortcutRepeatAndStaleMenuID"
+      ]
+    },
+    {
+      "label": "native-path-vet-01",
+      "primary_result": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/evidence/result.json",
+        "bytes": 5312,
+        "sha256": "3a8e2c85c6e9108c450a894d69fb51d112639a65090d339a613417c2c90df7f7"
+      },
+      "command": {
+        "argv": [
+          "/home/user/go/bin/go",
+          "vet",
+          "./app"
+        ],
+        "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/source/native",
+        "environment": {
+          "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/env/home",
+          "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/env/config",
+          "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/env/cache",
+          "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/env/data",
+          "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/env/state",
+          "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+          "GOROOT": "/home/user/go",
+          "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+          "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+          "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/env/tmp",
+          "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/env/tmp",
+          "GOENV": "off",
+          "GOWORK": "off",
+          "GOVCS": "*:off",
+          "GOFLAGS": "-mod=vendor",
+          "GOTOOLCHAIN": "local",
+          "GOPROXY": "off",
+          "GOSUMDB": "off",
+          "GONOPROXY": "",
+          "GONOSUMDB": "",
+          "GOPRIVATE": "",
+          "CGO_ENABLED": "0",
+          "GOTELEMETRY": "off",
+          "GOOS": "linux",
+          "GOARCH": "amd64",
+          "GOEXPERIMENT": ""
+        },
+        "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+        "started_at": "2026-11-12T09:24:11.820835+00:00",
+        "timeout_s": 240,
+        "timed_out": false,
+        "owned_cleanup": [],
+        "status": "completed",
+        "pid": 24554,
+        "owned_pgid": 24554,
+        "launched_at": "2026-11-12T09:24:11.825077+00:00",
+        "exit_code": 0,
+        "owned_group_remaining_after_wait": false,
+        "ended_at": "2026-11-12T09:24:46.435805+00:00",
+        "elapsed_s": 34.614990396017674,
+        "stdout": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/evidence/05-product-command.stdout.bin",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/evidence/05-product-command.stderr.bin",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "wrapper_exit": 0,
+      "outcome": "COMMAND_PASSED_LIMITED_SCOPE",
+      "expected_input": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/native-path-vet-01/expected-manifest.json",
+        "bytes": 201204,
+        "sha256": "72aaa56953f8603b95e64ff4d45fb0ca21158f0cab5c286e517fe6bf1c99e642"
+      },
+      "source_before": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      },
+      "source_after": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      },
+      "snapshot_after": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      },
+      "all_actual_inventories_equal": true,
+      "input_count": 1192,
+      "input_bytes": 16978935,
+      "printed_top_level": {
+        "run": [],
+        "pass": [],
+        "fail": [],
+        "skip": []
+      },
+      "printed_nested_counts": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "run": 0
+      },
+      "panic": false,
+      "test_headers_are_not_whole_suite_coverage": true,
+      "expected_top_level_names": []
+    }
+  ],
+  "previous_collection": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/evidence/focused-failure-collection-01/result.json",
+    "bytes": 37438,
+    "sha256": "97c7cb9ced65a4e058966fa198461f51689baafb93dfa479c30a610bdcb416af"
+  },
+  "correction": "RUN header includes nested subtests; top-level excludes slash names, no product reexecution or primary edit"
+}

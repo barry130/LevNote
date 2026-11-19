@@ -1,0 +1,85 @@
+{
+  "status": "TASK11_PRIMARY03_OPAQUE_TRANSPORT_FILES_ONLY_NO_IMPORT_OR_SOURCE_WRITES",
+  "createdUTC": "2026-11-13T07:21:08.785Z",
+  "pid": 23076,
+  "session": "a753a04c-1383-4870-877c-e70639eb0422",
+  "opaquePartCount": 9,
+  "encodedCharacters": 102928,
+  "base64Decoded": false,
+  "files": [
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part01.b64",
+      "bytes": 12150,
+      "sha256": "68f8ca742bb564943966c795d1d1af852e5c58c3274d399f350d4e96eb342fb2",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4620"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part02.b64",
+      "bytes": 12150,
+      "sha256": "a9d7464d5411abad45dc587168e7cc83f4399d23bd41555430639726c689fb37",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4622"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part03.b64",
+      "bytes": 12150,
+      "sha256": "93ad4d5d9e5e8896108b31091a0c1d1fb00daee162b40cd53fdd36aea3acba32",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4624"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part04.b64",
+      "bytes": 12150,
+      "sha256": "e69d74919b3a129bea581d92089331b790a04c1a7ef35a5f747a73d373dcb111",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4785"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part05.b64",
+      "bytes": 12150,
+      "sha256": "fdb446619417a21b8194be7f77cb04747bf091c15520f2dab9e116d9484edd35",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4787"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part06.b64",
+      "bytes": 12150,
+      "sha256": "4313fc30297f2f92dcd026f1a3e93b81e92e72afde4252160b7cc11df2440238",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4793"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part07.b64",
+      "bytes": 12150,
+      "sha256": "ea60cbd06c65f335e3b80d0d4f7dd5c3e4f3789378171aeec2c3a4355a2468f6",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4795"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part08.b64",
+      "bytes": 12150,
+      "sha256": "2b556a9c3ecf81d883bec42c0a30cc2c95621c1d62bf0be207af0ead45770081",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4797"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\fingerprint-review03.part09.b64",
+      "bytes": 7015,
+      "sha256": "c92c8f3b9d0285c59d97ed6e21daa4624a1d27ad6e3aa3a648617b8fd9bd971d",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4799"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\transport-receipt.json",
+      "bytes": 4436,
+      "sha256": "b0eac7f7153071e34de45bb203a34d8febf63276b3f6ca65c760402abdc12d44",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4618"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\decode-fingerprint03.py",
+      "bytes": 3398,
+      "sha256": "7a937f762e843116967c145dd2e8f2341bfbe58e74c6dbc1dbdb5d38d24bbd0e",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4474"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\import-fingerprint03-final.py",
+      "bytes": 11251,
+      "sha256": "77c89b41848ec420ee27a4813318f74cc86059839e4e5f465a8cd5698ae28d13",
+      "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4609"
+    }
+  ],
+  "productCommands": 0,
+  "currentSourceAndReportWrites": 0
+}

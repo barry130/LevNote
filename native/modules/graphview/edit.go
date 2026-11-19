@@ -65,7 +65,11 @@ func (v *view) commitBufferSelection(value string, preserveSelection bool) (bool
 
 func (v *view) finishCommitted(selected string) {
 	if selected != "" {
-		v.selectedID = selected
+		if v.kind == kindDrawio {
+			v.setDrawioSingle(selected)
+		} else {
+			v.selectedID = selected
+		}
 	}
 	v.lastSynced = ^uint64(0)
 	v.ensureSynced(nil)
@@ -388,6 +392,10 @@ func (v *view) addDiagramShape(shape string) {
 }
 
 func (v *view) addDiagramConnector(source, target string) {
+	if v.drawioMultiSelected() {
+		v.reportDrawioAction(v.captureDrawioAction(), errors.New("连接前请选择一个图形"))
+		return
+	}
 	_ = v.applyDrawioMutation(v.pageIndex, source, func(document *drawio.Document) (string, error) {
 		id, err := document.AddConnector(v.pageIndex, drawio.ConnectorSpec{
 			Text:     "",

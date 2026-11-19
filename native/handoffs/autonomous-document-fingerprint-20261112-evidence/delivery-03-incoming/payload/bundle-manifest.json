@@ -1,0 +1,2145 @@
+{
+  "metadata_only": true,
+  "product_executed": false,
+  "label": "document-fingerprint-review-03",
+  "head": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "task": "task-11",
+  "source_origin": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native",
+  "source_pins": {
+    "core/document/document.go": {
+      "bytes": 14511,
+      "sha256": "44da6396913741a18ed5ebd1d0c668853d28ad399eba9b13abb02aa08f76a3fe"
+    },
+    "core/document/atomic.go": {
+      "bytes": 4873,
+      "sha256": "641601d61fe3da0ec83954c6b199cac46864099ffa78f09e2a309180491fec83"
+    },
+    "core/document/utf8_save_test.go": {
+      "bytes": 8238,
+      "sha256": "7c02ad0c795cadda2b93c443d6816d742ff13bf0e9ae26facb3e8149f31b3ec0"
+    },
+    "core/document/fingerprint_boundary_test.go": {
+      "bytes": 3399,
+      "sha256": "f0d3204bf2b7430eb1a95ca183ade789816faf7752433cad06c2e6a74f434aef"
+    },
+    "core/document/fingerprint_public_test.go": {
+      "bytes": 2957,
+      "sha256": "3c94db4b1ac0604f03ebb3cc26fdf62e661dadfd266ad74b06d6d9fe587955d5"
+    },
+    "core/document/fingerprint_conflict_public_test.go": {
+      "bytes": 6993,
+      "sha256": "c0556277c6d7ae7c7cf4a72d75d3901a23aedcedec94aa00711dc5ac0ab20b69"
+    },
+    "core/document/fingerprint_encoding_public_test.go": {
+      "bytes": 4870,
+      "sha256": "40212ed1a6c5319b16e2e107ae1aaa8530b3d381fe3dac85d64266436f974edc"
+    },
+    "core/document/fingerprint_directory_sync_public_linux_test.go": {
+      "bytes": 7142,
+      "sha256": "8f68c732927b6375edeb8b589facef356a360f944512b4564968afaa6fe51951"
+    }
+  },
+  "source_total_bytes": 52983,
+  "closed_receipts": {
+    "document-fingerprint-red-01": {
+      "pid": 28258,
+      "pgid": 28258,
+      "numeric_exit": 1,
+      "wrapper_exit": 2,
+      "started_at": "2026-11-12T11:00:09.818737+00:00",
+      "launched_at": "2026-11-12T11:00:09.821144+00:00",
+      "ended_at": "2026-11-12T11:00:11.852468+00:00",
+      "elapsed_s": 2.0337316209916025,
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne$",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/05-product-command.stdout.bin",
+        "bytes": 379,
+        "sha256": "f8a8815361c9b205c4c3463210375acdee905a201abf1b4703a31415c871de8b"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 200297,
+        "sha256": "fb9886ba6395e952542d422853863a9eb06e78c117c1f409d57956a3496b7b74"
+      },
+      "three_maps_before": {
+        "bytes": 199418,
+        "sha256": "a49db7a25cb7a9c72759486300b83080d3fc901268d46cc7beefd43e53d7658f"
+      },
+      "input_count": 1192,
+      "input_bytes": 16971991,
+      "numeric_receipt": {
+        "bytes": 2675,
+        "sha256": "f62aba2e27d102a6d288b2dceaeac5d35bc570d1309ae3d7ebcbf0c71fccc220"
+      },
+      "final_receipt": {
+        "bytes": 5742,
+        "sha256": "32d54fe4286544d136cb7d34bd4f723d7fe8da1501c053c12c3e2d3caea93ead"
+      },
+      "formatter_changed_files": []
+    },
+    "document-fingerprint-format-01": {
+      "pid": 29811,
+      "pgid": 29811,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-12T11:47:26.594794+00:00",
+      "launched_at": "2026-11-12T11:47:26.920513+00:00",
+      "ended_at": "2026-11-12T11:47:28.915357+00:00",
+      "elapsed_s": 2.3009585599938873,
+      "argv": [
+        "/home/user/go/bin/gofmt",
+        "-w",
+        "core/document/document.go",
+        "core/document/atomic.go",
+        "core/document/utf8_save_test.go"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/05-product-command.stdout.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 200956,
+        "sha256": "08f7e11b815ddda59bf7fc59d5762a661b8ce51fef0bb885b3e89a14779b90ff"
+      },
+      "three_maps_before": {
+        "bytes": 199418,
+        "sha256": "c07beb3107a58aa4a7bc08c3d06cb9f7a8770b54fae6b36ded3147f7ac20c05e"
+      },
+      "input_count": 1192,
+      "input_bytes": 16974631,
+      "numeric_receipt": {
+        "bytes": 2656,
+        "sha256": "2f28ed65ce4d6a0b5e4384a8fcb2262a4268e74b6c839f3ea0efc6d6d2a9bbf4"
+      },
+      "final_receipt": {
+        "bytes": 5802,
+        "sha256": "b340bf26280ff676850425a2ae93e007826a15ead7e83dbd0be40bd66dcfa85f"
+      },
+      "formatter_changed_files": [
+        "core/document/atomic.go"
+      ]
+    },
+    "document-fingerprint-green-01": {
+      "classification": "INTERRUPTED_WRAPPER_FINAL_MISSING_NOT_PRODUCT_PASS",
+      "numeric_exit": null,
+      "wrapper_exit": null
+    },
+    "document-fingerprint-format-02": {
+      "pid": 30080,
+      "pgid": 30080,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-12T12:00:41.262319+00:00",
+      "launched_at": "2026-11-12T12:00:41.267885+00:00",
+      "ended_at": "2026-11-12T12:00:41.642683+00:00",
+      "elapsed_s": 0.38036897499114275,
+      "argv": [
+        "/home/user/go/bin/gofmt",
+        "-w",
+        "core/document/document.go",
+        "core/document/atomic.go",
+        "core/document/utf8_save_test.go"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/05-product-command.stdout.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 200956,
+        "sha256": "df7e9130000336924048ea126224ae0f99dd7b733fa4d8b601287229a2bf2915"
+      },
+      "three_maps_before": {
+        "bytes": 199418,
+        "sha256": "145b0ea8566918edb8c4375ec48b9f41f2a85671e26aa141ce94beaa8fe704aa"
+      },
+      "input_count": 1192,
+      "input_bytes": 16974881,
+      "numeric_receipt": {
+        "bytes": 2657,
+        "sha256": "5465f09e3aab605dca0584e9d11f31c2bbae849b2d5edbe4e6e72ae984ba03b1"
+      },
+      "final_receipt": {
+        "bytes": 5803,
+        "sha256": "164ebecd526a949e2380d5cf89697820acf64e235c0a361516d283c1c328e578"
+      },
+      "formatter_changed_files": [
+        "core/document/atomic.go"
+      ]
+    },
+    "document-fingerprint-green-02": {
+      "pid": 30119,
+      "pgid": 30119,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-12T12:01:14.840193+00:00",
+      "launched_at": "2026-11-12T12:01:14.845638+00:00",
+      "ended_at": "2026-11-12T12:01:20.634466+00:00",
+      "elapsed_s": 5.794274664018303,
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne$",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/05-product-command.stdout.bin",
+        "bytes": 200,
+        "sha256": "cf1da4913834f12e352612064651d40795441e14b893f8481306408eefc8a11d"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 201085,
+        "sha256": "2e7ea5dd5cd385dbfad43aa2793e84e19711df8e8702dc8a397192165be307e1"
+      },
+      "three_maps_before": {
+        "bytes": 199418,
+        "sha256": "53d921d870f059a6779832f32f64545f2ca840bf5dcbca7762e454565e346890"
+      },
+      "input_count": 1192,
+      "input_bytes": 16974887,
+      "numeric_receipt": {
+        "bytes": 2694,
+        "sha256": "8fdfaaabb9e729ce49c6880d8129c58808b006be9409827eef0fdf8fa6c66794"
+      },
+      "final_receipt": {
+        "bytes": 5789,
+        "sha256": "65caefabcbf733ce56b4f36b8b2abc1b9f99f3e37f8de5c1e5a572c42c8fb140"
+      },
+      "formatter_changed_files": []
+    },
+    "document-public-mtime-format-01": {
+      "pid": 1724,
+      "pgid": 1724,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T02:03:40.746187+00:00",
+      "launched_at": "2026-11-13T02:03:40.751159+00:00",
+      "ended_at": "2026-11-13T02:03:40.866091+00:00",
+      "elapsed_s": 0.1199073399984627,
+      "argv": [
+        "/home/user/go/bin/gofmt",
+        "-w",
+        "core/document/atomic.go",
+        "core/document/fingerprint_public_test.go"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/05-product-command.stdout.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 201346,
+        "sha256": "06d3f81c45fb48b62e96e6065d27440ca969611639979c24afb2f05790fa6173"
+      },
+      "three_maps_before": {
+        "bytes": 199579,
+        "sha256": "39c1d2a30535d0f85e81223a4e22c14f2be6b3182e05c01f839695d65f981159"
+      },
+      "input_count": 1193,
+      "input_bytes": 16977838,
+      "numeric_receipt": {
+        "bytes": 2640,
+        "sha256": "7f0bf8de4327ac8a56f1a1a6f28c16119f9ef198b10fb8e08d4aa2def2b96c60"
+      },
+      "final_receipt": {
+        "bytes": 5768,
+        "sha256": "321526e09182343aa6f9a33e2295c4269802caab03b11cd5c93ee72e0d93e54a"
+      },
+      "formatter_changed_files": [
+        "core/document/atomic.go"
+      ]
+    },
+    "document-public-mtime-positive-01": {
+      "pid": 1757,
+      "pgid": 1757,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T02:04:08.112075+00:00",
+      "launched_at": "2026-11-13T02:04:08.114849+00:00",
+      "ended_at": "2026-11-13T02:04:13.670453+00:00",
+      "elapsed_s": 5.558381884002301,
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^TestDocumentMtimeOnlyTouchKeepsCheckAndSaveAvailable$",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/05-product-command.stdout.bin",
+        "bytes": 186,
+        "sha256": "e5127baedbc0e65268bb742230a8fa47a6f79cccbe7b0e2efa34eca52541e5bb"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 201480,
+        "sha256": "bfa22cc9d13bf66f9aca1974a699ded4846e46b81be1d27269433f14e28158b0"
+      },
+      "three_maps_before": {
+        "bytes": 199579,
+        "sha256": "3ce7b33473c52e5bb9d051c459d28a4d7a22b002bc66e85679e9bb8af0de0d8f"
+      },
+      "input_count": 1193,
+      "input_bytes": 16977844,
+      "numeric_receipt": {
+        "bytes": 2725,
+        "sha256": "b21d70bae2717605345092c90e411638bc3a01a07e35b143249500faa0e8f5ff"
+      },
+      "final_receipt": {
+        "bytes": 5841,
+        "sha256": "44fd49377477f88f427360c9bcfc21a3394bad456ee3e057bebe075b65aa9444"
+      },
+      "formatter_changed_files": []
+    },
+    "document-public-conflict-format-01": {
+      "pid": 4124,
+      "pgid": 4124,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T02:45:24.572740+00:00",
+      "launched_at": "2026-11-13T02:45:24.765138+00:00",
+      "ended_at": "2026-11-13T02:45:25.457161+00:00",
+      "elapsed_s": 0.8789915079978528,
+      "argv": [
+        "/home/user/go/bin/gofmt",
+        "-w",
+        "core/document/atomic.go",
+        "core/document/fingerprint_conflict_public_test.go"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.stdout.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 201756,
+        "sha256": "28aa5abeb0fab388b6b4aa6ef60077f103dea3b6a389c9094812db343663f780"
+      },
+      "three_maps_before": {
+        "bytes": 199749,
+        "sha256": "7f6f06c9fd153c989260287a9b43238f51e5207ece79b426d3c0ba0d56e99d13"
+      },
+      "input_count": 1194,
+      "input_bytes": 16984831,
+      "numeric_receipt": {
+        "bytes": 2679,
+        "sha256": "2553eacfbb045dfeef5afee1b6f8033db362fce35ff806c9d86c74a5b704f6b5"
+      },
+      "final_receipt": {
+        "bytes": 5840,
+        "sha256": "8144d947018775de06e29dd0ec2f5fc4d312adc3ec0af1f28fce043cc51a9e93"
+      },
+      "formatter_changed_files": [
+        "core/document/atomic.go"
+      ]
+    },
+    "document-public-conflict-positive-01": {
+      "pid": 4163,
+      "pgid": 4163,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T02:46:33.034227+00:00",
+      "launched_at": "2026-11-13T02:46:33.035601+00:00",
+      "ended_at": "2026-11-13T02:46:35.468673+00:00",
+      "elapsed_s": 2.4344512710013078,
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^TestDocumentSameSizeSameMtimeConflictPreservesUndoAndRetry$",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/05-product-command.stdout.bin",
+        "bytes": 198,
+        "sha256": "e064e2a8f57cf1e58ac14945dc6167a0d2623480161a006f239dc6576e3eb4a6"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 201896,
+        "sha256": "233c958e66cc514ec0a13f433d6f4d2f341b9977b572c3f87a97899dfa60bd95"
+      },
+      "three_maps_before": {
+        "bytes": 199749,
+        "sha256": "b418892185e824d14a641bef2a17600c3c4ecb78681ee0628378e19ee16d09a9"
+      },
+      "input_count": 1194,
+      "input_bytes": 16984837,
+      "numeric_receipt": {
+        "bytes": 2762,
+        "sha256": "36cc79caf5be2b951ce04da8bbace52798ec34813a16136df92c2001387030c2"
+      },
+      "final_receipt": {
+        "bytes": 5905,
+        "sha256": "3bb3f3f550f750d280928308df5c04ff53047c9084c53080ef7a9a64536cbab8"
+      },
+      "formatter_changed_files": []
+    },
+    "document-public-encoding-format-01": {
+      "pid": 4959,
+      "pgid": 4959,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T03:08:46.352038+00:00",
+      "launched_at": "2026-11-13T03:08:46.353455+00:00",
+      "ended_at": "2026-11-13T03:08:46.362325+00:00",
+      "elapsed_s": 0.010346891001972836,
+      "argv": [
+        "/home/user/go/bin/gofmt",
+        "-w",
+        "core/document/atomic.go",
+        "core/document/fingerprint_encoding_public_test.go"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/05-product-command.stdout.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 202163,
+        "sha256": "f7632044227dfb0fe2fc11c67a83f76ddf55f188f8e536b898d590eee763238d"
+      },
+      "three_maps_before": {
+        "bytes": 199919,
+        "sha256": "729c721e1e80b99ae2b8c4faf287d940893f69a1697e50c38585b5aa7dc3750c"
+      },
+      "input_count": 1195,
+      "input_bytes": 16989701,
+      "numeric_receipt": {
+        "bytes": 2681,
+        "sha256": "16ce76ebcc684bfdf667c168b11b7f650a4472ba15ce0147771ec33922c3186e"
+      },
+      "final_receipt": {
+        "bytes": 5842,
+        "sha256": "d7fab8c11df7108b7d697fb724f116db4682b51c208f4bdfe9f0052597d7bce2"
+      },
+      "formatter_changed_files": [
+        "core/document/atomic.go"
+      ]
+    },
+    "document-public-encoding-positive-01": {
+      "pid": 5015,
+      "pgid": 5015,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T03:10:11.618852+00:00",
+      "launched_at": "2026-11-13T03:10:11.620349+00:00",
+      "ended_at": "2026-11-13T03:10:13.148388+00:00",
+      "elapsed_s": 1.5295129930018447,
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^TestDocumentUTF16SaveAndSaveAsUseActualEncodedLength$",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/05-product-command.stdout.bin",
+        "bytes": 186,
+        "sha256": "849472e4ce0e3744a88a639e1dd9b381290e7a8fa14a894ec00f6615f92520cf"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 202303,
+        "sha256": "60c1d49723e1da75034dd6c554338e941b95742da297f99914213216b69c0f11"
+      },
+      "three_maps_before": {
+        "bytes": 199919,
+        "sha256": "30b02b38901a360aa8f6b3ed4a4522a1922454d86cc5edfaa7001f62b071952a"
+      },
+      "input_count": 1195,
+      "input_bytes": 16989707,
+      "numeric_receipt": {
+        "bytes": 2756,
+        "sha256": "c87fb004fe33ce158a7c0bb718470b710694ec3a7bc0f33f190c45777f01b3fe"
+      },
+      "final_receipt": {
+        "bytes": 5893,
+        "sha256": "69bddf94316e40cc4827e301f35e9139b1fee19ae00b09def5a2dd67485082ff"
+      },
+      "formatter_changed_files": []
+    },
+    "document-public-directory-sync-format-01": {
+      "pid": 5324,
+      "pgid": 5324,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T03:26:05.654590+00:00",
+      "launched_at": "2026-11-13T03:26:05.656168+00:00",
+      "ended_at": "2026-11-13T03:26:05.672249+00:00",
+      "elapsed_s": 0.017649797999183647,
+      "argv": [
+        "/home/user/go/bin/gofmt",
+        "-w",
+        "core/document/atomic.go",
+        "core/document/fingerprint_directory_sync_public_linux_test.go"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/05-product-command.stdout.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 202600,
+        "sha256": "a1a63c0817e78301b752089eb93a7b127c8fc5b330a46c5d68f5581e1b9975da"
+      },
+      "three_maps_before": {
+        "bytes": 200101,
+        "sha256": "7ce12fed97c06cd28dd52e513c446a16d1b38695aa0ac2f954197875039ebbf6"
+      },
+      "input_count": 1196,
+      "input_bytes": 16996843,
+      "numeric_receipt": {
+        "bytes": 2753,
+        "sha256": "82372f1b6fddf392bfb010d67844059d4bc2d1b4f4377aa0b8afaea4d13930ae"
+      },
+      "final_receipt": {
+        "bytes": 5974,
+        "sha256": "2a8868be8be63249e014a12d75d7e96fe27a9a49742a77ae35dc9e75ec8cd782"
+      },
+      "formatter_changed_files": [
+        "core/document/atomic.go"
+      ]
+    },
+    "document-public-directory-sync-positive-01": {
+      "pid": 5361,
+      "pgid": 5361,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T03:26:58.073857+00:00",
+      "launched_at": "2026-11-13T03:26:58.075027+00:00",
+      "ended_at": "2026-11-13T03:26:59.701718+00:00",
+      "elapsed_s": 1.627826804004144,
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^TestDocumentSaveAsDirectorySyncErrorKeepsPublishedBytesAndRetry$",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/05-product-command.stdout.bin",
+        "bytes": 208,
+        "sha256": "51a3509f21dda7f692d4948567d6f59a7a4405cdbe0ac40c13cc187e7680d483"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 202752,
+        "sha256": "934bbbf502d3f3e65137794984e0ad5f436922dd6a9c0f2ecc8dbcc6c684aac8"
+      },
+      "three_maps_before": {
+        "bytes": 200101,
+        "sha256": "7c8e44f1984b2c44beace46757652e53258f6bc034fb94714b17855ae43726ee"
+      },
+      "input_count": 1196,
+      "input_bytes": 16996849,
+      "numeric_receipt": {
+        "bytes": 2826,
+        "sha256": "396d0d63d5350610c93d9bc4b0e37100a115c13a34e5e246fcb0593767d0a0cc"
+      },
+      "final_receipt": {
+        "bytes": 6016,
+        "sha256": "514031a71e5510d5604bd57f2a9e979cb6769700b24c7ac8cb79aba98c419d21"
+      },
+      "formatter_changed_files": []
+    },
+    "document-final-core-tests-01": {
+      "pid": 5691,
+      "pgid": 5691,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T03:40:49.264430+00:00",
+      "launched_at": "2026-11-13T03:40:49.265495+00:00",
+      "ended_at": "2026-11-13T03:40:51.401208+00:00",
+      "elapsed_s": 2.1367834670018055,
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=240s",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/05-product-command.stdout.bin",
+        "bytes": 12384,
+        "sha256": "b324a2895022082d43b6d0612c792d47bc8aead1d1f669e069db84b65a4b1ff1"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 202738,
+        "sha256": "bcb3119e0144d0b0509dfb8f8ec4d859ed0e273a8a1b9c790f3268308fdb544a"
+      },
+      "three_maps_before": {
+        "bytes": 200101,
+        "sha256": "7c8e44f1984b2c44beace46757652e53258f6bc034fb94714b17855ae43726ee"
+      },
+      "input_count": 1196,
+      "input_bytes": 16996849,
+      "numeric_receipt": {
+        "bytes": 2604,
+        "sha256": "d775bac2152ecc794602f0aef25235b2cdfc7340d08300f3d07f3f62a7dab58e"
+      },
+      "final_receipt": {
+        "bytes": 5607,
+        "sha256": "7f276ff9552068bce7182790a8c310a59c30639e4b5aac22fdf9feae11cb76a5"
+      },
+      "formatter_changed_files": []
+    },
+    "document-final-core-vet-01": {
+      "pid": 5868,
+      "pgid": 5868,
+      "numeric_exit": 0,
+      "wrapper_exit": 0,
+      "started_at": "2026-11-13T03:41:41.063686+00:00",
+      "launched_at": "2026-11-13T03:41:41.067032+00:00",
+      "ended_at": "2026-11-13T03:41:42.643290+00:00",
+      "elapsed_s": 1.5796118939979351,
+      "argv": [
+        "/home/user/go/bin/go",
+        "vet",
+        "./core/document"
+      ],
+      "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/source/native",
+      "stdout": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/05-product-command.stdout.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/05-product-command.stderr.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "expected": {
+        "bytes": 202736,
+        "sha256": "cb330730eb9449402a1b4eb9957987f36a2eabfa9e90700c58da0869e3d7cb45"
+      },
+      "three_maps_before": {
+        "bytes": 200101,
+        "sha256": "7c8e44f1984b2c44beace46757652e53258f6bc034fb94714b17855ae43726ee"
+      },
+      "input_count": 1196,
+      "input_bytes": 16996849,
+      "numeric_receipt": {
+        "bytes": 2532,
+        "sha256": "bacb93a87d18e790a219978bdaddf3b49a8538c1f9db2849d0a7eb0f228257a4"
+      },
+      "final_receipt": {
+        "bytes": 5466,
+        "sha256": "3c783f57eafeaa4e8b69019a18424e20fa605917663674557c9e2e07a80b4bb8"
+      },
+      "formatter_changed_files": []
+    }
+  },
+  "final_full_package": {
+    "top_run": 57,
+    "top_pass": 57,
+    "nested_run": 31,
+    "nested_pass": 31,
+    "fail": 0,
+    "skip": 0
+  },
+  "not_whole_application_or_windows_acceptance": true,
+  "interrupted_green01_missing": [
+    "05-product-command.json",
+    "result.json",
+    "source-after.json",
+    "snapshot-after.json"
+  ],
+  "fixed_stages": [
+    "document-fingerprint-red-01",
+    "document-fingerprint-format-01",
+    "document-fingerprint-green-01",
+    "document-fingerprint-format-02",
+    "document-fingerprint-green-02",
+    "document-public-mtime-format-01",
+    "document-public-mtime-positive-01",
+    "document-public-conflict-format-01",
+    "document-public-conflict-positive-01",
+    "document-public-encoding-format-01",
+    "document-public-encoding-positive-01",
+    "document-public-directory-sync-format-01",
+    "document-public-directory-sync-positive-01",
+    "document-final-core-tests-01",
+    "document-final-core-vet-01"
+  ],
+  "files": {
+    "EvidenceReferences.json": {
+      "bytes": 234740,
+      "sha256": "bcaa1f2a9c812062486f783026c383b77ff9d4fb324f9f2fece66d28cff35b62"
+    },
+    "baseline/core/document/atomic.go": {
+      "bytes": 3516,
+      "sha256": "33d45a65253972d8547a5dc7acd1ac9fa04c0540ef11dd3de207676801a232cc"
+    },
+    "baseline/core/document/document.go": {
+      "bytes": 12537,
+      "sha256": "6859017748c8884dd9cc84b185a405c0a78089aa0d84f191024489cb24c11219"
+    },
+    "baseline/core/document/utf8_save_test.go": {
+      "bytes": 8197,
+      "sha256": "446f7542b0447fea4f29b92796f6cb4b32b3aeb249e914bfb279731f78302863"
+    },
+    "classification/document-fingerprint-green-01-interruption-01/result.json": {
+      "bytes": 4598,
+      "sha256": "7e9ad821413b13cd3a6e51bd04d857cc93bd2a705ce51f2d465c752d7a18d3b8"
+    },
+    "diff/core/document/atomic.go.diff": {
+      "bytes": 3334,
+      "sha256": "21ecd42d105219910a8377b06d474a0572758b7adc8b99e37cbe5dd58fecd610"
+    },
+    "diff/core/document/document.go.diff": {
+      "bytes": 6438,
+      "sha256": "a1464eb4cdd7aa5e8d760ddcb59f26a4878d41184e6136d26d3bab29636bd5f8"
+    },
+    "diff/core/document/utf8_save_test.go.diff": {
+      "bytes": 517,
+      "sha256": "0082f593514d96a9123e81d626676bc1f373a79b3222c827ddb5911a24f80a4d"
+    },
+    "helper/capture-document-conflict-formatted-input-01.py": {
+      "bytes": 5295,
+      "sha256": "4838e52659b76a9540391a08b660659249f9336080d7cf1d5e32676a81a13da0"
+    },
+    "helper/capture-document-encoding-formatted-input-01.py": {
+      "bytes": 5348,
+      "sha256": "59b6b5c88e7ebfc3cb0d11901fe24e1c9fb021eccdba30371a087d30ed6c29fc"
+    },
+    "helper/capture-document-final-formatted-input-01.py": {
+      "bytes": 5413,
+      "sha256": "d1d3346883a664b1f81f3de19efb297854dc0f2d1081d43748f2e1ab42e6769a"
+    },
+    "helper/capture-document-formatted-input-01.py": {
+      "bytes": 5198,
+      "sha256": "3b2481369fd859faebf8945f28cdd6503751451a09fdb48e2c3efda328039284"
+    },
+    "helper/capture-document-public-formatted-input-01.py": {
+      "bytes": 5242,
+      "sha256": "e299c9398d3d2e18fa934a49653f8e04d09c3c874102774c7e9a7414db623820"
+    },
+    "helper/dev-remote-validation-20261112-03.py": {
+      "bytes": 17964,
+      "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+    },
+    "helper/freeze-document-input-01.py": {
+      "bytes": 5048,
+      "sha256": "dccc94dbe7d5e93528e84000e37f2ffe7f6d0c0e859e18a941eb443abfd9216e"
+    },
+    "helper/prepare-report-and-fixed-archive-02.py": {
+      "bytes": 31786,
+      "sha256": "af8949c60ee5e0414d9e2078b0cd23da7e30e86bb3a55f5c81d4303debbd65d2"
+    },
+    "helper/report-accuracy-successor-03.py": {
+      "bytes": 6797,
+      "sha256": "5568c4b8c0fd54417a3b9536bce539fd8ac94a4d7bd62b367754266b4ac5a71e"
+    },
+    "historical-semantic-diff-02/atomic.go.diff": {
+      "bytes": 3328,
+      "sha256": "d0c431b065e94694f45f76755da310cad72d427dc6c3d44365e11cd9c9a639cd"
+    },
+    "historical-semantic-diff-02/document.go.diff": {
+      "bytes": 6614,
+      "sha256": "ac5f2f8e04c1b15b0c44153542b31181e67be96eb14b1e8bd2b0a15a9d21f512"
+    },
+    "historical-semantic-diff-02/utf8_save_test.go.diff": {
+      "bytes": 517,
+      "sha256": "eab0f184bba95a4857428b7ce27130a7c5c134539d9b1dccd39ba74631fcb5c6"
+    },
+    "preparation/document-fingerprint-review-01/preparation-failed-result.json": {
+      "bytes": 789,
+      "sha256": "d01e52133e23a1f3685e2d2b1ac9db21a5b306970c6e46eef2cc411bc3cd5f47"
+    },
+    "preparation/document-fingerprint-review-02/derive-receipt.json": {
+      "bytes": 1001,
+      "sha256": "b39c3979c4600e99daa3796a2b5697b8b8ac8d60f343c309fba3f9cf123894e7"
+    },
+    "provenance/derive-document-final-core-tests-01/result.json": {
+      "bytes": 1681,
+      "sha256": "9196ef4f93156eb3ecc67e270cdc3719ef92d66ae5adf2aea900b35be68d3df5"
+    },
+    "provenance/derive-document-final-core-vet-01/result.json": {
+      "bytes": 1675,
+      "sha256": "6c02653831f3f322722d025f945718a5cf4649d3c433ef2d45a59d47972d49e6"
+    },
+    "provenance/derive-document-fingerprint-green-01/result.json": {
+      "bytes": 1776,
+      "sha256": "53cb15a86b3c40ee41269feb0ee0e42e410768ed420574f7e519f2dba5e98674"
+    },
+    "provenance/derive-document-fingerprint-green-02/result.json": {
+      "bytes": 1776,
+      "sha256": "397d398e28cc9d1f14d2f7d4201fec26cd7601044489e2e27202800f54ebaa6e"
+    },
+    "provenance/derive-document-public-conflict-positive-01/result.json": {
+      "bytes": 1684,
+      "sha256": "1d038ef9613362ba2f965a8b0dcca91811db7e9422b09c5fddb7fda8a234ab5b"
+    },
+    "provenance/derive-document-public-directory-sync-positive-01/result.json": {
+      "bytes": 1723,
+      "sha256": "cc8caaedff44a5e1e7bae4ec705d3b990d3456cdbbbf1f67a0f1074c2cd7fdb6"
+    },
+    "provenance/derive-document-public-encoding-positive-01/result.json": {
+      "bytes": 1684,
+      "sha256": "8e0339d2727b921d0bcf52d7b2d79dfa54d6cc24186a088521f8b04e36f59306"
+    },
+    "provenance/derive-document-public-mtime-positive-01/result.json": {
+      "bytes": 1658,
+      "sha256": "5c4ac98a18da5c2f38fd7d929f422102a87fccad6e0bd27fb426c74ed4066ee3"
+    },
+    "provenance/freeze-document-fingerprint-format-01/result.json": {
+      "bytes": 3238,
+      "sha256": "0b2ee5beb598ae984e4ba13129d4cc3f60a2ef35f21b25905a187d2f96cbf27d"
+    },
+    "provenance/freeze-document-fingerprint-format-02/result.json": {
+      "bytes": 3238,
+      "sha256": "d6b3c6ed2a90de1bf973404e5ae7d78177ff5baad482b12718c56aca82581133"
+    },
+    "provenance/freeze-document-fingerprint-red-01/result.json": {
+      "bytes": 2403,
+      "sha256": "730ce897d7e0b2375f08b1b44a3014f6fc8c5d8be82f7bae1ac12d414569e831"
+    },
+    "provenance/freeze-document-public-conflict-format-01/result.json": {
+      "bytes": 3954,
+      "sha256": "d29cc042d032a0d316d1fbab8f09a68ec67aabeac5614e50d1087873fbc0bb67"
+    },
+    "provenance/freeze-document-public-directory-sync-format-01/result.json": {
+      "bytes": 4740,
+      "sha256": "3b54825f7beb31b39eb5e27adb7706cdab2b911fcec5dcd754505831c89b4734"
+    },
+    "provenance/freeze-document-public-encoding-format-01/result.json": {
+      "bytes": 4320,
+      "sha256": "c4a847dde9af4cdedb56ac8bd9cdae6bf855172c7cf0688169f661c83697f546"
+    },
+    "provenance/freeze-document-public-mtime-format-01/result.json": {
+      "bytes": 3579,
+      "sha256": "3b9e957583c45564414c104566fc666653260aba5b0b46f08178b576546f5c8f"
+    },
+    "report/autonomous-document-fingerprint-20261112.md": {
+      "bytes": 26084,
+      "sha256": "4344170197093c2230a6f1dcbd2f2850d9f442dfd2f28c807e7d34a0622b60a5"
+    },
+    "report/report-02-before-accuracy.md": {
+      "bytes": 26020,
+      "sha256": "10b458e0cbd2823aa1bef7510c8ec22c4ceee8070dc7331cc1b43d63dd19cba8"
+    },
+    "runs/document-final-core-tests-01/evidence/01-clone-head.json": {
+      "bytes": 2455,
+      "sha256": "aa42e600f0b0ccc1935394bca6318c42925787378dd8ab3ae25bc3b4cbd94d94"
+    },
+    "runs/document-final-core-tests-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-final-core-tests-01/evidence/03-go-version.json": {
+      "bytes": 2511,
+      "sha256": "b4273aa7c06282be56d19a894da4166ae5366712c8ac4645309dd0a1d10b1411"
+    },
+    "runs/document-final-core-tests-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-final-core-tests-01/evidence/04-go-env.json": {
+      "bytes": 2734,
+      "sha256": "5ad5b982b7911bf66ffa4693a5b334a446c4ff07ccac3eb54665729deb7eef38"
+    },
+    "runs/document-final-core-tests-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 407,
+      "sha256": "b709b1b43d9ad30382c03662ca65f64e996ce07083b136d2d138ae14638ef5d9"
+    },
+    "runs/document-final-core-tests-01/evidence/05-product-command.command.json": {
+      "bytes": 1859,
+      "sha256": "467bf33f9e2d4f466003593bfe7abd0fab3f513ffc57b601c3f36745b5c47fcc"
+    },
+    "runs/document-final-core-tests-01/evidence/05-product-command.json": {
+      "bytes": 2604,
+      "sha256": "d775bac2152ecc794602f0aef25235b2cdfc7340d08300f3d07f3f62a7dab58e"
+    },
+    "runs/document-final-core-tests-01/evidence/05-product-command.started.json": {
+      "bytes": 1948,
+      "sha256": "55505689f2022907037908afbc5364b0f3ee824544c559494ebb33fb4361afa4"
+    },
+    "runs/document-final-core-tests-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-final-core-tests-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 12384,
+      "sha256": "b324a2895022082d43b6d0612c792d47bc8aead1d1f669e069db84b65a4b1ff1"
+    },
+    "runs/document-final-core-tests-01/evidence/06-clone-head-after.json": {
+      "bytes": 2467,
+      "sha256": "684beb2427a8a75537685242b7110631cf9e84d17229df7017ad0b52c16b645e"
+    },
+    "runs/document-final-core-tests-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-final-core-tests-01/evidence/invocation.json": {
+      "bytes": 1321,
+      "sha256": "1f423fd5c35f41d8d1fe2a4a85e2a13d6a4cb0ac5ee377828eb200865389f57f"
+    },
+    "runs/document-final-core-tests-01/evidence/result.json": {
+      "bytes": 5607,
+      "sha256": "7f276ff9552068bce7182790a8c310a59c30639e4b5aac22fdf9feae11cb76a5"
+    },
+    "runs/document-final-core-vet-01/evidence/01-clone-head.json": {
+      "bytes": 2437,
+      "sha256": "63f5734149f353aa4daab73fcb8f84a8ac57da0a810bd45bc7ed429c976323cc"
+    },
+    "runs/document-final-core-vet-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-final-core-vet-01/evidence/03-go-version.json": {
+      "bytes": 2491,
+      "sha256": "a7650574d23f8211420788ef1c75294f8a52048eaf4e28805c5588ffe1c0950d"
+    },
+    "runs/document-final-core-vet-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-final-core-vet-01/evidence/04-go-env.json": {
+      "bytes": 2714,
+      "sha256": "1d8bb5f36fc2f90b797d56fe01ee27b1a02e0ad45971a297bef2b53f75cb3d83"
+    },
+    "runs/document-final-core-vet-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 405,
+      "sha256": "81fdc46881482f6693877f187f6e055357b416cf63cbaa0f9ceab82763a518a0"
+    },
+    "runs/document-final-core-vet-01/evidence/05-product-command.command.json": {
+      "bytes": 1795,
+      "sha256": "fcb05ebab360b714e578946afacaf4699ca82175705f3c943656e0b1a7571d8b"
+    },
+    "runs/document-final-core-vet-01/evidence/05-product-command.json": {
+      "bytes": 2532,
+      "sha256": "bacb93a87d18e790a219978bdaddf3b49a8538c1f9db2849d0a7eb0f228257a4"
+    },
+    "runs/document-final-core-vet-01/evidence/05-product-command.started.json": {
+      "bytes": 1884,
+      "sha256": "e0f07ece80972cdae7d50620026cfe5616d2be47bdb10f660affde68c01c7199"
+    },
+    "runs/document-final-core-vet-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-final-core-vet-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-final-core-vet-01/evidence/06-clone-head-after.json": {
+      "bytes": 2449,
+      "sha256": "b8094942bf8c1d480f8e4b1acb985be8ffba9712913a27717f27a45f44c550cb"
+    },
+    "runs/document-final-core-vet-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-final-core-vet-01/evidence/invocation.json": {
+      "bytes": 1264,
+      "sha256": "e15437a3cd889d1e7aa223e9c35785979ed6a3f5a8fffcf650f67b898ecbc8a0"
+    },
+    "runs/document-final-core-vet-01/evidence/result.json": {
+      "bytes": 5466,
+      "sha256": "3c783f57eafeaa4e8b69019a18424e20fa605917663674557c9e2e07a80b4bb8"
+    },
+    "runs/document-fingerprint-format-01/evidence/01-clone-head.json": {
+      "bytes": 2474,
+      "sha256": "21cb1a967038515209a8c69e1ee7970bf4454a653db2477206166e1ca38e5f63"
+    },
+    "runs/document-fingerprint-format-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-format-01/evidence/03-go-version.json": {
+      "bytes": 2532,
+      "sha256": "f9481475a447b3f945d9b4be8f3b2adc581059fda669e79dbb94bd9c4ca6bf96"
+    },
+    "runs/document-fingerprint-format-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-fingerprint-format-01/evidence/04-go-env.json": {
+      "bytes": 2755,
+      "sha256": "75874b59a4e0a6964b0f5ef0ed6d26022d9f48b7701627709b4dfb1c0ae02bc9"
+    },
+    "runs/document-fingerprint-format-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 409,
+      "sha256": "73c5a97b019b8aae74d903bb7aeb39e4b181710803d04eb3407cd614222ccabb"
+    },
+    "runs/document-fingerprint-format-01/evidence/05-product-command.command.json": {
+      "bytes": 1909,
+      "sha256": "7ea2729c695245808ca5f186af303111beb60e656d898b086dc5376f58bf8d93"
+    },
+    "runs/document-fingerprint-format-01/evidence/05-product-command.json": {
+      "bytes": 2656,
+      "sha256": "2f28ed65ce4d6a0b5e4384a8fcb2262a4268e74b6c839f3ea0efc6d6d2a9bbf4"
+    },
+    "runs/document-fingerprint-format-01/evidence/05-product-command.started.json": {
+      "bytes": 2000,
+      "sha256": "cfa94c2f54a853acad7ab77e5201c99ab2c3e84e614386b87d9e0e27b6609f77"
+    },
+    "runs/document-fingerprint-format-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-fingerprint-format-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-fingerprint-format-01/evidence/06-clone-head-after.json": {
+      "bytes": 2485,
+      "sha256": "4ac5bbe3f38939c61de680496b62d7e676c7be64b73f258d4ae61ca52c75be22"
+    },
+    "runs/document-fingerprint-format-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-format-01/evidence/invocation.json": {
+      "bytes": 1366,
+      "sha256": "90231c92846d0d9152f841b4b417e929258c66c410f4b55bad6443a39dc74e1d"
+    },
+    "runs/document-fingerprint-format-01/evidence/result.json": {
+      "bytes": 5802,
+      "sha256": "b340bf26280ff676850425a2ae93e007826a15ead7e83dbd0be40bd66dcfa85f"
+    },
+    "runs/document-fingerprint-format-02/evidence/01-clone-head.json": {
+      "bytes": 2473,
+      "sha256": "8baed5da40839c23d54eb36beffb731ccf2f85fb06a39580f8a244763a6518d7"
+    },
+    "runs/document-fingerprint-format-02/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-format-02/evidence/03-go-version.json": {
+      "bytes": 2531,
+      "sha256": "238a04eb027e27ba35ed267db34d6b2fc472a73675e2814d60aa51a2e5dab2a5"
+    },
+    "runs/document-fingerprint-format-02/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-fingerprint-format-02/evidence/04-go-env.json": {
+      "bytes": 2755,
+      "sha256": "1b5dabf4293ab97b412c22447e9097d2573716a4c15ca80462b11e9c2ecc7a52"
+    },
+    "runs/document-fingerprint-format-02/evidence/04-go-env.stdout.bin": {
+      "bytes": 409,
+      "sha256": "296644cbba39a11273da6cae18f2c830f72791ad825853939e96f9d757bcc03b"
+    },
+    "runs/document-fingerprint-format-02/evidence/05-product-command.command.json": {
+      "bytes": 1909,
+      "sha256": "dd05178425e09c056ccc04d4610bc21d91737ed2713a51783d1d410ce876c698"
+    },
+    "runs/document-fingerprint-format-02/evidence/05-product-command.json": {
+      "bytes": 2657,
+      "sha256": "5465f09e3aab605dca0584e9d11f31c2bbae849b2d5edbe4e6e72ae984ba03b1"
+    },
+    "runs/document-fingerprint-format-02/evidence/05-product-command.started.json": {
+      "bytes": 2000,
+      "sha256": "94eb51a57b770e6e3ff09da350e4c89fff48d5dff2e03265ab8394c8740babda"
+    },
+    "runs/document-fingerprint-format-02/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-fingerprint-format-02/evidence/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-fingerprint-format-02/evidence/06-clone-head-after.json": {
+      "bytes": 2486,
+      "sha256": "0d554383065c58264bb59f2e4c36d970248474aae395521d25671a1173349cfc"
+    },
+    "runs/document-fingerprint-format-02/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-format-02/evidence/invocation.json": {
+      "bytes": 1366,
+      "sha256": "3d89f00851d46a6123c2258ba1e636ec71dc1568198fd8b41367ab28015236a6"
+    },
+    "runs/document-fingerprint-format-02/evidence/result.json": {
+      "bytes": 5803,
+      "sha256": "164ebecd526a949e2380d5cf89697820acf64e235c0a361516d283c1c328e578"
+    },
+    "runs/document-fingerprint-green-01/evidence/01-clone-head.json": {
+      "bytes": 2466,
+      "sha256": "780a265488b91f4042782c4932eabdb1312b2d2b0226652accfd01e90d628e9e"
+    },
+    "runs/document-fingerprint-green-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-green-01/evidence/03-go-version.json": {
+      "bytes": 2519,
+      "sha256": "0a07c6170a3b794e4eab3cf9e26bdeaaab74323354e620edb59130904115fae8"
+    },
+    "runs/document-fingerprint-green-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-fingerprint-green-01/evidence/04-go-env.json": {
+      "bytes": 2744,
+      "sha256": "06fae0226424e405c085be782724e7f81c0c55e038ff7a45d2a059d50ff5fe34"
+    },
+    "runs/document-fingerprint-green-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 408,
+      "sha256": "2c94fc3d5cf938aa2c26846d9f3104b186a09117b6833e72bf07fcd694ff4281"
+    },
+    "runs/document-fingerprint-green-01/evidence/05-product-command.command.json": {
+      "bytes": 1948,
+      "sha256": "ce07309259a795a3fc392c772aee25504e31876ff836341a3c51ea2ba28a3444"
+    },
+    "runs/document-fingerprint-green-01/evidence/05-product-command.started.json": {
+      "bytes": 2039,
+      "sha256": "1ad54d1df3e55ffebee0f0aba89c22417fab4c6b14140aaf9c7eea63a0f8a6da"
+    },
+    "runs/document-fingerprint-green-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-fingerprint-green-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 200,
+      "sha256": "507f07dce05f3be61e3c93d950f4dd7bab0ec98a116915e62a8b6b68c8ed116b"
+    },
+    "runs/document-fingerprint-green-01/evidence/invocation.json": {
+      "bytes": 1406,
+      "sha256": "9a7227f34890ed5d9758761161f2a0c315dabd59aa9c207321e5252febdca62a"
+    },
+    "runs/document-fingerprint-green-02/evidence/01-clone-head.json": {
+      "bytes": 2466,
+      "sha256": "31f09e0be4fdbc882c02d38cbcbd249ca2c1efa867152333f6a2731dfb84822c"
+    },
+    "runs/document-fingerprint-green-02/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-green-02/evidence/03-go-version.json": {
+      "bytes": 2522,
+      "sha256": "ad266a5cdeea248953be4b8a98ad1c681315957f7a330bcf7f8fef66da3040ce"
+    },
+    "runs/document-fingerprint-green-02/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-fingerprint-green-02/evidence/04-go-env.json": {
+      "bytes": 2746,
+      "sha256": "f7c1f7475531cdac8f28cc7e20099dde8a54f5cdd6f3e89ae31aa77373c33469"
+    },
+    "runs/document-fingerprint-green-02/evidence/04-go-env.stdout.bin": {
+      "bytes": 408,
+      "sha256": "ec19a19157aa48831acb888a4885a7d79c3d538de4f4c62188657f208a202d66"
+    },
+    "runs/document-fingerprint-green-02/evidence/05-product-command.command.json": {
+      "bytes": 1948,
+      "sha256": "a7a5b8145566f058d0bb2799f45f1fc91d873fd37d49c7816a465184be055b6c"
+    },
+    "runs/document-fingerprint-green-02/evidence/05-product-command.json": {
+      "bytes": 2694,
+      "sha256": "8fdfaaabb9e729ce49c6880d8129c58808b006be9409827eef0fdf8fa6c66794"
+    },
+    "runs/document-fingerprint-green-02/evidence/05-product-command.started.json": {
+      "bytes": 2039,
+      "sha256": "46f913fe62f316daac4454f2ad08eb8c4489054ef356ae7c3d5f187ddbd7474f"
+    },
+    "runs/document-fingerprint-green-02/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-fingerprint-green-02/evidence/05-product-command.stdout.bin": {
+      "bytes": 200,
+      "sha256": "cf1da4913834f12e352612064651d40795441e14b893f8481306408eefc8a11d"
+    },
+    "runs/document-fingerprint-green-02/evidence/06-clone-head-after.json": {
+      "bytes": 2477,
+      "sha256": "8a861b73176e142263cd51ea1555b07661a7cac6c976b798db605815e0bd3c5b"
+    },
+    "runs/document-fingerprint-green-02/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-green-02/evidence/invocation.json": {
+      "bytes": 1406,
+      "sha256": "8df1e20e2ae0a7d5788ce5807293ad0e5a02925b9b9b3ad340c36b716bf755e1"
+    },
+    "runs/document-fingerprint-green-02/evidence/result.json": {
+      "bytes": 5789,
+      "sha256": "65caefabcbf733ce56b4f36b8b2abc1b9f99f3e37f8de5c1e5a572c42c8fb140"
+    },
+    "runs/document-fingerprint-red-01/evidence/01-clone-head.json": {
+      "bytes": 2449,
+      "sha256": "e3bfea8a4bc2cc9f1fc55c20c95a26a54bd76c1b57f471a9f1e2171218fa9ca4"
+    },
+    "runs/document-fingerprint-red-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-red-01/evidence/03-go-version.json": {
+      "bytes": 2502,
+      "sha256": "7cf577a53606fcf5cfc5942dc628cc676ab6b8a14e438e1f8ba937d6ad9a94f2"
+    },
+    "runs/document-fingerprint-red-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-fingerprint-red-01/evidence/04-go-env.json": {
+      "bytes": 2726,
+      "sha256": "7d85013409d53e35eab5e2a0ab36fa81e492c35140ffbdb383e2c96da11b3f1e"
+    },
+    "runs/document-fingerprint-red-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 406,
+      "sha256": "f8b95f992f9e430020bd016e6d5ed0834e93338f2e90327c198c7ede3ce3ce4f"
+    },
+    "runs/document-fingerprint-red-01/evidence/05-product-command.command.json": {
+      "bytes": 1932,
+      "sha256": "32fa283d9e4889f54e708a29d5d46217d1879216704db42e3dc12ea449b8285b"
+    },
+    "runs/document-fingerprint-red-01/evidence/05-product-command.json": {
+      "bytes": 2675,
+      "sha256": "f62aba2e27d102a6d288b2dceaeac5d35bc570d1309ae3d7ebcbf0c71fccc220"
+    },
+    "runs/document-fingerprint-red-01/evidence/05-product-command.started.json": {
+      "bytes": 2023,
+      "sha256": "830ce88ba0ff0b578618487190e517800756ce7ca061bb8e12716e2aef7873ea"
+    },
+    "runs/document-fingerprint-red-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-fingerprint-red-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 379,
+      "sha256": "f8a8815361c9b205c4c3463210375acdee905a201abf1b4703a31415c871de8b"
+    },
+    "runs/document-fingerprint-red-01/evidence/06-clone-head-after.json": {
+      "bytes": 2460,
+      "sha256": "0d97a6d944c007837c3b7498ad2ab74fef65b8d242d12fd684ac13289684e5ec"
+    },
+    "runs/document-fingerprint-red-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-fingerprint-red-01/evidence/invocation.json": {
+      "bytes": 1398,
+      "sha256": "d146d375326ec6a94546a018299e22fd0e13ea7e7d9bf591b8df0757c09c35b4"
+    },
+    "runs/document-fingerprint-red-01/evidence/result.json": {
+      "bytes": 5742,
+      "sha256": "32d54fe4286544d136cb7d34bd4f723d7fe8da1501c053c12c3e2d3caea93ead"
+    },
+    "runs/document-public-conflict-format-01/evidence/01-clone-head.json": {
+      "bytes": 2509,
+      "sha256": "38c0bdc98c50f24849f3e3f261391f2ed25b278c9e21bc1905e8a428ca291087"
+    },
+    "runs/document-public-conflict-format-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-conflict-format-01/evidence/03-go-version.json": {
+      "bytes": 2571,
+      "sha256": "d11e4deb3a6614aecec05e4266a7db706834f3722605083c31118ed91a5cd495"
+    },
+    "runs/document-public-conflict-format-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-conflict-format-01/evidence/04-go-env.json": {
+      "bytes": 2794,
+      "sha256": "567e5e7c331b77ddb46302f5229f8e6ce1efbd82e3e837d3421f8adef8fd280c"
+    },
+    "runs/document-public-conflict-format-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 413,
+      "sha256": "8f30d1ad600d3facefe69b6943c8e3b9b905ac3dd2c30c3835a1cf5106aa911f"
+    },
+    "runs/document-public-conflict-format-01/evidence/05-product-command.command.json": {
+      "bytes": 1926,
+      "sha256": "85371edba7730a405787955a6b5a1018141b056d51324d9c492572397760c7de"
+    },
+    "runs/document-public-conflict-format-01/evidence/05-product-command.json": {
+      "bytes": 2679,
+      "sha256": "2553eacfbb045dfeef5afee1b6f8033db362fce35ff806c9d86c74a5b704f6b5"
+    },
+    "runs/document-public-conflict-format-01/evidence/05-product-command.started.json": {
+      "bytes": 2015,
+      "sha256": "eada82013bef20efd3b200a20125c4980f927bb41500d8079aa0bb875228f2dd"
+    },
+    "runs/document-public-conflict-format-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-conflict-format-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-conflict-format-01/evidence/06-clone-head-after.json": {
+      "bytes": 2519,
+      "sha256": "d3930d903efb4094d10ab27dfbe2aea3e56b815650fe5cc6ba4046f66f6b6cb5"
+    },
+    "runs/document-public-conflict-format-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-conflict-format-01/evidence/invocation.json": {
+      "bytes": 1367,
+      "sha256": "488b82a05a7a0f1391ea9f70d58fbe524cdee6c1d72c704094974bc55a83568c"
+    },
+    "runs/document-public-conflict-format-01/evidence/result.json": {
+      "bytes": 5840,
+      "sha256": "8144d947018775de06e29dd0ec2f5fc4d312adc3ec0af1f28fce043cc51a9e93"
+    },
+    "runs/document-public-conflict-positive-01/evidence/01-clone-head.json": {
+      "bytes": 2527,
+      "sha256": "26613d5e5f309ef6ecfe22cb9bda118a71a3834cc36e29b49ba9faf670e5c907"
+    },
+    "runs/document-public-conflict-positive-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-conflict-positive-01/evidence/03-go-version.json": {
+      "bytes": 2591,
+      "sha256": "ca6a3b84c411c6864085f6cce3f73e49dd16eab5d513875a9c54f084172b349d"
+    },
+    "runs/document-public-conflict-positive-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-conflict-positive-01/evidence/04-go-env.json": {
+      "bytes": 2814,
+      "sha256": "cd4eb962b1a8680c66b1aba9efd2cf92d4bae224cd08f989eafdb615dbb31b4d"
+    },
+    "runs/document-public-conflict-positive-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 415,
+      "sha256": "1c9654a3bfe8cca99aaf44cc3377f2abc313b8d93d4322aecde7d2ba7d78fe06"
+    },
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.command.json": {
+      "bytes": 2003,
+      "sha256": "7d5bc26707b1fbf2a4ab493355e0a6569640794be4093559b8f767760049545d"
+    },
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.json": {
+      "bytes": 2762,
+      "sha256": "36cc79caf5be2b951ce04da8bbace52798ec34813a16136df92c2001387030c2"
+    },
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.started.json": {
+      "bytes": 2092,
+      "sha256": "c53f5b4130f6e3fd10890a9c9de7a62cb8d2db4beb10dad20f8d8ee1d86af473"
+    },
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 198,
+      "sha256": "e064e2a8f57cf1e58ac14945dc6167a0d2623480161a006f239dc6576e3eb4a6"
+    },
+    "runs/document-public-conflict-positive-01/evidence/06-clone-head-after.json": {
+      "bytes": 2539,
+      "sha256": "ecbea64c4d60aa3222c1e38fcba8914b63ea880face7a245f5917407c26b3ac1"
+    },
+    "runs/document-public-conflict-positive-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-conflict-positive-01/evidence/invocation.json": {
+      "bytes": 1433,
+      "sha256": "6341ead112a44701d95064a57a40d3b3ab7aad2daff6c18d8c8b799cf00cc866"
+    },
+    "runs/document-public-conflict-positive-01/evidence/result.json": {
+      "bytes": 5905,
+      "sha256": "3bb3f3f550f750d280928308df5c04ff53047c9084c53080ef7a9a64536cbab8"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/01-clone-head.json": {
+      "bytes": 2563,
+      "sha256": "14ba0b99d4f5dd1939afdb8afa718631444acc019d1ecf265ed945368946f191"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/03-go-version.json": {
+      "bytes": 2631,
+      "sha256": "663804fa0194401988b0124849581b8b0565fe5597c02617de70f70a45c81171"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/04-go-env.json": {
+      "bytes": 2854,
+      "sha256": "044b065b69c113e11686b6123243c3764d63fc2fe4d12b66dca0cdbd2c6be030"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 419,
+      "sha256": "d6759419e74865048f849859a77fb260adbdba8f32489dd5a3d53ed50922abe3"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.command.json": {
+      "bytes": 1986,
+      "sha256": "d484858b073621eb859d2ab7e0ea5e338b82dfd2b12ad1b8bb393ffe490512c2"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.json": {
+      "bytes": 2753,
+      "sha256": "82372f1b6fddf392bfb010d67844059d4bc2d1b4f4377aa0b8afaea4d13930ae"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.started.json": {
+      "bytes": 2075,
+      "sha256": "13591673ff021ab18f84ff5ebcd06b9c00a26d3ca15cd9ef10a0fdace65afa39"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/06-clone-head-after.json": {
+      "bytes": 2575,
+      "sha256": "ee17f986b5ba8c386b82bc050866027faa79995c4ccec557d09cb5bf90df49c8"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/invocation.json": {
+      "bytes": 1403,
+      "sha256": "1cd333cfa6fc69e28a4812d0ef0fd6b54d242fb9eb911b7cd1fbea40fed042bb"
+    },
+    "runs/document-public-directory-sync-format-01/evidence/result.json": {
+      "bytes": 5974,
+      "sha256": "2a8868be8be63249e014a12d75d7e96fe27a9a49742a77ae35dc9e75ec8cd782"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/01-clone-head.json": {
+      "bytes": 2582,
+      "sha256": "894782edc01b33a4aac3f12c3b8a3c980c273db6311b0464f219af80f38bef63"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/03-go-version.json": {
+      "bytes": 2651,
+      "sha256": "6fda147a4906f7230d79e55ab336834706a8545054ba7e0988a189347bbcd99d"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/04-go-env.json": {
+      "bytes": 2874,
+      "sha256": "c7ed97acd19981cb4fc38f6e71e0ab59a6b2b58ba364b8f6bf165671552b889a"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 421,
+      "sha256": "8ddb8512d047fc06f1e097fac422b615408421d46e90145a7972058384768e84"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.command.json": {
+      "bytes": 2056,
+      "sha256": "9d27a080290d35ffa0000e20d146cbf18706b1c986301524841304bfcabcd793"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.json": {
+      "bytes": 2826,
+      "sha256": "396d0d63d5350610c93d9bc4b0e37100a115c13a34e5e246fcb0593767d0a0cc"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.started.json": {
+      "bytes": 2145,
+      "sha256": "57eee3f0bb39ff8aacfec7488e879e339027f420c8dfca95dd947aeb1740ef1e"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 208,
+      "sha256": "51a3509f21dda7f692d4948567d6f59a7a4405cdbe0ac40c13cc187e7680d483"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/06-clone-head-after.json": {
+      "bytes": 2593,
+      "sha256": "4bc0356b29db9ec8c087a1d516b97e920e4ea5534ce8de68fa2af25de7cb4c5a"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/invocation.json": {
+      "bytes": 1462,
+      "sha256": "bb2eee884ad773a1a88e6de70a90f49bcb514e1ce6aef858143f473e1d60fb16"
+    },
+    "runs/document-public-directory-sync-positive-01/evidence/result.json": {
+      "bytes": 6016,
+      "sha256": "514031a71e5510d5604bd57f2a9e979cb6769700b24c7ac8cb79aba98c419d21"
+    },
+    "runs/document-public-encoding-format-01/evidence/01-clone-head.json": {
+      "bytes": 2509,
+      "sha256": "4095f4ff6b70adf58086f730891eed34b34b754b94611694372f6a34b1edd9aa"
+    },
+    "runs/document-public-encoding-format-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-encoding-format-01/evidence/03-go-version.json": {
+      "bytes": 2571,
+      "sha256": "12677197c92af94e1a43c501142f3815615b5869b710479a5c2cc7615eddfaf9"
+    },
+    "runs/document-public-encoding-format-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-encoding-format-01/evidence/04-go-env.json": {
+      "bytes": 2794,
+      "sha256": "9a9066b41c3373642bcb82b66b85e7af4ffffc5e801d93c1479e5b684ed9c9a7"
+    },
+    "runs/document-public-encoding-format-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 413,
+      "sha256": "b5c4ffd96ac6620ac46b74adff45c970a8250a3b38e5aa17cc94b530b6f185bd"
+    },
+    "runs/document-public-encoding-format-01/evidence/05-product-command.command.json": {
+      "bytes": 1926,
+      "sha256": "cd2bd4d95799ccf85acc3a28383e6d188497499688e6d6542ba114c8c76bf071"
+    },
+    "runs/document-public-encoding-format-01/evidence/05-product-command.json": {
+      "bytes": 2681,
+      "sha256": "16ce76ebcc684bfdf667c168b11b7f650a4472ba15ce0147771ec33922c3186e"
+    },
+    "runs/document-public-encoding-format-01/evidence/05-product-command.started.json": {
+      "bytes": 2015,
+      "sha256": "7858d3503d9bd232e166e8f0c3d55adc49c6d578d50071d1ce550b3ba0a7e025"
+    },
+    "runs/document-public-encoding-format-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-encoding-format-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-encoding-format-01/evidence/06-clone-head-after.json": {
+      "bytes": 2521,
+      "sha256": "603b2f3923bd764633fdb0342051e71ef96a6bc3dd80481cb37bdfae910bf758"
+    },
+    "runs/document-public-encoding-format-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-encoding-format-01/evidence/invocation.json": {
+      "bytes": 1367,
+      "sha256": "b1b170ea64cd6ec493565f4109b5aee81274d7f3d2aa3465fedc35b8bec8bc05"
+    },
+    "runs/document-public-encoding-format-01/evidence/result.json": {
+      "bytes": 5842,
+      "sha256": "d7fab8c11df7108b7d697fb724f116db4682b51c208f4bdfe9f0052597d7bce2"
+    },
+    "runs/document-public-encoding-positive-01/evidence/01-clone-head.json": {
+      "bytes": 2526,
+      "sha256": "7dfd25e4769eb264b14b11d960f802d33ffcbed6d9eae4db9ebf0aee0b3bd64d"
+    },
+    "runs/document-public-encoding-positive-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-encoding-positive-01/evidence/03-go-version.json": {
+      "bytes": 2591,
+      "sha256": "1f69b28a7a77fc0562eb26d5800062e20faf4ba3516046a5449ab8458c721e22"
+    },
+    "runs/document-public-encoding-positive-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-encoding-positive-01/evidence/04-go-env.json": {
+      "bytes": 2814,
+      "sha256": "f3db548c98ce82f089caffec0c2c49e9c0da53e22a522170ce89af4810a3ddc4"
+    },
+    "runs/document-public-encoding-positive-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 415,
+      "sha256": "bc6125d9f0a47045ca170e19257811357db5f78631fc5dbc4012420a3476e83b"
+    },
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.command.json": {
+      "bytes": 1997,
+      "sha256": "f3848d39f90d106f74fca4eeca28a3034e7deefff695c90abcd9e5b963cd0d5f"
+    },
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.json": {
+      "bytes": 2756,
+      "sha256": "c87fb004fe33ce158a7c0bb718470b710694ec3a7bc0f33f190c45777f01b3fe"
+    },
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.started.json": {
+      "bytes": 2086,
+      "sha256": "c304d50ac7b692156cec97c04b03d2801f6cbb1189c3730bfe8fee53cab1752f"
+    },
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 186,
+      "sha256": "849472e4ce0e3744a88a639e1dd9b381290e7a8fa14a894ec00f6615f92520cf"
+    },
+    "runs/document-public-encoding-positive-01/evidence/06-clone-head-after.json": {
+      "bytes": 2539,
+      "sha256": "0a48675fd02914d9ceca6f836ee0b1d969b3e996e874d0576d6ad2b0119991bb"
+    },
+    "runs/document-public-encoding-positive-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-encoding-positive-01/evidence/invocation.json": {
+      "bytes": 1427,
+      "sha256": "32e0f343e181689d13158a25f1b57088b1f6cf029efd05f52d55530d470ed971"
+    },
+    "runs/document-public-encoding-positive-01/evidence/result.json": {
+      "bytes": 5893,
+      "sha256": "69bddf94316e40cc4827e301f35e9139b1fee19ae00b09def5a2dd67485082ff"
+    },
+    "runs/document-public-mtime-format-01/evidence/01-clone-head.json": {
+      "bytes": 2482,
+      "sha256": "3792c39ee9f31240f9f20acf24acfbb163f7c48d77f2f3f19543e1f8113835e2"
+    },
+    "runs/document-public-mtime-format-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-mtime-format-01/evidence/03-go-version.json": {
+      "bytes": 2539,
+      "sha256": "61d15e84c66dfbcbb073ea93ea31da51990215f7c977013a82d272cc2881797a"
+    },
+    "runs/document-public-mtime-format-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-mtime-format-01/evidence/04-go-env.json": {
+      "bytes": 2763,
+      "sha256": "7ff74ac1e606c500d6516d13ebeddbc82fee20841eeda0973120e8c81c60e6a1"
+    },
+    "runs/document-public-mtime-format-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 410,
+      "sha256": "024b1c60252ec1fcc82054480c027bc1359d6eb9337dd3333d616d17fcb33d4b"
+    },
+    "runs/document-public-mtime-format-01/evidence/05-product-command.command.json": {
+      "bytes": 1893,
+      "sha256": "9a791c9b57f76e95341b4878c5562a77da219b919b53fe373a0f4e3b93909d92"
+    },
+    "runs/document-public-mtime-format-01/evidence/05-product-command.json": {
+      "bytes": 2640,
+      "sha256": "7f0bf8de4327ac8a56f1a1a6f28c16119f9ef198b10fb8e08d4aa2def2b96c60"
+    },
+    "runs/document-public-mtime-format-01/evidence/05-product-command.started.json": {
+      "bytes": 1982,
+      "sha256": "5dfa10b4cb8f077059dab42f436f835dec44589e2563498a61b58f30490322e6"
+    },
+    "runs/document-public-mtime-format-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-mtime-format-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-mtime-format-01/evidence/06-clone-head-after.json": {
+      "bytes": 2494,
+      "sha256": "78c989db9b8250ce975a3e1b7721f81076ef8d9ebbdd91ea61ffb9e82ed6811a"
+    },
+    "runs/document-public-mtime-format-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-mtime-format-01/evidence/invocation.json": {
+      "bytes": 1346,
+      "sha256": "3ee265d9a92db971bcf8ae0bd0a15451454929b0602932904b9b24d58349c102"
+    },
+    "runs/document-public-mtime-format-01/evidence/result.json": {
+      "bytes": 5768,
+      "sha256": "321526e09182343aa6f9a33e2295c4269802caab03b11cd5c93ee72e0d93e54a"
+    },
+    "runs/document-public-mtime-positive-01/evidence/01-clone-head.json": {
+      "bytes": 2500,
+      "sha256": "f302655f8afa73bd14bb0e865f8cdd2540b1527c594f015cfbf39f1fb04fbaef"
+    },
+    "runs/document-public-mtime-positive-01/evidence/01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-mtime-positive-01/evidence/03-go-version.json": {
+      "bytes": 2561,
+      "sha256": "69329a98ddc50e1319ecddce0fcb44fef56f7ab9ffcd2eb08f5e89c69a9e2bcd"
+    },
+    "runs/document-public-mtime-positive-01/evidence/03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "runs/document-public-mtime-positive-01/evidence/04-go-env.json": {
+      "bytes": 2784,
+      "sha256": "46ede3369654335d1879874252fd212876ff8328f08545d70125ca85a7da66d0"
+    },
+    "runs/document-public-mtime-positive-01/evidence/04-go-env.stdout.bin": {
+      "bytes": 412,
+      "sha256": "5750dc00ce826566b79b43cb67bddbe1beed89af43ce717139bdbe5013f497d8"
+    },
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.command.json": {
+      "bytes": 1973,
+      "sha256": "e135d77d2a8a4bfe2243d4a767f69988e83fabede730559c6880210f51341455"
+    },
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.json": {
+      "bytes": 2725,
+      "sha256": "b21d70bae2717605345092c90e411638bc3a01a07e35b143249500faa0e8f5ff"
+    },
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.started.json": {
+      "bytes": 2062,
+      "sha256": "3f2428fb445f763da7204d1afda1d78b01611c2a4b1af54fc573e7dcf5e2315d"
+    },
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.stdout.bin": {
+      "bytes": 186,
+      "sha256": "e5127baedbc0e65268bb742230a8fa47a6f79cccbe7b0e2efa34eca52541e5bb"
+    },
+    "runs/document-public-mtime-positive-01/evidence/06-clone-head-after.json": {
+      "bytes": 2512,
+      "sha256": "4eb3682839f0cd95db3fa193bcdd0476e0e0b0c9c1ab84f8b4fa75fbbdfed255"
+    },
+    "runs/document-public-mtime-positive-01/evidence/06-clone-head-after.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "runs/document-public-mtime-positive-01/evidence/invocation.json": {
+      "bytes": 1415,
+      "sha256": "a72840844ed427dec50d8b487bc2de0d6dfec5f92534a5a391357b6e251bd6e9"
+    },
+    "runs/document-public-mtime-positive-01/evidence/result.json": {
+      "bytes": 5841,
+      "sha256": "44fd49377477f88f427360c9bcfc21a3394bad456ee3e057bebe075b65aa9444"
+    },
+    "source/core/document/atomic.go": {
+      "bytes": 4873,
+      "sha256": "641601d61fe3da0ec83954c6b199cac46864099ffa78f09e2a309180491fec83"
+    },
+    "source/core/document/document.go": {
+      "bytes": 14511,
+      "sha256": "44da6396913741a18ed5ebd1d0c668853d28ad399eba9b13abb02aa08f76a3fe"
+    },
+    "source/core/document/fingerprint_boundary_test.go": {
+      "bytes": 3399,
+      "sha256": "f0d3204bf2b7430eb1a95ca183ade789816faf7752433cad06c2e6a74f434aef"
+    },
+    "source/core/document/fingerprint_conflict_public_test.go": {
+      "bytes": 6993,
+      "sha256": "c0556277c6d7ae7c7cf4a72d75d3901a23aedcedec94aa00711dc5ac0ab20b69"
+    },
+    "source/core/document/fingerprint_directory_sync_public_linux_test.go": {
+      "bytes": 7142,
+      "sha256": "8f68c732927b6375edeb8b589facef356a360f944512b4564968afaa6fe51951"
+    },
+    "source/core/document/fingerprint_encoding_public_test.go": {
+      "bytes": 4870,
+      "sha256": "40212ed1a6c5319b16e2e107ae1aaa8530b3d381fe3dac85d64266436f974edc"
+    },
+    "source/core/document/fingerprint_public_test.go": {
+      "bytes": 2957,
+      "sha256": "3c94db4b1ac0604f03ebb3cc26fdf62e661dadfd266ad74b06d6d9fe587955d5"
+    },
+    "source/core/document/utf8_save_test.go": {
+      "bytes": 8238,
+      "sha256": "7c02ad0c795cadda2b93c443d6816d742ff13bf0e9ae26facb3e8149f31b3ec0"
+    }
+  },
+  "origins": {
+    "source/core/document/document.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/document.go",
+    "source/core/document/atomic.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/atomic.go",
+    "source/core/document/utf8_save_test.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/utf8_save_test.go",
+    "source/core/document/fingerprint_boundary_test.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/fingerprint_boundary_test.go",
+    "source/core/document/fingerprint_public_test.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/fingerprint_public_test.go",
+    "source/core/document/fingerprint_conflict_public_test.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/fingerprint_conflict_public_test.go",
+    "source/core/document/fingerprint_encoding_public_test.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/fingerprint_encoding_public_test.go",
+    "source/core/document/fingerprint_directory_sync_public_linux_test.go": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-final-core-tests-01/native/core/document/fingerprint_directory_sync_public_linux_test.go",
+    "baseline/core/document/document.go": "/home/user/LevNote/native/core/document/document.go",
+    "diff/core/document/document.go.diff": "metadata unified diff of the two pinned actual files",
+    "baseline/core/document/atomic.go": "/home/user/LevNote/native/core/document/atomic.go",
+    "diff/core/document/atomic.go.diff": "metadata unified diff of the two pinned actual files",
+    "baseline/core/document/utf8_save_test.go": "/home/user/LevNote/native/core/document/utf8_save_test.go",
+    "diff/core/document/utf8_save_test.go.diff": "metadata unified diff of the two pinned actual files",
+    "runs/document-fingerprint-red-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/invocation.json",
+    "runs/document-fingerprint-red-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-fingerprint-red-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/01-clone-head.json",
+    "runs/document-fingerprint-red-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/03-go-version.stdout.bin",
+    "runs/document-fingerprint-red-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/03-go-version.json",
+    "runs/document-fingerprint-red-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/04-go-env.stdout.bin",
+    "runs/document-fingerprint-red-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/04-go-env.json",
+    "runs/document-fingerprint-red-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/05-product-command.command.json",
+    "runs/document-fingerprint-red-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/05-product-command.started.json",
+    "runs/document-fingerprint-red-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/05-product-command.json",
+    "runs/document-fingerprint-red-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/05-product-command.stdout.bin",
+    "runs/document-fingerprint-red-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/05-product-command.stderr.bin",
+    "runs/document-fingerprint-red-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/result.json",
+    "runs/document-fingerprint-red-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-fingerprint-red-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-red-01/evidence/06-clone-head-after.json",
+    "runs/document-fingerprint-format-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/invocation.json",
+    "runs/document-fingerprint-format-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-fingerprint-format-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/01-clone-head.json",
+    "runs/document-fingerprint-format-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/03-go-version.stdout.bin",
+    "runs/document-fingerprint-format-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/03-go-version.json",
+    "runs/document-fingerprint-format-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/04-go-env.stdout.bin",
+    "runs/document-fingerprint-format-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/04-go-env.json",
+    "runs/document-fingerprint-format-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/05-product-command.command.json",
+    "runs/document-fingerprint-format-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/05-product-command.started.json",
+    "runs/document-fingerprint-format-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/05-product-command.json",
+    "runs/document-fingerprint-format-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/05-product-command.stdout.bin",
+    "runs/document-fingerprint-format-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/05-product-command.stderr.bin",
+    "runs/document-fingerprint-format-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/result.json",
+    "runs/document-fingerprint-format-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-fingerprint-format-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-01/evidence/06-clone-head-after.json",
+    "runs/document-fingerprint-green-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/invocation.json",
+    "runs/document-fingerprint-green-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-fingerprint-green-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/01-clone-head.json",
+    "runs/document-fingerprint-green-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/03-go-version.stdout.bin",
+    "runs/document-fingerprint-green-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/03-go-version.json",
+    "runs/document-fingerprint-green-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/04-go-env.stdout.bin",
+    "runs/document-fingerprint-green-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/04-go-env.json",
+    "runs/document-fingerprint-green-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/05-product-command.command.json",
+    "runs/document-fingerprint-green-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/05-product-command.started.json",
+    "runs/document-fingerprint-green-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/05-product-command.stdout.bin",
+    "runs/document-fingerprint-green-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence/05-product-command.stderr.bin",
+    "classification/document-fingerprint-green-01-interruption-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/document-fingerprint-green-01-interruption-01/result.json",
+    "runs/document-fingerprint-format-02/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/invocation.json",
+    "runs/document-fingerprint-format-02/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/01-clone-head.stdout.bin",
+    "runs/document-fingerprint-format-02/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/01-clone-head.json",
+    "runs/document-fingerprint-format-02/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/03-go-version.stdout.bin",
+    "runs/document-fingerprint-format-02/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/03-go-version.json",
+    "runs/document-fingerprint-format-02/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/04-go-env.stdout.bin",
+    "runs/document-fingerprint-format-02/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/04-go-env.json",
+    "runs/document-fingerprint-format-02/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/05-product-command.command.json",
+    "runs/document-fingerprint-format-02/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/05-product-command.started.json",
+    "runs/document-fingerprint-format-02/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/05-product-command.json",
+    "runs/document-fingerprint-format-02/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/05-product-command.stdout.bin",
+    "runs/document-fingerprint-format-02/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/05-product-command.stderr.bin",
+    "runs/document-fingerprint-format-02/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/result.json",
+    "runs/document-fingerprint-format-02/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-fingerprint-format-02/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-format-02/evidence/06-clone-head-after.json",
+    "runs/document-fingerprint-green-02/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/invocation.json",
+    "runs/document-fingerprint-green-02/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/01-clone-head.stdout.bin",
+    "runs/document-fingerprint-green-02/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/01-clone-head.json",
+    "runs/document-fingerprint-green-02/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/03-go-version.stdout.bin",
+    "runs/document-fingerprint-green-02/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/03-go-version.json",
+    "runs/document-fingerprint-green-02/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/04-go-env.stdout.bin",
+    "runs/document-fingerprint-green-02/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/04-go-env.json",
+    "runs/document-fingerprint-green-02/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/05-product-command.command.json",
+    "runs/document-fingerprint-green-02/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/05-product-command.started.json",
+    "runs/document-fingerprint-green-02/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/05-product-command.json",
+    "runs/document-fingerprint-green-02/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/05-product-command.stdout.bin",
+    "runs/document-fingerprint-green-02/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/05-product-command.stderr.bin",
+    "runs/document-fingerprint-green-02/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/result.json",
+    "runs/document-fingerprint-green-02/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-fingerprint-green-02/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-02/evidence/06-clone-head-after.json",
+    "runs/document-public-mtime-format-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/invocation.json",
+    "runs/document-public-mtime-format-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-mtime-format-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/01-clone-head.json",
+    "runs/document-public-mtime-format-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-mtime-format-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/03-go-version.json",
+    "runs/document-public-mtime-format-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-mtime-format-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/04-go-env.json",
+    "runs/document-public-mtime-format-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/05-product-command.command.json",
+    "runs/document-public-mtime-format-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/05-product-command.started.json",
+    "runs/document-public-mtime-format-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/05-product-command.json",
+    "runs/document-public-mtime-format-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-mtime-format-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-mtime-format-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/result.json",
+    "runs/document-public-mtime-format-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-mtime-format-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-format-01/evidence/06-clone-head-after.json",
+    "runs/document-public-mtime-positive-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/invocation.json",
+    "runs/document-public-mtime-positive-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-mtime-positive-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/01-clone-head.json",
+    "runs/document-public-mtime-positive-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-mtime-positive-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/03-go-version.json",
+    "runs/document-public-mtime-positive-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-mtime-positive-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/04-go-env.json",
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/05-product-command.command.json",
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/05-product-command.started.json",
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/05-product-command.json",
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-mtime-positive-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-mtime-positive-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/result.json",
+    "runs/document-public-mtime-positive-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-mtime-positive-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-mtime-positive-01/evidence/06-clone-head-after.json",
+    "runs/document-public-conflict-format-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/invocation.json",
+    "runs/document-public-conflict-format-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-conflict-format-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/01-clone-head.json",
+    "runs/document-public-conflict-format-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-conflict-format-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/03-go-version.json",
+    "runs/document-public-conflict-format-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-conflict-format-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/04-go-env.json",
+    "runs/document-public-conflict-format-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.command.json",
+    "runs/document-public-conflict-format-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.started.json",
+    "runs/document-public-conflict-format-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.json",
+    "runs/document-public-conflict-format-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-conflict-format-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-conflict-format-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/result.json",
+    "runs/document-public-conflict-format-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-conflict-format-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/06-clone-head-after.json",
+    "runs/document-public-conflict-positive-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/invocation.json",
+    "runs/document-public-conflict-positive-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-conflict-positive-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/01-clone-head.json",
+    "runs/document-public-conflict-positive-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-conflict-positive-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/03-go-version.json",
+    "runs/document-public-conflict-positive-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-conflict-positive-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/04-go-env.json",
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/05-product-command.command.json",
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/05-product-command.started.json",
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/05-product-command.json",
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-conflict-positive-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-conflict-positive-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/result.json",
+    "runs/document-public-conflict-positive-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-conflict-positive-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-positive-01/evidence/06-clone-head-after.json",
+    "runs/document-public-encoding-format-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/invocation.json",
+    "runs/document-public-encoding-format-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-encoding-format-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/01-clone-head.json",
+    "runs/document-public-encoding-format-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-encoding-format-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/03-go-version.json",
+    "runs/document-public-encoding-format-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-encoding-format-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/04-go-env.json",
+    "runs/document-public-encoding-format-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/05-product-command.command.json",
+    "runs/document-public-encoding-format-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/05-product-command.started.json",
+    "runs/document-public-encoding-format-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/05-product-command.json",
+    "runs/document-public-encoding-format-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-encoding-format-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-encoding-format-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/result.json",
+    "runs/document-public-encoding-format-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-encoding-format-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-format-01/evidence/06-clone-head-after.json",
+    "runs/document-public-encoding-positive-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/invocation.json",
+    "runs/document-public-encoding-positive-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-encoding-positive-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/01-clone-head.json",
+    "runs/document-public-encoding-positive-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-encoding-positive-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/03-go-version.json",
+    "runs/document-public-encoding-positive-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-encoding-positive-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/04-go-env.json",
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/05-product-command.command.json",
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/05-product-command.started.json",
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/05-product-command.json",
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-encoding-positive-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-encoding-positive-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/result.json",
+    "runs/document-public-encoding-positive-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-encoding-positive-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-encoding-positive-01/evidence/06-clone-head-after.json",
+    "runs/document-public-directory-sync-format-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/invocation.json",
+    "runs/document-public-directory-sync-format-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-directory-sync-format-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/01-clone-head.json",
+    "runs/document-public-directory-sync-format-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-directory-sync-format-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/03-go-version.json",
+    "runs/document-public-directory-sync-format-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-directory-sync-format-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/04-go-env.json",
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/05-product-command.command.json",
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/05-product-command.started.json",
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/05-product-command.json",
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-directory-sync-format-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-directory-sync-format-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/result.json",
+    "runs/document-public-directory-sync-format-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-directory-sync-format-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/evidence/06-clone-head-after.json",
+    "runs/document-public-directory-sync-positive-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/invocation.json",
+    "runs/document-public-directory-sync-positive-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-public-directory-sync-positive-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/01-clone-head.json",
+    "runs/document-public-directory-sync-positive-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/03-go-version.stdout.bin",
+    "runs/document-public-directory-sync-positive-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/03-go-version.json",
+    "runs/document-public-directory-sync-positive-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/04-go-env.stdout.bin",
+    "runs/document-public-directory-sync-positive-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/04-go-env.json",
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/05-product-command.command.json",
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/05-product-command.started.json",
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/05-product-command.json",
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/05-product-command.stdout.bin",
+    "runs/document-public-directory-sync-positive-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/05-product-command.stderr.bin",
+    "runs/document-public-directory-sync-positive-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/result.json",
+    "runs/document-public-directory-sync-positive-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-public-directory-sync-positive-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/06-clone-head-after.json",
+    "runs/document-final-core-tests-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/invocation.json",
+    "runs/document-final-core-tests-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-final-core-tests-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/01-clone-head.json",
+    "runs/document-final-core-tests-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/03-go-version.stdout.bin",
+    "runs/document-final-core-tests-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/03-go-version.json",
+    "runs/document-final-core-tests-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/04-go-env.stdout.bin",
+    "runs/document-final-core-tests-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/04-go-env.json",
+    "runs/document-final-core-tests-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/05-product-command.command.json",
+    "runs/document-final-core-tests-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/05-product-command.started.json",
+    "runs/document-final-core-tests-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/05-product-command.json",
+    "runs/document-final-core-tests-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/05-product-command.stdout.bin",
+    "runs/document-final-core-tests-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/05-product-command.stderr.bin",
+    "runs/document-final-core-tests-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/result.json",
+    "runs/document-final-core-tests-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-final-core-tests-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-tests-01/evidence/06-clone-head-after.json",
+    "runs/document-final-core-vet-01/evidence/invocation.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/invocation.json",
+    "runs/document-final-core-vet-01/evidence/01-clone-head.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/01-clone-head.stdout.bin",
+    "runs/document-final-core-vet-01/evidence/01-clone-head.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/01-clone-head.json",
+    "runs/document-final-core-vet-01/evidence/03-go-version.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/03-go-version.stdout.bin",
+    "runs/document-final-core-vet-01/evidence/03-go-version.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/03-go-version.json",
+    "runs/document-final-core-vet-01/evidence/04-go-env.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/04-go-env.stdout.bin",
+    "runs/document-final-core-vet-01/evidence/04-go-env.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/04-go-env.json",
+    "runs/document-final-core-vet-01/evidence/05-product-command.command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/05-product-command.command.json",
+    "runs/document-final-core-vet-01/evidence/05-product-command.started.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/05-product-command.started.json",
+    "runs/document-final-core-vet-01/evidence/05-product-command.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/05-product-command.json",
+    "runs/document-final-core-vet-01/evidence/05-product-command.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/05-product-command.stdout.bin",
+    "runs/document-final-core-vet-01/evidence/05-product-command.stderr.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/05-product-command.stderr.bin",
+    "runs/document-final-core-vet-01/evidence/result.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/result.json",
+    "runs/document-final-core-vet-01/evidence/06-clone-head-after.stdout.bin": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/06-clone-head-after.stdout.bin",
+    "runs/document-final-core-vet-01/evidence/06-clone-head-after.json": "/home/user/levnote-dev-reliability-20261112-01/runs/document-final-core-vet-01/evidence/06-clone-head-after.json",
+    "provenance/freeze-document-fingerprint-red-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/freeze-document-fingerprint-red-01/result.json",
+    "provenance/freeze-document-fingerprint-format-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/freeze-document-fingerprint-format-01/result.json",
+    "provenance/derive-document-fingerprint-green-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-fingerprint-green-01/result.json",
+    "provenance/freeze-document-fingerprint-format-02/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/freeze-document-fingerprint-format-02/result.json",
+    "provenance/derive-document-fingerprint-green-02/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-fingerprint-green-02/result.json",
+    "provenance/freeze-document-public-mtime-format-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/freeze-document-public-mtime-format-01/result.json",
+    "provenance/derive-document-public-mtime-positive-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-public-mtime-positive-01/result.json",
+    "provenance/freeze-document-public-conflict-format-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/freeze-document-public-conflict-format-01/result.json",
+    "provenance/derive-document-public-conflict-positive-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-public-conflict-positive-01/result.json",
+    "provenance/freeze-document-public-encoding-format-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/freeze-document-public-encoding-format-01/result.json",
+    "provenance/derive-document-public-encoding-positive-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-public-encoding-positive-01/result.json",
+    "provenance/freeze-document-public-directory-sync-format-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/freeze-document-public-directory-sync-format-01/result.json",
+    "provenance/derive-document-public-directory-sync-positive-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-public-directory-sync-positive-01/result.json",
+    "provenance/derive-document-final-core-tests-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-final-core-tests-01/result.json",
+    "provenance/derive-document-final-core-vet-01/result.json": "/home/user/levnote-dev-reliability-20261112-01/evidence/derive-document-final-core-vet-01/result.json",
+    "historical-semantic-diff-02/document.go.diff": "/home/user/levnote-dev-reliability-20261112-01/evidence/document-fingerprint-semantics-02/document.go.diff",
+    "historical-semantic-diff-02/atomic.go.diff": "/home/user/levnote-dev-reliability-20261112-01/evidence/document-fingerprint-semantics-02/atomic.go.diff",
+    "historical-semantic-diff-02/utf8_save_test.go.diff": "/home/user/levnote-dev-reliability-20261112-01/evidence/document-fingerprint-semantics-02/utf8_save_test.go.diff",
+    "helper/dev-remote-validation-20261112-03.py": "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "helper/freeze-document-input-01.py": "/home/user/levnote-dev-reliability-20261112-01/freeze-document-input-01.py",
+    "helper/capture-document-formatted-input-01.py": "/home/user/levnote-dev-reliability-20261112-01/capture-document-formatted-input-01.py",
+    "helper/capture-document-public-formatted-input-01.py": "/home/user/levnote-dev-reliability-20261112-01/capture-document-public-formatted-input-01.py",
+    "helper/capture-document-conflict-formatted-input-01.py": "/home/user/levnote-dev-reliability-20261112-01/capture-document-conflict-formatted-input-01.py",
+    "helper/capture-document-encoding-formatted-input-01.py": "/home/user/levnote-dev-reliability-20261112-01/capture-document-encoding-formatted-input-01.py",
+    "helper/capture-document-final-formatted-input-01.py": "/home/user/levnote-dev-reliability-20261112-01/capture-document-final-formatted-input-01.py",
+    "helper/prepare-report-and-fixed-archive-02.py": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-02/prepare-report-and-fixed-archive-02.py",
+    "preparation/document-fingerprint-review-01/preparation-failed-result.json": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-01/preparation-failed-result.json",
+    "preparation/document-fingerprint-review-02/derive-receipt.json": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-02/derive-receipt.json",
+    "report/autonomous-document-fingerprint-20261112.md": "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native/handoffs/autonomous-document-fingerprint-20261112.md",
+    "EvidenceReferences.json": "actual box file identity records captured by this metadata-only script",
+    "report/report-02-before-accuracy.md": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-03/report-02-before-accuracy.md",
+    "helper/report-accuracy-successor-03.py": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-03/report-accuracy-successor-03.py"
+  },
+  "report": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native/handoffs/autonomous-document-fingerprint-20261112.md",
+    "bytes": 26084,
+    "sha256": "4344170197093c2230a6f1dcbd2f2850d9f442dfd2f28c807e7d34a0622b60a5"
+  },
+  "host_scope": "opaque mirror only exact eight native/core/document files, named own report and own fixed evidence archive; host no product or semantic changes",
+  "previous_report_and_archive_preserved": {
+    "report": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-03/report-02-before-accuracy.md",
+      "bytes": 26020,
+      "sha256": "10b458e0cbd2823aa1bef7510c8ec22c4ceee8070dc7331cc1b43d63dd19cba8"
+    },
+    "archive": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-02/document-fingerprint-review-02.tar.xz",
+      "bytes": 75652,
+      "sha256": "80041f649852ff172c33ef7eb200ecb639fdbc9687283386326db58dfc140ec1"
+    }
+  },
+  "report_accuracy_changes": [
+    {
+      "before": "当前已接受的可运行物理 Windows 产物仍是",
+      "after": "当前已接受的 runnable reference 仍是"
+    },
+    {
+      "before": "freeze、format、capture、test/vet 分开调用；每个 Go 命令均有原始",
+      "after": "freeze、format、capture、test/vet 分开调用；每个已闭合 Go 命令均有原始"
+    },
+    {
+      "before": "文件名不是不存在的 `.intent.json`。",
+      "after": "文件名不是不存在的 `.intent.json`；中断 GREEN01 的数字/final/后清单缺失例外见第5节。"
+    },
+    {
+      "before": "delivery/document-fingerprint-review-02/bundle-manifest.json",
+      "after": "delivery/document-fingerprint-review-03/bundle-manifest.json"
+    }
+  ]
+}

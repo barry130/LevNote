@@ -1,0 +1,6 @@
+=== RUN   TestDrawioCanvasDeleteUndoRedoPreservesSource
+    drawio_delete_test.go:45: single native Undo did not restore exact bytes/selection/history: changed=1 source="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<mxfile host=\"keep\"><diagram id=\"p\" name=\"Delete\"><mxGraphModel custom=\"keep\"><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/><!-- keep --></root></mxGraphModel></diagram></mxfile>"
+--- FAIL: TestDrawioCanvasDeleteUndoRedoPreservesSource (0.08s)
+FAIL
+FAIL	levnote.local/native/modules/graphview	0.084s
+FAIL

@@ -394,7 +394,7 @@ func tabButtonRect(t *testing.T, tester *ui.Tester, tab *Tab) ui.Rect {
 func requireVisibleTab(t *testing.T, a *App, tester *ui.Tester, tab *Tab) ui.Rect {
 	t.Helper()
 	r := tabButtonRect(t, tester, tab)
-	if r.W <= 0 || r.H <= 0 || r.X < a.SidebarWidth-1 || r.X+r.W > 761 || r.Y < 46 || r.Y+r.H > 86 {
+	if r.W <= 0 || r.H <= 0 || r.X < a.SidebarWidth-1 || r.X+r.W > 761 || r.Y < workbenchToolbarHeight || r.Y+r.H > workbenchToolbarHeight+workbenchTabsHeight {
 		t.Fatalf("tab %q outside minimum-window strip: %+v sidebar=%g active=%d", tab.Name, r, a.SidebarWidth, a.Active)
 	}
 	return r
@@ -404,7 +404,11 @@ func TestTabRevealKeyboardWrapAndManualScroll(t *testing.T) {
 	a, tester := newTabRevealFixture(t, 14)
 	first, last := a.Tabs[0], a.Current()
 	requireVisibleTab(t, a, tester, last)
-	if r := tabButtonRect(t, tester, first); r.X+r.W > a.SidebarWidth {
+	editor, ok := tester.Find("文档编辑区")
+	if !ok {
+		t.Fatal("editor viewport is missing")
+	}
+	if r := tabButtonRect(t, tester, first); r.X+r.W > editor.X {
 		t.Fatalf("fixture did not put first tab offscreen: %+v", r)
 	}
 	tester.Key(ui.Cmd, ui.KeyTab)

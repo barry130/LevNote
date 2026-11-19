@@ -1,0 +1,7 @@
+--- FAIL: TestDrawioCloneHistoryEntryAndByteBudgets (0.01s)
+    drawio_clone_correction20261117_test.go:46: entry overflow did not clean physical oldest slot and retain newest 256
+FAIL
+FAIL	levnote.local/native/modules/graphview	1.286s
+FAIL
+
+ACTUAL_EXIT=1

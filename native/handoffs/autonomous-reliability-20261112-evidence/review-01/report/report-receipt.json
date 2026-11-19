@@ -1,0 +1,131 @@
+{
+  "product_executed": false,
+  "caller_pid": 26847,
+  "created_at": "2026-11-12T09:54:10.239095+00:00",
+  "incoming": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/evidence/reliability-report-append-02/incoming-report.md",
+    "bytes": 14017,
+    "sha256": "678ba7a178818ecf63a0f7097e120d92cd59000394eff10c96eaed45487cf69e"
+  },
+  "report": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/evidence/reliability-report-append-02/autonomous-reliability-20261112.md",
+    "bytes": 34988,
+    "sha256": "503dbf1c32d21865774379ebfeea419a9fa57ac77994cb2ddc51c6f2de9aaf27"
+  },
+  "receipt_index": [
+    {
+      "label": "drawio-incident-green-02",
+      "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/evidence",
+      "command": {
+        "bytes": 2652,
+        "sha256": "dbbeed2c1e64cfc4d6cb126284830ef812f19af21223323e96aeed569049bf51"
+      },
+      "result": {
+        "bytes": 5719,
+        "sha256": "28f7365a7e70b1aeb8563ed7801a74e71774654656daf4866ad1434fff565086"
+      },
+      "source_guard": {
+        "bytes": 199550,
+        "sha256": "a70511188f4bbc0a0153d5e22c308cc5c375db82d31f0f0f27ada443a511b955"
+      }
+    },
+    {
+      "label": "experience-tree-current-green-02",
+      "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-02/evidence",
+      "command": {
+        "bytes": 2707,
+        "sha256": "03befdad24ac8da35410d0bd4be5bdd88dbe06df741f5f1691f6697a46cf2ba8"
+      },
+      "result": {
+        "bytes": 5792,
+        "sha256": "fa7341150b489d00e02d2cfeffe8f5c2c20869dedd0fc43c65d3407c7925ada7"
+      },
+      "source_guard": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      }
+    },
+    {
+      "label": "experience-list-affected-01",
+      "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/evidence",
+      "command": {
+        "bytes": 3925,
+        "sha256": "bf7a36654ffaf14a75c180cb3a08254f34ed103193ac375e18878f2e8d212731"
+      },
+      "result": {
+        "bytes": 8240,
+        "sha256": "5df58a28c30e8de487b0871c6360de71ae65f4adc2916415a3319ac22312c805"
+      },
+      "source_guard": {
+        "bytes": 199696,
+        "sha256": "c01240a81ddda2b4d9b8b7bbd5efc9887fe2fb1b02d8d22fccf78ba47a48ba89"
+      }
+    },
+    {
+      "label": "drawio-ui-red-01",
+      "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-red-01/evidence",
+      "command": {
+        "bytes": 2555,
+        "sha256": "afcd04965fed8afe504287311f33587aebd6b1abdd35d76a0b23077a8fdddf8d"
+      },
+      "result": {
+        "bytes": 5535,
+        "sha256": "cfd30ee9a96c7b85df58a166f1b1beacc8dace300ea09e8ae7e39a80280f68d2"
+      },
+      "source_guard": {
+        "bytes": 199710,
+        "sha256": "8e033e300e8985f74b46a0f64c25f42def6b9a9dc63d21f7a6530dfff434b886"
+      }
+    },
+    {
+      "label": "native-path-affected-01",
+      "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-affected-01/evidence",
+      "command": {
+        "bytes": 2781,
+        "sha256": "ca4b930262724b0c9ad41586dba7365ad4a9a99093996d47fd19f61d0e81af47"
+      },
+      "result": {
+        "bytes": 5964,
+        "sha256": "f46a9e28c2dad71bfa07e10a05a68727e91fcd31302c09a0d605de80bee49b9d"
+      },
+      "source_guard": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      }
+    },
+    {
+      "label": "native-path-vet-01",
+      "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/native-path-vet-01/evidence",
+      "command": {
+        "bytes": 2444,
+        "sha256": "093c0f77778ab962984c3e04795b6c3080cf7a18eb504e79616fa826c849bd03"
+      },
+      "result": {
+        "bytes": 5312,
+        "sha256": "3a8e2c85c6e9108c450a894d69fb51d112639a65090d339a613417c2c90df7f7"
+      },
+      "source_guard": {
+        "bytes": 199410,
+        "sha256": "2a087081672f38a6161a8e9f25aff421a00f6e8b9ac8d0829ba803779b5c6bda"
+      }
+    },
+    {
+      "label": "drawio-ui-green-01",
+      "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/evidence",
+      "command": {
+        "bytes": 2574,
+        "sha256": "9ab7d3f913f312e5fa7299dc2da3d76fe6e5821e6573a5778828078c5ac4a91e"
+      },
+      "result": {
+        "bytes": 5568,
+        "sha256": "6ca329d40c2ff18aabb68db86b31e5222557e4bf309473ca3ccd3755f7daac4c"
+      },
+      "source_guard": {
+        "bytes": 199865,
+        "sha256": "14c98a13191f4650b6478c80dd0a4bff1ba80cb59fd2926fda738203210d07f4"
+      }
+    }
+  ],
+  "all_sources_and_consumed_evidence_preserved": true,
+  "root_task_acceptance_not_claimed": true
+}

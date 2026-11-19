@@ -1,0 +1,178 @@
+=== RUN   TestBinarySnapshotExactBytesAndSafeStreams
+--- PASS: TestBinarySnapshotExactBytesAndSafeStreams (0.00s)
+=== RUN   TestBinaryWriteToDoesNotExposePrivateStorage
+--- PASS: TestBinaryWriteToDoesNotExposePrivateStorage (0.00s)
+=== RUN   TestBinarySnapshotRefusesChangedMissingAndSupportsTokenRead
+--- PASS: TestBinarySnapshotRefusesChangedMissingAndSupportsTokenRead (0.00s)
+=== RUN   TestBinaryTokenReadIsConcurrentAndReadOnly
+--- PASS: TestBinaryTokenReadIsConcurrentAndReadOnly (0.00s)
+=== RUN   TestBinaryOpenRejectsUnknownKindOversizeNonregularAndCancellation
+--- PASS: TestBinaryOpenRejectsUnknownKindOversizeNonregularAndCancellation (0.00s)
+=== RUN   TestBinarySaveAsExactNonOverwriteAndSamePathNoRewrite
+--- PASS: TestBinarySaveAsExactNonOverwriteAndSamePathNoRewrite (0.01s)
+=== RUN   TestBinarySaveAsAllowsChangedSourceButNotStaleAuthority
+--- PASS: TestBinarySaveAsAllowsChangedSourceButNotStaleAuthority (0.01s)
+=== RUN   TestBinarySaveAsLosesExclusiveRaceWithoutOverwrite
+--- PASS: TestBinarySaveAsLosesExclusiveRaceWithoutOverwrite (0.01s)
+=== RUN   TestBinarySaveAsReportsPostCommitFailureWithoutAdoption
+--- PASS: TestBinarySaveAsReportsPostCommitFailureWithoutAdoption (0.01s)
+=== RUN   TestBinarySaveAsPublicationAndPostCommitCancellation
+--- PASS: TestBinarySaveAsPublicationAndPostCommitCancellation (0.01s)
+=== RUN   TestAtomicOutcomePreservesExistingTextWrapperBehavior
+--- PASS: TestAtomicOutcomePreservesExistingTextWrapperBehavior (0.01s)
+=== RUN   TestBinarySnapshotRejectsNilAndMissingFileAuthority
+--- PASS: TestBinarySnapshotRejectsNilAndMissingFileAuthority (0.00s)
+=== RUN   TestBinarySaveAsMidcopyCancellationLeavesNoDestination
+--- PASS: TestBinarySaveAsMidcopyCancellationLeavesNoDestination (0.00s)
+=== RUN   TestBinaryStableReadRejectsShortReadAndFinalCancellation
+--- PASS: TestBinaryStableReadRejectsShortReadAndFinalCancellation (0.00s)
+=== RUN   TestBinarySameSizeRestoredMtimeReplacementIsRejected
+--- PASS: TestBinarySameSizeRestoredMtimeReplacementIsRejected (0.00s)
+=== RUN   TestBinaryReplaceByRenameChangesIdentity
+--- PASS: TestBinaryReplaceByRenameChangesIdentity (0.00s)
+=== RUN   TestBinaryEmptyCopyAndDeletedSourceHeldSnapshot
+--- PASS: TestBinaryEmptyCopyAndDeletedSourceHeldSnapshot (0.02s)
+=== RUN   TestBinaryCrossAuthoritySnapshotCannotBeAdopted
+--- PASS: TestBinaryCrossAuthoritySnapshotCannotBeAdopted (0.00s)
+=== RUN   TestBinaryCopyWorkerPublicationAndReboundSnapshot
+--- PASS: TestBinaryCopyWorkerPublicationAndReboundSnapshot (0.02s)
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_receipt
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_owner
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_snapshot
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_snapshot
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_snapshot
+=== RUN   TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_owner
+--- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt (0.01s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_receipt (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_owner (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/foreign_snapshot (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_snapshot (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/zero_snapshot (0.00s)
+    --- PASS: TestBinaryCopyRejectsZeroForeignAndMismatchedReceipt/nil_owner (0.00s)
+=== RUN   TestBinaryCopyPendingReceiptStaleAfterAnotherAdoption
+--- PASS: TestBinaryCopyPendingReceiptStaleAfterAnotherAdoption (0.03s)
+=== RUN   TestBinaryCopySamePathNoRewriteAndReplay
+--- PASS: TestBinaryCopySamePathNoRewriteAndReplay (0.00s)
+=== RUN   TestBinaryCopyOwnerReloadsWhileWorkerPublishes
+--- PASS: TestBinaryCopyOwnerReloadsWhileWorkerPublishes (0.01s)
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/cancel_before_publication
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/cancel_after_commit
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/directory_sync
+=== RUN   TestBinaryCopyFailureReceiptsCannotAdopt/changed_before_verify
+--- PASS: TestBinaryCopyFailureReceiptsCannotAdopt (0.03s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/cancel_before_publication (0.01s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/cancel_after_commit (0.01s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/directory_sync (0.01s)
+    --- PASS: TestBinaryCopyFailureReceiptsCannotAdopt/changed_before_verify (0.01s)
+=== RUN   TestBinaryCopyHeldSnapshotAfterSourceDeletion
+--- PASS: TestBinaryCopyHeldSnapshotAfterSourceDeletion (0.01s)
+=== RUN   TestBinaryCopyReceiptRetainsExclusiveRaceOutcome
+--- PASS: TestBinaryCopyReceiptRetainsExclusiveRaceOutcome (0.01s)
+=== RUN   TestBinaryCopyAdoptionObservesPublicationTimeIdentity
+=== RUN   TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_change
+=== RUN   TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_deletion
+--- PASS: TestBinaryCopyAdoptionObservesPublicationTimeIdentity (0.02s)
+    --- PASS: TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_change (0.01s)
+    --- PASS: TestBinaryCopyAdoptionObservesPublicationTimeIdentity/external_deletion (0.01s)
+=== RUN   TestDiskTokenDetectsChangeMissingAndCancellation
+--- PASS: TestDiskTokenDetectsChangeMissingAndCancellation (0.00s)
+=== RUN   TestDiskTokenRejectsSameByteReplacementAndUnchangedSaveRevertStale
+--- PASS: TestDiskTokenRejectsSameByteReplacementAndUnchangedSaveRevertStale (0.00s)
+=== RUN   TestDiskTokenDetectsSameMtimeReplacementAndSaveAsInvalidatesBaseline
+--- PASS: TestDiskTokenDetectsSameMtimeReplacementAndSaveAsInvalidatesBaseline (0.01s)
+=== RUN   TestDiskTokenForNewDocumentIsInvalidAndReadOnlyHasBaseline
+--- PASS: TestDiskTokenForNewDocumentIsInvalidAndReadOnlyHasBaseline (0.00s)
+=== RUN   TestDiskTokenDetectsUnstableReadDuringHashing
+--- PASS: TestDiskTokenDetectsUnstableReadDuringHashing (0.00s)
+=== RUN   TestOpenLimitedReadEnforcesActualReadLimit
+--- PASS: TestOpenLimitedReadEnforcesActualReadLimit (0.00s)
+=== RUN   TestEncodingRoundTripAndUntouchedSave
+=== RUN   TestEncodingRoundTripAndUntouchedSave/UTF-8-plain
+=== RUN   TestEncodingRoundTripAndUntouchedSave/UTF-8-bom
+=== RUN   TestEncodingRoundTripAndUntouchedSave/UTF-16LE-bom
+=== RUN   TestEncodingRoundTripAndUntouchedSave/UTF-16BE-bom
+--- PASS: TestEncodingRoundTripAndUntouchedSave (0.04s)
+    --- PASS: TestEncodingRoundTripAndUntouchedSave/UTF-8-plain (0.01s)
+    --- PASS: TestEncodingRoundTripAndUntouchedSave/UTF-8-bom (0.01s)
+    --- PASS: TestEncodingRoundTripAndUntouchedSave/UTF-16LE-bom (0.01s)
+    --- PASS: TestEncodingRoundTripAndUntouchedSave/UTF-16BE-bom (0.01s)
+=== RUN   TestConflictIncludesSameTimestampAndMissingFile
+--- PASS: TestConflictIncludesSameTimestampAndMissingFile (0.00s)
+=== RUN   TestSaveAsNeverOverwritesAndNewEmptyIsUnsaved
+--- PASS: TestSaveAsNeverOverwritesAndNewEmptyIsUnsaved (0.01s)
+=== RUN   TestWriteNewFileNeverOverwrites
+--- PASS: TestWriteNewFileNeverOverwrites (0.01s)
+=== RUN   TestReadOnlyAndCompositionNeverWrite
+--- PASS: TestReadOnlyAndCompositionNeverWrite (0.01s)
+=== RUN   TestInvalidEncodingAndBinaryUseBoundedInspector
+--- PASS: TestInvalidEncodingAndBinaryUseBoundedInspector (0.00s)
+=== RUN   TestAtomicFailureLeavesOriginalAndNoTemporaryFiles
+--- PASS: TestAtomicFailureLeavesOriginalAndNoTemporaryFiles (0.01s)
+=== RUN   TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne
+--- PASS: TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne (0.00s)
+=== RUN   TestGrowthDecodedSeedSaveAndRevertFidelity
+=== RUN   TestGrowthDecodedSeedSaveAndRevertFidelity/UTF-8
+=== RUN   TestGrowthDecodedSeedSaveAndRevertFidelity/UTF-16LE
+=== RUN   TestGrowthDecodedSeedSaveAndRevertFidelity/UTF-16BE
+=== RUN   TestGrowthDecodedSeedSaveAndRevertFidelity/GBK
+--- PASS: TestGrowthDecodedSeedSaveAndRevertFidelity (0.04s)
+    --- PASS: TestGrowthDecodedSeedSaveAndRevertFidelity/UTF-8 (0.01s)
+    --- PASS: TestGrowthDecodedSeedSaveAndRevertFidelity/UTF-16LE (0.01s)
+    --- PASS: TestGrowthDecodedSeedSaveAndRevertFidelity/UTF-16BE (0.01s)
+    --- PASS: TestGrowthDecodedSeedSaveAndRevertFidelity/GBK (0.01s)
+=== RUN   TestGrowthDiskReadBoundRemainsDistinct
+--- PASS: TestGrowthDiskReadBoundRemainsDistinct (0.00s)
+=== RUN   TestLegacyEncodingRequiresExplicitChoiceAndPreservesBytes
+=== RUN   TestLegacyEncodingRequiresExplicitChoiceAndPreservesBytes/GBK
+=== RUN   TestLegacyEncodingRequiresExplicitChoiceAndPreservesBytes/GB18030
+--- PASS: TestLegacyEncodingRequiresExplicitChoiceAndPreservesBytes (0.02s)
+    --- PASS: TestLegacyEncodingRequiresExplicitChoiceAndPreservesBytes/GBK (0.01s)
+    --- PASS: TestLegacyEncodingRequiresExplicitChoiceAndPreservesBytes/GB18030 (0.01s)
+=== RUN   TestUnrepresentableGBKAndMalformedInputNeverRewrite
+--- PASS: TestUnrepresentableGBKAndMalformedInputNeverRewrite (0.00s)
+=== RUN   TestWritePrivateStateToRejectsNilBeforeCreatingDirectory
+--- PASS: TestWritePrivateStateToRejectsNilBeforeCreatingDirectory (0.00s)
+=== RUN   TestWritePrivateStateToFailuresPreserveTargetAndRemoveTemp
+=== RUN   TestWritePrivateStateToFailuresPreserveTargetAndRemoveTemp/sentinel
+=== RUN   TestWritePrivateStateToFailuresPreserveTargetAndRemoveTemp/short-write
+--- PASS: TestWritePrivateStateToFailuresPreserveTargetAndRemoveTemp (0.00s)
+    --- PASS: TestWritePrivateStateToFailuresPreserveTargetAndRemoveTemp/sentinel (0.00s)
+    --- PASS: TestWritePrivateStateToFailuresPreserveTargetAndRemoveTemp/short-write (0.00s)
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen/plain-lf
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen/bom-crlf-unicode
+=== RUN   TestUTF8StreamingSaveExactBytesAndReopen/multi-piece-boundary
+--- PASS: TestUTF8StreamingSaveExactBytesAndReopen (0.03s)
+    --- PASS: TestUTF8StreamingSaveExactBytesAndReopen/plain-lf (0.01s)
+    --- PASS: TestUTF8StreamingSaveExactBytesAndReopen/bom-crlf-unicode (0.01s)
+    --- PASS: TestUTF8StreamingSaveExactBytesAndReopen/multi-piece-boundary (0.01s)
+=== RUN   TestUTF8StreamingSavePreservesHistorySelectionAndBaseline
+--- PASS: TestUTF8StreamingSavePreservesHistorySelectionAndBaseline (0.02s)
+=== RUN   TestUTF8StreamingSaveUntouchedDoesNotRewrite
+--- PASS: TestUTF8StreamingSaveUntouchedDoesNotRewrite (0.00s)
+=== RUN   TestUTF8StreamingSaveRejectsWrongDigestWithoutStateChange
+--- PASS: TestUTF8StreamingSaveRejectsWrongDigestWithoutStateChange (0.00s)
+=== RUN   TestUTF8AtomicDigestOnlyAfterSuccessfulPublication
+--- PASS: TestUTF8AtomicDigestOnlyAfterSuccessfulPublication (0.01s)
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-final-flush
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-full-buffer
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-final-flush
+=== RUN   TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-full-buffer
+--- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile (0.00s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-final-flush (0.00s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/short-full-buffer (0.00s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-final-flush (0.00s)
+    --- PASS: TestUTF8StreamingSaveTempFailureKeepsTargetAndCleansPartialFile/failed-full-buffer (0.00s)
+=== RUN   TestDocumentSameSizeSameMtimeConflictPreservesUndoAndRetry
+--- PASS: TestDocumentSameSizeSameMtimeConflictPreservesUndoAndRetry (0.01s)
+=== RUN   TestDocumentSaveAsDirectorySyncErrorKeepsPublishedBytesAndRetry
+--- PASS: TestDocumentSaveAsDirectorySyncErrorKeepsPublishedBytesAndRetry (0.02s)
+=== RUN   TestDocumentUTF16SaveAndSaveAsUseActualEncodedLength
+--- PASS: TestDocumentUTF16SaveAndSaveAsUseActualEncodedLength (0.03s)
+=== RUN   TestDocumentMtimeOnlyTouchKeepsCheckAndSaveAvailable
+--- PASS: TestDocumentMtimeOnlyTouchKeepsCheckAndSaveAvailable (0.01s)
+PASS
+ok  	levnote.local/native/core/document	0.518s

@@ -792,10 +792,16 @@ func TestReopenClosedMenuGeometryAndEmptyState(t *testing.T) {
 		reopenFixture(t, a, filepath.Join(dir, name), []byte("disk"))
 	}
 	tester.Frame()
-	for _, label := range []string{"新建", "打开", "最近关闭的文件", "文件夹", "保存", "插件", "设置"} {
+	for _, label := range []string{"新建", "打开", "最近关闭的文件", "文件夹", "保存"} {
 		rect, ok := tester.Find(label)
-		if !ok || rect.X < 0 || rect.X+rect.W > 760 || rect.Y < 0 || rect.Y+rect.H > 46 {
+		if !ok || rect.W <= 0 || rect.H <= 0 || rect.X < 0 || rect.X+rect.W > 760 || rect.Y < 0 || rect.Y+rect.H > 56 {
 			t.Fatalf("toolbar %s outside 760x480: %+v", label, rect)
+		}
+	}
+	for _, label := range []string{"插件", "设置"} {
+		rect, ok := tester.Find(label)
+		if !ok || rect.X != 8 || rect.W != 40 || rect.H <= 0 || rect.Y < 56 || rect.Y+rect.H > 451 {
+			t.Fatalf("activity %s outside the minimum-window rail: %+v", label, rect)
 		}
 	}
 	if _, ok := tester.Find("留一点空间给想法。"); !ok {

@@ -1,0 +1,116 @@
+{
+  "metadata_only": true,
+  "product_executed": false,
+  "status": "TASK11_PRIMARY03_OPAQUE_PARTS_PREPARED_NO_HOST_EXECUTION",
+  "archive": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-03/document-fingerprint-review-03.tar.xz",
+    "bytes": 77196,
+    "sha256": "fe2acbb546a93d35547bbdb95548b5a9e5f8ab6e6d403b04747fb6a0e0e90802"
+  },
+  "host_transport": "F:/AIproject/LevNote/native/handoffs/autonomous-document-fingerprint-20261112-evidence/transport-03",
+  "part_count": 9,
+  "encoded_characters": 102928,
+  "line_width": 80,
+  "parts": [
+    {
+      "name": "fingerprint-review03.part01.b64",
+      "bytes": 12150,
+      "sha256": "68f8ca742bb564943966c795d1d1af852e5c58c3274d399f350d4e96eb342fb2",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part02.b64",
+      "bytes": 12150,
+      "sha256": "a9d7464d5411abad45dc587168e7cc83f4399d23bd41555430639726c689fb37",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part03.b64",
+      "bytes": 12150,
+      "sha256": "93ad4d5d9e5e8896108b31091a0c1d1fb00daee162b40cd53fdd36aea3acba32",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part04.b64",
+      "bytes": 12150,
+      "sha256": "e69d74919b3a129bea581d92089331b790a04c1a7ef35a5f747a73d373dcb111",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part05.b64",
+      "bytes": 12150,
+      "sha256": "fdb446619417a21b8194be7f77cb04747bf091c15520f2dab9e116d9484edd35",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part06.b64",
+      "bytes": 12150,
+      "sha256": "4313fc30297f2f92dcd026f1a3e93b81e92e72afde4252160b7cc11df2440238",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part07.b64",
+      "bytes": 12150,
+      "sha256": "ea60cbd06c65f335e3b80d0d4f7dd5c3e4f3789378171aeec2c3a4355a2468f6",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part08.b64",
+      "bytes": 12150,
+      "sha256": "2b556a9c3ecf81d883bec42c0a30cc2c95621c1d62bf0be207af0ead45770081",
+      "encoded_characters": 12000
+    },
+    {
+      "name": "fingerprint-review03.part09.b64",
+      "bytes": 7015,
+      "sha256": "c92c8f3b9d0285c59d97ed6e21daa4624a1d27ad6e3aa3a648617b8fd9bd971d",
+      "encoded_characters": 6928
+    }
+  ],
+  "manifest": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-03/bundle-manifest.json",
+    "bytes": 133142,
+    "sha256": "9417143226b1dfe967106764a21d4b79e797eef22f3ec9d6a8fe17c4e41ed09d"
+  },
+  "source_pins": {
+    "core/document/document.go": {
+      "bytes": 14511,
+      "sha256": "44da6396913741a18ed5ebd1d0c668853d28ad399eba9b13abb02aa08f76a3fe"
+    },
+    "core/document/atomic.go": {
+      "bytes": 4873,
+      "sha256": "641601d61fe3da0ec83954c6b199cac46864099ffa78f09e2a309180491fec83"
+    },
+    "core/document/utf8_save_test.go": {
+      "bytes": 8238,
+      "sha256": "7c02ad0c795cadda2b93c443d6816d742ff13bf0e9ae26facb3e8149f31b3ec0"
+    },
+    "core/document/fingerprint_boundary_test.go": {
+      "bytes": 3399,
+      "sha256": "f0d3204bf2b7430eb1a95ca183ade789816faf7752433cad06c2e6a74f434aef"
+    },
+    "core/document/fingerprint_public_test.go": {
+      "bytes": 2957,
+      "sha256": "3c94db4b1ac0604f03ebb3cc26fdf62e661dadfd266ad74b06d6d9fe587955d5"
+    },
+    "core/document/fingerprint_conflict_public_test.go": {
+      "bytes": 6993,
+      "sha256": "c0556277c6d7ae7c7cf4a72d75d3901a23aedcedec94aa00711dc5ac0ab20b69"
+    },
+    "core/document/fingerprint_encoding_public_test.go": {
+      "bytes": 4870,
+      "sha256": "40212ed1a6c5319b16e2e107ae1aaa8530b3d381fe3dac85d64266436f974edc"
+    },
+    "core/document/fingerprint_directory_sync_public_linux_test.go": {
+      "bytes": 7142,
+      "sha256": "8f68c732927b6375edeb8b589facef356a360f944512b4564968afaa6fe51951"
+    }
+  },
+  "report": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native/handoffs/autonomous-document-fingerprint-20261112.md",
+    "bytes": 26084,
+    "sha256": "4344170197093c2230a6f1dcbd2f2850d9f442dfd2f28c807e7d34a0622b60a5"
+  },
+  "scope": "opaque original bytes; no source, report, decoder or importer execution on host",
+  "expected_maps_preserved_as_original_fullpath_size_SHA_references_not_complete_backup": true
+}

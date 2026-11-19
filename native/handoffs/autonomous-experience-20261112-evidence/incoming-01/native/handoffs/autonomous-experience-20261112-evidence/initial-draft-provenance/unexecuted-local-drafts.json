@@ -1,0 +1,13 @@
+{
+  "kind": "unexecuted-local-draft-ancestry",
+  "author": "native-experience",
+  "recordedAt": "2026-11-12T13:49:16+08:00",
+  "laterAuthority": "Final source/test implementation and corrections must originate on the authorized main box; F: may only mirror final exact box bytes.",
+  "productExecution": false,
+  "files": [
+    {"path": "native/app/app.go", "bytes": 39415, "sha256": "B35A8D13AD5EFA11266F6368ACF299A34D1690B05F690794F87D552AE73E6239"},
+    {"path": "native/app/view.go", "bytes": 24252, "sha256": "A102BD5266BCF35296BA5973C2856A8211B1118EF7068F3F2470502A0D8FB935"},
+    {"path": "native/app/list_lifetime.go", "bytes": 2326, "sha256": "9382752734AEF519BFE71B01AB53D719BB42778F708AC20BEF9DFC8DE89316BF"},
+    {"path": "native/app/list_handle_lifetime_test.go", "bytes": 7696, "sha256": "F3A83EFA1613CB0BE6DD61638D35178EE61CFBBEE98BAD24B3AA5E8362862B82"}
+  ]
+}

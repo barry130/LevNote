@@ -111,6 +111,11 @@ func (v *sceneView) drawScene(p *ui.Painter, r ui.Rect) {
 			p.Fill(box, fill, radius)
 			p.Stroke(box, stroke, radius, max32(1, 1.25*v.zoom))
 			v.drawSceneLabel(p, node, box, theme.Font, textColor)
+			if node.ID == v.selectedID && node.Stroke != "" {
+				// Explicit document borders remain visible inside the selection ring.
+				ring := ui.Rect{X: box.X - 4, Y: box.Y - 4, W: box.W + 8, H: box.H + 8}
+				p.Stroke(ring, theme.Accent, radius+4, 1.5)
+			}
 			if node.Collapsed {
 				badge := ui.Rect{X: box.X + box.W - 13, Y: box.Y + box.H/2 - 7, W: 14, H: 14}
 				p.Fill(badge, theme.Accent, 7)
@@ -134,7 +139,7 @@ func sceneNodeColors(node enginescene.Node, selected string, theme *ui.Theme) (u
 	if node.Text != "" {
 		textColor = ui.Hex(node.Text)
 	}
-	if node.ID == selected {
+	if node.ID == selected && node.Stroke == "" {
 		stroke = theme.Accent
 	}
 	return fill, stroke, textColor

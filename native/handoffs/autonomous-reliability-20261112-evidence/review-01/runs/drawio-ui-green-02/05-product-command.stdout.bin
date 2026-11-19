@@ -1,0 +1,4 @@
+=== RUN   TestDrawioCanvasDeleteUndoRedoPreservesSource
+--- PASS: TestDrawioCanvasDeleteUndoRedoPreservesSource (0.22s)
+PASS
+ok  	levnote.local/native/modules/graphview	0.232s

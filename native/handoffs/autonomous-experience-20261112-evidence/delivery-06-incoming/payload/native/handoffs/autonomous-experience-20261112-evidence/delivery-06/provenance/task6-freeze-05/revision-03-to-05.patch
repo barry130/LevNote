@@ -1,0 +1,68 @@
+--- a/native/app/view.go
++++ b/native/app/view.go
+@@ -233,9 +233,11 @@
+ 				// pass-local choice cannot write back into the replacement model.
+ 				selected := a.TreeSelected
+ 				a.TreeList.Selected = &selected
++				// A built frame still owns all captured row identities after a
++				// root change. Content and actions, not structural keys, expire.
+ 				a.TreeList.Key = func(i int) any {
+-					if !current() || i < 0 || i >= len(entries) {
+-						return ""
++					if i < 0 || i >= len(entries) {
++						return i
+ 					}
+ 					return entries[i].Path
+ 				}
+--- a/native/app/workspace.go
++++ b/native/app/workspace.go
+@@ -188,9 +188,11 @@
+ 			}
+ 			selected := a.SearchSelected
+ 			a.SearchList.Selected = &selected
++			// Captured keys stay distinct until this frame finishes, even
++			// when a newer search makes its labels and actions obsolete.
+ 			a.SearchList.Key = func(i int) any {
+-				if !current() || i < 0 || i >= len(results) {
+-					return searchRowKey{}
++				if i < 0 || i >= len(results) {
++					return i
+ 				}
+ 				result := results[i]
+ 				return searchRowKey{Path: result.Path, Start: result.Start, End: result.End}
+--- a/native/app/outline.go
++++ b/native/app/outline.go
+@@ -135,9 +135,11 @@
+ 		}
+ 		selected := a.OutlineSelected
+ 		a.OutlineList.Selected = &selected
++		// Release may run while rows are constructed. Their captured
++		// identities must stay distinct although their content expires.
+ 		a.OutlineList.Key = func(i int) any {
+-			if !current() || i < 0 || i >= len(items) {
+-				return ""
++			if i < 0 || i >= len(items) {
++				return i
+ 			}
+ 			return items[i].ID
+ 		}
+--- a/native/app/workers.go
++++ b/native/app/workers.go
+@@ -7,6 +7,7 @@
+ 	"io"
+ 	"os"
+ 	"path/filepath"
++	"sort"
+ 	"sync"
+ 
+ 	"levnote.local/native/core/document"
+@@ -256,6 +257,9 @@
+ 		if truncated {
+ 			result.truncated = true
+ 		}
++		sort.SliceStable(entries, func(i, j int) bool {
++			return entries[i].Name() < entries[j].Name()
++		})
+ 		for _, isDir := range []bool{true, false} {
+ 			for _, entry := range entries {
+ 				if ctx.Err() != nil {

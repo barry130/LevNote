@@ -1,0 +1,96 @@
+{
+  "status": "REPORT_ONLY_EXACT_BYTE_MIRROR_SOURCE03_UNCHANGED_NOT_PRODUCT_ACCEPTANCE",
+  "verifiedAtUTC": "2026-11-12T09:05:43.463Z",
+  "sourceRoot": "/home/user/levnote-dev-experience-20261112-01/revision-03-source",
+  "boxReportInputsSha256": "81661a734c44bf8c83846fca38c03f872b75bc79064206b5b4830b220f6e1d44",
+  "source03InputsSha256": "ccc1461d5b26a34fe4c7788b4fff7dfa9d40cd11812bdd1ae2745f28586ae71b",
+  "archive": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\incoming-report04\\report-mirror-04.tar.gz",
+    "bytes": 8020,
+    "sha256": "6d15080e757588869916b9db473ea5b62038212c4971b89a29966a9ad5526a3d"
+  },
+  "targets": [
+    {
+      "path": "native/handoffs/autonomous-experience-20261112.md",
+      "bytes": 19105,
+      "sha256": "5f16c8c368b043475bc3fab36217bbbd72de8748ce0751918d704033edfe55aa",
+      "previous": [
+        "ee31ec3a5cfa5be3b83422c6848830fb407a109d7d73ba50f6188b97027c123b"
+      ],
+      "before": "ee31ec3a5cfa5be3b83422c6848830fb407a109d7d73ba50f6188b97027c123b",
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112.md",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/report-only-04/report-04.md",
+      "bytes": 19105,
+      "sha256": "5f16c8c368b043475bc3fab36217bbbd72de8748ce0751918d704033edfe55aa",
+      "previous": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\report-only-04\\report-04.md",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/report-only-04/report-inputs.json",
+      "bytes": 728,
+      "sha256": "81661a734c44bf8c83846fca38c03f872b75bc79064206b5b4830b220f6e1d44",
+      "previous": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\report-only-04\\report-inputs.json",
+      "verified": true
+    }
+  ],
+  "finalSourceFiles": [
+    {
+      "path": "native/app/app.go",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/view.go",
+      "bytes": 24252,
+      "sha256": "a102bd5266bcf35296ba5973c2856a8211b1118ef7068f3f2470502a0d8fb935",
+      "origin": "unexecuted local draft applied on box; unchanged afterward"
+    },
+    {
+      "path": "native/app/workspace.go",
+      "bytes": 8220,
+      "sha256": "3a2863c49554a4574d45d650c5d388c33d64599f428241366c700baed2e50be9",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/outline.go",
+      "bytes": 15407,
+      "sha256": "7caed4b54a69af411f916b42b1e5d5a9de7db7fb9480799c38d3552d2299bf3a",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/list_lifetime.go",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/list_lifetime_test.go",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/list_handle_lifetime_test.go",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/acceptance_test.go",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362",
+      "origin": "named baseline fixture; box-only authorized searchRoot metadata line"
+    }
+  ],
+  "original03ReportPreserved": true,
+  "productCommandsExecutedByAuthor": 0,
+  "session": "9e20bc49-fddb-490b-a752-c3b11da86ccc"
+}

@@ -1,0 +1,10 @@
+=== RUN   TestWorkspaceResultsMinimumWindowControls
+=== RUN   TestWorkspaceResultsMinimumWindowControls/dark=false
+    list_lifetime_test.go:396: public Tester development render: /home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/env/tmp/TestWorkspaceResultsMinimumWindowControlsdark=false2695728883/002/workspace-results-minimum.png
+=== RUN   TestWorkspaceResultsMinimumWindowControls/dark=true
+    list_lifetime_test.go:396: public Tester development render: /home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/env/tmp/TestWorkspaceResultsMinimumWindowControlsdark=true1959294614/002/workspace-results-minimum.png
+--- PASS: TestWorkspaceResultsMinimumWindowControls (0.29s)
+    --- PASS: TestWorkspaceResultsMinimumWindowControls/dark=false (0.27s)
+    --- PASS: TestWorkspaceResultsMinimumWindowControls/dark=true (0.02s)
+PASS
+ok  	levnote.local/native/app	0.304s

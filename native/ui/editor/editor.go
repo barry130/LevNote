@@ -773,6 +773,18 @@ func (e *Editor) Command(command string) bool {
 			e.delete(1)
 		}
 		return true
+	case "moveLinesUp":
+		e.editLines(text.MoveLinesUp)
+		return true
+	case "moveLinesDown":
+		e.editLines(text.MoveLinesDown)
+		return true
+	case "copyLinesUp":
+		e.editLines(text.CopyLinesUp)
+		return true
+	case "copyLinesDown":
+		e.editLines(text.CopyLinesDown)
+		return true
 	case "indent":
 		if !e.ReadOnly {
 			e.indentSelected(1)
@@ -867,6 +879,20 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 		if err := e.compositionIssue(); err != nil {
 			e.fail(err)
 			return true
+		}
+		if ev.Mods == ui.Alt || ev.Mods == ui.Alt|ui.Shift {
+			switch ev.Key {
+			case ui.KeyUp:
+				if ev.Mods&ui.Shift != 0 {
+					return e.Command("copyLinesUp")
+				}
+				return e.Command("moveLinesUp")
+			case ui.KeyDown:
+				if ev.Mods&ui.Shift != 0 {
+					return e.Command("copyLinesDown")
+				}
+				return e.Command("moveLinesDown")
+			}
 		}
 		cmd, extend := ev.Mods&ui.Cmd != 0, ev.Mods&ui.Shift != 0
 		if cmd {

@@ -1,0 +1,13 @@
+=== RUN   TestDrawioMultiCloneClampCompletesSelectionHistoryAndFeedback
+    drawio_clone_correction20261117_test.go:26: clone refused before commit []
+--- FAIL: TestDrawioMultiCloneClampCompletesSelectionHistoryAndFeedback (0.02s)
+=== RUN   TestDrawioCloneHistoryEntryAndByteBudgets
+    drawio_clone_correction20261117_test.go:46: entry overflow did not clean physical oldest slot and retain newest 256
+--- FAIL: TestDrawioCloneHistoryEntryAndByteBudgets (0.01s)
+=== RUN   TestDrawioCloneHistoryWitnessOwnerAndReleaseReferences
+--- PASS: TestDrawioCloneHistoryWitnessOwnerAndReleaseReferences (0.01s)
+FAIL
+FAIL	levnote.local/native/modules/graphview	1.645s
+FAIL
+
+ACTUAL_EXIT=1

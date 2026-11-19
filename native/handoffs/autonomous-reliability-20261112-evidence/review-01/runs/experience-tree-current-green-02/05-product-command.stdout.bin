@@ -1,0 +1,6 @@
+=== RUN   TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget
+    list_handle_lifetime_test.go:64: End selected -1, want the current root's last row
+--- FAIL: TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget (0.34s)
+FAIL
+FAIL	levnote.local/native/app	0.356s
+FAIL

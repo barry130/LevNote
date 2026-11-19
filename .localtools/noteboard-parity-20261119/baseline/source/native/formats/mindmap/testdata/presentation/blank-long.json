@@ -1,0 +1,12 @@
+{
+  "Bounds": {
+    "X": 0,
+    "Y": 0,
+    "Width": 600,
+    "Height": 196
+  },
+  "Warnings": [
+    "empty topic metadata is preserved",
+    "画布与 SVG 的较长节点标签仅显示前 512 字节；完整文本仍保留，主题、标记与标签的完整内容请在源码中查看和编辑"
+  ]
+}

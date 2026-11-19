@@ -1,0 +1,43 @@
+TASK6 FINAL06 READY — NEW INPUT, NOT PRODUCT ACCEPTANCE
+Implementation owner native-experience; product-command owner native-reliability; independent lead review/acceptance required.
+
+Source root /home/user/levnote-dev-experience-20261112-01/revision-06-source
+Parent immutable05 /home/user/levnote-dev-experience-20261112-01/revision-05-source
+Baseline 8897244ffa4f00f5ec51f95545e7a3ca27d37d97
+All5967 source files/80238567B have exact05 file set; only native/app/workspace.go differs. Every test is exact05 and03, original7900 oracle unchanged; no observer included.
+
+Freeze /home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-06/source-inputs.json
+4605B SHA256 f864c426b7d200533641839fea12b4907241050778ba46a4470256773fbbb2dd
+Delta /home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-06/revision-05-to-06.patch
+517B SHA256 a24f2833b397deccf45c308c6ddd3b743fba4fdb253419fd86a19b130405a64e
+Historical frozen status FROZEN_UNFORMATTED_UNEXECUTED_NOT_ACCEPTANCE; subsequent execution belongs to separate run records, never rewrite freeze.
+
+Nine scoped identities:
+native/app/app.go 39471 b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde
+native/app/view.go 24375 8b702c15dfcd265821ec10fe7a8f52927f6ffe667a349ff04b8b281c67ba3b77
+native/app/workspace.go 8339 d9f458f1cb4d597932b58161f546f1e43874aa5eeb9bf25eb9c47ca40519177a
+native/app/outline.go 15523 c75435237f5d9eb9b466ed8b755cc8c22818f5dc4a6a57ac2045ae7136cad8cf
+native/app/list_lifetime.go 2345 14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5
+native/app/list_lifetime_test.go 17378 982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2
+native/app/list_handle_lifetime_test.go 7900 ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5
+native/app/acceptance_test.go 25229 0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362
+native/app/workers.go 8225 73c65d6aedc8b517c808314aae439f38c1c4137b013c2ca2db885e1fc88d9b83
+
+Genuine RED preserved:
+final05-focused-01: Go30369/0 wrapper0, two original Tree/Outline tests PASS, all input guards exact.
+experience-list-final05-affected-01: Go31061/1 wrapper2, all25 top started/24PASS1FAIL, nested20PASS2FAIL, no panic/timeout/cleanup/remaining. Only TestWorkspaceResultsMinimumWindowControls light/dark failed line376 sourceRect228,477,0,0. raw11516B/cedc8eaa472b51e81b30ec9333c36aeb9d0e0203f224c9ef5737f30304fc6583; numeric4003B/84490fa4a9374201e17889c8f38672cb82fed0253f2650741232880d1d3faa53; result8374B/a0e1e93520122ef06a1f41db0cb0dd1ada7f54e9376820bc243de5032bfa2ec0. Author independently read all raw/numeric/result and read-only audited all1194 map items/17000636B plus nine actual sources.
+No old failed namespace rerun or modification;05freeze/report04 remain untouched.
+
+Only correction workspace.go149:
+ui.Column(c).Height(panelHeight).Shrink(0).Border(...) -> ui.Column(c).Height(panelHeight).Shrink(1).MinHeight(110).Border(...)
+The preferred230/height-260 formula remains. Public MyGo flex may shrink results to existing110DIP lower bound instead of locking220DIP alongside wrapped Find. Editor's existing min80 naturally retains input. No extra measurement callbacks, Find changes, app selection/focus/publication corrections, Key/guard/budget/worker change or test-oracle alteration.
+
+Request soleowner fresh isolated focused run first:
+go test -v -count=1 -timeout=120s -run ^TestWorkspaceResultsMinimumWindowControls$ ./app
+Wrapper budget180s; ordinary03runner/offlineCGO0. Read exact bytes before/after, raw/numeric/result; no product command executed by author.
+Only PASS then fresh unchanged original25 union once (no repeated focused):
+go test -v -count=1 -timeout=180s -run <original25selector> ./app
+Wrapper budget240s.
+^(TestAppListHandlesSurviveSemanticResets|TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget|TestSearchListHandleNewSearchRejectsStaleDelivery|TestOutlineListHandleReleaseAfterSidebarBuild|TestOutlineListHandleReentrantFlushAndRetry|TestHiddenListFocusDoesNotStealEditorInput|TestTreeRootSwitchKeepsComposingQueryInput|TestWorkspaceResultsMinimumWindowControls|TestWorkspaceTreeDisclosesPerDirectoryLimit|TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor|TestWorkspaceSearchVirtualizesFarResultAndReplacement|TestWorkspaceSearchIssueDetailsAreBounded|TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration|TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView|TestOutlineActivationFlushesPendingNativeComposition|TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable|TestOutlineActivationRejectsLifecycleChangesDuringFlush|TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice|TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard|TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates|TestBuiltinOutlineReleasedOnPluginModeTabAndReload|TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows|TestFindKeyboardFocusLeaveReconcilesComposition|TestFindbarControlsFitMainPaneAtMinimumWindow|TestFindbarActionsAndFocusSurviveMinimumReflow)$
+
+Task6 remains in progress. Task10 not claimed/edited, no whole-app/vet/build/package/Windows/physicalGUI/IME/memory acceptance. Report corrections use new version, not old04 overwrite.

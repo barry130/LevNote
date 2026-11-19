@@ -1,0 +1,382 @@
+{
+  "metadata_only": true,
+  "product_executed": false,
+  "not_whole_application_or_windows_acceptance": true,
+  "started_at": "2026-11-12T10:49:55.560829+00:00",
+  "ended_at": "2026-11-12T10:49:55.681693+00:00",
+  "pid": 13620,
+  "argv": [
+    "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-reliability-20261112-evidence\\transport-04\\import-archive-04.py"
+  ],
+  "cwd": "F:\\AIproject\\LevNote",
+  "python": "C:\\Users\\canace\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\python\\python.exe",
+  "script": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-reliability-20261112-evidence\\transport-04\\import-archive-04.py",
+    "bytes": 5792,
+    "sha256": "25e5c2cab390b5761d18f18b1550878c2b7cb3aeb4c1cf66f7a70c70e405be5b"
+  },
+  "box_archive": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/evidence/reliability-review-export-04/review-01-primary.tar.xz",
+    "bytes": 28976,
+    "sha256": "3a580b8dc6b23bdbec8e10258bd00783953f74be71ff77a1a4946082db1a55e3"
+  },
+  "original_complete_box_bundle": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/evidence/reliability-review-export-01/review-01.tar.xz",
+    "bytes": 98912,
+    "sha256": "6727632074c5380c2f37af657df9314628d269145a91ba55e33135544bf28649"
+  },
+  "joined_payload": {
+    "bytes": 39023,
+    "sha256": "8cd042d708100dcdaa85b645756a859848d7f1197eb10c8d556a4a14af4bb537"
+  },
+  "import_root": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-reliability-20261112-evidence\\review-01",
+  "file_count": 82,
+  "file_bytes": 290242,
+  "all_manifest_entries_verified": true,
+  "all_imported_files": {
+    "bundle-manifest.json": {
+      "bytes": 14781,
+      "sha256": "52d5e03a76fc2d689c2c8d2537f8a3ceabe88f4d8f5cf9c689b585483f05b37a"
+    },
+    "collections/drawio-ui-green-01-receipt/result.json": {
+      "bytes": 3989,
+      "sha256": "30d0457338170ec69705812ccc42a8d3d6da885e5fbd046c6f743073dfda4525"
+    },
+    "collections/drawio-ui-green-02-receipt/result.json": {
+      "bytes": 3961,
+      "sha256": "83659081efdcf022f09ddbb9437ff8ceec31908179e67be11b16c93ee543ccc8"
+    },
+    "collections/focused-failure-collection-02/result.json": {
+      "bytes": 36873,
+      "sha256": "f59bfc331e713caf348fe9e65ff1878943fa3c0b3a011a4f5ee37d308441fc65"
+    },
+    "collections/read-original-failure-classification-01/result.json": {
+      "bytes": 6942,
+      "sha256": "a10e5c5b6b9296da172d93be0473f444fe85a82cd8bc76d2e81af314374094ae"
+    },
+    "lifecycle/helper-started-receipt-green-01/control/owned.command.json": {
+      "bytes": 1409,
+      "sha256": "91377826b5190beefbd19ef0069ed070a2616654d7ef5521cfcc4a57512d0bbb"
+    },
+    "lifecycle/helper-started-receipt-green-01/control/owned.json": {
+      "bytes": 2140,
+      "sha256": "ff77176caa2cd299629cc8d57d03154ab4040cfde7c489559d85ecc3b6adc93c"
+    },
+    "lifecycle/helper-started-receipt-green-01/control/owned.started.json": {
+      "bytes": 1500,
+      "sha256": "b010c6fbd183afc7663a777b1c72228a1bbed0156a7afc6fca95a2ed3fb04feb"
+    },
+    "lifecycle/helper-started-receipt-green-01/control/owned.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lifecycle/helper-started-receipt-green-01/control/owned.stdout.bin": {
+      "bytes": 14,
+      "sha256": "6588bc0131893cb76a0a27aea154412692680a28a4fbd01ccbe15e943cb7594c"
+    },
+    "lifecycle/helper-started-receipt-green-01/fault/owned.command.json": {
+      "bytes": 1452,
+      "sha256": "570ea6f0f2ebf20457053699419016c6b7f513af9021f89eb6d994c194d5efb7"
+    },
+    "lifecycle/helper-started-receipt-green-01/fault/owned.json": {
+      "bytes": 2404,
+      "sha256": "5d24f69653c2485f48df1fbbdb9c8ee8555f3663871d2b963ee257fa771d3e31"
+    },
+    "lifecycle/helper-started-receipt-green-01/fault/owned.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lifecycle/helper-started-receipt-green-01/fault/owned.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lifecycle/helper-started-receipt-green-01/invocation.json": {
+      "bytes": 723,
+      "sha256": "760a18328695e07611d2cc72bcc603bf511e2dad670b571d8dd129fb1b1d776d"
+    },
+    "lifecycle/helper-started-receipt-green-01/result.json": {
+      "bytes": 6162,
+      "sha256": "06e544d0c0be665310f38ae56a3ec8921ee52361f6f7005659baa475de27faed"
+    },
+    "lifecycle/helper-started-receipt-red-01/failure.txt": {
+      "bytes": 363,
+      "sha256": "9dc6356c1ef218c1746f5e6853ac0e8b31b42da6767159cd75ffb926e5c46f4a"
+    },
+    "lifecycle/helper-started-receipt-red-01/fault/owned.command.json": {
+      "bytes": 1444,
+      "sha256": "1b29eae98120805c019aab45363751e9b7310c97e6a2fa64ffbcdbcc47501a2d"
+    },
+    "lifecycle/helper-started-receipt-red-01/fault/owned.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "lifecycle/helper-started-receipt-red-01/fault/owned.stdout.bin": {
+      "bytes": 18,
+      "sha256": "a841e22d8e565e64ffc158574625514f7878b0a831ccf7a517d427b994c76ca2"
+    },
+    "lifecycle/helper-started-receipt-red-01/invocation.json": {
+      "bytes": 721,
+      "sha256": "1a4b94b89dfdf7ac422e57ba24d1f89500fe26f7961ff9619cfc9eceb0d5b197"
+    },
+    "lifecycle/helper-started-receipt-red-01/result.json": {
+      "bytes": 1586,
+      "sha256": "5e655b40c04f82f7d1b1fff033b6169a41176c55ebb36c87897152d9747ac9eb"
+    },
+    "report/autonomous-reliability-20261112.md": {
+      "bytes": 34988,
+      "sha256": "503dbf1c32d21865774379ebfeea419a9fa57ac77994cb2ddc51c6f2de9aaf27"
+    },
+    "report/incoming-report.md": {
+      "bytes": 14017,
+      "sha256": "678ba7a178818ecf63a0f7097e120d92cd59000394eff10c96eaed45487cf69e"
+    },
+    "report/incoming-transfer.json": {
+      "bytes": 530,
+      "sha256": "4faee06734219d8f1a57cf69995cc22d5589027a00e8b2a65fc6262343d82d96"
+    },
+    "report/report-receipt.json": {
+      "bytes": 4802,
+      "sha256": "1128386407013fd2b059aefbf842da46137ab9c8f7b0d4c2727066d4998479b5"
+    },
+    "runs/drawio-incident-green-02/05-product-command.command.json": {
+      "bytes": 1915,
+      "sha256": "e6540a2cc0d3f1abbbf2ff35fdad49a1ce1d94d18e77649c336b04e20eeca2ec"
+    },
+    "runs/drawio-incident-green-02/05-product-command.json": {
+      "bytes": 2652,
+      "sha256": "dbbeed2c1e64cfc4d6cb126284830ef812f19af21223323e96aeed569049bf51"
+    },
+    "runs/drawio-incident-green-02/05-product-command.started.json": {
+      "bytes": 2006,
+      "sha256": "b88bc7c844f6877e5be7b9ecacfb0b5ac3bdb710155088c5526a2b0669266008"
+    },
+    "runs/drawio-incident-green-02/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/drawio-incident-green-02/05-product-command.stdout.bin": {
+      "bytes": 265,
+      "sha256": "ec4995e3b8397f4f71f0349544f3c427695a918725a21002409f00d32e3b6079"
+    },
+    "runs/drawio-incident-green-02/invocation.json": {
+      "bytes": 1393,
+      "sha256": "df3c5c77feaac9573131fa52dc1e1c23ecda03695def827a97fb22682ef6767d"
+    },
+    "runs/drawio-incident-green-02/result.json": {
+      "bytes": 5719,
+      "sha256": "28f7365a7e70b1aeb8563ed7801a74e71774654656daf4866ad1434fff565086"
+    },
+    "runs/drawio-ui-green-01/05-product-command.command.json": {
+      "bytes": 1850,
+      "sha256": "48aa30dced8425d0b11e67aaaaad8891c0a48fdc0c6ba194a4b452b068ec80ca"
+    },
+    "runs/drawio-ui-green-01/05-product-command.json": {
+      "bytes": 2574,
+      "sha256": "9ab7d3f913f312e5fa7299dc2da3d76fe6e5821e6573a5778828078c5ac4a91e"
+    },
+    "runs/drawio-ui-green-01/05-product-command.started.json": {
+      "bytes": 1941,
+      "sha256": "4a9f52b1375aec528de41e85c88c0fc685f99a7d497ad7c5ee5be01342b9749b"
+    },
+    "runs/drawio-ui-green-01/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/drawio-ui-green-01/05-product-command.stdout.bin": {
+      "bytes": 538,
+      "sha256": "76f06df775f0c3f572eba49d6af39d118e918fba85d5210787f71e5469464580"
+    },
+    "runs/drawio-ui-green-01/invocation.json": {
+      "bytes": 1352,
+      "sha256": "25b4d36a16ea1574fe802baea1b9842f22921d45221b4bf7bc48f764d4b62228"
+    },
+    "runs/drawio-ui-green-01/result.json": {
+      "bytes": 5568,
+      "sha256": "6ca329d40c2ff18aabb68db86b31e5222557e4bf309473ca3ccd3755f7daac4c"
+    },
+    "runs/drawio-ui-green-02/05-product-command.command.json": {
+      "bytes": 1850,
+      "sha256": "79902add7a68c5bfb8b57b1462d8466d5ebadbd0c4497477615b16f51685aa1a"
+    },
+    "runs/drawio-ui-green-02/05-product-command.json": {
+      "bytes": 2574,
+      "sha256": "d5deb8dac6eb2c5be76053191091f6fee17a48ee6a5b9f295eaaeee283f37d46"
+    },
+    "runs/drawio-ui-green-02/05-product-command.started.json": {
+      "bytes": 1941,
+      "sha256": "bd01cb818c4ad5ddfd23444700af1d55285beb7973bc9af950a786d983c63ff2"
+    },
+    "runs/drawio-ui-green-02/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/drawio-ui-green-02/05-product-command.stdout.bin": {
+      "bytes": 176,
+      "sha256": "a1328a64b087145c3232abdb50c21ae593b2219d43741a67a3f0877cfa845eae"
+    },
+    "runs/drawio-ui-green-02/invocation.json": {
+      "bytes": 1352,
+      "sha256": "4a7f47e41fec50751ebece9bfc6165dd86d9f053b2d91b28257371bd4fd83aa5"
+    },
+    "runs/drawio-ui-green-02/result.json": {
+      "bytes": 5582,
+      "sha256": "1e1a4584072a191f740abaa785135e5fec30bd4f5a737704a4446f226cd3e46a"
+    },
+    "runs/drawio-ui-red-01/05-product-command.command.json": {
+      "bytes": 1834,
+      "sha256": "514bf08cd0b402817b932e700b633dfdf2f56cdc9633ceb371ddd8a6fedb3999"
+    },
+    "runs/drawio-ui-red-01/05-product-command.json": {
+      "bytes": 2555,
+      "sha256": "afcd04965fed8afe504287311f33587aebd6b1abdd35d76a0b23077a8fdddf8d"
+    },
+    "runs/drawio-ui-red-01/05-product-command.started.json": {
+      "bytes": 1925,
+      "sha256": "8ced2a195262a09f60272d9c88c87c6912852b2f857fa07b29ff6069efed7bf9"
+    },
+    "runs/drawio-ui-red-01/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/drawio-ui-red-01/05-product-command.stdout.bin": {
+      "bytes": 706,
+      "sha256": "7321405dc99f86f6c8ff4edd3379c0538301e4c778287503dd304dfcf9d5e84e"
+    },
+    "runs/drawio-ui-red-01/invocation.json": {
+      "bytes": 1344,
+      "sha256": "adac1cb0be26454c00239c7fffbf49261a93af9ae4a42fca52bd031bc650dcd4"
+    },
+    "runs/drawio-ui-red-01/result.json": {
+      "bytes": 5535,
+      "sha256": "cfd30ee9a96c7b85df58a166f1b1beacc8dace300ea09e8ae7e39a80280f68d2"
+    },
+    "runs/experience-list-affected-01/05-product-command.command.json": {
+      "bytes": 3180,
+      "sha256": "4e3aef100cf4a615e11caffb02c02a87b07744923c495cb2d6dd3afde608f3d8"
+    },
+    "runs/experience-list-affected-01/05-product-command.json": {
+      "bytes": 3925,
+      "sha256": "bf7a36654ffaf14a75c180cb3a08254f34ed103193ac375e18878f2e8d212731"
+    },
+    "runs/experience-list-affected-01/05-product-command.started.json": {
+      "bytes": 3271,
+      "sha256": "ecb9466054b988ea24deaf0f10150d33823a2ba6a34f1e26091d426359ec5dc1"
+    },
+    "runs/experience-list-affected-01/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/experience-list-affected-01/05-product-command.stdout.bin": {
+      "bytes": 14421,
+      "sha256": "8c9c7f67aef58329f17aa494e5152232c57f59339602f961a5d09aebfab9e289"
+    },
+    "runs/experience-list-affected-01/invocation.json": {
+      "bytes": 2646,
+      "sha256": "6b84bb2c39da7ac6ace29cde170a1774cbae418d14f7dbed0ef89aeedfd1ecc2"
+    },
+    "runs/experience-list-affected-01/result.json": {
+      "bytes": 8240,
+      "sha256": "5df58a28c30e8de487b0871c6360de71ae65f4adc2916415a3319ac22312c805"
+    },
+    "runs/experience-tree-current-green-02/05-product-command.command.json": {
+      "bytes": 1955,
+      "sha256": "b35c073c19d280dad8795e588e9947d0a16c06810ed996f93a01d6a7c2db923b"
+    },
+    "runs/experience-tree-current-green-02/05-product-command.json": {
+      "bytes": 2707,
+      "sha256": "03befdad24ac8da35410d0bd4be5bdd88dbe06df741f5f1691f6697a46cf2ba8"
+    },
+    "runs/experience-tree-current-green-02/05-product-command.started.json": {
+      "bytes": 2046,
+      "sha256": "248daf1f818b8942c0a1a48831c3a9820ea4e4f8602ab5789970530ffd8deb77"
+    },
+    "runs/experience-tree-current-green-02/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/experience-tree-current-green-02/05-product-command.stdout.bin": {
+      "bytes": 268,
+      "sha256": "e1a01a3155070e4c00615c69cc25467c6e34af8608c2320e37dc5a902f86cdc3"
+    },
+    "runs/experience-tree-current-green-02/invocation.json": {
+      "bytes": 1401,
+      "sha256": "3ad6fb0331aded574384168659c24c5ea536c2490e6af7e2e8b69b6e4296c74c"
+    },
+    "runs/experience-tree-current-green-02/result.json": {
+      "bytes": 5792,
+      "sha256": "fa7341150b489d00e02d2cfeffe8f5c2c20869dedd0fc43c65d3407c7925ada7"
+    },
+    "runs/native-path-affected-01/05-product-command.command.json": {
+      "bytes": 2044,
+      "sha256": "2a0da435f249785779824ebe84b2ab9c718f0921cd8c462e318d04bc4d2717e2"
+    },
+    "runs/native-path-affected-01/05-product-command.json": {
+      "bytes": 2781,
+      "sha256": "ca4b930262724b0c9ad41586dba7365ad4a9a99093996d47fd19f61d0e81af47"
+    },
+    "runs/native-path-affected-01/05-product-command.started.json": {
+      "bytes": 2135,
+      "sha256": "95ce820db5e78c41b079d650d8a814dc3e68f5a17d11dcd5f82bfaf4c6e83578"
+    },
+    "runs/native-path-affected-01/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/native-path-affected-01/05-product-command.stdout.bin": {
+      "bytes": 17463,
+      "sha256": "d0440f9b2a8b9ac995985b175ff120998c80c49be80ecb1e5caa38b92291575e"
+    },
+    "runs/native-path-affected-01/invocation.json": {
+      "bytes": 1526,
+      "sha256": "ab4f923f05d10ec79cb9b8a0b78f3c3c0a9cd965444b63710e87cb9f08f8ae45"
+    },
+    "runs/native-path-affected-01/result.json": {
+      "bytes": 5964,
+      "sha256": "f46a9e28c2dad71bfa07e10a05a68727e91fcd31302c09a0d605de80bee49b9d"
+    },
+    "runs/native-path-vet-01/05-product-command.command.json": {
+      "bytes": 1721,
+      "sha256": "dba7dc3df70a36ad483662bcc3da55bd941e25803fb8a2ec8dff02f9bc84dcf9"
+    },
+    "runs/native-path-vet-01/05-product-command.json": {
+      "bytes": 2444,
+      "sha256": "093c0f77778ab962984c3e04795b6c3080cf7a18eb504e79616fa826c849bd03"
+    },
+    "runs/native-path-vet-01/05-product-command.started.json": {
+      "bytes": 1812,
+      "sha256": "69f99d65c3310c06a24155978282e7b35e337b4014b12f192a4b2fa2f10e0799"
+    },
+    "runs/native-path-vet-01/05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/native-path-vet-01/05-product-command.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runs/native-path-vet-01/invocation.json": {
+      "bytes": 1222,
+      "sha256": "fdb2ca40c3e7b0087b0147dd817f0fe12d9b7e82528af9422b6bd3d21b2bf57a"
+    },
+    "runs/native-path-vet-01/result.json": {
+      "bytes": 5312,
+      "sha256": "3a8e2c85c6e9108c450a894d69fb51d112639a65090d339a613417c2c90df7f7"
+    }
+  },
+  "report": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-reliability-20261112.md",
+    "before": {
+      "bytes": 14017,
+      "sha256": "678ba7a178818ecf63a0f7097e120d92cd59000394eff10c96eaed45487cf69e"
+    },
+    "after": {
+      "bytes": 34988,
+      "sha256": "503dbf1c32d21865774379ebfeea419a9fa57ac77994cb2ddc51c6f2de9aaf27"
+    },
+    "unchanged_prefix_bytes": 14017,
+    "preserved_original": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-reliability-20261112-evidence\\review-01\\report\\incoming-report.md"
+  },
+  "scope": "primary numeric/start/final/intent/invocation/raw/result for eight consumed commands; both full Python lifecycle cases; corrected collection02; report and unchanged original. Complete source/expected inventories and ancillary metadata remain immutable on box; hashes are in each primary result. No duplicate source/harness mirror.",
+  "g1_failure_unchanged_g2_separate_successor": true,
+  "exit_code": 0
+}

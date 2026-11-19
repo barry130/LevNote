@@ -262,8 +262,11 @@ func boundedClosedLabel(value string, limit int) string {
 func (a *App) closedFilesMenu(c *ui.Context) {
 	a.reapReopen()
 	blocked := a.reopenBarrier() != nil
-	button := ui.Button(c.Key("closed-files-menu"), "▾").Label("最近关闭的文件").Width(26).
+	button := workbenchButton(c.Key("closed-files-menu"), "").Label("最近关闭的文件").Width(28).Height(32).Radius(8).
 		Tooltip("最近关闭的已保存文件 · Ctrl+Shift+T · 按当前磁盘内容打开，不恢复已放弃的修改").Disabled(blocked)
+	button.Children(func() {
+		ui.Icon(c, workbenchChevronDownIcon).Size(13, 13)
+	})
 	if blocked {
 		// Disabled prevents opening, but a pointer press otherwise clears the
 		// field's focus before the menu callback can run.

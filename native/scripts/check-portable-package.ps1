@@ -17,6 +17,16 @@ function Reject([string]$Name, [scriptblock]$Action, [string]$Expected) {
     try { & $Action } catch { $caught = $_.Exception.Message }
     Check $Name ($caught.Contains($Expected)) $caught
 }
+function Test-ExactEnginePathSet([object[]]$Files, [string[]]$RequiredPaths) {
+    $expected = [Collections.Generic.HashSet[string]]::new($RequiredPaths, [StringComparer]::Ordinal)
+    if ($expected.Count -ne $RequiredPaths.Count -or $Files.Count -ne $expected.Count) { return $false }
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($file in $Files) {
+        $path = [string]$file.path
+        if (-not $expected.Contains($path) -or -not $seen.Add($path)) { return $false }
+    }
+    return $expected.SetEquals($seen)
+}
 $errorText = $null
 try {
     $out = Join-Path $root 'fresh output with spaces'
@@ -72,6 +82,7 @@ try {
     New-Item -ItemType Directory -Path (Join-Path $out 'engines/markdown-export') | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $out 'engines/mindmap-svg') | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $out 'engines/mindmap-preview') | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $out 'engines/drawio-svg') | Out-Null
     [IO.File]::WriteAllText((Join-Path $out 'levnote-native.exe'), 'fixture host bytes, not executable')
     [IO.File]::WriteAllText((Join-Path $out 'engines/markdown-export/levnote-markdown-export.exe'), 'fixture worker bytes, not executable')
     [IO.File]::WriteAllText((Join-Path $out 'engines/markdown-export/manifest.json'), '{"fixture":true}')
@@ -79,6 +90,8 @@ try {
     [IO.File]::WriteAllText((Join-Path $out 'engines/mindmap-svg/manifest.json'), '{"fixture":true}')
     [IO.File]::WriteAllText((Join-Path $out 'engines/mindmap-preview/levnote-mindmap-preview.exe'), 'fixture worker bytes, not executable')
     [IO.File]::WriteAllText((Join-Path $out 'engines/mindmap-preview/manifest.json'), '{"fixture":true}')
+    [IO.File]::WriteAllText((Join-Path $out 'engines/drawio-svg/levnote-drawio-svg.exe'), 'fixture worker bytes, not executable')
+    [IO.File]::WriteAllText((Join-Path $out 'engines/drawio-svg/manifest.json'), '{"fixture":true}')
     Write-PortableAssets $nativeRoot $out 'fixture.1'
     Write-PortableReleaseManifest $out 'fixture.1'
     Assert-PortableLocalLinks $out
@@ -108,7 +121,27 @@ try {
     $manifest = $manifestText | ConvertFrom-Json
     $files = @(Get-ChildItem -LiteralPath $out -File -Recurse)
     Check 'manifest-complete-excluding-self' ($manifest.schema-eq 1 -and $manifest.version-ceq 'fixture.1' -and $manifest.files.Count-eq $files.Count-1 -and $manifest.excludes.Count-eq 1 -and $manifest.excludes[0]-ceq 'release-manifest.json') 'Schema explicitly excludes only itself and includes every actual fixture file.'
-    Check 'three-fixed-engine-paths' (@($manifest.files | Where-Object {$_.path-in @('engines/markdown-export/levnote-markdown-export.exe','engines/markdown-export/manifest.json','engines/mindmap-svg/levnote-mindmap-svg.exe','engines/mindmap-svg/manifest.json','engines/mindmap-preview/levnote-mindmap-preview.exe','engines/mindmap-preview/manifest.json')}).Count-eq 6) 'All three fixed engine payload and manifest paths are inventoried.'
+    $requiredEnginePaths = @(
+        'engines/markdown-export/levnote-markdown-export.exe',
+        'engines/markdown-export/manifest.json',
+        'engines/mindmap-svg/levnote-mindmap-svg.exe',
+        'engines/mindmap-svg/manifest.json',
+        'engines/mindmap-preview/levnote-mindmap-preview.exe',
+        'engines/mindmap-preview/manifest.json',
+        'engines/drawio-svg/levnote-drawio-svg.exe',
+        'engines/drawio-svg/manifest.json'
+    )
+    $manifestEngineFiles = @($manifest.files | Where-Object {[string]$_.path -like 'engines/*'})
+    Check 'required-engine-path-spec' (@($requiredEnginePaths | Sort-Object -Unique).Count-eq 8 -and $requiredEnginePaths.Count-eq 8) 'The four-engine contract names eight unique payload/manifest paths.'
+    Check 'four-fixed-engine-paths' (Test-ExactEnginePathSet $manifestEngineFiles $requiredEnginePaths) 'Manifest engine paths exactly match the eight required paths with no duplicate or extra path.'
+    $missingDrawioWorker = @($manifestEngineFiles | Where-Object {$_.path -cne 'engines/drawio-svg/levnote-drawio-svg.exe'})
+    $missingDrawioManifest = @($manifestEngineFiles | Where-Object {$_.path -cne 'engines/drawio-svg/manifest.json'})
+    Check 'missing-drawio-executable-rejected' (-not(Test-ExactEnginePathSet $missingDrawioWorker $requiredEnginePaths)) 'Pure-data missing executable control is rejected.'
+    Check 'missing-drawio-manifest-rejected' (-not(Test-ExactEnginePathSet $missingDrawioManifest $requiredEnginePaths)) 'Pure-data missing manifest control is rejected.'
+    $duplicateDrawio = @($missingDrawioWorker) + @([pscustomobject]@{path='engines/drawio-svg/manifest.json'})
+    $extraEngine = @($missingDrawioWorker) + @([pscustomobject]@{path='engines/unexpected/worker.exe'})
+    Check 'duplicate-engine-path-rejected' (-not(Test-ExactEnginePathSet $duplicateDrawio $requiredEnginePaths)) 'Pure-data same-count duplicate path control is rejected.'
+    Check 'extra-engine-path-rejected' (-not(Test-ExactEnginePathSet $extraEngine $requiredEnginePaths)) 'Pure-data same-count extra path control is rejected.'
     $mismatch = @($manifest.files | Where-Object {$path=Join-Path $out $_.path; -not(Test-Path -LiteralPath $path) -or (Get-Item -LiteralPath $path).Length-ne $_.size -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash-ne $_.sha256})
     Check 'manifest-independent-file-oracle' ($mismatch.Count-eq 0) 'Actual directory files/bytes/digests independently re-read for every entry.'
     Check 'manifest-relative-no-machine-paths' (@($manifest.files | Where-Object {[IO.Path]::IsPathRooted($_.path) -or $_.path.Contains('\') -or $_.path.Contains('..')}).Count-eq 0 -and -not $manifestText.Contains($nativeRoot) -and -not $manifestText.Contains($root)) 'Only normalized relative file paths; no source machine paths.'

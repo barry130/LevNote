@@ -876,6 +876,13 @@ func (p *xmlParser) parseGeometry(start xml.StartElement, startTag, endTag, dept
 		case xml.Directive:
 			return geometry, fmt.Errorf("%w: XML directives and DTDs are not accepted", ErrInvalidXML)
 		case xml.StartElement:
+			if typed.Name.Local == "Array" && attrValue(typed, "as") == "points" {
+				// Standard drawio waypoint container: <Array as="points"><mxPoint .../>...</Array>
+				if err := p.parsePointsArray(typed, tokenStart, tokenEnd, depth+1, cellID, &geometry); err != nil {
+					return geometry, err
+				}
+				continue
+			}
 			if typed.Name.Local != "mxPoint" {
 				p.addIssue(IssueUnsupportedElement, "unknown mxGeometry child is preserved", cellID, p.pageIndex)
 				if err := p.skipElement(typed, tokenStart, tokenEnd, depth+1); err != nil {
@@ -904,6 +911,9 @@ func (p *xmlParser) parseGeometry(start xml.StartElement, startTag, endTag, dept
 				geometry.points = append(geometry.points, point)
 			}
 			if isSelfClosingRaw(p.source[tokenStart:tokenEnd]) {
+				if err := p.consumeEmptyEnd(typed.Name.Local); err != nil {
+					return geometry, err
+				}
 				continue
 			}
 			if err := p.skipElementTail(typed, depth+1); err != nil {
@@ -914,6 +924,65 @@ func (p *xmlParser) parseGeometry(start xml.StartElement, startTag, endTag, dept
 				return geometry, fmt.Errorf("%w: mismatched mxGeometry end element", ErrInvalidXML)
 			}
 			return geometry, nil
+		}
+	}
+}
+
+// parsePointsArray parses the inner <Array as="points"> container of an mxGeometry edge.
+// Each <mxPoint x="..." y="..."/> child is accumulated as a waypoint into geometry.points.
+func (p *xmlParser) parsePointsArray(start xml.StartElement, startTag, endTag, depth int, cellID string, geometry *parsedGeometry) error {
+	selfClosing, err := p.selfClosing(startTag, endTag)
+	if err != nil {
+		return err
+	}
+	if selfClosing {
+		return p.consumeEmptyEnd(start.Name.Local)
+	}
+	for {
+		token, tokenStart, tokenEnd, nextErr := p.next()
+		if nextErr != nil {
+			return nextErr
+		}
+		switch typed := token.(type) {
+		case xml.CharData:
+			if err := p.accountText(typed); err != nil {
+				return err
+			}
+		case xml.Comment, xml.ProcInst:
+		case xml.Directive:
+			return fmt.Errorf("%w: XML directives and DTDs are not accepted", ErrInvalidXML)
+		case xml.StartElement:
+			if typed.Name.Local != "mxPoint" {
+				if err := p.skipElement(typed, tokenStart, tokenEnd, depth+1); err != nil {
+					return err
+				}
+				continue
+			}
+			if err := p.acceptStart(typed, depth+1); err != nil {
+				return err
+			}
+			point := Point{}
+			if value := attrValue(typed, "x"); value != "" {
+				point.X, _ = parseFinite(value)
+			}
+			if value := attrValue(typed, "y"); value != "" {
+				point.Y, _ = parseFinite(value)
+			}
+			geometry.points = append(geometry.points, point)
+			if isSelfClosingRaw(p.source[tokenStart:tokenEnd]) {
+				if err := p.consumeEmptyEnd(typed.Name.Local); err != nil {
+					return err
+				}
+				continue
+			}
+			if err := p.skipElementTail(typed, depth+1); err != nil {
+				return err
+			}
+		case xml.EndElement:
+			if typed.Name.Local != start.Name.Local {
+				return fmt.Errorf("%w: mismatched Array end element", ErrInvalidXML)
+			}
+			return nil
 		}
 	}
 }

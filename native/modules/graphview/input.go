@@ -14,6 +14,12 @@ func (v *view) handleCanvasInput(ev ui.InputEvent) bool {
 		ev.Kind == ui.InputKeyDown && (ev.Key == ui.KeyDelete || ev.Key == ui.KeyBackspace)) {
 		return v.deleteKey()
 	}
+	if v.kind == kindDrawio && ev.Kind == ui.InputKeyDown && ev.Key == ui.KeyD && ev.Mods == ui.Cmd {
+		return v.cloneDrawioCells()
+	}
+	if v.kind == kindDrawio && ev.Kind == ui.InputPointerDown {
+		return v.drawioPointerDown(ev)
+	}
 	v.ensureSynced(nil)
 	switch ev.Kind {
 	case ui.InputPointerDown:
@@ -27,6 +33,7 @@ func (v *view) handleCanvasInput(ev ui.InputEvent) bool {
 	case ui.InputPointerUp:
 		return v.pointerUp(ev)
 	case ui.InputScroll:
+		v.drawGesture = drawioPointerGesture{}
 		v.markerPress = markerGesture{}
 		v.invalidateTagActions()
 		if ev.Mods&ui.Cmd != 0 {
@@ -43,6 +50,7 @@ func (v *view) handleCanvasInput(ev ui.InputEvent) bool {
 		}
 		return true
 	case ui.InputZoom:
+		v.drawGesture = drawioPointerGesture{}
 		v.markerPress = markerGesture{}
 		v.invalidateTagActions()
 		if ev.Scale > 0 {
@@ -72,8 +80,12 @@ func (v *view) handleCanvasInput(ev ui.InputEvent) bool {
 		}
 		switch ev.Key {
 		case ui.KeyEscape:
+			active := v.panning || v.drawGesture.kind != drawioNoGesture || v.connectSource != "" || v.draggingID != "" || v.reparentSource != ""
 			v.panning = false
 			v.cancelGraphGesture()
+			if v.kind == kindDrawio && !active {
+				v.selectNode("")
+			}
 			return true
 		case ui.KeyDelete, ui.KeyBackspace:
 			return v.deleteKey()
@@ -95,6 +107,7 @@ func (v *view) handleCanvasInput(ev ui.InputEvent) bool {
 }
 
 func (v *view) cancelGraphGesture() {
+	v.drawGesture = drawioPointerGesture{}
 	v.draggingID, v.reparentSource, v.connectSource = "", "", ""
 	v.dragWorldX, v.dragWorldY = 0, 0
 	v.dragMoved = false
@@ -172,6 +185,9 @@ func (v *view) beginPan(ev ui.InputEvent) {
 }
 
 func (v *view) pointerMove(ev ui.InputEvent) bool {
+	if v.kind == kindDrawio && v.moveDrawioPointer(ev) {
+		return true
+	}
 	if v.panning {
 		v.panX = v.panOriginX + ev.X - v.panStartX
 		v.panY = v.panOriginY + ev.Y - v.panStartY
@@ -188,6 +204,9 @@ func (v *view) pointerMove(ev ui.InputEvent) bool {
 }
 
 func (v *view) pointerUp(ev ui.InputEvent) bool {
+	if v.kind == kindDrawio && v.endDrawioPointer(ev) {
+		return true
+	}
 	if v.panning {
 		v.panning = false
 		return true
@@ -216,7 +235,11 @@ func (v *view) selectNode(id string) bool {
 	}
 	v.ensureSynced(nil)
 	v.invalidateTagActions()
-	v.selectedID = id
+	if v.kind == kindDrawio {
+		v.setDrawioSingle(id)
+	} else {
+		v.selectedID = id
+	}
 	v.refreshLabelDraft()
 	v.refreshTagDraft()
 	return true
@@ -231,6 +254,7 @@ func (v *view) undo() bool {
 	}
 	buffer, released, pageEpoch, page := v.host.Buffer, v.releaseEpoch, v.pageEpoch, v.pageIndex
 	if buffer.Undo() {
+		cloneHistory := v.beginDrawioCloneHistory(buffer, released, pageEpoch, page, true)
 		version, selection := buffer.Version(), buffer.Selection()
 		v.lastSynced = ^uint64(0)
 		if v.host.Changed != nil {
@@ -242,6 +266,7 @@ func (v *view) undo() bool {
 			return true
 		}
 		v.ensureSynced(nil)
+		v.finishDrawioCloneHistory(cloneHistory, buffer, released, pageEpoch, page)
 		// A compatibility/status row may disappear after Undo and re-key the
 		// canvas parent. Follow its new binding only for this live receipt.
 		if v.kind == kindDrawio && v.host.Buffer == buffer && v.releaseEpoch == released &&
@@ -262,6 +287,7 @@ func (v *view) redo() bool {
 	}
 	buffer, released, pageEpoch, page := v.host.Buffer, v.releaseEpoch, v.pageEpoch, v.pageIndex
 	if buffer.Redo() {
+		cloneHistory := v.beginDrawioCloneHistory(buffer, released, pageEpoch, page, false)
 		version, selection := buffer.Version(), buffer.Selection()
 		v.lastSynced = ^uint64(0)
 		if v.host.Changed != nil {
@@ -273,6 +299,7 @@ func (v *view) redo() bool {
 			return true
 		}
 		v.ensureSynced(nil)
+		v.finishDrawioCloneHistory(cloneHistory, buffer, released, pageEpoch, page)
 		if v.kind == kindDrawio && v.host.Buffer == buffer && v.releaseEpoch == released &&
 			v.pageEpoch == pageEpoch && v.pageIndex == page && !v.host.ReadOnly &&
 			!buffer.InGroup() && buffer.Version() == version && buffer.Selection() == selection {

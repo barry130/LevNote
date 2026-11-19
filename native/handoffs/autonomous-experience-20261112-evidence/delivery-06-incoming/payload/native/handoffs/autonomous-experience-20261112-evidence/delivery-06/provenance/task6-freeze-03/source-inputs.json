@@ -1,0 +1,130 @@
+{
+  "status": "FROZEN_UNFORMATTED_UNEXECUTED",
+  "baseline": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "sourceRoot": "/home/user/levnote-dev-experience-20261112-01/revision-03-source",
+  "implementationOwner": "native-experience",
+  "productCommandOwner": "native-reliability",
+  "prototypeAncestry": "/home/user/levnote-dev-experience-20261112-01/provenance/unexecuted-local-drafts.json",
+  "files": [
+    {
+      "path": "native/app/app.go",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/view.go",
+      "bytes": 24252,
+      "sha256": "a102bd5266bcf35296ba5973c2856a8211b1118ef7068f3f2470502a0d8fb935",
+      "origin": "unexecuted local draft applied on box; unchanged afterward"
+    },
+    {
+      "path": "native/app/workspace.go",
+      "bytes": 8220,
+      "sha256": "3a2863c49554a4574d45d650c5d388c33d64599f428241366c700baed2e50be9",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/outline.go",
+      "bytes": 15407,
+      "sha256": "7caed4b54a69af411f916b42b1e5d5a9de7db7fb9480799c38d3552d2299bf3a",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/list_lifetime.go",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/list_lifetime_test.go",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/list_handle_lifetime_test.go",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/acceptance_test.go",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362",
+      "origin": "named baseline fixture; box-only authorized searchRoot metadata line"
+    }
+  ],
+  "newTests": [
+    "TestAppListHandlesSurviveSemanticResets",
+    "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget",
+    "TestSearchListHandleNewSearchRejectsStaleDelivery",
+    "TestOutlineListHandleReleaseAfterSidebarBuild",
+    "TestOutlineListHandleReentrantFlushAndRetry",
+    "TestHiddenListFocusDoesNotStealEditorInput",
+    "TestTreeRootSwitchKeepsComposingQueryInput",
+    "TestWorkspaceResultsMinimumWindowControls"
+  ],
+  "affectedTests": [
+    "TestWorkspaceTreeDisclosesPerDirectoryLimit",
+    "TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor",
+    "TestWorkspaceSearchVirtualizesFarResultAndReplacement",
+    "TestWorkspaceSearchIssueDetailsAreBounded",
+    "TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration",
+    "TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView",
+    "TestOutlineActivationFlushesPendingNativeComposition",
+    "TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable",
+    "TestOutlineActivationRejectsLifecycleChangesDuringFlush",
+    "TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice",
+    "TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard",
+    "TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates",
+    "TestBuiltinOutlineReleasedOnPluginModeTabAndReload",
+    "TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows",
+    "TestFindKeyboardFocusLeaveReconcilesComposition",
+    "TestFindbarControlsFitMainPaneAtMinimumWindow",
+    "TestFindbarActionsAndFocusSurviveMinimumReflow"
+  ],
+  "runRegex": "^(TestAppListHandlesSurviveSemanticResets|TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget|TestSearchListHandleNewSearchRejectsStaleDelivery|TestOutlineListHandleReleaseAfterSidebarBuild|TestOutlineListHandleReentrantFlushAndRetry|TestHiddenListFocusDoesNotStealEditorInput|TestTreeRootSwitchKeepsComposingQueryInput|TestWorkspaceResultsMinimumWindowControls|TestWorkspaceTreeDisclosesPerDirectoryLimit|TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor|TestWorkspaceSearchVirtualizesFarResultAndReplacement|TestWorkspaceSearchIssueDetailsAreBounded|TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration|TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView|TestOutlineActivationFlushesPendingNativeComposition|TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable|TestOutlineActivationRejectsLifecycleChangesDuringFlush|TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice|TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard|TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates|TestBuiltinOutlineReleasedOnPluginModeTabAndReload|TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows|TestFindKeyboardFocusLeaveReconcilesComposition|TestFindbarControlsFitMainPaneAtMinimumWindow|TestFindbarActionsAndFocusSurviveMinimumReflow)$",
+  "claimedProductExecutions": 0,
+  "scopeLimits": [
+    "no physical OS IME/Windows/PE/WM_CLOSE/Job acceptance",
+    "no measured process memory improvement",
+    "no vendor/private Handle access or forced GC",
+    "author performed zero Go/gofmt/test/vet/build/render/product commands; freeze03 has no executed result"
+  ],
+  "previousFreeze": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-02",
+  "prioritySingleSlice": {
+    "test": "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget",
+    "baselineInjection": [
+      "native/app/list_handle_lifetime_test.go"
+    ],
+    "baseline": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+    "redBeforeGreenStatus": "Actual sole-owner baseline behavioral FAIL; current attempt01 compilation FAIL, not behavior GREEN. Freeze03 attempt02 pending. No chronological RedBeforeGreen claim."
+  },
+  "frozenAtUTC": "2026-11-12T07:47:53.234223+00:00",
+  "changeFromFreeze02": "Exactly two authorized test-only changes: populateAcceptanceLists records searchRoot before synthetic rows; PNG capture calls existing public Tester.Image instead of nonexistent Tester.Render. Production bytes identical to freeze02, including strict outline buffer-version guard.",
+  "priorReliabilityEvidence": [
+    {
+      "label": "experience-tree-baseline-red-01",
+      "classification": "BEHAVIORAL_FAIL",
+      "test": "TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget",
+      "failure": "End selected -1, want the current root last row",
+      "baselineInjectedFileSha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+      "inputManifestBytes": 199957,
+      "inputManifestSha256": "93bb524f3819ca11e4c515fe0659add7bf07611e86b3d785a9ce8afdb935b8e7",
+      "evidenceRoot": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-baseline-red-01/evidence",
+      "reportedBy": "native-reliability; exact PID/raw final readback belongs to sole owner"
+    },
+    {
+      "label": "experience-tree-current-green-01",
+      "classification": "COMPILATION_FAIL_NOT_TREE_BEHAVIOR_GREEN",
+      "failure": "tester.Render undefined",
+      "formattedTestBytes": 17585,
+      "formattedTestSha256": "babf29d0e52cc6d56134c70978cff1eddd2255eff1d25c291e318d25e0b32e92",
+      "inputManifestBytes": 202045,
+      "inputManifestSha256": "46f404eaebd16797c5721ed3c28fc13cfc9af9356f9053cdee8fa4021dc51916",
+      "evidenceRoot": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-tree-current-green-01/evidence",
+      "reportedBy": "native-reliability; original formatted/failed slot immutable"
+    }
+  ]
+}

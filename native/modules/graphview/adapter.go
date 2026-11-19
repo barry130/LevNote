@@ -94,6 +94,12 @@ type view struct {
 	layout                 mindmap.LayoutResult
 	warnings               []string
 	selectedID             string
+	drawSelection          drawioSelection
+	alignPress             drawioAlignmentPress
+	alignInfo              drawioAlignmentInfo
+	drawCloneHistory       []drawioCloneHistory
+
+	drawGesture            drawioPointerGesture
 	field                  nodeField
 	pageIndex              int
 	draft                  *fieldDraft
@@ -108,6 +114,12 @@ type view struct {
 	markerInfo             markerPresentation
 	markerPress            markerGesture
 	markerError            error
+	styleHandle            ui.Handle
+	styleOpen              bool
+	styleEpoch             uint64
+	styleInfo              stylePresentation
+	stylePress             styleGesture
+	styleError             error
 	tagDraft               *tagDraft
 	tagOpen                bool
 	tagEpoch               uint64
@@ -184,11 +196,17 @@ func (v *view) CompositionActive() bool {
 
 func (v *view) Draw(c *ui.Context) {
 	defer func() {
+		if v.alignPress.released {
+			v.alignPress = drawioAlignmentPress{}
+		}
 		if v.linkGesture.released {
 			v.linkGesture = fieldLinkTarget{}
 		}
 		if v.markerPress.released {
 			v.markerPress = markerGesture{}
+		}
+		if v.stylePress.released {
+			v.stylePress = styleGesture{}
 		}
 		if v.tagPress.released {
 			v.tagPress = tagGesture{}
@@ -201,13 +219,17 @@ func (v *view) Draw(c *ui.Context) {
 	}
 	theme := c.Theme()
 	ui.Column(c).Fill().MinHeight(0).Clip().Background(theme.Background).
-		ObserveInput(v.observeGraphInspectorInput).HandleInput(v.graphInspectorScrollInput).Children(func() {
+		ObserveInput(func(ev ui.InputEvent) {
+			v.observeGraphInspectorInput(ev)
+			v.observeStyleInput(ev)
+			v.observeDrawioInput(ev)
+		}).HandleInput(v.graphInspectorScrollInput).Children(func() {
 		v.drawToolbar(c)
 		if len(v.warnings) > 0 {
 			v.drawWarnings(c)
 		}
 		ui.Row(c).Grow(1).MinHeight(0).Clip().AlignItems(ui.Stretch).Children(func() {
-			ui.Box(c).
+			canvas := ui.Box(c).
 				Key("graph-canvas").
 				Grow(1).
 				MinWidth(180).
@@ -219,6 +241,9 @@ func (v *view) Draw(c *ui.Context) {
 				Bind(&v.canvasHandle).
 				HandleInput(v.handleCanvasInput).
 				Draw(v.drawCanvas)
+			if v.kind == kindDrawio {
+				canvas.KeepFocus()
+			}
 			v.drawInspector(c)
 		})
 	})
@@ -237,6 +262,11 @@ func (v *view) Release() {
 	v.markerInfo = markerPresentation{}
 	v.markerOpen, v.markerError = false, nil
 	v.markerHandle.CancelFocus()
+	v.styleEpoch++
+	v.stylePress = styleGesture{}
+	v.styleInfo = stylePresentation{}
+	v.styleOpen, v.styleError = false, nil
+	v.styleHandle.CancelFocus()
 	v.fieldHandle.CancelFocus()
 	v.linkHandle.CancelFocus()
 	// Hosts must call Flush first. Defensively preserve a failed draft even
@@ -258,6 +288,14 @@ func (v *view) Release() {
 	}
 	v.panning = false
 	v.cancelGraphGesture()
+	// Preserve selectedID navigation preference; only clear multi-selection internals.
+	v.drawSelection = drawioSelection{}
+	for i := range v.drawCloneHistory {
+		v.drawCloneHistory[i].buffer = nil
+		v.drawCloneHistory[i].beforeText, v.drawCloneHistory[i].afterText = "", ""
+		v.drawCloneHistory[i].beforeIDs, v.drawCloneHistory[i].afterIDs = nil, nil
+	}
+	v.drawCloneHistory = nil
 	v.canvasRect = ui.Rect{}
 	v.mind = nil
 	v.diagram = nil
@@ -282,6 +320,9 @@ func (v *view) Warnings() []string {
 	}
 	if v.tagError != nil {
 		warnings = append(warnings, "标签操作："+v.tagError.Error())
+	}
+	if v.styleError != nil {
+		warnings = append(warnings, "颜色操作："+v.styleError.Error())
 	}
 	return warnings
 }

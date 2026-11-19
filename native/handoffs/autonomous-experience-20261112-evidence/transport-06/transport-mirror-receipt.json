@@ -1,0 +1,91 @@
+{
+  "status": "FINAL06_OPAQUE_TRANSPORT_FILES_ONLY_NO_IMPORT_OR_SOURCE_WRITES",
+  "createdUTC": "2026-11-13T03:54:42.086Z",
+  "pid": 27164,
+  "session": "9e20bc49-fddb-490b-a752-c3b11da86ccc",
+  "opaquePartCount": 10,
+  "encodedCharacters": 114280,
+  "base64Decoded": false,
+  "files": [
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part01.b64",
+      "bytes": 12150,
+      "sha256": "ada79f9ba7addf5ed6f3a856f37b770539ac1193224b0f0163fd5c062a2ab3c3",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3020"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part02.b64",
+      "bytes": 12150,
+      "sha256": "74c4ede6075f3c47d44cf05f7c306e5317c84dc57a8b0e529e1731c44b868b39",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3022"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part03.b64",
+      "bytes": 12150,
+      "sha256": "f5b92d0b0e0db787c3455f5525531938f3286fc02025df4c03630097dd6eaed5",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3024"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part04.b64",
+      "bytes": 12150,
+      "sha256": "a8937a62da2abd8d0c870abe5862856cdc77bf3edb7ba671924f0410fd67fa31",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3030"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part05.b64",
+      "bytes": 12150,
+      "sha256": "8f6fa83662cdc23f3e3dc47e2e743570e0d92b884b301170640e34d21a7ad631",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3032"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part06.b64",
+      "bytes": 12150,
+      "sha256": "85fce1d2bfe95c367dfabf7460536e6c476d7e11722f1978868e305a3e14ed78",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3034"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part07.b64",
+      "bytes": 12150,
+      "sha256": "b23b3de744144b944ec7c9e0a38067ea4d48df1d8935f2200c58b3bd449dd2e8",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3051"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part08.b64",
+      "bytes": 12150,
+      "sha256": "8d6eb8b3cd12ada3e0a7ac076dbf1a93443693bc41845f1d0976046399647c39",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3053"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part09.b64",
+      "bytes": 12150,
+      "sha256": "c95d5d103af1b9854f2e60410cb41d8fae0ddf639501f0682091e3969f2ffe3d",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3061"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.part10.b64",
+      "bytes": 6359,
+      "sha256": "2c91b3491f456e68d59176303882a8de7b9fcfc835f65921805a81ef849d3e53",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3063"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\transport-receipt.json",
+      "bytes": 3913,
+      "sha256": "95d3554668b301547412089ffc053f982883b8d930247980f483dea099f171d8",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3065"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\import-final06.py",
+      "bytes": 10025,
+      "sha256": "ba50fdf157be36d97f07bc7841e0a127cdb15cd721c7ac1ba5eb53d3a55a5533",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3086"
+    },
+    {
+      "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\decode-final06.py",
+      "bytes": 3434,
+      "sha256": "e26b1eae706b05344163a0800a1720c671cf846f532996e5eb52407a967d9c68",
+      "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3088"
+    }
+  ],
+  "productCommands": 0,
+  "currentSourceAndReportWrites": 0
+}

@@ -1,0 +1,23 @@
+{
+  "status": "OPAQUE_WRITER_EXIT_ZERO",
+  "pid": 21784,
+  "writerPid": 27164,
+  "writerExit": 0,
+  "signal": null,
+  "error": null,
+  "bootstrap": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\bootstrap-transport-final06.cjs",
+    "bytes": 4264,
+    "sha256": "7d153277832fda46ae888e1dd2e41d0f25a2a832caa0cba3efb5e08abd18ce8c",
+    "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3135"
+  },
+  "writer": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\transport-write-final06.cjs",
+    "bytes": 5945,
+    "sha256": "f712d44e27a2a26b6bd63735160ff413933aadee7e3db7f7935df1179b1fc8f8",
+    "sourceRef": "session://9e20bc49-fddb-490b-a752-c3b11da86ccc/event/3118"
+  },
+  "productCommands": 0,
+  "base64Decoded": false,
+  "currentSourceAndReportWrites": 0
+}

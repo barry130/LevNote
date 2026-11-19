@@ -1,0 +1,5 @@
+--- FAIL: TestCloneCellsCorrection20261117AvoidsRawIDsAcrossOnlySelectedDiagram (0.00s)
+    clone_cells_correction20261117_test.go:127: unsupported draw.io construct: missing clone root
+FAIL
+FAIL	levnote.local/native/formats/drawio	0.813s
+FAIL

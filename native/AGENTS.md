@@ -1,5 +1,12 @@
 # Native migration: current coordination
 
+> Current handoff, 2026-11-19: the user stopped feature development and requested
+> preservation, commit and upload of all current work for another Harness.
+> Start with [the repository handoff](../HANDOFF.md). All three implementation
+> agents have stopped and released ownership. The current draw.io increment is
+> unverified WIP; the historical autonomous directives and owners below do not
+> resume automatically. The new Harness follows the user's next instruction.
+
 Updated2026-11-13. User requests Go + MyGo native Surface UI, project-authored
 engines, local plugins, simple UI and low resource use. Since2026-11-11 the
 DSH lead session is the main responsible party (user ruling); it plans,

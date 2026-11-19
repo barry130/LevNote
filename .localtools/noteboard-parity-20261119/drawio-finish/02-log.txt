@@ -1,0 +1,27 @@
+=== RUN   TestDrawioMultiCloneClampCompletesSelectionHistoryAndFeedback
+    drawio_clone_correction20261117_test.go:27: real clone does not clamp and select result 1 {376 376} [levnote-1 levnote-2]
+--- FAIL: TestDrawioMultiCloneClampCompletesSelectionHistoryAndFeedback (0.05s)
+=== RUN   TestDrawioCloneHistoryEntryAndByteBudgets
+--- PASS: TestDrawioCloneHistoryEntryAndByteBudgets (0.03s)
+=== RUN   TestDrawioCloneHistoryWitnessOwnerAndReleaseReferences
+--- PASS: TestDrawioCloneHistoryWitnessOwnerAndReleaseReferences (0.02s)
+=== RUN   TestDrawioMultiCloneOneTransactionSelectionAndExactUndoRedo
+--- PASS: TestDrawioMultiCloneOneTransactionSelectionAndExactUndoRedo (0.04s)
+=== RUN   TestDrawioMultiCloneContinuousHistoryRespectsOwnerAndSelectionEpoch
+    drawio_multi_clone_test.go:78: two undos did not restore the original source and selection []
+--- FAIL: TestDrawioMultiCloneContinuousHistoryRespectsOwnerAndSelectionEpoch (0.02s)
+=== RUN   TestDrawioCloneRejectsInvalidAndLifecycleChanges
+=== RUN   TestDrawioCloneRejectsInvalidAndLifecycleChanges/empty
+=== RUN   TestDrawioCloneRejectsInvalidAndLifecycleChanges/single
+=== RUN   TestDrawioCloneRejectsInvalidAndLifecycleChanges/missing
+=== RUN   TestDrawioCloneRejectsInvalidAndLifecycleChanges/replaced-buffer
+=== RUN   TestDrawioCloneRejectsInvalidAndLifecycleChanges/readonly
+--- PASS: TestDrawioCloneRejectsInvalidAndLifecycleChanges (0.04s)
+    --- PASS: TestDrawioCloneRejectsInvalidAndLifecycleChanges/empty (0.01s)
+    --- PASS: TestDrawioCloneRejectsInvalidAndLifecycleChanges/single (0.01s)
+    --- PASS: TestDrawioCloneRejectsInvalidAndLifecycleChanges/missing (0.01s)
+    --- PASS: TestDrawioCloneRejectsInvalidAndLifecycleChanges/replaced-buffer (0.01s)
+    --- PASS: TestDrawioCloneRejectsInvalidAndLifecycleChanges/readonly (0.01s)
+FAIL
+FAIL	levnote.local/native/modules/graphview	2.030s
+FAIL

@@ -1,0 +1,1165 @@
+--- a/native/app/app.go
++++ b/native/app/app.go
+@@ -150,6 +150,7 @@
+ 	watches                                         map[string]context.CancelFunc
+ 	searchCancel                                    context.CancelFunc
+ 	searchID                                        int
++	searchRoot                                      string
+ 	SearchResults                                   []search.FileMatch
+ 	SearchIssues                                    []search.FileIssue
+ 	SearchIssuesDropped                             int
+@@ -160,6 +161,9 @@
+ 	TreeList                                        ui.ListState
+ 	SearchList                                      ui.ListState
+ 	OutlineList                                     ui.ListState
++	treeListLifetime                                appListLifetime
++	searchListLifetime                              appListLifetime
++	outlineListLifetime                             appListLifetime
+ 	TreeSelected                                    int
+ 	SearchSelected                                  int
+ 	OutlineSelected                                 int
+@@ -912,7 +916,12 @@
+ 	}
+ 	a.treeRoot = root
+ 	a.TreeSelected = -1
+-	a.TreeList = ui.ListState{}
++	a.treeListLifetime.reset(&a.TreeList)
++	// An asynchronous scan must not leave the previous root's rows actionable
++	// under the new root label while the replacement is still pending.
++	a.Entries = nil
++	a.TreeTruncated = false
++	a.TreeIssues = nil
+ }
+ func (a *App) Save(t *Tab, as bool) bool {
+ 	defer a.deferExportDelivery()()
+--- a/native/app/view.go
++++ b/native/app/view.go
+@@ -11,6 +11,7 @@
+ )
+ 
+ func (a *App) View(c *ui.Context) {
++	a.beginAppListFrame()
+ 	a.deliverBinary()
+ 	a.expireFindCache()
+ 	a.deliverPackageWork()
+@@ -39,6 +40,7 @@
+ 		a.closeGoToLine()
+ 	}
+ 	a.shortcuts(c)
++	a.cancelHiddenListFocus()
+ 	ui.Column(c).Fill().Background(theme.Background).Children(func() {
+ 		ui.Row(c.Key("toolbar")).Height(46).Padding(7, 16).Gap(8).Background(theme.Surface).Children(func() {
+ 			ui.Text(c, "轻笺").Bold().FontSize(16).Margin(0, 12, 0, 0)
+@@ -219,27 +221,40 @@
+ 			}
+ 			entries := a.Entries
+ 			if len(entries) == 0 {
++				a.TreeList.Handle.CancelFocus()
+ 				ui.Text(c, "此文件夹为空。").FontSize(12).TextColor(t.TextMuted).Padding(10, 12)
+ 			} else {
+-				a.TreeList.Selected = &a.TreeSelected
++				root, generation := a.Root, a.treeGeneration
++				current := func() bool {
++					return !a.shuttingDown.Load() && !a.ShowOutline && a.Root == root &&
++						a.treeRoot == root && a.treeGeneration == generation
++				}
++				// List input may finish after a row callback changes the root. A
++				// pass-local choice cannot write back into the replacement model.
++				selected := a.TreeSelected
++				a.TreeList.Selected = &selected
+ 				a.TreeList.Key = func(i int) any {
+-					if i < 0 || i >= len(entries) {
++					if !current() || i < 0 || i >= len(entries) {
+ 						return ""
+ 					}
+ 					return entries[i].Path
+ 				}
+ 				a.TreeList.Label = func(i int) string {
+-					if i < 0 || i >= len(entries) {
++					if !current() || i < 0 || i >= len(entries) {
+ 						return ""
+ 					}
+ 					return entries[i].Name
+ 				}
++				a.treeListLifetime.built = true
+ 				list := ui.List(c, &a.TreeList, len(entries), func(i int) {
+-					if i < 0 || i >= len(entries) {
++					if !current() || i < 0 || i >= len(entries) {
+ 						return
+ 					}
+ 					if a.treeRowBuilt != nil {
+ 						a.treeRowBuilt(i)
++					}
++					if !current() {
++						return
+ 					}
+ 					entry := entries[i]
+ 					prefix := "  "
+@@ -250,11 +265,15 @@
+ 						}
+ 					}
+ 					ui.Row(c).FillWidth().Height(29).Padding(4, 10+float32(entry.Depth)*14).Children(func() {
+-						ui.Text(c, prefix+entry.Name)
++						ui.Text(c, prefix+entry.Name).SingleLine().Grow(1).MinWidth(0).Tooltip(entry.Path)
+ 					})
+ 				}).Grow(1)
+-				if list.Submitted() {
+-					a.activateTreeEntry(a.TreeSelected)
++				if current() {
++					a.TreeSelected = selected
++					if list.Submitted() && selected >= 0 && selected < len(entries) &&
++						selected < len(a.Entries) && a.Entries[selected].Path == entries[selected].Path {
++						a.activateTreeEntry(selected)
++					}
+ 				}
+ 			}
+ 		}
+--- a/native/app/workspace.go
++++ b/native/app/workspace.go
+@@ -68,6 +68,7 @@
+ 		a.report(fmt.Errorf("导出进程清理失败：%w", err))
+ 	}
+ 	a.releaseOutline()
++	a.closeAppLists()
+ 	close(a.shutdownDone)
+ 	if a.searchCancel != nil {
+ 		a.searchCancel()
+@@ -95,10 +96,11 @@
+ 	a.SearchIssues = nil
+ 	a.SearchIssuesDropped = 0
+ 	a.SearchSelected = -1
+-	a.SearchList = ui.ListState{}
+-	a.SearchList.ScrollTo(0, ui.Start)
++	a.searchListLifetime.reset(&a.SearchList)
++	a.SearchSummary = ""
+ 	a.ShowWorkspaceSearch = true
+ 	root, opts := a.Root, a.findOptions()
++	a.searchRoot = root
+ 	go func() {
+ 		summary, err := search.Workspace(ctx, root, search.WorkspaceOptions{Options: opts}, func(batch search.Batch) {
+ 			a.update(func() {
+@@ -139,60 +141,92 @@
+ }
+ 
+ func (a *App) workspaceResults(c *ui.Context) {
+-	ui.Column(c).Height(230).Border(1, c.Theme().Border).Children(func() {
++	panelHeight := float32(230)
++	if _, height := c.Size(); height > 0 && height < 600 {
++		// Leave source input usable beside Find at the 760x480 minimum.
++		panelHeight = min(panelHeight, max(float32(110), height-260))
++	}
++	ui.Column(c).Height(panelHeight).Shrink(0).Border(1, c.Theme().Border).Children(func() {
+ 		ui.Row(c).Padding(8, 12).Gap(8).Children(func() {
+ 			label := a.SearchSummary
+ 			if a.Searching {
+ 				label = "正在搜索工作区…"
+ 			}
+-			ui.Text(c, label).FontSize(12).Grow(1)
+-			if a.Searching && ui.Button(c, "取消搜索").Clicked() {
++			ui.Text(c, label).FontSize(12).SingleLine().Grow(1).Shrink(1).MinWidth(0).Tooltip(label)
++			if a.Searching && ui.Button(c, "取消搜索").Shrink(0).Clicked() && a.searchCancel != nil {
+ 				a.searchCancel()
+ 			}
+-			if len(a.SearchIssues) > 0 && ui.Button(c, "查看跳过详情").Clicked() {
++			if len(a.SearchIssues) > 0 && ui.Button(c, "查看跳过详情").Shrink(0).Clicked() {
+ 				a.ShowIssues = true
+ 			}
+-			if ui.Button(c, "收起结果").Clicked() {
++			if ui.Button(c, "收起结果").Shrink(0).Clicked() {
+ 				a.ShowWorkspaceSearch = false
++				a.SearchList.Handle.CancelFocus()
+ 			}
+ 		})
++		if !a.ShowWorkspaceSearch {
++			return // Collapse preserves the current results and scroll place.
++		}
++		if a.searchRoot != a.Root {
++			a.SearchList.Handle.CancelFocus()
++			ui.Text(c, "工作区已变化，请重新搜索。").FontSize(12).TextColor(c.Theme().TextMuted).Padding(10, 14)
++			return
++		}
+ 		results := a.SearchResults
+ 		if len(results) == 0 {
++			a.SearchList.Handle.CancelFocus()
+ 			label := "没有匹配结果。"
+ 			if a.Searching {
+ 				label = "正在读取结果…"
+ 			}
+ 			ui.Text(c, label).FontSize(12).TextColor(c.Theme().TextMuted).Padding(10, 14)
+ 		} else {
+-			a.SearchList.Selected = &a.SearchSelected
++			id, root := a.searchID, a.searchRoot
++			current := func() bool {
++				return !a.shuttingDown.Load() && a.ShowWorkspaceSearch && !a.ShowPlugins &&
++					a.searchID == id && a.searchRoot == root && a.Root == root
++			}
++			selected := a.SearchSelected
++			a.SearchList.Selected = &selected
+ 			a.SearchList.Key = func(i int) any {
+-				if i < 0 || i >= len(results) {
++				if !current() || i < 0 || i >= len(results) {
+ 					return searchRowKey{}
+ 				}
+ 				result := results[i]
+ 				return searchRowKey{Path: result.Path, Start: result.Start, End: result.End}
+ 			}
+ 			a.SearchList.Label = func(i int) string {
+-				if i < 0 || i >= len(results) {
++				if !current() || i < 0 || i >= len(results) {
+ 					return ""
+ 				}
+ 				result := results[i]
+ 				return fmt.Sprintf("%s:%d  %s", filepath.Base(result.Path), result.Line, result.Preview)
+ 			}
++			a.searchListLifetime.built = true
+ 			list := ui.List(c, &a.SearchList, len(results), func(i int) {
+-				if i < 0 || i >= len(results) {
++				if !current() || i < 0 || i >= len(results) {
+ 					return
+ 				}
+ 				if a.searchRowBuilt != nil {
+ 					a.searchRowBuilt(i)
+ 				}
++				if !current() {
++					return
++				}
+ 				result := results[i]
++				label := fmt.Sprintf("%s:%d  %s", filepath.Base(result.Path), result.Line, result.Preview)
+ 				ui.Row(c).FillWidth().Height(28).Padding(4, 8).Children(func() {
+-					ui.Text(c, fmt.Sprintf("%s:%d  %s", filepath.Base(result.Path), result.Line, result.Preview))
++					ui.Text(c, label).SingleLine().Grow(1).MinWidth(0).Tooltip(result.Path + "\n" + label)
+ 				})
+ 			}).Grow(1)
+-			if list.Submitted() {
+-				a.activateSearchResult(a.SearchSelected)
++			if current() {
++				a.SearchSelected = selected
++				if list.Submitted() && selected >= 0 && selected < len(results) && selected < len(a.SearchResults) {
++					old, now := results[selected], a.SearchResults[selected]
++					if old.Path == now.Path && old.Start == now.Start && old.End == now.End {
++						a.activateSearchResult(selected)
++					}
++				}
+ 			}
+ 		}
+ 	})
+--- a/native/app/outline.go
++++ b/native/app/outline.go
+@@ -22,19 +22,20 @@
+ 		return
+ 	}
+ 	a.ShowOutline = visible
++	if visible {
++		a.TreeList.Handle.CancelFocus()
++	}
+ 	if !visible {
+ 		a.releaseOutline()
+ 		return
+ 	}
+ 	a.OutlineSelected = -1
+-	a.OutlineList = ui.ListState{}
++	a.outlineListLifetime.reset(&a.OutlineList)
+ }
+ 
+ func (a *App) releaseOutline() {
+ 	a.outlineGeneration++
+-	if a.OutlineSource != nil {
+-		a.OutlineSource.Release()
+-	}
++	source := a.OutlineSource
+ 	a.OutlineSource = nil
+ 	a.OutlineTabID = 0
+ 	a.OutlineBuffer = nil
+@@ -46,7 +47,12 @@
+ 	a.OutlineLoaded = false
+ 	a.OutlineError = ""
+ 	a.OutlineSelected = -1
+-	a.OutlineList = ui.ListState{}
++	a.outlineListLifetime.reset(&a.OutlineList)
++	// Detach all application ownership before invoking a controller callback.
++	// A reentrant release cannot see or release this controller a second time.
++	if source != nil {
++		source.Release()
++	}
+ }
+ 
+ func (a *App) outlineSourceFor(t *Tab) (editor.OutlineSource, error) {
+@@ -66,7 +72,12 @@
+ 		a.OutlineFactoryGeneration == t.OutlineFactoryGeneration {
+ 		return a.OutlineSource, nil
+ 	}
+-	a.releaseOutline()
++	// A detached controller was already invalidated at hide/tab/retry time.
++	// Do not cancel a later deliberate list-focus request merely to create
++	// its fresh controller on the next visible frame.
++	if a.OutlineSource != nil || a.OutlineTabID != 0 || a.OutlineBuffer != nil {
++		a.releaseOutline()
++	}
+ 	source := factory(a.editorHost(t))
+ 	if source == nil {
+ 		return nil, editor.ErrOutlineUnsupported
+@@ -86,10 +97,12 @@
+ 	}
+ 	ui.Column(c.Key("outline-panel")).Grow(1).MinHeight(0).Padding(8, 10).Gap(5).Children(func() {
+ 		if a.Current() == nil {
++			a.OutlineList.Handle.CancelFocus()
+ 			ui.Text(c, "尚未打开文档。").FontSize(12).TextColor(t.TextMuted)
+ 			return
+ 		}
+ 		if a.OutlineError != "" {
++			a.OutlineList.Handle.CancelFocus()
+ 			ui.Text(c, a.OutlineError).FontSize(12).TextColor(t.Warning)
+ 			if a.OutlineError != editor.ErrOutlineUnsupported.Error() && ui.Button(c, "重试大纲").Height(25).Clicked() {
+ 				a.releaseOutline()
+@@ -101,6 +114,7 @@
+ 				FontSize(11).TextColor(t.Warning)
+ 		}
+ 		if a.OutlineLoaded && len(a.OutlineItems) == 0 {
++			a.OutlineList.Handle.CancelFocus()
+ 			if !a.OutlineTruncated {
+ 				ui.Text(c, "此文档没有可显示的大纲项。").FontSize(12).TextColor(t.TextMuted)
+ 			}
+@@ -108,37 +122,54 @@
+ 		}
+ 		items := a.OutlineItems
+ 		if len(items) == 0 {
++			a.OutlineList.Handle.CancelFocus()
+ 			return
+ 		}
+-		a.OutlineList.Selected = &a.OutlineSelected
++		tab := a.Current()
++		tabID, adapter, factoryGeneration := tab.ID, tab.Adapter, tab.OutlineFactoryGeneration
++		path, mode, buffer := tab.Doc.Path, tab.Mode, tab.Doc.Buffer
++		generation, version := a.outlineGeneration, a.OutlineSnapshotVersion
++		current := func() bool {
++			return !a.shuttingDown.Load() && a.ShowOutline && a.OutlineSnapshotVersion == version && buffer.Version() == version &&
++				a.outlineNavigationContextMatches(tab, tabID, adapter, factoryGeneration, path, mode, buffer, generation)
++		}
++		selected := a.OutlineSelected
++		a.OutlineList.Selected = &selected
+ 		a.OutlineList.Key = func(i int) any {
+-			if i < 0 || i >= len(items) {
++			if !current() || i < 0 || i >= len(items) {
+ 				return ""
+ 			}
+ 			return items[i].ID
+ 		}
+ 		a.OutlineList.Label = func(i int) string {
+-			if i < 0 || i >= len(items) {
++			if !current() || i < 0 || i >= len(items) {
+ 				return ""
+ 			}
+ 			return items[i].Text
+ 		}
++		a.outlineListLifetime.built = true
+ 		list := ui.List(c.Key("outline-list"), &a.OutlineList, len(items), func(i int) {
+-			if i < 0 || i >= len(items) {
++			if !current() || i < 0 || i >= len(items) {
+ 				return
+ 			}
+ 			if a.outlineRowBuilt != nil {
+ 				a.outlineRowBuilt(i)
++			}
++			if !current() {
++				return
+ 			}
+ 			item := items[i]
+ 			indent := float32(min(max(item.Level-1, 0), 5) * 10)
+ 			ui.Row(c).FillWidth().Height(28).Padding(4, indent).Children(func() {
+-				ui.Text(c, item.Text).SingleLine().Tooltip(item.Text)
++				ui.Text(c, item.Text).SingleLine().Grow(1).MinWidth(0).Tooltip(item.Text)
+ 			})
+ 		}).Grow(1)
+-		_ = list
+-		if list.Submitted() {
+-			a.activateSelectedOutlineItem()
++		if current() {
++			a.OutlineSelected = selected
++			if list.Submitted() && selected >= 0 && selected < len(items) && selected < len(a.OutlineItems) &&
++				a.OutlineItems[selected].ID == items[selected].ID {
++				a.activateSelectedOutlineItem()
++			}
+ 		}
+ 	})
+ }
+@@ -162,7 +193,7 @@
+ 		a.OutlineItems = nil
+ 		a.OutlineTruncated = false
+ 		a.OutlineSelected = -1
+-		a.OutlineList = ui.ListState{}
++		a.outlineListLifetime.reset(&a.OutlineList)
+ 		return err
+ 	}
+ 	version := t.Doc.Buffer.Version()
+@@ -181,7 +212,7 @@
+ 		a.OutlineItems = nil
+ 		a.OutlineTruncated = false
+ 		a.OutlineSelected = -1
+-		a.OutlineList = ui.ListState{}
++		a.outlineListLifetime.reset(&a.OutlineList)
+ 		return err
+ 	}
+ 	if snapshot.Version != version {
+@@ -190,10 +221,13 @@
+ 		a.OutlineItems = nil
+ 		a.OutlineTruncated = false
+ 		a.OutlineSelected = -1
+-		a.OutlineList = ui.ListState{}
++		a.outlineListLifetime.reset(&a.OutlineList)
+ 		return err
+ 	}
+ 	items, truncated := boundedOutlineItems(snapshot.Items)
++	if len(items) == 0 {
++		a.outlineListLifetime.reset(&a.OutlineList)
++	}
+ 	a.OutlineItems = items
+ 	a.OutlineSnapshotVersion = version
+ 	a.OutlineTruncated = snapshot.Truncated || truncated
+@@ -264,7 +298,7 @@
+ 		if item.ID == id {
+ 			a.OutlineSelected = i
+ 			if scroll {
+-				a.OutlineList.ScrollIntoView(i)
++				a.outlineListLifetime.reveal(&a.OutlineList, i)
+ 			}
+ 			return
+ 		}
+--- /dev/null
++++ b/native/app/list_lifetime.go
+@@ -0,0 +1,86 @@
++package app
++
++import "github.com/egoist/mygo/ui"
++
++// appListLifetime keeps the last build alive through MyGo's late layout. Only
++// the public Handle survives a semantic reset; no old ListState is retained.
++// App.View starts the next safe boundary before building any list.
++type appListLifetime struct {
++	built         bool
++	resetPending  bool
++	revealPending bool
++	revealRow     int
++}
++
++func resetAppListState(state *ui.ListState) {
++	handle := state.Handle
++	*state = ui.ListState{Handle: handle}
++}
++
++func (l *appListLifetime) begin(state *ui.ListState) {
++	l.built = false
++	if l.resetPending {
++		resetAppListState(state)
++		l.resetPending = false
++	}
++	if l.revealPending {
++		state.ScrollIntoView(l.revealRow)
++		l.revealPending = false
++	}
++	// Do not cancel focus here: a deliberate new request made after the
++	// invalidation must survive the deferred reset on the same Handle.
++}
++
++func (l *appListLifetime) reset(state *ui.ListState) {
++	state.Handle.CancelFocus()
++	l.revealPending = false
++	if l.built {
++		l.resetPending = true
++		return
++	}
++	resetAppListState(state)
++	l.resetPending = false
++}
++
++func (l *appListLifetime) reveal(state *ui.ListState, row int) {
++	if l.resetPending {
++		l.revealPending, l.revealRow = true, row
++		return
++	}
++	state.ScrollIntoView(row)
++}
++
++func (l *appListLifetime) close(state *ui.ListState) {
++	// Shutdown is called after the product window closes. There is no live
++	// layout to defer, so release all application-owned row callbacks now.
++	l.built = false
++	l.reset(state)
++}
++
++func (a *App) beginAppListFrame() {
++	a.treeListLifetime.begin(&a.TreeList)
++	a.searchListLifetime.begin(&a.SearchList)
++	a.outlineListLifetime.begin(&a.OutlineList)
++}
++
++func (a *App) cancelHiddenListFocus() {
++	if a.ShowOutline || a.Root == "" {
++		a.TreeList.Handle.CancelFocus()
++	}
++	if !a.ShowWorkspaceSearch || a.ShowPlugins {
++		a.SearchList.Handle.CancelFocus()
++	}
++	if !a.ShowOutline || a.Current() == nil || a.Current().isBinary() {
++		a.OutlineList.Handle.CancelFocus()
++	}
++}
++
++func (a *App) closeAppLists() {
++	a.treeListLifetime.close(&a.TreeList)
++	a.searchListLifetime.close(&a.SearchList)
++	a.outlineListLifetime.close(&a.OutlineList)
++	a.TreeSelected, a.SearchSelected, a.OutlineSelected = -1, -1, -1
++	a.searchRoot = ""
++	a.Entries, a.SearchResults, a.OutlineItems = nil, nil, nil
++	a.treeRowBuilt, a.searchRowBuilt, a.outlineRowBuilt = nil, nil, nil
++}
+--- /dev/null
++++ b/native/app/list_lifetime_test.go
+@@ -0,0 +1,399 @@
++package app
++
++import (
++	"errors"
++	"fmt"
++	"image/png"
++	"os"
++	"path/filepath"
++	"strings"
++	"testing"
++
++	"github.com/egoist/mygo"
++	"github.com/egoist/mygo/ui"
++	"levnote.local/native/core/search"
++	"levnote.local/native/ui/editor"
++)
++
++func TestAppListHandlesSurviveSemanticResets(t *testing.T) {
++	a := newTestApp(t, t.TempDir())
++	lists := []struct {
++		name     string
++		state    *ui.ListState
++		lifetime *appListLifetime
++		selected *int
++	}{
++		{"tree", &a.TreeList, &a.treeListLifetime, &a.TreeSelected},
++		{"search", &a.SearchList, &a.searchListLifetime, &a.SearchSelected},
++		{"outline", &a.OutlineList, &a.outlineListLifetime, &a.OutlineSelected},
++	}
++	var handles [3]ui.Handle
++	expectDrain := false
++	tester := ui.NewTester(func(c *ui.Context) {
++		a.beginAppListFrame()
++		ui.Row(c).Fill().Children(func() {
++			for _, list := range lists {
++				if expectDrain && (list.state.Key != nil || list.state.Label != nil || list.state.Selected != nil) {
++					t.Fatalf("%s retained obsolete public callbacks at the pre-build boundary", list.name)
++				}
++				list.state.Selected = list.selected
++				list.state.Key = func(i int) any { return i }
++				list.state.Label = func(i int) string { return fmt.Sprintf("%s-row-%03d", list.name, i) }
++				list.lifetime.built = true
++				ui.List(c.Key(list.name), list.state, 100, func(i int) {
++					ui.Row(c).Height(28).Children(func() { ui.Text(c, fmt.Sprintf("%s-row-%03d", list.name, i)) })
++				}).Grow(1)
++			}
++		})
++		expectDrain = false
++	}, 760, 480)
++	tester.Frame()
++	for i, list := range lists {
++		handles[i] = list.state.Handle
++		if handles[i] == (ui.Handle{}) {
++			t.Fatalf("%s did not bind", list.name)
++		}
++	}
++	for pass := 0; pass < 12; pass++ {
++		for i, list := range lists {
++			*list.selected = -1
++			list.lifetime.reset(list.state)
++			if list.state.Handle != handles[i] || list.state.Key == nil || list.state.Label == nil || list.state.Selected == nil {
++				t.Fatalf("%s destroyed its already-built state before the next boundary", list.name)
++			}
++			list.lifetime.reveal(list.state, 99)
++		}
++		// The new deliberate request follows cancellation, while the reset
++		// is still pending. Draining must preserve this exact public Handle.
++		target := pass % len(lists)
++		lists[target].state.Handle.Focus()
++		expectDrain = true
++		tester.Frame()
++		tester.Key(0, ui.KeyEnd)
++		tester.Frame()
++		for i, list := range lists {
++			want := -1
++			if i == target {
++				want = 99
++			}
++			if list.state.Handle != handles[i] || *list.selected != want {
++				t.Fatalf("%s pass %d: handle replaced or new focus lost, selected=%d want=%d", list.name, pass, *list.selected, want)
++			}
++		}
++	}
++	a.Shutdown()
++	for i, list := range lists {
++		if list.state.Handle != handles[i] || list.state.Key != nil || list.state.Label != nil || list.state.Selected != nil || *list.selected != -1 {
++			t.Fatalf("%s shutdown retained application-owned callbacks or abandoned the bound handle", list.name)
++		}
++	}
++}
++
++func listOutlineSource(tab *Tab, prefix string) *outlineSourceStub {
++	source := &outlineSourceStub{}
++	source.snapshotFn = func() (editor.OutlineSnapshot, error) {
++		items := make([]editor.OutlineItem, 64)
++		for i := range items {
++			items[i] = editor.OutlineItem{ID: fmt.Sprintf("%s-%02d", prefix, i), Text: fmt.Sprintf("%s-%02d", prefix, i), Level: 1, Offset: i}
++		}
++		return editor.OutlineSnapshot{Version: tab.Doc.Buffer.Version(), Items: items}, nil
++	}
++	source.resolveItemFn = func(id string) (editor.OutlineItem, error) {
++		var row int
++		if _, err := fmt.Sscanf(id, prefix+"-%02d", &row); err != nil || row < 0 || row >= 64 {
++			return editor.OutlineItem{}, editor.ErrOutlineStale
++		}
++		return editor.OutlineItem{ID: id, Text: id, Level: 1, Offset: row}, nil
++	}
++	return source
++}
++
++func TestOutlineListHandleReleaseAfterSidebarBuild(t *testing.T) {
++	a := newTestApp(t, t.TempDir())
++	tab := newOutlineTab(a, strings.Repeat("x", 128), "late.md")
++	tab.Mode = "source"
++	old := listOutlineSource(tab, "old")
++	fresh := listOutlineSource(tab, "fresh")
++	calls := 0
++	installSourceOutlineFactory(tab, old, &calls)
++	a.ShowOutline = true
++	tester := ui.NewTester(a.View, 760, 480)
++	tester.Frame()
++	handle := a.OutlineList.Handle
++	if handle == (ui.Handle{}) || len(a.OutlineItems) != 64 {
++		t.Fatal("outline did not bind before the late-layout transition")
++	}
++	before, version, history := tab.Doc.Buffer.String(), tab.Doc.Buffer.Version(), tab.Doc.Buffer.History()
++	replaced := false
++	a.outlineRowBuilt = func(int) {
++		if replaced {
++			return
++		}
++		replaced = true
++		a.releaseOutline()
++		installSourceOutlineFactory(tab, fresh, &calls)
++		tab.OutlineFactoryGeneration++
++		// This request follows the release while the old list is still built.
++		a.OutlineList.Handle.Focus()
++	}
++	tester.Frame()
++	tester.Frame()
++	if !replaced || old.releases != 1 || len(old.itemInputs) != 0 || a.OutlineList.Handle != handle ||
++		len(a.OutlineItems) != 64 || a.OutlineItems[0].ID != "fresh-00" || a.OutlineSelected != -1 {
++		t.Fatalf("obsolete outline survived the after-build transition: old releases=%d resolves=%v selected=%d items=%v",
++			old.releases, old.itemInputs, a.OutlineSelected, a.OutlineItems)
++	}
++	tester.Key(0, ui.KeyEnd)
++	tester.Frame()
++	if a.OutlineSelected != 63 {
++		t.Fatal("new deliberate focus was lost while draining the released list")
++	}
++	tester.Key(0, ui.KeyEnter)
++	tester.Frame()
++	if len(fresh.itemInputs) != 1 || fresh.itemInputs[0] != "fresh-63" || tab.Doc.Buffer.Selection().Head != 63 {
++		t.Fatalf("Enter did not target the replacement controller: resolves=%v selection=%v", fresh.itemInputs, tab.Doc.Buffer.Selection())
++	}
++	if tab.Doc.Buffer.String() != before || tab.Doc.Buffer.Version() != version || tab.Doc.Buffer.History() != history {
++		t.Fatal("outline lifecycle/navigation changed source bytes or history")
++	}
++}
++
++func TestOutlineListHandleReentrantFlushAndRetry(t *testing.T) {
++	a := newTestApp(t, t.TempDir())
++	tab := newOutlineTab(a, strings.Repeat("x", 128), "retry.md")
++	tab.Mode = "preview"
++	source := listOutlineSource(tab, "heading")
++	_, view := installOutlineStub(a, tab, source)
++	tab.View = view
++	a.ShowOutline = true
++	tester := ui.NewTester(a.View, 760, 480)
++	tester.Frame()
++	handle := a.OutlineList.Handle
++	before, version, history := tab.Doc.Buffer.String(), tab.Doc.Buffer.Version(), tab.Doc.Buffer.History()
++	clickTesterText(t, tester, "heading-00")
++	view.onFlush = func() {
++		a.releaseOutline()
++		view.onFlush = nil
++	}
++	tester.Key(0, ui.KeyEnter)
++	if len(source.itemInputs) != 0 || len(view.navigations) != 0 || !strings.Contains(a.Message, editor.ErrOutlineStale.Error()) {
++		t.Fatal("a released controller received navigation after reentrant Flush")
++	}
++	tester.Frame()
++	goodSnapshot := source.snapshotFn
++	source.snapshotFn = func() (editor.OutlineSnapshot, error) { return editor.OutlineSnapshot{}, errors.New("retry fixture") }
++	if err := a.ensureOutlineSnapshot(tab, "", true); err == nil {
++		t.Fatal("snapshot failure was not surfaced")
++	}
++	tester.Frame()
++	if a.OutlineList.Handle != handle || a.OutlineSelected != -1 || a.OutlineList.Key != nil ||
++		a.OutlineList.Label != nil || a.OutlineList.Selected != nil || !tester.HasText("读取大纲失败：retry fixture") {
++		t.Fatal("error retained obsolete row callbacks/selection or abandoned its handle")
++	}
++	source.snapshotFn = goodSnapshot
++	if err := tester.Click("重试大纲"); err != nil {
++		t.Fatal(err)
++	}
++	a.OutlineList.Handle.Focus()
++	tester.Frame()
++	tester.Key(0, ui.KeyEnd)
++	tester.Frame()
++	tester.Key(0, ui.KeyEnter)
++	tester.Frame()
++	if a.OutlineList.Handle != handle || a.OutlineSelected != 63 || len(view.navigations) != 1 || view.navigations[0] != "heading-63" {
++		t.Fatalf("retry did not restore fresh keyboard navigation: selected=%d navigation=%v", a.OutlineSelected, view.navigations)
++	}
++	// A successful same-controller reparse keeps the selected stable ID,
++	// even when its row moves. This is not a semantic reset.
++	source.snapshotFn = func() (editor.OutlineSnapshot, error) {
++		snapshot, err := goodSnapshot()
++		for i, j := 0, len(snapshot.Items)-1; i < j; i, j = i+1, j-1 {
++			snapshot.Items[i], snapshot.Items[j] = snapshot.Items[j], snapshot.Items[i]
++		}
++		return snapshot, err
++	}
++	if err := a.ensureOutlineSnapshot(tab, "", true); err != nil {
++		t.Fatal(err)
++	}
++	tester.Frame()
++	if a.OutlineList.Handle != handle || a.OutlineSelected != 0 || a.OutlineItems[0].ID != "heading-63" {
++		t.Fatal("same-controller reparse lost the selected stable ID")
++	}
++	source.snapshotFn = func() (editor.OutlineSnapshot, error) { return editor.OutlineSnapshot{Version: tab.Doc.Buffer.Version()}, nil }
++	if err := a.ensureOutlineSnapshot(tab, "", true); err != nil {
++		t.Fatal(err)
++	}
++	tester.Frame()
++	if a.OutlineList.Handle != handle || a.OutlineList.Key != nil || a.OutlineList.Label != nil || a.OutlineList.Selected != nil {
++		t.Fatal("empty outline retained obsolete callbacks or lost its bound handle")
++	}
++	source.snapshotFn = goodSnapshot
++	if err := a.ensureOutlineSnapshot(tab, "", true); err != nil {
++		t.Fatal(err)
++	}
++	tester.Frame()
++	if a.OutlineList.Handle != handle || len(a.OutlineItems) != 64 || a.OutlineSelected != -1 {
++		t.Fatal("empty/nonempty outline did not restore fresh stable state")
++	}
++	if tab.Doc.Buffer.String() != before || tab.Doc.Buffer.Version() != version || tab.Doc.Buffer.History() != history {
++		t.Fatal("error/retry/reparse changed source bytes or committed history")
++	}
++}
++
++func TestHiddenListFocusDoesNotStealEditorInput(t *testing.T) {
++	for _, kind := range []string{"tree", "search", "outline"} {
++		t.Run(kind, func(t *testing.T) {
++			root := t.TempDir()
++			for i := 0; i < 64; i++ {
++				if err := os.WriteFile(filepath.Join(root, fmt.Sprintf("file-%02d.txt", i)), []byte("needle"), 0600); err != nil { t.Fatal(err) }
++			}
++			a, tab := newSearchTextApp(t, "needle " + strings.Repeat("x", 128))
++			a.Root = root
++			a.refreshTreeNow()
++			factoryCalls := 0
++			installSourceOutlineFactory(tab, listOutlineSource(tab, "focus"), &factoryCalls)
++			a.ShowWorkspaceSearch, a.searchRoot = true, root
++			for i := 0; i < 32; i++ {
++				a.SearchResults = append(a.SearchResults, search.FileMatch{Path: filepath.Join(root, "file-00.txt"), Line: i+1, Start: i, End: i+1, Preview: fmt.Sprintf("result-%02d", i)})
++			}
++			tester := ui.NewTester(a.View, 1180, 780)
++			a.setOutlineVisible(true)
++			tester.Frame()
++			if kind != "outline" { a.setOutlineVisible(false) }
++			tester.Frame()
++			state, selected, want := &a.OutlineList, &a.OutlineSelected, 63
++			if kind == "tree" { state, selected = &a.TreeList, &a.TreeSelected }
++			if kind == "search" { state, selected, want = &a.SearchList, &a.SearchSelected, 31 }
++			handle := state.Handle
++			if handle == (ui.Handle{}) { t.Fatal("focus fixture did not bind") }
++			if err := tester.Click("文档编辑区"); err != nil { t.Fatal(err) }
++			before, version := tab.Doc.Buffer.String(), tab.Doc.Buffer.Version()
++			handle.Focus()
++			switch kind {
++			case "tree": a.setOutlineVisible(true)
++			case "search": a.ShowWorkspaceSearch = false
++			case "outline": a.setOutlineVisible(false)
++			}
++			tester.Frame()
++			tester.Frame()
++			if !tester.Focused("文档编辑区") { t.Fatal("a hidden list stole the source input focus") }
++			tester.Type("猫")
++			if strings.Count(tab.Doc.Buffer.String(), "猫") != 1 || strings.ReplaceAll(tab.Doc.Buffer.String(), "猫", "") != before ||
++				tab.Doc.Buffer.Version() == version || a.Query != "" {
++				t.Fatal("typed source input was stolen, duplicated or routed into Find")
++			}
++			switch kind {
++			case "tree": a.setOutlineVisible(false)
++			case "search": a.ShowWorkspaceSearch = true
++			case "outline": a.setOutlineVisible(true)
++			}
++			handle.Focus()
++			tester.Frame()
++			tester.Key(0, ui.KeyEnd)
++			tester.Frame()
++			if state.Handle != handle || *selected != want { t.Fatalf("later deliberate %s focus did not target the fresh list: selected=%d", kind, *selected) }
++		})
++	}
++}
++
++func TestTreeRootSwitchKeepsComposingQueryInput(t *testing.T) {
++	roots := []string{t.TempDir(), t.TempDir()}
++	for group, root := range roots {
++		for i := 0; i < 2; i++ {
++			if err := os.WriteFile(filepath.Join(root, fmt.Sprintf("root-%d-%d.txt", group, i)), []byte("needle"), 0600); err != nil { t.Fatal(err) }
++		}
++	}
++	a, tab := newSearchTextApp(t, "needle needle")
++	a.Root, a.Query, a.ShowFind = roots[0], "needle", true
++	a.refreshTreeNow()
++	queue := make(chan func(), 64)
++	a.uiDispatch = func(fn func()) { queue <- fn }
++	tester := ui.NewTester(a.View, 1180, 780)
++	tester.Frame()
++	handle := a.TreeList.Handle
++	if handle == (ui.Handle{}) { t.Fatal("root fixture did not bind the tree") }
++	if err := tester.Click("查找内容"); err != nil { t.Fatal(err) }
++	tester.Compose("猫", 1)
++	preedit, ok := tester.AccessByRole(ui.RoleTextField, "查找内容")
++	if !ok || !preedit.Focused || !a.FindQueryComposing { t.Fatal("public query preedit did not initialize") }
++	before, version, history, selection := tab.Doc.Buffer.String(), tab.Doc.Buffer.Version(), tab.Doc.Buffer.History(), tab.Doc.Buffer.Selection()
++	handle.Focus()
++	a.openDialog = func(opts mygo.OpenDialogOptions) ([]string, error) {
++		if !opts.Directory { t.Fatal("root replacement did not use the folder contract") }
++		return []string{roots[1]}, nil
++	}
++	// ChooseFolder is the app-owned root-transition boundary; a native OS
++	// dialog and physical IME are intentionally outside public Tester evidence.
++	a.ChooseFolder()
++	drainListUIUntil(t, queue, func() bool { return len(a.Entries) == 2 })
++	tester.Frame()
++	tester.Frame()
++	after, ok := tester.AccessByRole(ui.RoleTextField, "查找内容")
++	if !ok || !after.Focused || after.Value != preedit.Value || a.Query != "needle" || !a.FindQueryComposing ||
++		a.TreeList.Handle != handle || a.Root != roots[1] || a.TreeSelected != -1 {
++		t.Fatalf("root transition stole focus, committed preedit or reused obsolete choice: input=%#v query=%q composing=%t selected=%d", after, a.Query, a.FindQueryComposing, a.TreeSelected)
++	}
++	tester.Key(0, ui.KeyEnter)
++	if tab.Doc.Buffer.Selection() != selection || a.Searching || a.searchID != 0 { t.Fatal("uncommitted query input submitted a document/workspace action") }
++	tester.Command("selectAll")
++	tester.Type("updated")
++	if a.Query != "updated" || a.FindQueryComposing { t.Fatal("query did not accept the later deliberate committed input") }
++	handle.Focus()
++	tester.Frame()
++	tester.Key(0, ui.KeyEnd)
++	tester.Frame()
++	if a.TreeSelected != 1 || a.TreeList.Handle != handle || !strings.HasPrefix(a.Entries[1].Name, "root-1-") { t.Fatal("later tree focus did not select the new root's row") }
++	if tab.Doc.Buffer.String() != before || tab.Doc.Buffer.Version() != version || tab.Doc.Buffer.History() != history { t.Fatal("root/query focus flow modified document bytes or history") }
++}
++
++func TestWorkspaceResultsMinimumWindowControls(t *testing.T) {
++	for _, dark := range []bool{false, true} {
++		t.Run(fmt.Sprintf("dark=%t", dark), func(t *testing.T) {
++			a := newTestApp(t, t.TempDir())
++			a.Dark = dark
++			a.NewDocument("text")
++			a.ShowFind, a.ShowWorkspaceSearch = true, true
++			a.SearchSummary = strings.Repeat("123456 个匹配 · 长路径详情 ", 30)
++			a.SearchIssues = []search.FileIssue{{Path: strings.Repeat("long-path/", 20), Reason: "fixture skip"}}
++			a.SearchResults = []search.FileMatch{{Path: strings.Repeat("very-long-directory/", 20)+"match.txt", Line: 1, Start: 0, End: 1, Preview: strings.Repeat("内容 ", 200)}}
++			cancelled := 0
++			a.searchCancel = func() { cancelled++ }
++			a.Searching = true
++			tester := ui.NewTester(a.View, 760, 480)
++			tester.Frame()
++			var rects []ui.Rect
++			for _, label := range []string{"取消搜索", "查看跳过详情", "收起结果"} {
++				info, ok := tester.Access(label)
++				if !ok || info.Bounds.W <= 0 || info.Bounds.H <= 0 || info.Bounds.X < 1+a.SidebarWidth ||
++					info.Bounds.X+info.Bounds.W > 760 || info.Bounds.Y < 0 || info.Bounds.Y+info.Bounds.H > 451 {
++					t.Fatalf("minimum-window control %q is missing or clipped: %#v", label, info)
++				}
++				for _, other := range rects {
++					if other.X < info.Bounds.X+info.Bounds.W && info.Bounds.X < other.X+other.W && other.Y < info.Bounds.Y+info.Bounds.H && info.Bounds.Y < other.Y+other.H { t.Fatalf("minimum-window control %q overlaps: %#v %#v", label, info.Bounds, other) }
++				}
++				rects = append(rects, info.Bounds)
++			}
++			if source, ok := tester.Find("文档编辑区"); !ok || source.W < 200 || source.H < 64 { t.Fatalf("results+Find leave no usable source input: %#v", source) }
++			if err := tester.Click("取消搜索"); err != nil { t.Fatal(err) }
++			if cancelled != 1 { t.Fatal("visible cancel control did not invoke the current cancellation") }
++			a.Searching = false
++			tester.Frame()
++			if err := tester.Click("查看跳过详情"); err != nil { t.Fatal(err) }
++			if !a.ShowIssues { t.Fatal("visible details control did not expose skip diagnostics") }
++			a.ShowIssues = false
++			tester.Frame()
++			if err := tester.Click("收起结果"); err != nil { t.Fatal(err) }
++			if a.ShowWorkspaceSearch { t.Fatal("visible collapse control did not hide results") }
++			// The public render is development evidence, not physical OS UI/IME.
++			a.ShowWorkspaceSearch = true
++			tester.Frame()
++			image := tester.Render()
++			path := filepath.Join(t.TempDir(), "workspace-results-minimum.png")
++			file, err := os.Create(path)
++			if err != nil { t.Fatal(err) }
++			if err := png.Encode(file, image); err != nil { _ = file.Close(); t.Fatal(err) }
++			if err := file.Close(); err != nil { t.Fatal(err) }
++			t.Logf("public Tester development render: %s", path)
++		})
++	}
++}
+--- /dev/null
++++ b/native/app/list_handle_lifetime_test.go
+@@ -0,0 +1,245 @@
++package app
++
++import (
++	"fmt"
++	"os"
++	"path/filepath"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/egoist/mygo"
++	"github.com/egoist/mygo/ui"
++)
++
++func TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget(t *testing.T) {
++	roots := []string{t.TempDir(), t.TempDir()}
++	for rootIndex, root := range roots {
++		for i := 0; i < 48; i++ {
++			path := filepath.Join(root, fmt.Sprintf("root-%d-%02d.txt", rootIndex, i))
++			if err := os.WriteFile(path, []byte(fmt.Sprintf("root %d row %d", rootIndex, i)), 0600); err != nil {
++				t.Fatal(err)
++			}
++		}
++	}
++	a := newTestApp(t, t.TempDir())
++	queue := make(chan func(), 64)
++	a.uiDispatch = func(fn func()) { queue <- fn }
++	tester := ui.NewTester(a.View, 760, 480)
++	var handle ui.Handle
++	for pass := 0; pass < 4; pass++ {
++		rootIndex := pass % len(roots)
++		root := roots[rootIndex]
++		a.openDialog = func(opts mygo.OpenDialogOptions) ([]string, error) {
++			if !opts.Directory {
++				t.Fatal("folder entry did not request a directory")
++			}
++			return []string{root}, nil
++		}
++		if err := tester.Click("文件夹"); err != nil {
++			t.Fatal(err)
++		}
++		// Adopt the real scanner's newest root on the test/UI owner. No OS
++		// watcher or live product window participates in this regression.
++		drainListUIUntil(t, queue, func() bool { return len(a.Entries) == 48 })
++		tester.Frame()
++		tester.Frame()
++		if pass == 0 {
++			handle = a.TreeList.Handle
++			if handle == (ui.Handle{}) {
++				t.Fatal("nonempty tree did not bind its public handle")
++			}
++		} else if a.TreeList.Handle != handle {
++			t.Fatal("root replacement abandoned the tree's bound handle")
++		}
++		first, _ := a.TreeList.Visible()
++		if a.TreeSelected != -1 || first != 0 {
++			t.Fatalf("new root retained selection/place: selected=%d first=%d", a.TreeSelected, first)
++		}
++		clickTesterText(t, tester, fmt.Sprintf("root-%d-00.txt", rootIndex))
++		tester.Key(0, ui.KeyEnd)
++		tester.Frame()
++		tester.Frame()
++		if a.TreeSelected != 47 {
++			t.Fatalf("End selected %d, want the current root's last row", a.TreeSelected)
++		}
++		tester.Key(0, ui.KeyEnter)
++		tester.Frame()
++		want := filepath.Join(root, fmt.Sprintf("root-%d-47.txt", rootIndex))
++		drainListUIUntil(t, queue, func() bool {
++			return a.Current() != nil && strings.EqualFold(a.Current().Doc.Path, want)
++		})
++		if current := a.Current(); current == nil || !strings.EqualFold(current.Doc.Path, want) {
++			t.Fatalf("Enter did not open the newest root's row: current=%#v want=%q", current, want)
++		}
++		selection := a.TreeSelected
++		a.refreshTreeNow()
++		tester.Frame()
++		if a.TreeList.Handle != handle || a.TreeSelected != selection {
++			t.Fatal("same-root scan changed the handle or selected item")
++		}
++	}
++}
++
++// This timer is only a deadlock guard; successful outcomes depend on UI events,
++// never a delay or the wall-clock speed of the scanner/search/open worker.
++func nextListUI(t *testing.T, queue <-chan func()) func() {
++	t.Helper()
++	guard := time.NewTimer(time.Minute)
++	defer guard.Stop()
++	select {
++	case fn := <-queue:
++		return fn
++	case <-guard.C:
++		t.Fatal("list workflow stopped delivering its next UI event")
++		return nil
++	}
++}
++
++func drainListUIUntil(t *testing.T, queue <-chan func(), done func() bool) {
++	t.Helper()
++	for !done() {
++		nextListUI(t, queue)()
++	}
++}
++
++func TestSearchListHandleNewSearchRejectsStaleDelivery(t *testing.T) {
++	root := t.TempDir()
++	path := filepath.Join(root, "matches.txt")
++	var content strings.Builder
++	for _, prefix := range []string{"old", "new"} {
++		for i := 0; i < 32; i++ {
++			fmt.Fprintf(&content, "%s-%02d\n", prefix, i)
++		}
++	}
++	original := content.String()
++	if err := os.WriteFile(path, []byte(original), 0600); err != nil {
++		t.Fatal(err)
++	}
++	a := newTestApp(t, t.TempDir())
++	a.Open(path)
++	tab := a.Current()
++	version := tab.Doc.Buffer.Version()
++	a.Root = root
++	queue := make(chan func(), 64)
++	a.uiDispatch = func(fn func()) { queue <- fn }
++	tester := ui.NewTester(a.View, 1180, 780)
++	if err := tester.Click("查找"); err != nil {
++		t.Fatal(err)
++	}
++	start := func(query string) {
++		t.Helper()
++		if err := tester.Click("查找内容"); err != nil {
++			t.Fatal(err)
++		}
++		tester.Command("selectAll")
++		tester.Type(query)
++		if err := tester.Click("搜索工作区"); err != nil {
++			t.Fatal(err)
++		}
++		if !a.Searching {
++			t.Fatal("public Find action did not admit the search")
++		}
++	}
++	finish := func() {
++		t.Helper()
++		drainListUIUntil(t, queue, func() bool { return !a.Searching })
++		tester.Frame()
++		tester.Frame()
++	}
++	start("old")
++	finish()
++	if len(a.SearchResults) != 32 {
++		t.Fatalf("real old search returned %d results", len(a.SearchResults))
++	}
++	handle := a.SearchList.Handle
++	if handle == (ui.Handle{}) {
++		t.Fatal("nonempty workspace results did not bind a handle")
++	}
++	a.Root = t.TempDir()
++	a.refreshTreeNow()
++	tester.Frame()
++	if !tester.HasText("工作区已变化，请重新搜索。") || a.SearchList.Label(0) != "" || len(a.SearchResults) != 32 {
++		t.Fatal("old-root results stayed actionable or were silently erased")
++	}
++	a.Root = root
++	a.refreshTreeNow()
++	tester.Frame()
++	tester.Frame()
++	clickTesterText(t, tester, "matches.txt:1  old-00")
++	tester.Key(0, ui.KeyEnd)
++	tester.Frame()
++	if a.SearchSelected != 31 {
++		t.Fatalf("old search End selected %d", a.SearchSelected)
++	}
++
++	start("old")
++	stale := nextListUI(t, queue) // Keep a real previous search's batch undelivered.
++	oldID := a.searchID
++	start("new")
++	finish()
++	if a.searchID <= oldID || len(a.SearchResults) != 32 {
++		t.Fatal("replacement search did not own the current result set")
++	}
++	currentSummary := a.SearchSummary
++	stale()
++	if len(a.SearchResults) != 32 || a.SearchSummary != currentSummary {
++		t.Fatal("stale search delivery changed the replacement results/summary")
++	}
++	for _, result := range a.SearchResults {
++		if !strings.HasPrefix(result.Preview, "new-") {
++			t.Fatalf("stale result survived query replacement: %#v", result)
++		}
++	}
++	first, _ := a.SearchList.Visible()
++	if a.SearchList.Handle != handle || a.SearchSelected != -1 || first != 0 {
++		t.Fatalf("new search did not reuse/reset: selected=%d first=%d", a.SearchSelected, first)
++	}
++	clickTesterText(t, tester, "matches.txt:33  new-00")
++	tester.Key(0, ui.KeyEnd)
++	tester.Frame()
++	tester.Frame()
++	if a.SearchSelected != 31 {
++		t.Fatalf("replacement End selected %d", a.SearchSelected)
++	}
++	result := a.SearchResults[a.SearchSelected]
++	tester.Key(0, ui.KeyEnter)
++	drainListUIUntil(t, queue, func() bool {
++		selection := tab.Doc.Buffer.Selection()
++		return selection.Start() == result.Start && selection.End() == result.End
++	})
++	tester.Frame()
++	if a.Current() != tab || tab.Doc.Buffer.String() != original || tab.Doc.Buffer.Version() != version {
++		t.Fatal("result navigation changed owner, bytes or edit history")
++	}
++	beforeFirst, beforeLast := a.SearchList.Visible()
++	if err := tester.Click("收起结果"); err != nil {
++		t.Fatal(err)
++	}
++	tester.Frame()
++	if a.ShowWorkspaceSearch || len(a.SearchResults) != 32 || a.SearchSelected != 31 {
++		t.Fatal("collapse cleared live search results/selection")
++	}
++	a.ShowWorkspaceSearch = true // Existing panel visibility seam, not a new search.
++	tester.Frame()
++	tester.Frame()
++	afterFirst, afterLast := a.SearchList.Visible()
++	if a.SearchList.Handle != handle || afterFirst != beforeFirst || afterLast != beforeLast {
++		t.Fatal("collapse/reopen changed the live results' handle or scroll place")
++	}
++
++	start("no-such-match")
++	finish()
++	if len(a.SearchResults) != 0 || a.SearchSelected != -1 || a.SearchList.Handle != handle ||
++		a.SearchList.Key != nil || a.SearchList.Label != nil || a.SearchList.Selected != nil {
++		t.Fatal("empty replacement retained old callbacks/choice or abandoned handle")
++	}
++	start("new")
++	finish()
++	if a.SearchList.Handle != handle || len(a.SearchResults) != 32 || a.SearchSelected != -1 {
++		t.Fatal("nonempty/empty/nonempty replacement lost its stable fresh state")
++	}
++	if tab.Doc.Buffer.String() != original || tab.Doc.Buffer.Version() != version {
++		t.Fatal("search/replacement/collapse changed the source document")
++	}
++}

@@ -1,0 +1,60 @@
+{
+  "argv": [
+    "/home/user/go/bin/gofmt",
+    "-w",
+    "core/document/atomic.go",
+    "core/document/fingerprint_conflict_public_test.go"
+  ],
+  "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/source/native",
+  "environment": {
+    "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/env/home",
+    "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/env/config",
+    "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/env/cache",
+    "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/env/data",
+    "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/env/state",
+    "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+    "GOROOT": "/home/user/go",
+    "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+    "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+    "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/env/tmp",
+    "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/env/tmp",
+    "GOENV": "off",
+    "GOWORK": "off",
+    "GOVCS": "*:off",
+    "GOFLAGS": "-mod=vendor",
+    "GOTOOLCHAIN": "local",
+    "GOPROXY": "off",
+    "GOSUMDB": "off",
+    "GONOPROXY": "",
+    "GONOSUMDB": "",
+    "GOPRIVATE": "",
+    "CGO_ENABLED": "0",
+    "GOTELEMETRY": "off",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "GOEXPERIMENT": ""
+  },
+  "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+  "started_at": "2026-11-13T02:45:24.572740+00:00",
+  "timeout_s": 120,
+  "timed_out": false,
+  "owned_cleanup": [],
+  "status": "completed",
+  "pid": 4124,
+  "owned_pgid": 4124,
+  "launched_at": "2026-11-13T02:45:24.765138+00:00",
+  "exit_code": 0,
+  "owned_group_remaining_after_wait": false,
+  "ended_at": "2026-11-13T02:45:25.457161+00:00",
+  "elapsed_s": 0.8789915079978528,
+  "stdout": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.stdout.bin",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-conflict-format-01/evidence/05-product-command.stderr.bin",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

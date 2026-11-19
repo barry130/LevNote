@@ -1,0 +1,22 @@
+{
+  "metadata_only": true,
+  "product_executed": false,
+  "observed_at": "2026-11-13T04:26:23.566394+00:00",
+  "script": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-01/prepare-report-and-fixed-archive-01.py",
+    "bytes": 30859,
+    "sha256": "5339e17224510685815255b61bc62981e7d0cd6d209d965a60990e32b2d70e91"
+  },
+  "exit_code": 1,
+  "classification": "REPORT_PREPARATION_RUN_CLASSIFIER_ASSERTION_FAILED_NO_GO_NO_DELIVERABLE",
+  "cause": "Go verbose subtest RUN names start unindented; classifier must use slash names, not indentation",
+  "report_exists": false,
+  "archive_exists": false,
+  "actual_run_counts": {
+    "run_lines": 88,
+    "main_no_slash": 57,
+    "nested_slash": 31,
+    "top_pass": 57,
+    "nested_pass": 31
+  }
+}

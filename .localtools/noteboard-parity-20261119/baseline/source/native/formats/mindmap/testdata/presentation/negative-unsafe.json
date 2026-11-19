@@ -1,0 +1,13 @@
+{
+  "Bounds": {
+    "X": -210,
+    "Y": -150,
+    "Width": 520,
+    "Height": 340
+  },
+  "Warnings": [
+    "unknown layout \"future-layout\" is preserved and renders as \"logicalStructure\"",
+    "layout \"future-layout\" is preserved and rendered as \"logicalStructure\"",
+    "3 个颜色值不受支持，画布与 SVG 使用默认颜色；原始字段已保留（支持十六进制与命名纯色）"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "status": "OPAQUE_WRITER_EXIT_ZERO",
+  "pid": 22516,
+  "writerPid": 23076,
+  "writerExit": 0,
+  "signal": null,
+  "error": null,
+  "bootstrap": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\bootstrap-transport-fingerprint03-final02.cjs",
+    "bytes": 4332,
+    "sha256": "6c888561437990ae00c76bdd217512330f4c74fd559e72fbc1f43f558b0c6d52",
+    "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4605"
+  },
+  "writer": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\transport-write-fingerprint03-final02.cjs",
+    "bytes": 5891,
+    "sha256": "f09642a1361f3107114f6b2daa85e921e8941e2cced29de9005de6afeb11e8d2",
+    "sourceRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/4607"
+  },
+  "productCommands": 0,
+  "base64Decoded": false,
+  "currentSourceAndReportWrites": 0
+}

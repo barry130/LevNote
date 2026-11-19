@@ -1,0 +1,4 @@
+=== RUN   TestDocumentUTF16SaveAndSaveAsUseActualEncodedLength
+--- PASS: TestDocumentUTF16SaveAndSaveAsUseActualEncodedLength (0.03s)
+PASS
+ok  	levnote.local/native/core/document	0.032s

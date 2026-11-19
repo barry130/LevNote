@@ -60,7 +60,9 @@ func (a *App) Restore() {
 		a.report(fmt.Errorf("恢复会话：%s · %s", issue.Reason, issue.Detail))
 	}
 	a.Root = snapshot.Root
-	a.Dark = snapshot.Preferences.Theme == "dark"
+	// Load normalizes an omitted theme to system; a missing file leaves it empty.
+	// Only an explicit light preference overrides the workbench's dark default.
+	a.Dark = snapshot.Preferences.Theme != "light"
 	if snapshot.Preferences.FontSize >= 10 {
 		a.FontSize = snapshot.Preferences.FontSize
 	}

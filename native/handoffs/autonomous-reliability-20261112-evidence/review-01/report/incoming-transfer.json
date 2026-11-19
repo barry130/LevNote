@@ -1,0 +1,9 @@
+{
+  "failed_draft_preserved": "/home/user/levnote-dev-reliability-20261112-01/evidence/reliability-report-append-01/incoming-report.md",
+  "failed_draft_bytes": 14014,
+  "failed_draft_sha256": "c6efbc1857d8d43bfb2eb5851f24a2b8212379a32e3418c4079549d7ae9e1e36",
+  "correction": "three missing characters in a printed file-hash field; full original report SHA verified before adoption",
+  "incoming_bytes": 14017,
+  "incoming_sha256": "678ba7a178818ecf63a0f7097e120d92cd59000394eff10c96eaed45487cf69e",
+  "product_executed": false
+}

@@ -1,0 +1,4 @@
+=== RUN   TestDocumentSameSizeSameMtimeConflictPreservesUndoAndRetry
+--- PASS: TestDocumentSameSizeSameMtimeConflictPreservesUndoAndRetry (0.02s)
+PASS
+ok  	levnote.local/native/core/document	0.022s

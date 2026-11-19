@@ -1,0 +1,100 @@
+{
+  "status": "CREATE_ONCE_OPAQUE_TRANSPORT_PREPARED_NOT_MIRRORED_NOT_PRODUCT_ACCEPTANCE",
+  "archive": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.tar.gz",
+    "bytes": 85709,
+    "sha256": "25b935ae97a020bed1552c4fb5468130dabd8a884a6080826bfde8d91e288621"
+  },
+  "manifest": {
+    "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/transport-inputs.json",
+    "bytes": 37274,
+    "sha256": "ac267abf0777dd81eaf7bef2f9cc64fa862e3850909719f0df706972553d4cdf"
+  },
+  "report": {
+    "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/report-06.md",
+    "origin": "/home/user/levnote-dev-experience-20261112-01/report-only-06/native/handoffs/autonomous-experience-20261112.md",
+    "kind": "new-version-report",
+    "bytes": 21483,
+    "sha256": "320979a87b66032f88b33d467ce0f44eb837c59ad868edec58528cec3e1611c8"
+  },
+  "entryCountIncludingManifest": 52,
+  "finalSourceFiles": 9,
+  "finalSourceBytes": 148785,
+  "totalPayloadBytes": 375017,
+  "encodedCharacters": 114280,
+  "partCount": 10,
+  "parts": [
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part01.b64",
+      "bytes": 12150,
+      "sha256": "ada79f9ba7addf5ed6f3a856f37b770539ac1193224b0f0163fd5c062a2ab3c3",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part02.b64",
+      "bytes": 12150,
+      "sha256": "74c4ede6075f3c47d44cf05f7c306e5317c84dc57a8b0e529e1731c44b868b39",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part03.b64",
+      "bytes": 12150,
+      "sha256": "f5b92d0b0e0db787c3455f5525531938f3286fc02025df4c03630097dd6eaed5",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part04.b64",
+      "bytes": 12150,
+      "sha256": "a8937a62da2abd8d0c870abe5862856cdc77bf3edb7ba671924f0410fd67fa31",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part05.b64",
+      "bytes": 12150,
+      "sha256": "8f6fa83662cdc23f3e3dc47e2e743570e0d92b884b301170640e34d21a7ad631",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part06.b64",
+      "bytes": 12150,
+      "sha256": "85fce1d2bfe95c367dfabf7460536e6c476d7e11722f1978868e305a3e14ed78",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part07.b64",
+      "bytes": 12150,
+      "sha256": "b23b3de744144b944ec7c9e0a38067ea4d48df1d8935f2200c58b3bd449dd2e8",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part08.b64",
+      "bytes": 12150,
+      "sha256": "8d6eb8b3cd12ada3e0a7ac076dbf1a93443693bc41845f1d0976046399647c39",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part09.b64",
+      "bytes": 12150,
+      "sha256": "c95d5d103af1b9854f2e60410cb41d8fae0ddf639501f0682091e3969f2ffe3d",
+      "encodedCharacters": 12000,
+      "lines": 150
+    },
+    {
+      "path": "/home/user/levnote-dev-experience-20261112-01/delivery-06/final06-review.part10.b64",
+      "bytes": 6359,
+      "sha256": "2c91b3491f456e68d59176303882a8de7b9fcfc835f65921805a81ef849d3e53",
+      "encodedCharacters": 6280,
+      "lines": 79
+    }
+  ],
+  "noGoOrProductCommands": true,
+  "notWindowsOrWholeApplicationAcceptance": true
+}

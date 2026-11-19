@@ -42,6 +42,14 @@ tests/fixtures/** -text
 # 失配，守卫 prepare 的 pinned_file 直接拒绝。同 tests/fixtures 先例，进出原样。
 native/handoffs/** -text
 
+# Selected original-path evidence included for the 2026-11-19 Harness handoff.
+# Preserve logs, SHA-pinned manifests and baseline fixture bytes exactly.
+.localtools/noteboard-parity-20261119/** -text
+.localtools/flowix-chrome-20261116-test-03/** -text
+.localtools/gate.sh -text
+.localtools/flowix-chrome-validate-20261116.py -text
+.localtools/flowix-chrome-preview-build-20261116.py -text
+
 # native 测试样本同 tests/fixtures：逐字节敏感的被测对象。
 native/formats/mindmap/testdata/** -text
 

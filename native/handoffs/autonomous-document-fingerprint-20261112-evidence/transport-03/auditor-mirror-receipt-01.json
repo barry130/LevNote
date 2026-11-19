@@ -1,0 +1,149 @@
+{
+  "status": "TASK11_PRIMARY03_AUDITOR_BYTE_MIRROR_ONLY_NO_AUDIT_IMPORT_OR_PRODUCT_EXECUTED",
+  "startedUTC": "2026-11-13T10:29:29.599Z",
+  "endedUTC": "2026-11-13T10:29:29.943Z",
+  "pid": 29244,
+  "argv": [
+    "C:\\Users\\canace\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\node\\bin\\node.exe",
+    "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\mirror-fingerprint03-host-auditor-01.cjs"
+  ],
+  "cwd": "F:\\AIproject\\LevNote",
+  "script": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\mirror-fingerprint03-host-auditor-01.cjs",
+    "bytes": 8714,
+    "sha256": "78addf257e4997b51b1d2bf7860c3b62166c17d9b4c63ff6f22f446e01e4d49b"
+  },
+  "sourceSession": "a753a04c-1383-4870-877c-e70639eb0422",
+  "sourceSessionFile": "C:/Users/canace/.dsh/sessions/--F-AIproject-LevNote--/a753a04c-1383-4870-877c-e70639eb0422/session.v4.jsonl.zstd",
+  "exactOriginalToolPath": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-03/audit-fingerprint03-host-import-01.py",
+  "zstdFramesRead": 2989,
+  "eventsRead": 6059,
+  "allFullSamePathOriginalsValidatedNoOlderFallback": true,
+  "fullOriginalReadCount": 2,
+  "fullOriginalReads": [
+    {
+      "callId": "call_kDrSYc8Qwup7NBQRs0scZwns|fc_0d9a6d18b7a601d2006af6c1249c988193a7ff7f9763f317c5",
+      "callSeq": 5542,
+      "resultSeq": 5543,
+      "callRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/5542",
+      "resultRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/5543",
+      "offset": 1,
+      "limit": 360,
+      "numberedLines": 295,
+      "bytes": 17502,
+      "sha256": "3117d3174e22565119306cad7c585c76f53b85a3b0e428363f5e67ac2260bedd"
+    },
+    {
+      "callId": "call_cUC8zfiNFPIxqGUC43pxWuXC|fc_0e3a14abf1c2e5ed006af6c93e96308195bb826c9245c769b9",
+      "callSeq": 5737,
+      "resultSeq": 5738,
+      "callRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/5737",
+      "resultRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/5738",
+      "offset": 1,
+      "limit": 310,
+      "numberedLines": 295,
+      "bytes": 17502,
+      "sha256": "3117d3174e22565119306cad7c585c76f53b85a3b0e428363f5e67ac2260bedd"
+    }
+  ],
+  "partialExactPathCallsIgnored": 1,
+  "partialResultsObserved": 1,
+  "partialOriginalReadsNotByteCandidates": [
+    {
+      "callId": "call_M4gpEm9oB0XDGlYAMX3ESK7v|fc_08e9481e2821d51f006af6bcf2dd0c8196ace5b68232dbf4eb",
+      "callSeq": 5464,
+      "resultSeq": 5465,
+      "callRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/5464",
+      "resultRef": "session://a753a04c-1383-4870-877c-e70639eb0422/event/5465",
+      "offset": 1,
+      "limit": 10
+    }
+  ],
+  "mirroredAuditor": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\audit-fingerprint03-host-import-01.py",
+    "bytes": 17502,
+    "sha256": "3117d3174e22565119306cad7c585c76f53b85a3b0e428363f5e67ac2260bedd"
+  },
+  "mirrorReceiptPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\auditor-mirror-receipt-01.json",
+  "completeBothTargetsAbsentBeforeAnyWrite": true,
+  "createdFileCount": 2,
+  "originalTransportFilesBefore": {
+    "bootstrap-receipt.json": {
+      "bytes": 885,
+      "sha256": "da5767059d0b0443af4e19efa4a24ee35ac18bba094f9d2b6124ef9eb276a154"
+    },
+    "decode-fingerprint03.py": {
+      "bytes": 3398,
+      "sha256": "7a937f762e843116967c145dd2e8f2341bfbe58e74c6dbc1dbdb5d38d24bbd0e"
+    },
+    "decoder-receipt.json": {
+      "bytes": 595,
+      "sha256": "19aa1e1dfaabe21740e1f1c5da17c6d768824c4241b6bbcbd79539dcdfc5c89a"
+    },
+    "document-fingerprint-review-03.tar.xz": {
+      "bytes": 77196,
+      "sha256": "fe2acbb546a93d35547bbdb95548b5a9e5f8ab6e6d403b04747fb6a0e0e90802"
+    },
+    "fingerprint-review03.part01.b64": {
+      "bytes": 12150,
+      "sha256": "68f8ca742bb564943966c795d1d1af852e5c58c3274d399f350d4e96eb342fb2"
+    },
+    "fingerprint-review03.part02.b64": {
+      "bytes": 12150,
+      "sha256": "a9d7464d5411abad45dc587168e7cc83f4399d23bd41555430639726c689fb37"
+    },
+    "fingerprint-review03.part03.b64": {
+      "bytes": 12150,
+      "sha256": "93ad4d5d9e5e8896108b31091a0c1d1fb00daee162b40cd53fdd36aea3acba32"
+    },
+    "fingerprint-review03.part04.b64": {
+      "bytes": 12150,
+      "sha256": "e69d74919b3a129bea581d92089331b790a04c1a7ef35a5f747a73d373dcb111"
+    },
+    "fingerprint-review03.part05.b64": {
+      "bytes": 12150,
+      "sha256": "fdb446619417a21b8194be7f77cb04747bf091c15520f2dab9e116d9484edd35"
+    },
+    "fingerprint-review03.part06.b64": {
+      "bytes": 12150,
+      "sha256": "4313fc30297f2f92dcd026f1a3e93b81e92e72afde4252160b7cc11df2440238"
+    },
+    "fingerprint-review03.part07.b64": {
+      "bytes": 12150,
+      "sha256": "ea60cbd06c65f335e3b80d0d4f7dd5c3e4f3789378171aeec2c3a4355a2468f6"
+    },
+    "fingerprint-review03.part08.b64": {
+      "bytes": 12150,
+      "sha256": "2b556a9c3ecf81d883bec42c0a30cc2c95621c1d62bf0be207af0ead45770081"
+    },
+    "fingerprint-review03.part09.b64": {
+      "bytes": 7015,
+      "sha256": "c92c8f3b9d0285c59d97ed6e21daa4624a1d27ad6e3aa3a648617b8fd9bd971d"
+    },
+    "import-fingerprint03-final.py": {
+      "bytes": 11251,
+      "sha256": "77c89b41848ec420ee27a4813318f74cc86059839e4e5f465a8cd5698ae28d13"
+    },
+    "mirror-fingerprint03-host-auditor-01.cjs": {
+      "bytes": 8714,
+      "sha256": "78addf257e4997b51b1d2bf7860c3b62166c17d9b4c63ff6f22f446e01e4d49b"
+    },
+    "transport-mirror-receipt.json": {
+      "bytes": 4588,
+      "sha256": "58cc6eceb6dd5f7eee4da94af839035abf041ab1935c9f39eb3c1e5f5d02c8c2"
+    },
+    "transport-receipt.json": {
+      "bytes": 4436,
+      "sha256": "b0eac7f7153071e34de45bb203a34d8febf63276b3f6ca65c760402abdc12d44"
+    },
+    "transport-write-fingerprint03-final02.cjs": {
+      "bytes": 5891,
+      "sha256": "f09642a1361f3107114f6b2daa85e921e8941e2cced29de9005de6afeb11e8d2"
+    }
+  },
+  "productCommands": 0,
+  "spawns": 0,
+  "sourceAndCurrentReportWrites": 0,
+  "decoderOrImporterOrAuditorExecuted": false,
+  "notWindowsOrWholeApplicationAcceptance": true
+}

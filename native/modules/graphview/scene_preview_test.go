@@ -183,7 +183,7 @@ func TestNativeSceneControlsOutlineThemeAndFirstPaintCenter(t *testing.T) {
 	}
 	node.Fill, node.Stroke, node.Text = "#01020304", "#112233ff", "#445566ff"
 	fill, stroke, color := sceneNodeColors(node, "root", dark)
-	if fill != ui.Hex("#01020304") || stroke != dark.Accent || color != ui.Hex("#445566ff") {
+	if fill != ui.Hex("#01020304") || stroke != ui.Hex("#112233ff") || color != ui.Hex("#445566ff") {
 		t.Fatal("literal/selection precedence")
 	}
 	tester.SetDark(true)

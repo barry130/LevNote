@@ -168,6 +168,10 @@ func (v *view) drawInspector(c *ui.Context) {
 		Background(theme.Surface).
 		Border(1, theme.Border).
 		Children(func() {
+			if v.drawioMultiSelected() {
+				v.drawDrawioAlignment(c)
+				return
+			}
 			ui.Text(c, "节点属性").Bold().FontSize(13)
 			if v.selectedID == "" && !v.pendingGraphDraft() {
 				ui.Text(c, "选择一个节点后可编辑文本与结构。").FontSize(12).TextColor(theme.TextMuted)
@@ -236,12 +240,13 @@ func (v *view) drawInspector(c *ui.Context) {
 			}
 			if v.kind == kindMindmap {
 				v.drawTags(c)
+				v.drawStyles(c)
 			}
 			if v.connectSource != "" {
-				ui.Text(c, "连接模式：点击目标节点").FontSize(11).TextColor(theme.Accent)
+				ui.Text(c, "连接模式：点击目标节点").FontSize(11).TextColor(theme.Focus)
 			}
 			if v.reparentSource != "" {
-				ui.Text(c, "改父级模式：点击新父节点").FontSize(11).TextColor(theme.Accent)
+				ui.Text(c, "改父级模式：点击新父节点").FontSize(11).TextColor(theme.Focus)
 			}
 			if v.kind == kindDrawio {
 				if node := v.selectedDrawioNode(); node != nil && node.HTML {

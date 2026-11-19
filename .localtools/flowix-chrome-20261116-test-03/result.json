@@ -1,0 +1,32 @@
+{
+  "phase": "test",
+  "args": [
+    "C:/Users/canace/.dsh/dsh-ops/shells/niubash-prepared/e3765d439d5d873f50e910706e380ece9fa29d6349c02cf383cb54aeae4e4701/winuxcmd/usr/bin/bash.exe",
+    "F:\\AIproject\\LevNote\\.localtools\\gate.sh",
+    "test",
+    "-json",
+    "-count=1",
+    "-timeout=300s",
+    "./app/",
+    "./cmd/...",
+    "./core/...",
+    "./formats/...",
+    "./modules/...",
+    "./ui/..."
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 45.3,
+  "inputCount": 436,
+  "inputsSame": true,
+  "changedInputs": [],
+  "scopedInputCount": 436,
+  "scopedInputsSame": true,
+  "scopedChangedInputs": [],
+  "runCount": 3626,
+  "counts": {
+    "pass": 3577,
+    "skip": 49
+  },
+  "failed": [],
+  "directory": "F:\\AIproject\\LevNote\\.localtools\\flowix-chrome-20261116-test-03"
+}

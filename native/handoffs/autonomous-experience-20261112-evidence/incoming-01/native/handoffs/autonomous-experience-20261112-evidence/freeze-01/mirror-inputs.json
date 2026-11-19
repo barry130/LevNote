@@ -1,0 +1,116 @@
+{
+  "purpose": "byte-exact freeze01 review mirror; no local implementation or execution",
+  "entries": [
+    {
+      "path": "native/app/app.go",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde",
+      "allowedPreviousSha256": [
+        "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde",
+        "fad0ede4c480e0c8f5c56f4e81cf2499bef0007ba6eae877fc516623bffea050",
+        "b35a8d13ad5efa11266f6368acf299a34d1690b05f690794f87d552ae73e6239"
+      ]
+    },
+    {
+      "path": "native/app/view.go",
+      "bytes": 24252,
+      "sha256": "a102bd5266bcf35296ba5973c2856a8211b1118ef7068f3f2470502a0d8fb935",
+      "allowedPreviousSha256": [
+        "a102bd5266bcf35296ba5973c2856a8211b1118ef7068f3f2470502a0d8fb935",
+        "64dcdc194510c6426112a7b6aafe57a84dde68e630a20d53c994d77cc34102c0"
+      ]
+    },
+    {
+      "path": "native/app/workspace.go",
+      "bytes": 8220,
+      "sha256": "3a2863c49554a4574d45d650c5d388c33d64599f428241366c700baed2e50be9",
+      "allowedPreviousSha256": [
+        "3a2863c49554a4574d45d650c5d388c33d64599f428241366c700baed2e50be9",
+        "7a9aca4f8e807d7a0563b5595976839aa7ded706efdc5171b259079d68a16da4"
+      ]
+    },
+    {
+      "path": "native/app/outline.go",
+      "bytes": 15376,
+      "sha256": "1663301f203ed6045eda3d7120dc0d21803b87ed62328b3a06c2eac663c99583",
+      "allowedPreviousSha256": [
+        "1663301f203ed6045eda3d7120dc0d21803b87ed62328b3a06c2eac663c99583",
+        "a5afc0e69ba870abddfc9c7d9cef7b46a79c4bd2c839efe871eb7054c3eafbb8"
+      ]
+    },
+    {
+      "path": "native/app/list_lifetime.go",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5",
+      "allowedPreviousSha256": [
+        "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5",
+        "9382752734aef519bfe71b01ab53d719bb42778f708ac20bef9dfc8de89316bf"
+      ]
+    },
+    {
+      "path": "native/app/list_lifetime_test.go",
+      "bytes": 17379,
+      "sha256": "a1fa56c46ce0dd9863dc77cf830fe8b6e90a195eaf2b3aeb0a0f61e6682cd634",
+      "allowedPreviousSha256": [
+        "a1fa56c46ce0dd9863dc77cf830fe8b6e90a195eaf2b3aeb0a0f61e6682cd634"
+      ]
+    },
+    {
+      "path": "native/app/list_handle_lifetime_test.go",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+      "allowedPreviousSha256": [
+        "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+        "f3a83efa1613cb0be6dd61638d35178ee61cfbbee98bad24b3aa5e8362862b82"
+      ]
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-01/source-inputs.json",
+      "bytes": 5158,
+      "sha256": "7eecd04931aca28578e1cbd5217b5043761a04e0f10786f2f4e2a8aeafad5404",
+      "allowedPreviousSha256": []
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-01/source.patch",
+      "bytes": 43002,
+      "sha256": "0088c6a637bbf31cd50d86533becc32ce14ff8f7a4ebd805e56a30b133eec2d3",
+      "allowedPreviousSha256": []
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/initial-draft-provenance/source-origin.txt",
+      "bytes": 224,
+      "sha256": "98e76ffbd714c2813734576f48b3d8545fd20726c20ce21849a880a19db938fd",
+      "allowedPreviousSha256": []
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/initial-draft-provenance/unexecuted-local-drafts.json",
+      "bytes": 876,
+      "sha256": "1b5a8e8a4bfb9b51f811391bef4c647baf07b211970c88f47ad09eb2921c3bc3",
+      "allowedPreviousSha256": []
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/initial-draft-provenance/unexecuted-local-draft.patch",
+      "bytes": 4045,
+      "sha256": "a8529689204ead16bc7bb6c89823bec69856fd11991b68c99e65a5f9a25ab35b",
+      "allowedPreviousSha256": []
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/initial-draft-provenance/local-draft-list_lifetime.go",
+      "bytes": 2326,
+      "sha256": "9382752734aef519bfe71b01ab53d719bb42778f708ac20bef9dfc8de89316bf",
+      "allowedPreviousSha256": []
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/initial-draft-provenance/local-draft-list_handle_lifetime_test.go",
+      "bytes": 7696,
+      "sha256": "f3a83efa1613cb0be6dd61638d35178ee61cfbbee98bad24b3aa5e8362862b82",
+      "allowedPreviousSha256": []
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112.md",
+      "bytes": 10190,
+      "sha256": "bc880d2d772f751351a5fe03fb22dda7ef7724baaba3061f54d3603bdcf410ba",
+      "allowedPreviousSha256": []
+    }
+  ]
+}

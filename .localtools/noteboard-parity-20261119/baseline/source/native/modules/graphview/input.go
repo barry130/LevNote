@@ -1,0 +1,354 @@
+package graphview
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/egoist/mygo/ui"
+)
+
+func (v *view) handleCanvasInput(ev ui.InputEvent) bool {
+	// Deletion captures its owner before sync can call Host.Report. The local
+	// property editor still owns its focused input before this canvas route.
+	if v.kind == kindDrawio && (ev.Kind == ui.InputCommand && ev.Text == "delete" ||
+		ev.Kind == ui.InputKeyDown && (ev.Key == ui.KeyDelete || ev.Key == ui.KeyBackspace)) {
+		return v.deleteKey()
+	}
+	if v.kind == kindDrawio && ev.Kind == ui.InputKeyDown && ev.Key == ui.KeyD && ev.Mods == ui.Cmd {
+		return v.cloneDrawioCells()
+	}
+	if v.kind == kindDrawio && ev.Kind == ui.InputPointerDown {
+		return v.drawioPointerDown(ev)
+	}
+	v.ensureSynced(nil)
+	switch ev.Kind {
+	case ui.InputPointerDown:
+		if err := v.Flush(); err != nil {
+			return true
+		}
+		v.canvasHandle.Focus()
+		return v.pointerDown(ev)
+	case ui.InputPointerMove:
+		return v.pointerMove(ev)
+	case ui.InputPointerUp:
+		return v.pointerUp(ev)
+	case ui.InputScroll:
+		v.drawGesture = drawioPointerGesture{}
+		v.markerPress = markerGesture{}
+		v.invalidateTagActions()
+		if ev.Mods&ui.Cmd != 0 {
+			factor := float32(1)
+			if ev.DY < 0 {
+				factor = 1.12
+			} else if ev.DY > 0 {
+				factor = 0.89
+			}
+			v.zoomAt(ev.X, ev.Y, factor)
+		} else {
+			v.panX -= ev.DX
+			v.panY -= ev.DY
+		}
+		return true
+	case ui.InputZoom:
+		v.drawGesture = drawioPointerGesture{}
+		v.markerPress = markerGesture{}
+		v.invalidateTagActions()
+		if ev.Scale > 0 {
+			v.zoomAt(ev.X, ev.Y, ev.Scale)
+		}
+		return true
+	case ui.InputCommand:
+		switch ev.Text {
+		case "undo":
+			return v.undo()
+		case "redo":
+			return v.redo()
+		case "delete":
+			return v.deleteKey()
+		}
+	case ui.InputKeyDown:
+		if ev.Mods&ui.Cmd != 0 {
+			switch ev.Key {
+			case ui.KeyZ:
+				if ev.Mods&ui.Shift != 0 {
+					return v.redo()
+				}
+				return v.undo()
+			case ui.KeyY:
+				return v.redo()
+			}
+		}
+		switch ev.Key {
+		case ui.KeyEscape:
+			active := v.panning || v.drawGesture.kind != drawioNoGesture || v.connectSource != "" || v.draggingID != "" || v.reparentSource != ""
+			v.panning = false
+			v.cancelGraphGesture()
+			if v.kind == kindDrawio && !active {
+				v.selectNode("")
+			}
+			return true
+		case ui.KeyDelete, ui.KeyBackspace:
+			return v.deleteKey()
+		case ui.KeyUp:
+			v.panY += 32
+			return true
+		case ui.KeyDown:
+			v.panY -= 32
+			return true
+		case ui.KeyLeft:
+			v.panX += 32
+			return true
+		case ui.KeyRight:
+			v.panX -= 32
+			return true
+		}
+	}
+	return false
+}
+
+func (v *view) cancelGraphGesture() {
+	v.drawGesture = drawioPointerGesture{}
+	v.draggingID, v.reparentSource, v.connectSource = "", "", ""
+	v.dragWorldX, v.dragWorldY = 0, 0
+	v.dragMoved = false
+}
+
+func (v *view) pointerDown(ev ui.InputEvent) bool {
+	if err := v.Flush(); err != nil {
+		return true
+	}
+	if ev.Button != 0 {
+		v.beginPan(ev)
+		return true
+	}
+	var id string
+	var hit bool
+	if v.kind == kindMindmap {
+		id, hit = v.mindmapNodeAt(ev.X, ev.Y)
+	} else {
+		id, hit = v.drawioNodeAt(ev.X, ev.Y)
+		if !hit {
+			if edgeID, edgeHit := v.drawioEdgeAt(ev.X, ev.Y); edgeHit {
+				// An edge is selectable, not a node drag, label or connector target.
+				v.panning = false
+				v.cancelGraphGesture()
+				v.selectNode(edgeID)
+				return true
+			}
+		}
+	}
+	if !hit {
+		v.selectNode("")
+		v.beginPan(ev)
+		return true
+	}
+	if v.reparentSource != "" && v.kind == kindMindmap {
+		source := v.reparentSource
+		v.reparentSource = ""
+		if source != id {
+			v.moveMindmapNode(source, id)
+		}
+		v.selectNode(source)
+		return true
+	}
+	if v.connectSource != "" && v.kind == kindDrawio {
+		source := v.connectSource
+		v.connectSource = ""
+		if source != id {
+			v.addDiagramConnector(source, id)
+		}
+		return true
+	}
+	if !v.selectNode(id) {
+		return true
+	}
+	if ev.Clicks >= 2 {
+		v.focusTopic()
+	}
+	if v.kind == kindDrawio {
+		node := v.selectedDrawioNode()
+		if node != nil {
+			v.draggingID = node.ID
+			v.dragStartX, v.dragStartY = ev.X, ev.Y
+			v.dragWorldX, v.dragWorldY = 0, 0
+			v.dragBaseX, v.dragBaseY = node.X, node.Y
+			v.dragMoved = false
+		}
+	}
+	return true
+}
+
+func (v *view) beginPan(ev ui.InputEvent) {
+	v.panning = true
+	v.panStartX, v.panStartY = ev.X, ev.Y
+	v.panOriginX, v.panOriginY = v.panX, v.panY
+}
+
+func (v *view) pointerMove(ev ui.InputEvent) bool {
+	if v.kind == kindDrawio && v.moveDrawioPointer(ev) {
+		return true
+	}
+	if v.panning {
+		v.panX = v.panOriginX + ev.X - v.panStartX
+		v.panY = v.panOriginY + ev.Y - v.panStartY
+		return true
+	}
+	if v.draggingID != "" {
+		dx := (ev.X - v.dragStartX) / v.zoom
+		dy := (ev.Y - v.dragStartY) / v.zoom
+		v.dragWorldX, v.dragWorldY = dx, dy
+		v.dragMoved = v.dragMoved || abs32(dx)+abs32(dy) >= 1
+		return true
+	}
+	return false
+}
+
+func (v *view) pointerUp(ev ui.InputEvent) bool {
+	if v.kind == kindDrawio && v.endDrawioPointer(ev) {
+		return true
+	}
+	if v.panning {
+		v.panning = false
+		return true
+	}
+	if v.draggingID != "" {
+		id := v.draggingID
+		v.draggingID = ""
+		if ev.Canceled || !v.dragMoved {
+			v.dragWorldX, v.dragWorldY = 0, 0
+			return true
+		}
+		x := v.dragBaseX + float64(v.dragWorldX)
+		y := v.dragBaseY + float64(v.dragWorldY)
+		x = float64(roundTo(float32(x), 4))
+		y = float64(roundTo(float32(y), 4))
+		v.moveDiagramNode(id, x, y)
+		v.dragWorldX, v.dragWorldY = 0, 0
+		return true
+	}
+	return false
+}
+
+func (v *view) selectNode(id string) bool {
+	if err := v.Flush(); err != nil {
+		return false
+	}
+	v.ensureSynced(nil)
+	v.invalidateTagActions()
+	if v.kind == kindDrawio {
+		v.setDrawioSingle(id)
+	} else {
+		v.selectedID = id
+	}
+	v.refreshLabelDraft()
+	v.refreshTagDraft()
+	return true
+}
+
+func (v *view) undo() bool {
+	if err := v.Flush(); err != nil {
+		return true
+	}
+	if v.host.Buffer == nil || v.host.ReadOnly || !v.host.Buffer.CanUndo() {
+		return true
+	}
+	buffer, released, pageEpoch, page := v.host.Buffer, v.releaseEpoch, v.pageEpoch, v.pageIndex
+	if buffer.Undo() {
+		cloneHistory := v.beginDrawioCloneHistory(buffer, released, pageEpoch, page, true)
+		version, selection := buffer.Version(), buffer.Selection()
+		v.lastSynced = ^uint64(0)
+		if v.host.Changed != nil {
+			v.host.Changed()
+		}
+		if v.kind == kindDrawio && (v.host.Buffer != buffer || v.releaseEpoch != released ||
+			v.pageEpoch != pageEpoch || v.pageIndex != page || v.host.ReadOnly ||
+			buffer.InGroup() || buffer.Version() != version || buffer.Selection() != selection) {
+			return true
+		}
+		v.ensureSynced(nil)
+		v.finishDrawioCloneHistory(cloneHistory, buffer, released, pageEpoch, page)
+		// A compatibility/status row may disappear after Undo and re-key the
+		// canvas parent. Follow its new binding only for this live receipt.
+		if v.kind == kindDrawio && v.host.Buffer == buffer && v.releaseEpoch == released &&
+			v.pageEpoch == pageEpoch && v.pageIndex == page && !v.host.ReadOnly &&
+			!buffer.InGroup() && buffer.Version() == version && buffer.Selection() == selection {
+			v.canvasHandle.Focus()
+		}
+	}
+	return true
+}
+
+func (v *view) redo() bool {
+	if err := v.Flush(); err != nil {
+		return true
+	}
+	if v.host.Buffer == nil || v.host.ReadOnly || !v.host.Buffer.CanRedo() {
+		return true
+	}
+	buffer, released, pageEpoch, page := v.host.Buffer, v.releaseEpoch, v.pageEpoch, v.pageIndex
+	if buffer.Redo() {
+		cloneHistory := v.beginDrawioCloneHistory(buffer, released, pageEpoch, page, false)
+		version, selection := buffer.Version(), buffer.Selection()
+		v.lastSynced = ^uint64(0)
+		if v.host.Changed != nil {
+			v.host.Changed()
+		}
+		if v.kind == kindDrawio && (v.host.Buffer != buffer || v.releaseEpoch != released ||
+			v.pageEpoch != pageEpoch || v.pageIndex != page || v.host.ReadOnly ||
+			buffer.InGroup() || buffer.Version() != version || buffer.Selection() != selection) {
+			return true
+		}
+		v.ensureSynced(nil)
+		v.finishDrawioCloneHistory(cloneHistory, buffer, released, pageEpoch, page)
+		if v.kind == kindDrawio && v.host.Buffer == buffer && v.releaseEpoch == released &&
+			v.pageEpoch == pageEpoch && v.pageIndex == page && !v.host.ReadOnly &&
+			!buffer.InGroup() && buffer.Version() == version && buffer.Selection() == selection {
+			v.canvasHandle.Focus()
+		}
+	}
+	return true
+}
+
+func (v *view) deleteKey() bool {
+	if v.kind == kindDrawio {
+		return v.deleteDrawioCell()
+	}
+	if v.kind == kindMindmap {
+		v.deleteMindmapNode()
+	}
+	return true
+}
+
+func (v *view) requireWritable() error {
+	if err := v.writable(); err != nil {
+		v.report(err)
+		return err
+	}
+	return nil
+}
+
+func (v *view) requireSelection() error {
+	if v.selectedID == "" {
+		err := errors.New("no graph node is selected")
+		v.report(err)
+		return err
+	}
+	return nil
+}
+
+func (v *view) invalidAction(action string) error {
+	err := fmt.Errorf("%s is unavailable in the current graph state", action)
+	v.report(err)
+	return err
+}
+
+func abs32(value float32) float32 {
+	if value < 0 {
+		return -value
+	}
+	return value
+}
+
+func roundTo(value float32, step float32) float32 {
+	return float32(int((value+step/2)/step)) * step
+}

@@ -348,7 +348,13 @@ func (v *view) flushOrdinaryField() (receipt fieldFlushReceipt, result error) {
 	d.commits++
 	d.sourcePresent = d.field != fieldHyperLink || value != ""
 	d.pageIndex = page
-	v.selectedID = d.nodeID
+	if v.kind == kindDrawio {
+		if !v.drawioMultiSelected() {
+			v.setDrawioSingle(d.nodeID)
+		}
+	} else {
+		v.selectedID = d.nodeID
+	}
 	v.setPageIndex(page)
 	v.lastSynced = ^uint64(0)
 	v.setDraftError(nil)
@@ -442,7 +448,12 @@ func (v *view) changePage(index int) bool {
 		return false
 	}
 	v.setPageIndex(index)
-	v.selectedID = ""
+	// 切页沿用初次加载语义：选中新页第一个图形，保证字段面板有可写回的属主。
+	first := ""
+	if page := v.currentPage(); page != nil && len(page.Model.Nodes) > 0 {
+		first = page.Model.Nodes[0].ID
+	}
+	v.setDrawioSingle(first)
 	v.cancelGraphGesture()
 	v.clearDraft()
 	v.fitted = false

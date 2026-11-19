@@ -1,0 +1,58 @@
+{
+  "argv": [
+    "/home/user/go/bin/go",
+    "version"
+  ],
+  "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01",
+  "environment": {
+    "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/env/home",
+    "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/env/config",
+    "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/env/cache",
+    "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/env/data",
+    "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/env/state",
+    "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+    "GOROOT": "/home/user/go",
+    "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+    "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+    "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/env/tmp",
+    "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/env/tmp",
+    "GOENV": "off",
+    "GOWORK": "off",
+    "GOVCS": "*:off",
+    "GOFLAGS": "-mod=vendor",
+    "GOTOOLCHAIN": "local",
+    "GOPROXY": "off",
+    "GOSUMDB": "off",
+    "GONOPROXY": "",
+    "GONOSUMDB": "",
+    "GOPRIVATE": "",
+    "CGO_ENABLED": "0",
+    "GOTELEMETRY": "off",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "GOEXPERIMENT": ""
+  },
+  "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+  "started_at": "2026-11-13T03:26:57.817412+00:00",
+  "timeout_s": 20,
+  "timed_out": false,
+  "owned_cleanup": [],
+  "status": "completed",
+  "pid": 5353,
+  "owned_pgid": 5353,
+  "launched_at": "2026-11-13T03:26:57.818491+00:00",
+  "exit_code": 0,
+  "owned_group_remaining_after_wait": false,
+  "ended_at": "2026-11-13T03:26:57.826400+00:00",
+  "elapsed_s": 0.008978008998383302,
+  "stdout": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/03-go-version.stdout.bin",
+    "bytes": 32,
+    "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+  },
+  "stderr": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-positive-01/evidence/03-go-version.stderr.bin",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

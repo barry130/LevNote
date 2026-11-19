@@ -1,0 +1,228 @@
+{
+  "status": "FINAL06_OPAQUE_ARCHIVE_AND_NINE_MIRRORS_COMPLETE_NOT_APP_ACCEPTANCE",
+  "startedUTC": "2026-11-13T04:06:25.666876+00:00",
+  "endedUTC": "2026-11-13T04:06:26.201269+00:00",
+  "pid": 22144,
+  "argv": [
+    "F:/AIproject/LevNote/native/handoffs/autonomous-experience-20261112-evidence/transport-06/import-final06.py"
+  ],
+  "cwd": "F:\\AIproject\\LevNote",
+  "python": "C:\\Users\\canace\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\python\\python.exe",
+  "script": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\import-final06.py",
+    "bytes": 10025,
+    "sha256": "ba50fdf157be36d97f07bc7841e0a127cdb15cd721c7ac1ba5eb53d3a55a5533"
+  },
+  "archive": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.tar.gz",
+    "bytes": 85709,
+    "sha256": "25b935ae97a020bed1552c4fb5468130dabd8a884a6080826bfde8d91e288621"
+  },
+  "manifest": {
+    "bytes": 37274,
+    "sha256": "ac267abf0777dd81eaf7bef2f9cc64fa862e3850909719f0df706972553d4cdf"
+  },
+  "incoming": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming",
+  "entryCount": 52,
+  "payloadBytes": 375017,
+  "allEntriesByteExact": true,
+  "allFinalNineByteExact": true,
+  "finalNine": [
+    {
+      "name": "app.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\app.go",
+      "before": {
+        "bytes": 39471,
+        "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde"
+      },
+      "after": {
+        "bytes": 39471,
+        "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde"
+      },
+      "changed": false
+    },
+    {
+      "name": "view.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\view.go",
+      "before": {
+        "bytes": 24252,
+        "sha256": "a102bd5266bcf35296ba5973c2856a8211b1118ef7068f3f2470502a0d8fb935"
+      },
+      "after": {
+        "bytes": 24375,
+        "sha256": "8b702c15dfcd265821ec10fe7a8f52927f6ffe667a349ff04b8b281c67ba3b77"
+      },
+      "changed": true
+    },
+    {
+      "name": "workspace.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\workspace.go",
+      "before": {
+        "bytes": 8220,
+        "sha256": "3a2863c49554a4574d45d650c5d388c33d64599f428241366c700baed2e50be9"
+      },
+      "after": {
+        "bytes": 8339,
+        "sha256": "d9f458f1cb4d597932b58161f546f1e43874aa5eeb9bf25eb9c47ca40519177a"
+      },
+      "changed": true
+    },
+    {
+      "name": "outline.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\outline.go",
+      "before": {
+        "bytes": 15407,
+        "sha256": "7caed4b54a69af411f916b42b1e5d5a9de7db7fb9480799c38d3552d2299bf3a"
+      },
+      "after": {
+        "bytes": 15523,
+        "sha256": "c75435237f5d9eb9b466ed8b755cc8c22818f5dc4a6a57ac2045ae7136cad8cf"
+      },
+      "changed": true
+    },
+    {
+      "name": "list_lifetime.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\list_lifetime.go",
+      "before": {
+        "bytes": 2345,
+        "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5"
+      },
+      "after": {
+        "bytes": 2345,
+        "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5"
+      },
+      "changed": false
+    },
+    {
+      "name": "list_lifetime_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\list_lifetime_test.go",
+      "before": {
+        "bytes": 17378,
+        "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2"
+      },
+      "after": {
+        "bytes": 17378,
+        "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2"
+      },
+      "changed": false
+    },
+    {
+      "name": "list_handle_lifetime_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\list_handle_lifetime_test.go",
+      "before": {
+        "bytes": 7900,
+        "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5"
+      },
+      "after": {
+        "bytes": 7900,
+        "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5"
+      },
+      "changed": false
+    },
+    {
+      "name": "acceptance_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\acceptance_test.go",
+      "before": {
+        "bytes": 25229,
+        "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362"
+      },
+      "after": {
+        "bytes": 25229,
+        "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362"
+      },
+      "changed": false
+    },
+    {
+      "name": "workers.go",
+      "path": "F:\\AIproject\\LevNote\\native\\app\\workers.go",
+      "before": {
+        "bytes": 8114,
+        "sha256": "d6dbc465014b4e7dd1ff4fbc26f3064abf42542682069461c2f2c37411f0eab6"
+      },
+      "after": {
+        "bytes": 8225,
+        "sha256": "73c65d6aedc8b517c808314aae439f38c1c4137b013c2ca2db885e1fc88d9b83"
+      },
+      "changed": true
+    }
+  ],
+  "backups": [
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\app.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\app.go",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\view.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\view.go",
+      "bytes": 24252,
+      "sha256": "a102bd5266bcf35296ba5973c2856a8211b1118ef7068f3f2470502a0d8fb935"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\workspace.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\workspace.go",
+      "bytes": 8220,
+      "sha256": "3a2863c49554a4574d45d650c5d388c33d64599f428241366c700baed2e50be9"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\outline.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\outline.go",
+      "bytes": 15407,
+      "sha256": "7caed4b54a69af411f916b42b1e5d5a9de7db7fb9480799c38d3552d2299bf3a"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\list_lifetime.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\list_lifetime.go",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\list_lifetime_test.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\list_lifetime_test.go",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\list_handle_lifetime_test.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\list_handle_lifetime_test.go",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\acceptance_test.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\acceptance_test.go",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\app\\workers.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\app\\workers.go",
+      "bytes": 8114,
+      "sha256": "d6dbc465014b4e7dd1ff4fbc26f3064abf42542682069461c2f2c37411f0eab6"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112.md",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\handoffs\\autonomous-experience-20261112.md",
+      "bytes": 19105,
+      "sha256": "5f16c8c368b043475bc3fab36217bbbd72de8748ce0751918d704033edfe55aa"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-reliability-20261112.md",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\delivery-06-incoming\\backups\\native\\handoffs\\autonomous-reliability-20261112.md",
+      "bytes": 34988,
+      "sha256": "503dbf1c32d21865774379ebfeea419a9fa57ac77994cb2ddc51c6f2de9aaf27"
+    }
+  ],
+  "newReport": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-final06-20261113.md",
+    "bytes": 21483,
+    "sha256": "320979a87b66032f88b33d467ce0f44eb837c59ad868edec58528cec3e1611c8"
+  },
+  "protectedReportsUnchanged": [
+    "native/handoffs/autonomous-experience-20261112.md",
+    "native/handoffs/autonomous-reliability-20261112.md"
+  ],
+  "productCommands": 0,
+  "notWindowsOrWholeApplicationAcceptance": true
+}

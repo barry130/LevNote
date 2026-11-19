@@ -1,0 +1,108 @@
+{
+  "status": "EXISTING06_REVALIDATED_METADATA_ONLY_NOT_PRODUCT_ACCEPTANCE",
+  "reviewed_utc": "2026-11-13T02:15:46.004302+00:00",
+  "reviewer": "9e20bc49-fddb-490b-a752-c3b11da86ccc/task6",
+  "helper": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/coordination/review-existing06-inputs-20261113-01.py",
+    "bytes": 7294,
+    "sha256": "1de4e18ae877c47d71d39d886e954e18a2a03ae4d3fb88a4341465c02d9ea117"
+  },
+  "parent_root": "/home/user/levnote-dev-experience-20261112-01/revision-05-source",
+  "source_root": "/home/user/levnote-dev-experience-20261112-01/revision-06-source",
+  "freeze05": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-05/source-inputs.json",
+    "bytes": 3036,
+    "sha256": "74ec096142fd683f4deeea41c59c66e2697accb068ed8c48c448e1c1065a74e7"
+  },
+  "freeze06": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-06/source-inputs.json",
+    "bytes": 4605,
+    "sha256": "f864c426b7d200533641839fea12b4907241050778ba46a4470256773fbbb2dd"
+  },
+  "delta": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-06/revision-05-to-06.patch",
+    "bytes": 517,
+    "sha256": "a24f2833b397deccf45c308c6ddd3b743fba4fdb253419fd86a19b130405a64e"
+  },
+  "ready": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/coordination/final06-ready.txt",
+    "bytes": 5247,
+    "sha256": "c7b940b4afb6401076f41ea8654debfdb3367dca5b33df35521e1051c872069d"
+  },
+  "whole_source_files": 5967,
+  "whole_source_bytes05": 80238552,
+  "whole_source_bytes06": 80238567,
+  "exact05_file_set_and_every_nonchanged_byte": true,
+  "only_changed_file": "native/app/workspace.go",
+  "exact_one_line_replacement": true,
+  "eight_other_scoped_inputs_exact05": true,
+  "all_test_files_exact03_and05": true,
+  "test_files_checked": 533,
+  "oracle7900_unchanged": true,
+  "actual31061_source_before_roots_and_every_mapped_file_exact05": true,
+  "red_mapped_files": 1194,
+  "red_mapped_bytes": 17000636,
+  "same_actual_red_source_map_except_one_workspace_line": true,
+  "original25_selector_byte_exact31061": true,
+  "original25_selector": "^(TestAppListHandlesSurviveSemanticResets|TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget|TestSearchListHandleNewSearchRejectsStaleDelivery|TestOutlineListHandleReleaseAfterSidebarBuild|TestOutlineListHandleReentrantFlushAndRetry|TestHiddenListFocusDoesNotStealEditorInput|TestTreeRootSwitchKeepsComposingQueryInput|TestWorkspaceResultsMinimumWindowControls|TestWorkspaceTreeDisclosesPerDirectoryLimit|TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor|TestWorkspaceSearchVirtualizesFarResultAndReplacement|TestWorkspaceSearchIssueDetailsAreBounded|TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration|TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView|TestOutlineActivationFlushesPendingNativeComposition|TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable|TestOutlineActivationRejectsLifecycleChangesDuringFlush|TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice|TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard|TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates|TestBuiltinOutlineReleasedOnPluginModeTabAndReload|TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows|TestFindKeyboardFocusLeaveReconcilesComposition|TestFindbarControlsFitMainPaneAtMinimumWindow|TestFindbarActionsAndFocusSurviveMinimumReflow)$",
+  "nine_inputs": [
+    {
+      "path": "native/app/app.go",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde",
+      "identical_to05": true
+    },
+    {
+      "path": "native/app/view.go",
+      "bytes": 24375,
+      "sha256": "8b702c15dfcd265821ec10fe7a8f52927f6ffe667a349ff04b8b281c67ba3b77",
+      "identical_to05": true
+    },
+    {
+      "path": "native/app/workspace.go",
+      "bytes": 8339,
+      "sha256": "d9f458f1cb4d597932b58161f546f1e43874aa5eeb9bf25eb9c47ca40519177a",
+      "identical_to05": false
+    },
+    {
+      "path": "native/app/outline.go",
+      "bytes": 15523,
+      "sha256": "c75435237f5d9eb9b466ed8b755cc8c22818f5dc4a6a57ac2045ae7136cad8cf",
+      "identical_to05": true
+    },
+    {
+      "path": "native/app/list_lifetime.go",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5",
+      "identical_to05": true
+    },
+    {
+      "path": "native/app/list_lifetime_test.go",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2",
+      "identical_to05": true
+    },
+    {
+      "path": "native/app/list_handle_lifetime_test.go",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+      "identical_to05": true
+    },
+    {
+      "path": "native/app/acceptance_test.go",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362",
+      "identical_to05": true
+    },
+    {
+      "path": "native/app/workers.go",
+      "bytes": 8225,
+      "sha256": "73c65d6aedc8b517c808314aae439f38c1c4137b013c2ca2db885e1fc88d9b83",
+      "identical_to05": true
+    }
+  ],
+  "author_product_commands": 0,
+  "freeze_reexecution": false,
+  "current_run_status_source": "Soleowner status-first reports no06 input/intent/started/final or product PID; new validation not launched by this reviewer.",
+  "not_windows_or_whole_application_acceptance": true
+}

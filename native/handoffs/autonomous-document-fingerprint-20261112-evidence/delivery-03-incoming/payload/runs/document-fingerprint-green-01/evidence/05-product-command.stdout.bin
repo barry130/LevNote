@@ -1,0 +1,4 @@
+=== RUN   TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne
+--- PASS: TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne (0.00s)
+PASS
+ok  	levnote.local/native/core/document	0.007s

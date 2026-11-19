@@ -46,6 +46,11 @@ func nodePaint(node *mindmap.Node, key string) string {
 	}
 	raw, ok := node.Style.Get(key)
 	if !ok {
+		if key == "color" {
+			if fallback, exists := mindmap.StyleTextFallback(node); exists {
+				return normalizedPaint(fallback)
+			}
+		}
 		return ""
 	}
 	var value string

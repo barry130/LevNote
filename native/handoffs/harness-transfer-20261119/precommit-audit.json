@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-19",
+  "purpose": "Preserve stopped work for another Harness, not product acceptance",
+  "baseCommit": "f2c2ceb82acecb40fb0502c047e41ba12a12be47",
+  "branch": "main",
+  "beforeThisReceipt": {
+    "changedFiles": 1168,
+    "stagedLogicalBytes": 97202155,
+    "filesOver100MiB": 0,
+    "archiveFilesCompared": 5834,
+    "archiveIndexEqualsRaw": true,
+    "orderedArchiveBlobListOid": "742b518a62185f7ce5525c654fb734280bdd9a32",
+    "unstagedTrackedFiles": 0,
+    "untrackedExceptions": [
+      "CON"
+    ]
+  },
+  "checks": {
+    "stagedWhitespaceExcludingImmutableArchives": "pass (exit 0)",
+    "privateKeyAndCommonTokenPatternScan": "zero matches in native and selected local evidence; pattern scan only",
+    "currentBatchDiff": "three draw.io files reviewed and saved in drawio-current-batch.patch",
+    "productExecutionAfterStop": false
+  },
+  "sourceStatus": {
+    "drawio": "unverified edits after two failing focused runs",
+    "markdownLists": "design only",
+    "markdownCellDraftRecovery": "design only"
+  },
+  "remotesBeforeCommit": {
+    "origin": "f2c2ceb82acecb40fb0502c047e41ba12a12be47",
+    "github": "f2c2ceb82acecb40fb0502c047e41ba12a12be47"
+  },
+  "exceptions": {
+    "CON": "Reserved Windows name rejected by filesystem validation; preserved locally, not inspected or staged",
+    "ignoredToolsAndCaches": "Remain local; only explicitly selected evidence is staged",
+    "evidenceCopy": "Seven batch copy operations reported ACCESS_DENIED/unknown; no copied destination files observed. Original files staged directly with byte-preserving attributes."
+  }
+}

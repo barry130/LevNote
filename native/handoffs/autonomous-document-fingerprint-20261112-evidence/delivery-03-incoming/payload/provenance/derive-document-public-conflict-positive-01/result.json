@@ -1,0 +1,46 @@
+{
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/capture-document-conflict-formatted-input-01.py",
+    "--format-label",
+    "document-public-conflict-format-01",
+    "--label",
+    "document-public-conflict-positive-01"
+  ],
+  "pid": 4136,
+  "cwd": "/home/user/levnote-dev-reliability-20261112-01",
+  "started_at": "2026-11-13T02:46:02.321107+00:00",
+  "script": {
+    "bytes": 5295,
+    "sha256": "4838e52659b76a9540391a08b660659249f9336080d7cf1d5e32676a81a13da0"
+  },
+  "format_label": "document-public-conflict-format-01",
+  "product_executed": false,
+  "outcome": "MATCHING_FORMATTED_INPUT_CAPTURED_NOT_PRODUCT_ACCEPTANCE",
+  "input_source": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-public-conflict-positive-01/native",
+  "expected_manifest": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-public-conflict-positive-01/expected-manifest.json",
+    "bytes": 201896,
+    "sha256": "233c958e66cc514ec0a13f433d6f4d2f341b9977b572c3f87a97899dfa60bd95"
+  },
+  "input_count": 1194,
+  "input_bytes": 16984837,
+  "formatter_changed_files": [
+    "core/document/atomic.go"
+  ],
+  "formatted_file_group": {
+    "core/document/atomic.go": {
+      "bytes": 4873,
+      "sha256": "641601d61fe3da0ec83954c6b199cac46864099ffa78f09e2a309180491fec83"
+    },
+    "core/document/fingerprint_conflict_public_test.go": {
+      "bytes": 6993,
+      "sha256": "c0556277c6d7ae7c7cf4a72d75d3901a23aedcedec94aa00711dc5ac0ab20b69"
+    }
+  },
+  "raw_manifest": {
+    "bytes": 201756,
+    "sha256": "28aa5abeb0fab388b6b4aa6ef60077f103dea3b6a389c9094812db343663f780"
+  },
+  "exit_code": 0,
+  "ended_at": "2026-11-13T02:46:03.968048+00:00"
+}

@@ -6,44 +6,59 @@ import (
 	"strings"
 )
 
-// DeleteCell removes one understood layer-level vertex or edge without
-// serializing the page. The result counts incident edges removed with a vertex.
-// Unsupported dependencies are refused before the private source is changed.
+// DeleteCell retains the single-cell spelling for existing API callers.
 func (d *Document) DeleteCell(pageIndex int, cellID string) (int, error) {
+	return d.DeleteCells(pageIndex, []string{cellID})
+}
+
+// DeleteCells removes an ordered selection atomically. The result counts
+// incident edges once, not every selected-vertex/edge dependency pair.
+// Unsupported dependencies are refused before private source is changed.
+func (d *Document) DeleteCells(pageIndex int, cellIDs []string) (int, error) {
+	if len(cellIDs) == 0 {
+		return 0, fmt.Errorf("%w: empty cell selection", ErrCellNotFound)
+	}
 	page, err := d.writablePage(pageIndex)
 	if err != nil {
 		return 0, err
 	}
-	if cellID == "0" || cellID == "1" {
-		return 0, fmt.Errorf("%w: root and layer cells cannot be deleted", ErrUnsupported)
-	}
-	found, vertex := 0, false
-	for _, node := range page.Model.Nodes {
-		if node.ID == cellID {
-			found++
-			vertex = true
-			if node.Parent != "1" || len(node.Unsupported) != 0 || node.geometryStart < 0 {
-				return 0, fmt.Errorf("%w: cell %q is not an understood layer-level vertex", ErrUnsupported, cellID)
-			}
-		}
-	}
-	for _, edge := range page.Model.Edges {
-		if edge.ID == cellID {
-			found++
-			if edge.Parent != "1" || len(edge.Unsupported) != 0 {
-				return 0, fmt.Errorf("%w: cell %q is not an understood layer-level edge", ErrUnsupported, cellID)
-			}
-		}
-	}
-	if found == 0 || cellID == "" {
-		return 0, fmt.Errorf("%w: %q", ErrCellNotFound, cellID)
-	}
-	if found != 1 {
-		return 0, fmt.Errorf("%w: cell %q has ambiguous vertex/edge roles", ErrUnsupported, cellID)
-	}
-	removeIDs := map[string]bool{cellID: true}
+	removeIDs := make(map[string]bool, len(cellIDs))
 	incidentEdges := 0
-	if vertex {
+	for _, cellID := range cellIDs {
+		if cellID == "" || cellID == "0" || cellID == "1" {
+			return 0, fmt.Errorf("%w: root, layer and empty cells cannot be deleted: %q", ErrUnsupported, cellID)
+		}
+		if removeIDs[cellID] {
+			return 0, fmt.Errorf("%w: duplicate cell selection %q", ErrUnsupported, cellID)
+		}
+		found, vertex := 0, false
+		for _, node := range page.Model.Nodes {
+			if node.ID == cellID {
+				found++
+				vertex = true
+				if node.Parent != "1" || len(node.Unsupported) != 0 || node.geometryStart < 0 {
+					return 0, fmt.Errorf("%w: cell %q is not an understood layer-level vertex", ErrUnsupported, cellID)
+				}
+			}
+		}
+		for _, edge := range page.Model.Edges {
+			if edge.ID == cellID {
+				found++
+				if edge.Parent != "1" || len(edge.Unsupported) != 0 {
+					return 0, fmt.Errorf("%w: cell %q is not an understood layer-level edge", ErrUnsupported, cellID)
+				}
+			}
+		}
+		if found == 0 {
+			return 0, fmt.Errorf("%w: %q", ErrCellNotFound, cellID)
+		}
+		if found != 1 {
+			return 0, fmt.Errorf("%w: cell %q has ambiguous vertex/edge roles", ErrUnsupported, cellID)
+		}
+		removeIDs[cellID] = true
+		if !vertex {
+			continue
+		}
 		for _, edge := range page.Model.Edges {
 			if edge.SourceID != cellID && edge.TargetID != cellID {
 				continue

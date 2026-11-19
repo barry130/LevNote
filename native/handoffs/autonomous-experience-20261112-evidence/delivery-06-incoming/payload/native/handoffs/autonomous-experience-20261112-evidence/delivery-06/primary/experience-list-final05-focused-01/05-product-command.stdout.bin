@@ -1,0 +1,6 @@
+=== RUN   TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget
+--- PASS: TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget (0.53s)
+=== RUN   TestOutlineListHandleReleaseAfterSidebarBuild
+--- PASS: TestOutlineListHandleReleaseAfterSidebarBuild (0.03s)
+PASS
+ok  	levnote.local/native/app	0.570s

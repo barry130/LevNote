@@ -1,0 +1,6 @@
+=== RUN   TestDrawioCanvasDeleteUndoRedoPreservesSource
+    drawio_delete_test.go:38: canvas Delete did not commit one exact source transaction: changed=0 source="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<mxfile host=\"keep\"><diagram id=\"p\" name=\"Delete\"><mxGraphModel custom=\"keep\"><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/><mxCell id=\"a\" value=\"remove\" custom=\"remove-meta\" vertex=\"1\" parent=\"1\"><mxGeometry x=\"0\" y=\"0\" width=\"80\" height=\"80\" as=\"geometry\"/></mxCell><!-- keep --></root></mxGraphModel></diagram></mxfile>" reports=[]
+--- FAIL: TestDrawioCanvasDeleteUndoRedoPreservesSource (0.08s)
+FAIL
+FAIL	levnote.local/native/modules/graphview	0.092s
+FAIL

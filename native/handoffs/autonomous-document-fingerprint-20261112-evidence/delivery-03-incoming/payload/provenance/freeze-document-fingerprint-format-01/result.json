@@ -1,0 +1,99 @@
+{
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/freeze-document-input-01.py",
+    "--label",
+    "document-fingerprint-format-01",
+    "--source",
+    "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native",
+    "--allow",
+    "core/document/document.go",
+    "--allow",
+    "core/document/atomic.go",
+    "--allow",
+    "core/document/utf8_save_test.go",
+    "--allow",
+    "core/document/fingerprint_boundary_test.go"
+  ],
+  "cwd": "/home/user/levnote-dev-reliability-20261112-01",
+  "pid": 29779,
+  "started_at": "2026-11-12T11:46:48.028432+00:00",
+  "script": {
+    "bytes": 5048,
+    "sha256": "dccc94dbe7d5e93528e84000e37f2ffe7f6d0c0e859e18a941eb443abfd9216e"
+  },
+  "runner": {
+    "bytes": 17964,
+    "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+  },
+  "source": "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native",
+  "allowed_changed_files": [
+    "core/document/document.go",
+    "core/document/atomic.go",
+    "core/document/utf8_save_test.go",
+    "core/document/fingerprint_boundary_test.go"
+  ],
+  "head": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "go_executed": false,
+  "expected_manifest": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-fingerprint-format-01/expected-manifest.json",
+    "bytes": 200956,
+    "sha256": "08f7e11b815ddda59bf7fc59d5762a661b8ce51fef0bb885b3e89a14779b90ff"
+  },
+  "input_source": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-fingerprint-format-01/native",
+  "input_count": 1192,
+  "input_bytes": 16974631,
+  "overlay": [
+    {
+      "path": "core/document/atomic.go",
+      "baseline": {
+        "bytes": 3516,
+        "sha256": "33d45a65253972d8547a5dc7acd1ac9fa04c0540ef11dd3de207676801a232cc"
+      },
+      "input": {
+        "bytes": 4867,
+        "sha256": "680e7f00aca4ba5a5079ee8a78644a69bdb2a8e75daad63cd1157d2209ba9c01"
+      }
+    },
+    {
+      "path": "core/document/document.go",
+      "baseline": {
+        "bytes": 12537,
+        "sha256": "6859017748c8884dd9cc84b185a405c0a78089aa0d84f191024489cb24c11219"
+      },
+      "input": {
+        "bytes": 14251,
+        "sha256": "779905bb3eb4621d01c5bd3a9eeaca25e941789701d973314017b5746011a9dc"
+      }
+    },
+    {
+      "path": "core/document/fingerprint_boundary_test.go",
+      "baseline": null,
+      "input": {
+        "bytes": 3399,
+        "sha256": "f0d3204bf2b7430eb1a95ca183ade789816faf7752433cad06c2e6a74f434aef"
+      }
+    },
+    {
+      "path": "core/document/utf8_save_test.go",
+      "baseline": {
+        "bytes": 8197,
+        "sha256": "446f7542b0447fea4f29b92796f6cb4b32b3aeb249e914bfb279731f78302863"
+      },
+      "input": {
+        "bytes": 8248,
+        "sha256": "323005a4ba7db09f79dabcddcc0e33b74d01d6cf611b1fc657655f1c52b8fc31"
+      }
+    }
+  ],
+  "source_before": {
+    "bytes": 199418,
+    "sha256": "c07beb3107a58aa4a7bc08c3d06cb9f7a8770b54fae6b36ded3147f7ac20c05e"
+  },
+  "source_after": {
+    "bytes": 199418,
+    "sha256": "c07beb3107a58aa4a7bc08c3d06cb9f7a8770b54fae6b36ded3147f7ac20c05e"
+  },
+  "outcome": "MATCHING_INPUT_CAPTURED_NOT_PRODUCT_ACCEPTANCE",
+  "exit_code": 0,
+  "ended_at": "2026-11-12T11:46:56.700573+00:00"
+}

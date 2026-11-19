@@ -1,0 +1,655 @@
+{
+  "status": "FINAL06_ORIGINAL_BYTE_REVIEW_DELIVERY_NOT_APP_ACCEPTANCE",
+  "createdUTC": "2026-11-13T02:51:58.372197+00:00",
+  "author": "9e20bc49-fddb-490b-a752-c3b11da86ccc",
+  "baseline": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "sourceRoot": "/home/user/levnote-dev-experience-20261112-01/revision-06-source",
+  "finalNine": [
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/app.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/app.go",
+      "kind": "original-frozen-source",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/view.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/view.go",
+      "kind": "original-frozen-source",
+      "bytes": 24375,
+      "sha256": "8b702c15dfcd265821ec10fe7a8f52927f6ffe667a349ff04b8b281c67ba3b77"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/workspace.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/workspace.go",
+      "kind": "original-frozen-source",
+      "bytes": 8339,
+      "sha256": "d9f458f1cb4d597932b58161f546f1e43874aa5eeb9bf25eb9c47ca40519177a"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/outline.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/outline.go",
+      "kind": "original-frozen-source",
+      "bytes": 15523,
+      "sha256": "c75435237f5d9eb9b466ed8b755cc8c22818f5dc4a6a57ac2045ae7136cad8cf"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/list_lifetime.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/list_lifetime.go",
+      "kind": "original-frozen-source",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/list_lifetime_test.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/list_lifetime_test.go",
+      "kind": "original-frozen-source",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/list_handle_lifetime_test.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/list_handle_lifetime_test.go",
+      "kind": "original-frozen-source",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/acceptance_test.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/acceptance_test.go",
+      "kind": "original-frozen-source",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/workers.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/workers.go",
+      "kind": "original-frozen-source",
+      "bytes": 8225,
+      "sha256": "73c65d6aedc8b517c808314aae439f38c1c4137b013c2ca2db885e1fc88d9b83"
+    }
+  ],
+  "report": {
+    "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/report-06.md",
+    "origin": "/home/user/levnote-dev-experience-20261112-01/report-only-06/native/handoffs/autonomous-experience-20261112.md",
+    "kind": "new-version-report",
+    "bytes": 21483,
+    "sha256": "320979a87b66032f88b33d467ce0f44eb837c59ad868edec58528cec3e1611c8"
+  },
+  "entries": [
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/app.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/app.go",
+      "kind": "original-frozen-source",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/view.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/view.go",
+      "kind": "original-frozen-source",
+      "bytes": 24375,
+      "sha256": "8b702c15dfcd265821ec10fe7a8f52927f6ffe667a349ff04b8b281c67ba3b77"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/workspace.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/workspace.go",
+      "kind": "original-frozen-source",
+      "bytes": 8339,
+      "sha256": "d9f458f1cb4d597932b58161f546f1e43874aa5eeb9bf25eb9c47ca40519177a"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/outline.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/outline.go",
+      "kind": "original-frozen-source",
+      "bytes": 15523,
+      "sha256": "c75435237f5d9eb9b466ed8b755cc8c22818f5dc4a6a57ac2045ae7136cad8cf"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/list_lifetime.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/list_lifetime.go",
+      "kind": "original-frozen-source",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/list_lifetime_test.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/list_lifetime_test.go",
+      "kind": "original-frozen-source",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/list_handle_lifetime_test.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/list_handle_lifetime_test.go",
+      "kind": "original-frozen-source",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/acceptance_test.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/acceptance_test.go",
+      "kind": "original-frozen-source",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/final/native/app/workers.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/revision-06-source/native/app/workers.go",
+      "kind": "original-frozen-source",
+      "bytes": 8225,
+      "sha256": "73c65d6aedc8b517c808314aae439f38c1c4137b013c2ca2db885e1fc88d9b83"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/report-06.md",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/report-only-06/native/handoffs/autonomous-experience-20261112.md",
+      "kind": "new-version-report",
+      "bytes": 21483,
+      "sha256": "320979a87b66032f88b33d467ce0f44eb837c59ad868edec58528cec3e1611c8"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/task6-freeze-03/source-inputs.json",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-03/source-inputs.json",
+      "kind": "original-freeze-metadata",
+      "bytes": 7681,
+      "sha256": "ccc1461d5b26a34fe4c7788b4fff7dfa9d40cd11812bdd1ae2745f28586ae71b"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/task6-freeze-05/source-inputs.json",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-05/source-inputs.json",
+      "kind": "original-freeze-metadata",
+      "bytes": 3036,
+      "sha256": "74ec096142fd683f4deeea41c59c66e2697accb068ed8c48c448e1c1065a74e7"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/task6-freeze-05/revision-03-to-05.patch",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-05/revision-03-to-05.patch",
+      "kind": "original-freeze-metadata",
+      "bytes": 2059,
+      "sha256": "50b604f7210c65ab2f82967eff52504b76fb87a976a07ca807adaa433293e334"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/task6-freeze-06/source-inputs.json",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-06/source-inputs.json",
+      "kind": "original-freeze-metadata",
+      "bytes": 4605,
+      "sha256": "f864c426b7d200533641839fea12b4907241050778ba46a4470256773fbbb2dd"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/task6-freeze-06/revision-05-to-06.patch",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-06/revision-05-to-06.patch",
+      "kind": "original-freeze-metadata",
+      "bytes": 517,
+      "sha256": "a24f2833b397deccf45c308c6ddd3b743fba4fdb253419fd86a19b130405a64e"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/unexecuted-local-drafts.json",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/unexecuted-local-drafts.json",
+      "kind": "preserved-host-draft-origin",
+      "bytes": 876,
+      "sha256": "1b5a8e8a4bfb9b51f811391bef4c647baf07b211970c88f47ad09eb2921c3bc3"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/unexecuted-local-draft.patch",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/unexecuted-local-draft.patch",
+      "kind": "preserved-host-draft-origin",
+      "bytes": 4045,
+      "sha256": "a8529689204ead16bc7bb6c89823bec69856fd11991b68c99e65a5f9a25ab35b"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/source-origin.txt",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/source-origin.txt",
+      "kind": "preserved-host-draft-origin",
+      "bytes": 224,
+      "sha256": "98e76ffbd714c2813734576f48b3d8545fd20726c20ce21849a880a19db938fd"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/local-draft-list_lifetime.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/local-draft-list_lifetime.go",
+      "kind": "preserved-host-draft-origin",
+      "bytes": 2326,
+      "sha256": "9382752734aef519bfe71b01ab53d719bb42778f708ac20bef9dfc8de89316bf"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/provenance/local-draft-list_handle_lifetime_test.go",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/provenance/local-draft-list_handle_lifetime_test.go",
+      "kind": "preserved-host-draft-origin",
+      "bytes": 7696,
+      "sha256": "f3a83efa1613cb0be6dd61638d35178ee61cfbbee98bad24b3aa5e8362862b82"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/coordination/final06-ready.txt",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/coordination/final06-ready.txt",
+      "kind": "original-coordination-or-readonly-audit",
+      "bytes": 5247,
+      "sha256": "c7b940b4afb6401076f41ea8654debfdb3367dca5b33df35521e1051c872069d"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/coordination/resume-06-input-review-20261113-01.json",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/coordination/resume-06-input-review-20261113-01.json",
+      "kind": "original-coordination-or-readonly-audit",
+      "bytes": 5490,
+      "sha256": "c3aef40fb2155996f61343f10e7c709deeb3fea7df262157b131679e8fac3206"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/coordination/review-existing06-inputs-20261113-01.py",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/coordination/review-existing06-inputs-20261113-01.py",
+      "kind": "original-coordination-or-readonly-audit",
+      "bytes": 7294,
+      "sha256": "1de4e18ae877c47d71d39d886e954e18a2a03ae4d3fb88a4341465c02d9ea117"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/coordination/check-final06-evidence.py",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/coordination/check-final06-evidence.py",
+      "kind": "original-coordination-or-readonly-audit",
+      "bytes": 8018,
+      "sha256": "4c9a18c760b08a85e889734e55dbbf4024d283ef4592dc79f520cd7f3360a7d6"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/history/report-04.md",
+      "origin": "/home/user/levnote-dev-experience-20261112-01/report-only-04/native/handoffs/autonomous-experience-20261112.md",
+      "kind": "immutable-historical-report",
+      "bytes": 19105,
+      "sha256": "5f16c8c368b043475bc3fab36217bbbd72de8748ce0751918d704033edfe55aa"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-focused-01/05-product-command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-focused-01/evidence/05-product-command.json",
+      "kind": "original-primary-evidence",
+      "bytes": 2776,
+      "sha256": "61298c546fc3f732581224db3149a41857991169d3d14387898d1cd83242b366"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-focused-01/result.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-focused-01/evidence/result.json",
+      "kind": "original-primary-evidence",
+      "bytes": 5937,
+      "sha256": "b351d395a4165ec25c7194ba214b0b8e82a6a40997414429c68a5c4794ebeb22"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-focused-01/05-product-command.stdout.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-focused-01/evidence/05-product-command.stdout.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 296,
+      "sha256": "d4e4eb37abea31d72f0dbd12a03cfc431e41f7a0d42c545c99af27eeeefcdc8b"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-focused-01/05-product-command.stderr.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-focused-01/evidence/05-product-command.stderr.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-affected-01/05-product-command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-affected-01/evidence/05-product-command.json",
+      "kind": "original-primary-evidence",
+      "bytes": 4003,
+      "sha256": "84490fa4a9374201e17889c8f38672cb82fed0253f2650741232880d1d3faa53"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-affected-01/result.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-affected-01/evidence/result.json",
+      "kind": "original-primary-evidence",
+      "bytes": 8374,
+      "sha256": "a0e1e93520122ef06a1f41db0cb0dd1ada7f54e9376820bc243de5032bfa2ec0"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-affected-01/05-product-command.stdout.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-affected-01/evidence/05-product-command.stdout.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 11516,
+      "sha256": "cedc8eaa472b51e81b30ec9333c36aeb9d0e0203f224c9ef5737f30304fc6583"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final05-affected-01/05-product-command.stderr.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-affected-01/evidence/05-product-command.stderr.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-format-01/05-product-command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/05-product-command.json",
+      "kind": "original-primary-evidence",
+      "bytes": 2606,
+      "sha256": "241f2ee00ef637b0e2f3689a972df9c5ffc994da8e28ec2ec183e5a6140672ff"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-format-01/result.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/result.json",
+      "kind": "original-primary-evidence",
+      "bytes": 5693,
+      "sha256": "d534b78b1fd6f1d61e8d720667573dba51901da4485e3bacd061fbe248d7c4a9"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-format-01/05-product-command.stdout.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/05-product-command.stdout.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-format-01/05-product-command.stderr.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/05-product-command.stderr.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-format-01/05-product-command.command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/05-product-command.command.json",
+      "kind": "original-primary-command-intent-or-start",
+      "bytes": 1854,
+      "sha256": "427a4cada193816504f2afd6ca3ea7d9c2af6fa99cf57e371592700830fdbb40"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-format-01/05-product-command.started.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/05-product-command.started.json",
+      "kind": "original-primary-command-intent-or-start",
+      "bytes": 1943,
+      "sha256": "3a9fe7155f684ef12311fb8a70f29c4f5d541305f7c2b3b930833522c143e0bb"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-focused-01/05-product-command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/05-product-command.json",
+      "kind": "original-primary-evidence",
+      "bytes": 2714,
+      "sha256": "36225dfd49227d1fcad2905f699533a581b7b84fdaf22b7c074dfd5d69dce22c"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-focused-01/result.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/result.json",
+      "kind": "original-primary-evidence",
+      "bytes": 5816,
+      "sha256": "68c36c8d02b4c4915680f652b2d4e68a72092d89ee57f3f21047eeada23aa6a7"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-focused-01/05-product-command.stdout.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/05-product-command.stdout.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 939,
+      "sha256": "c5f67322fec093f1ce8cb6ca9a602e7ba220997d9126bbf1ff249f614e6b8bf0"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-focused-01/05-product-command.stderr.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/05-product-command.stderr.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-focused-01/05-product-command.command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/05-product-command.command.json",
+      "kind": "original-primary-command-intent-or-start",
+      "bytes": 1960,
+      "sha256": "b10ddbb346761e143c1d81e055f5b4b96d2517a0ac4805845b98f544669d2ba6"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-focused-01/05-product-command.started.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/05-product-command.started.json",
+      "kind": "original-primary-command-intent-or-start",
+      "bytes": 2049,
+      "sha256": "abb0163b9217be40d15824f8b4e7fb975cb4eed86555d4ad85cee959084b5adf"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-affected-01/05-product-command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/05-product-command.json",
+      "kind": "original-primary-evidence",
+      "bytes": 4003,
+      "sha256": "59eadfbe643c71d45048ce8a78a918799fceccf18e980c8a1e900c272f2def31"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-affected-01/result.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/result.json",
+      "kind": "original-primary-evidence",
+      "bytes": 8388,
+      "sha256": "571a8983002ee89a41203ddb34ac8af3ec17a7c476ac9472f516eb380cef9619"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-affected-01/05-product-command.stdout.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/05-product-command.stdout.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 11812,
+      "sha256": "5ad7121a72fca05ec734e437fe2fdfc02c52b104a1affbcb111c398d790c20e1"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-affected-01/05-product-command.stderr.bin",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/05-product-command.stderr.bin",
+      "kind": "original-primary-evidence",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-affected-01/05-product-command.command.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/05-product-command.command.json",
+      "kind": "original-primary-command-intent-or-start",
+      "bytes": 3244,
+      "sha256": "c331899fa985b071f3077fcfedacf5bb04efe6a4aa64a53c124644df99de9a06"
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/delivery-06/primary/experience-list-final06-affected-01/05-product-command.started.json",
+      "origin": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/05-product-command.started.json",
+      "kind": "original-primary-command-intent-or-start",
+      "bytes": 3333,
+      "sha256": "fd32ab8140288dad9a54228054392478c8de22fbdb638246bfa436c780770e11"
+    }
+  ],
+  "originalEvidenceReferences": [
+    {
+      "label": "experience-list-final05-focused-01",
+      "pid": 30369,
+      "productExit": 0,
+      "wrapperExit": 0,
+      "launchedAt": "2026-11-12T12:12:17.902661+00:00",
+      "endedAt": "2026-11-12T12:12:45.432737+00:00",
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^(TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget|TestOutlineListHandleReleaseAfterSidebarBuild)$",
+        "./app"
+      ],
+      "originalExpectedManifest": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/experience-list-final05-focused-01/expected-manifest.json",
+        "bytes": 202703,
+        "sha256": "5ef542c70b996fe30cbc3a96d685ebab611766b998ef34320bc31ff1a300047e"
+      },
+      "originalUncopiedMaps": [
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-focused-01/evidence/source-before.json",
+          "bytes": 199696,
+          "sha256": "d7a413c025e6eafccd497ea4ff5430b61bfae85d91c32e5eee6bd5042ac7f1b4"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-focused-01/evidence/source-after.json",
+          "bytes": 199696,
+          "sha256": "d7a413c025e6eafccd497ea4ff5430b61bfae85d91c32e5eee6bd5042ac7f1b4"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-focused-01/evidence/snapshot-after.json",
+          "bytes": 199696,
+          "sha256": "d7a413c025e6eafccd497ea4ff5430b61bfae85d91c32e5eee6bd5042ac7f1b4"
+        }
+      ],
+      "mappedFiles": 1194,
+      "mappedBytes": 17000636,
+      "rootsAndAllEntriesVerified": true
+    },
+    {
+      "label": "experience-list-final05-affected-01",
+      "pid": 31061,
+      "productExit": 1,
+      "wrapperExit": 2,
+      "launchedAt": "2026-11-12T12:14:15.469243+00:00",
+      "endedAt": "2026-11-12T12:14:39.463999+00:00",
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=180s",
+        "-run",
+        "^(TestAppListHandlesSurviveSemanticResets|TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget|TestSearchListHandleNewSearchRejectsStaleDelivery|TestOutlineListHandleReleaseAfterSidebarBuild|TestOutlineListHandleReentrantFlushAndRetry|TestHiddenListFocusDoesNotStealEditorInput|TestTreeRootSwitchKeepsComposingQueryInput|TestWorkspaceResultsMinimumWindowControls|TestWorkspaceTreeDisclosesPerDirectoryLimit|TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor|TestWorkspaceSearchVirtualizesFarResultAndReplacement|TestWorkspaceSearchIssueDetailsAreBounded|TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration|TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView|TestOutlineActivationFlushesPendingNativeComposition|TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable|TestOutlineActivationRejectsLifecycleChangesDuringFlush|TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice|TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard|TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates|TestBuiltinOutlineReleasedOnPluginModeTabAndReload|TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows|TestFindKeyboardFocusLeaveReconcilesComposition|TestFindbarControlsFitMainPaneAtMinimumWindow|TestFindbarActionsAndFocusSurviveMinimumReflow)$",
+        "./app"
+      ],
+      "originalExpectedManifest": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/experience-list-final05-affected-01/expected-manifest.json",
+        "bytes": 202704,
+        "sha256": "0253fb9e0412ca392a6ae45ecca339ccac869aeb6ac119f0f60f782f2307cfef"
+      },
+      "originalUncopiedMaps": [
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-affected-01/evidence/source-before.json",
+          "bytes": 199696,
+          "sha256": "d7a413c025e6eafccd497ea4ff5430b61bfae85d91c32e5eee6bd5042ac7f1b4"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-affected-01/evidence/source-after.json",
+          "bytes": 199696,
+          "sha256": "d7a413c025e6eafccd497ea4ff5430b61bfae85d91c32e5eee6bd5042ac7f1b4"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final05-affected-01/evidence/snapshot-after.json",
+          "bytes": 199696,
+          "sha256": "d7a413c025e6eafccd497ea4ff5430b61bfae85d91c32e5eee6bd5042ac7f1b4"
+        }
+      ],
+      "mappedFiles": 1194,
+      "mappedBytes": 17000636,
+      "rootsAndAllEntriesVerified": true
+    },
+    {
+      "label": "experience-list-final06-format-01",
+      "pid": 2017,
+      "productExit": 0,
+      "wrapperExit": 0,
+      "launchedAt": "2026-11-13T02:19:37.627719+00:00",
+      "endedAt": "2026-11-13T02:19:37.692461+00:00",
+      "argv": [
+        "/home/user/go/bin/gofmt",
+        "-w",
+        "app/workspace.go"
+      ],
+      "originalExpectedManifest": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/experience-list-final06-format-01/expected-manifest.json",
+        "bytes": 202555,
+        "sha256": "b8b42466f854bfe6955a3989b625472aaf61c1aa9277975ae507a1e087b79824"
+      },
+      "originalUncopiedMaps": [
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/source-before.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/source-after.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-format-01/evidence/snapshot-after.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        }
+      ],
+      "mappedFiles": 1194,
+      "mappedBytes": 17000651,
+      "rootsAndAllEntriesVerified": true
+    },
+    {
+      "label": "experience-list-final06-focused-01",
+      "pid": 2058,
+      "productExit": 0,
+      "wrapperExit": 0,
+      "launchedAt": "2026-11-13T02:21:04.522909+00:00",
+      "endedAt": "2026-11-13T02:21:43.583137+00:00",
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=120s",
+        "-run",
+        "^TestWorkspaceResultsMinimumWindowControls$",
+        "./app"
+      ],
+      "originalExpectedManifest": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/experience-list-final06-focused-01/expected-manifest.json",
+        "bytes": 202703,
+        "sha256": "ef86a56bd0d035060a9ff403df4e0afc29c6757b2fe3244b62cbbe275a44a73b"
+      },
+      "originalUncopiedMaps": [
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/source-before.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/source-after.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-focused-01/evidence/snapshot-after.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        }
+      ],
+      "mappedFiles": 1194,
+      "mappedBytes": 17000651,
+      "rootsAndAllEntriesVerified": true
+    },
+    {
+      "label": "experience-list-final06-affected-01",
+      "pid": 2782,
+      "productExit": 0,
+      "wrapperExit": 0,
+      "launchedAt": "2026-11-13T02:24:51.043734+00:00",
+      "endedAt": "2026-11-13T02:25:17.577309+00:00",
+      "argv": [
+        "/home/user/go/bin/go",
+        "test",
+        "-v",
+        "-count=1",
+        "-timeout=180s",
+        "-run",
+        "^(TestAppListHandlesSurviveSemanticResets|TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget|TestSearchListHandleNewSearchRejectsStaleDelivery|TestOutlineListHandleReleaseAfterSidebarBuild|TestOutlineListHandleReentrantFlushAndRetry|TestHiddenListFocusDoesNotStealEditorInput|TestTreeRootSwitchKeepsComposingQueryInput|TestWorkspaceResultsMinimumWindowControls|TestWorkspaceTreeDisclosesPerDirectoryLimit|TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor|TestWorkspaceSearchVirtualizesFarResultAndReplacement|TestWorkspaceSearchIssueDetailsAreBounded|TestSourceOutlineFactoryDoesNotRequireRichAdapterAndInvalidatesByGeneration|TestOutlineSourceModeResolvesOldIdentityAfterFlushWithoutCreatingView|TestOutlineActivationFlushesPendingNativeComposition|TestOutlineFlushFailureRetainsStateAndNegativeOffsetIsActionable|TestOutlineActivationRejectsLifecycleChangesDuringFlush|TestOutlineEmptyButTruncatedSnapshotKeepsPartialNotice|TestOutlineVirtualListReachesFarRowAndActivatesByKeyboard|TestOutlineSnapshotFailureDoesNotRetryEveryFrameAndReleaseInvalidates|TestBuiltinOutlineReleasedOnPluginModeTabAndReload|TestBuiltinMarkdownLargeOutlineCachesSnapshotAndVirtualizesRows|TestFindKeyboardFocusLeaveReconcilesComposition|TestFindbarControlsFitMainPaneAtMinimumWindow|TestFindbarActionsAndFocusSurviveMinimumReflow)$",
+        "./app"
+      ],
+      "originalExpectedManifest": {
+        "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/experience-list-final06-affected-01/expected-manifest.json",
+        "bytes": 202704,
+        "sha256": "9a0580ed2abcd5420c18c97cba116eb49c2aa375cfca9812549f3a69adf6b4a9"
+      },
+      "originalUncopiedMaps": [
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/source-before.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/source-after.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        },
+        {
+          "path": "/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-final06-affected-01/evidence/snapshot-after.json",
+          "bytes": 199696,
+          "sha256": "b16c7cfa0e8ddfd29f77104b744cc6bb58fd89b69330e1fc59bd5016a3473efb"
+        }
+      ],
+      "mappedFiles": 1194,
+      "mappedBytes": 17000651,
+      "rootsAndAllEntriesVerified": true
+    }
+  ],
+  "duplicateLargeMapsAndExpectedManifestBodiesNotTransported": true,
+  "authorProductCommands": 0,
+  "oldFreezeReportsReadyAndFailedNamespacesUnchanged": true,
+  "allCopiedBytesReadFromOriginalFiles": true,
+  "notWindowsOrWholeApplicationAcceptance": true
+}

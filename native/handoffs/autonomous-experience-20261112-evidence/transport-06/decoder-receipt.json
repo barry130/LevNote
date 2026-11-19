@@ -1,0 +1,16 @@
+{
+  "status": "FINAL06_ARCHIVE_DECODED_BYTE_EXACT_NO_IMPORT",
+  "startedUTC": "2026-11-13T04:05:34.155260+00:00",
+  "endedUTC": "2026-11-13T04:05:34.172309+00:00",
+  "pid": 19840,
+  "archive": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\transport-06\\final06-review.tar.gz",
+    "bytes": 85709,
+    "sha256": "25b935ae97a020bed1552c4fb5468130dabd8a884a6080826bfde8d91e288621"
+  },
+  "encodedCharacters": 114280,
+  "partCount": 10,
+  "metadataOnly": true,
+  "sourceWrites": 0,
+  "productCommands": 0
+}

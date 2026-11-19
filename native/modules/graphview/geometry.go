@@ -86,11 +86,7 @@ func (v *view) drawioNodeAt(localX, localY float32) (string, bool) {
 	worldX, worldY := v.screenToWorld(localX, localY)
 	for index := len(page.Model.Nodes) - 1; index >= 0; index-- {
 		node := page.Model.Nodes[index]
-		x, y := node.X, node.Y
-		if v.draggingID == node.ID {
-			x += float64(v.dragWorldX)
-			y += float64(v.dragWorldY)
-		}
+		x, y := v.displayNodePosition(node)
 		width := max(node.Width, 8)
 		height := max(node.Height, 8)
 		if float64(worldX) >= x && float64(worldX) <= x+width &&
@@ -102,6 +98,9 @@ func (v *view) drawioNodeAt(localX, localY float32) (string, bool) {
 }
 
 func (v *view) displayNodePosition(node drawio.Node) (float64, float64) {
+	if x, y, ok := v.drawioPreviewPosition(node); ok {
+		return x, y
+	}
 	if v.draggingID == node.ID {
 		return node.X + float64(v.dragWorldX), node.Y + float64(v.dragWorldY)
 	}

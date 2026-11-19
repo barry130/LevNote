@@ -1,0 +1,156 @@
+=== RUN   TestWorkspaceTreeDisclosesPerDirectoryLimit
+--- PASS: TestWorkspaceTreeDisclosesPerDirectoryLimit (0.14s)
+=== RUN   TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor
+    app_test.go:1042: tree virtualization: rows=3000 visible=3 maxRowsBuilt/frame=5 allocs/frame=61.0 bytes/frame=1997
+    app_test.go:1052: tree small-list comparison: rows=5 visible=3 maxRowsBuilt/frame=5 allocs/frame=54.0 bytes/frame=1922
+--- PASS: TestWorkspaceTreeVirtualizesRowsAndKeepsExpansionAnchor (0.05s)
+=== RUN   TestWorkspaceSearchVirtualizesFarResultAndReplacement
+    app_test.go:1119: search virtualization: rows=2000 visible=6 maxRowsBuilt/frame=8 allocs/frame=104.0 bytes/frame=4674
+    app_test.go:1129: search small-list comparison: rows=5 visible=5 maxRowsBuilt/frame=5 allocs/frame=77.0 bytes/frame=3544
+--- PASS: TestWorkspaceSearchVirtualizesFarResultAndReplacement (0.04s)
+=== RUN   TestWorkspaceSearchIssueDetailsAreBounded
+--- PASS: TestWorkspaceSearchIssueDetailsAreBounded (0.09s)
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/query_to_source
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_source
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/query_to_tab
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_tab
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_and_show
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/replacement_plugins_hide_and_show
+=== RUN   TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_pending_focus
+--- PASS: TestFindKeyboardFocusLeaveReconcilesComposition (0.23s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/query_to_source (0.03s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_source (0.04s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/query_to_tab (0.02s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/replacement_to_tab (0.03s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_and_show (0.06s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/replacement_plugins_hide_and_show (0.03s)
+    --- PASS: TestFindKeyboardFocusLeaveReconcilesComposition/plugins_hide_pending_focus (0.01s)
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-default
+    findbar_layout_test.go:33: light-default control "查找内容": ui.Rect{X:240, Y:95.5, W:260, H:31}
+    findbar_layout_test.go:33: light-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:34}
+    findbar_layout_test.go:33: light-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:34}
+    findbar_layout_test.go:33: light-default control "区分大小写": ui.Rect{X:240, Y:141.5, W:89, H:20}
+    findbar_layout_test.go:33: light-default control "正则": ui.Rect{X:337, Y:141.5, W:50, H:20}
+    findbar_layout_test.go:33: light-default control "全词": ui.Rect{X:395, Y:141.5, W:50, H:20}
+    findbar_layout_test.go:33: light-default control "关闭查找": ui.Rect{X:707, Y:136, W:41, H:31}
+    findbar_layout_test.go:33: light-default control "替换内容": ui.Rect{X:240, Y:174.5, W:260, H:31}
+    findbar_layout_test.go:33: light-default control "替换当前": ui.Rect{X:508, Y:173, W:82, H:34}
+    findbar_layout_test.go:33: light-default control "全部替换": ui.Rect{X:598, Y:173, W:82, H:34}
+    findbar_layout_test.go:33: light-default control "搜索工作区": ui.Rect{X:240, Y:215, W:95, H:34}
+    findbar_layout_test.go:40: light-default editor area: ui.Rect{X:228, Y:257, W:532, H:193}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default
+    findbar_layout_test.go:33: dark-default control "查找内容": ui.Rect{X:240, Y:95.5, W:260, H:31}
+    findbar_layout_test.go:33: dark-default control "上一个": ui.Rect{X:508, Y:94, W:69, H:34}
+    findbar_layout_test.go:33: dark-default control "下一个": ui.Rect{X:585, Y:94, W:69, H:34}
+    findbar_layout_test.go:33: dark-default control "区分大小写": ui.Rect{X:240, Y:141.5, W:89, H:20}
+    findbar_layout_test.go:33: dark-default control "正则": ui.Rect{X:337, Y:141.5, W:50, H:20}
+    findbar_layout_test.go:33: dark-default control "全词": ui.Rect{X:395, Y:141.5, W:50, H:20}
+    findbar_layout_test.go:33: dark-default control "关闭查找": ui.Rect{X:707, Y:136, W:41, H:31}
+    findbar_layout_test.go:33: dark-default control "替换内容": ui.Rect{X:240, Y:174.5, W:260, H:31}
+    findbar_layout_test.go:33: dark-default control "替换当前": ui.Rect{X:508, Y:173, W:82, H:34}
+    findbar_layout_test.go:33: dark-default control "全部替换": ui.Rect{X:598, Y:173, W:82, H:34}
+    findbar_layout_test.go:33: dark-default control "搜索工作区": ui.Rect{X:240, Y:215, W:95, H:34}
+    findbar_layout_test.go:40: dark-default editor area: ui.Rect{X:228, Y:257, W:532, H:193}
+=== RUN   TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font
+    findbar_layout_test.go:33: light-maximum-editor-font control "查找内容": ui.Rect{X:240, Y:95.5, W:260, H:31}
+    findbar_layout_test.go:33: light-maximum-editor-font control "上一个": ui.Rect{X:508, Y:94, W:69, H:34}
+    findbar_layout_test.go:33: light-maximum-editor-font control "下一个": ui.Rect{X:585, Y:94, W:69, H:34}
+    findbar_layout_test.go:33: light-maximum-editor-font control "区分大小写": ui.Rect{X:240, Y:141.5, W:89, H:20}
+    findbar_layout_test.go:33: light-maximum-editor-font control "正则": ui.Rect{X:337, Y:141.5, W:50, H:20}
+    findbar_layout_test.go:33: light-maximum-editor-font control "全词": ui.Rect{X:395, Y:141.5, W:50, H:20}
+    findbar_layout_test.go:33: light-maximum-editor-font control "关闭查找": ui.Rect{X:707, Y:136, W:41, H:31}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换内容": ui.Rect{X:240, Y:174.5, W:260, H:31}
+    findbar_layout_test.go:33: light-maximum-editor-font control "替换当前": ui.Rect{X:508, Y:173, W:82, H:34}
+    findbar_layout_test.go:33: light-maximum-editor-font control "全部替换": ui.Rect{X:598, Y:173, W:82, H:34}
+    findbar_layout_test.go:33: light-maximum-editor-font control "搜索工作区": ui.Rect{X:240, Y:215, W:95, H:34}
+    findbar_layout_test.go:40: light-maximum-editor-font editor area: ui.Rect{X:228, Y:257, W:532, H:193}
+--- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow (0.02s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/light-default (0.00s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/dark-default (0.01s)
+    --- PASS: TestFindbarControlsFitMainPaneAtMinimumWindow/light-maximum-editor-font (0.01s)
+=== RUN   TestFindbarActionsAndFocusSurviveMinimumReflow
+--- PASS: TestFindbarActionsAndFocusSurviveMinimumReflow (0.03s)
+=== RUN   TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget
+    list_handle_lifetime_test.go:64: End selected -1, want the current root's last row
+--- FAIL: TestTreeListHandleRootSwitchKeepsFreshKeyboardTarget (0.04s)
+=== RUN   TestSearchListHandleNewSearchRejectsStaleDelivery
+--- PASS: TestSearchListHandleNewSearchRejectsStaleDelivery (0.07s)
+=== RUN   TestAppListHandlesSurviveSemanticResets
+--- PASS: TestAppListHandlesSurviveSemanticResets (0.22s)
+=== RUN   TestOutlineListHandleReleaseAfterSidebarBuild
+--- FAIL: TestOutlineListHandleReleaseAfterSidebarBuild (0.02s)
+panic: ui: two elements under one parent have the key "", and share one state: give each a key of its own (/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/outline.go:151) [recovered, repanicked]
+
+goroutine 64 [running]:
+testing.tRunner.func1.2({0x112e628, 0x3ffa24712370})
+	/home/user/go/src/testing/testing.go:2125 +0x232
+testing.tRunner.func1()
+	/home/user/go/src/testing/testing.go:2128 +0x329
+panic({0x112e628?, 0x3ffa24712370?})
+	/home/user/go/src/runtime/panic.go:859 +0x125
+github.com/egoist/mygo/ui.(*engine).duplicateKey(0x3ffa24934008, 0x72156a377c9e335, {0x112e628?, 0xbaae50?})
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/diagnostics.go:25 +0x319
+github.com/egoist/mygo/ui.(*context).rekey(0x3ffa24934150, 0x3ffa24964000, {0x112e628, 0xbaae50})
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/context.go:279 +0x388
+github.com/egoist/mygo/ui.(*node).Key(...)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/element.go:888
+github.com/egoist/mygo/ui.(*listFrame).build(0x3ffa23fca270, 0x2)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/list.go:709 +0xd0
+github.com/egoist/mygo/ui.buildList.func1()
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/list.go:532 +0x65
+github.com/egoist/mygo/ui.(*node).Children(0x3ffa2494ce58, 0x0?)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/element.go:866 +0xd4
+github.com/egoist/mygo/ui.buildList(0x3ffa24934150?, 0x3ffa2494ce58, 0x3ffa2494ce58, 0x3ffa23fc9d28, 0x7bbda819a4a0?, 0x7bbdf38cca00?, 0x58?)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/list.go:530 +0x485
+github.com/egoist/mygo/ui.coreList(0x3ffa24934150, 0x3ffa23fc9d28, 0x40, 0x3ffa2407ecc0)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/list.go:482 +0xca
+github.com/egoist/mygo/ui.List(0x38?, 0x1183e90?, 0x3ffa247f9630?, {0x3ffa247f96f0?, 0x3ffa24934008?, 0xc31238dc8875bdcd?})
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/list_builder.go:35 +0x7b
+levnote.local/native/app.(*App).outlineSidebar.func1()
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/outline.go:151 +0x69d
+github.com/egoist/mygo/ui.(*node).Children(0x3ffa2494c620, 0x77e43e?)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/element.go:866 +0xd4
+github.com/egoist/mygo/ui.Element.Children({0x3ffa2492e3b0?, 0x2428e5a0?, 0x3ffa?}, 0x3ffa247f97b0)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/frame.go:124 +0x3e
+levnote.local/native/app.(*App).outlineSidebar(0x3ffa23fc8508, 0x3ffa2492e3c0)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/outline.go:98 +0x1b0
+levnote.local/native/app.(*App).sidebar.func1()
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/view.go:210 +0x7ec
+github.com/egoist/mygo/ui.(*node).Children(0x3ffa24949d08, 0x77cefc?)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/element.go:866 +0xd4
+github.com/egoist/mygo/ui.Element.Children({0x3ffa2492e3b0?, 0x400000?, 0x0?}, 0x3ffa247f99b8)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/frame.go:124 +0x3e
+levnote.local/native/app.(*App).sidebar(0x3ffa23fc8508, 0x3ffa2492e3c0)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/view.go:189 +0x19c
+levnote.local/native/app.(*App).View.func1.2()
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/view.go:74 +0x32
+github.com/egoist/mygo/ui.(*node).Children(0x3ffa249494d0, 0x77cd9d?)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/element.go:866 +0xd4
+github.com/egoist/mygo/ui.Element.Children({0x3ffa2492e3b0?, 0x0?, 0x0?}, 0x3ffa247f9b30)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/frame.go:124 +0x3e
+levnote.local/native/app.(*App).View.func1()
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/view.go:73 +0x1b7
+github.com/egoist/mygo/ui.(*node).Children(0x3ffa2493e838, 0x77cefc?)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/element.go:866 +0xd4
+github.com/egoist/mygo/ui.Element.Children({0x3ffa2492e3b0?, 0x24920000?, 0x3ffa?}, 0x3ffa247f9c20)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/frame.go:124 +0x3e
+levnote.local/native/app.(*App).View(0x3ffa23fc8508, 0x3ffa2492e3c0)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/view.go:44 +0x305
+github.com/egoist/mygo/ui.NewTester.func1(0x3ffa24934150?)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/api_gen.go:1795 +0x2d
+github.com/egoist/mygo/ui.(*engine).runFrame(0x3ffa24934008)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/runtime.go:707 +0x6a6
+github.com/egoist/mygo/ui.(*Tester).settle(0x3ffa23fa6310)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/headless.go:309 +0x89
+github.com/egoist/mygo/ui.(*Tester).Frame(...)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/vendor/github.com/egoist/mygo/ui/headless.go:531
+levnote.local/native/app.TestOutlineListHandleReleaseAfterSidebarBuild(0x3ffa23efd8c8)
+	/home/user/levnote-dev-reliability-20261112-01/runs/experience-list-affected-01/source/native/app/list_lifetime_test.go:139 +0x5b8
+testing.tRunner(0x3ffa23efd8c8, 0x11ce6e0)
+	/home/user/go/src/testing/testing.go:2195 +0xea
+created by testing.(*T).Run in goroutine 1
+	/home/user/go/src/testing/testing.go:2260 +0x4d4
+FAIL	levnote.local/native/app	0.960s
+FAIL

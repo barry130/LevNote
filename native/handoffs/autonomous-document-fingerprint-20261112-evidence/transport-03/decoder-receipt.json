@@ -1,0 +1,16 @@
+{
+  "status": "DOCUMENT_FINGERPRINT03_ARCHIVE_DECODED_BYTE_EXACT_NO_IMPORT",
+  "startedUTC": "2026-11-13T07:23:24.557352+00:00",
+  "endedUTC": "2026-11-13T07:23:24.578735+00:00",
+  "pid": 21532,
+  "archive": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\document-fingerprint-review-03.tar.xz",
+    "bytes": 77196,
+    "sha256": "fe2acbb546a93d35547bbdb95548b5a9e5f8ab6e6d403b04747fb6a0e0e90802"
+  },
+  "encodedCharacters": 102928,
+  "partCount": 9,
+  "metadataOnly": true,
+  "sourceWrites": 0,
+  "productCommands": 0
+}

@@ -82,6 +82,7 @@ type App struct {
 	// Optional save-outcome seam; production always calls Document.Save/SaveAs.
 	saveDocument                                    func(*document.Document, string) error
 	closeDialog                                     func(*Tab) (closeDecision, error)
+	reloadDialog                                    func(mygo.MessageOptions) (mygo.MessageResult, error)
 	openDialog                                      func(mygo.OpenDialogOptions) ([]string, error)
 	exportDialog                                    func(mygo.SaveDialogOptions) (string, error)
 	exporter                                        exportRunner
@@ -106,6 +107,7 @@ type App struct {
 	exportStatuses                                  map[string]exportEngineStatus
 	modalDepth                                      int
 	openDocuments                                   openDocumentPicker
+	commandPalette                                  commandPaletteState
 	Tabs                                            []*Tab
 	Active                                          int
 	revealedTabID                                   int
@@ -247,7 +249,7 @@ func New(configDir string) *App {
 	a := &App{
 		Active: -1, TreeSelected: -1, SearchSelected: -1, OutlineSelected: -1,
 		FindIndex: -1, findNavigation: findNavigationCache{lastIndex: -1},
-		FontSize: 16, SidebarWidth: 228, LineNumbers: true,
+		Dark: true, FontSize: 16, SidebarWidth: 228, LineNumbers: true,
 		Expanded: map[string]bool{}, configDir: configDir,
 		adapters: modules.Builtins(), pluginManager: manager,
 		watches:           map[string]context.CancelFunc{},
@@ -1286,7 +1288,12 @@ func (a *App) Reload() {
 			a.reloadBinary(t)
 			return
 		}
+		stillOwned := a.reloadOwnerCheck(t)
 		if !a.flushTab(t, "重新载入") {
+			return
+		}
+		if !stillOwned() {
+			a.report(errors.New("重新载入前文档或格式已变化，请重新操作"))
 			return
 		}
 		if t.ByteInspector {
@@ -1296,15 +1303,44 @@ func (a *App) Reload() {
 		if err := t.Doc.Reload(); err != nil {
 			a.report(err)
 		} else {
-			a.invalidateTabExport(t, "文档已重新载入，已取消导出")
-			a.invalidateDiskChecks()
-			t.Editor.Buffer = t.Doc.Buffer
-			a.disposePresentation(t)
-			t.Mode = "source"
-			a.configureTab(t)
-			a.Message = "已重新载入"
+			a.finishTextReload(t, "已重新载入")
 		}
 	}
+}
+
+// reloadOwnerCheck pins the target across format Flush and native modal callbacks.
+func (a *App) reloadOwnerCheck(t *Tab) func() bool {
+	owner, buffer, input, view, adapter := t.Doc, t.Doc.Buffer, t.Editor, t.View, t.Adapter
+	active, generation, name, mode, path := a.Current(), t.OutlineFactoryGeneration, t.Name, t.Mode, t.Doc.Path
+	inspector := t.ByteInspector
+	return func() bool {
+		return !a.shuttingDown.Load() && a.tabIsOpen(t) && a.Current() == active &&
+			t.Doc == owner && t.Doc.Buffer == buffer && t.Editor == input && t.View == view &&
+			t.Adapter == adapter && t.OutlineFactoryGeneration == generation &&
+			t.Name == name && t.Mode == mode && t.Doc.Path == path && t.ByteInspector == inspector
+	}
+}
+
+// finishTextReload records an already adopted disk version before reporting success.
+// An explicit attempt consumes the request, including on failure, so unchanged
+// state is not retried indefinitely by the recovery timer.
+func (a *App) finishTextReload(t *Tab, message string) {
+	a.invalidateTabExport(t, "文档已重新载入，已取消导出")
+	a.invalidateDiskChecks()
+	a.disposePresentation(t)
+	t.Editor.Buffer = t.Doc.Buffer
+	t.Editor.ReadOnly = t.Doc.ReadOnly
+	t.Conflict = false
+	t.Mode = "source"
+	a.configureTab(t)
+	if err := a.persistTabs(a.Tabs, a.Active, "已采用磁盘版本；恢复快照更新失败，旧恢复快照仍保留"); err != nil {
+		a.persistPending = false
+		a.reportPersistFailure(err)
+		// Issue deduplication must not hide the current failure behind a later status.
+		a.Message = err.Error()
+		return
+	}
+	a.Message = message
 }
 
 func (a *App) flushTab(t *Tab, action string) bool {

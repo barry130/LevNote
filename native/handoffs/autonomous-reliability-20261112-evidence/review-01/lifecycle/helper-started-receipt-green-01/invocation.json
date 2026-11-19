@@ -1,0 +1,20 @@
+{
+  "helper": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "bytes": 17964,
+    "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+  },
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/tools/test-started-receipt-lifecycle.py",
+    "--helper",
+    "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "--label",
+    "helper-started-receipt-green-01"
+  ],
+  "caller_pid": 21592,
+  "started_at": "2026-11-12T08:33:12.410258+00:00",
+  "product_executed": false,
+  "seam": "run_command real owned process and evidence writer boundary",
+  "spawned": [],
+  "caller_cleanup": []
+}

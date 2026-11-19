@@ -1,0 +1,131 @@
+{
+  "pid": 29986,
+  "observed_at": "2026-11-12T11:50:12.169818+00:00",
+  "metadata_only": true,
+  "product_executed": false,
+  "classification": "INTERRUPTED_WRAPPER_FINAL_MISSING_NOT_PRODUCT_PASS",
+  "original_evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/document-fingerprint-green-01/evidence",
+  "raw_contains_test_pass_but_numeric_final_unknown": true,
+  "numeric_exit": null,
+  "wrapper_exit": null,
+  "owned_pgid": 29841,
+  "owned_group_absent_on_observation": true,
+  "missing_final_records": [
+    "05-product-command.json",
+    "result.json",
+    "source-after.json",
+    "snapshot-after.json"
+  ],
+  "records": {
+    "01-clone-head.stdout.bin": {
+      "bytes": 41,
+      "sha256": "a3bf221b445403fa1d41bda427df7ae1b8b00a415f4685e281a7c402850e0f1f"
+    },
+    "wrapper.stdout.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "invocation.json": {
+      "bytes": 1406,
+      "sha256": "9a7227f34890ed5d9758761161f2a0c315dabd59aa9c207321e5252febdca62a"
+    },
+    "02-clone-status.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "03-go-version.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source-before.json": {
+      "bytes": 199418,
+      "sha256": "f187c953d761d1805cb37818409cee5d857da320dc2bbe0d3648001269dc802a"
+    },
+    "05-product-command.started.json": {
+      "bytes": 2039,
+      "sha256": "1ad54d1df3e55ffebee0f0aba89c22417fab4c6b14140aaf9c7eea63a0f8a6da"
+    },
+    "01-clone-head.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "03-go-version.command.json": {
+      "bytes": 1785,
+      "sha256": "abb3d3cffb2bfb7a5226dbfb375d0141c008486f2aa5246f33bf7016c5fbbd09"
+    },
+    "04-go-env.json": {
+      "bytes": 2744,
+      "sha256": "06fae0226424e405c085be782724e7f81c0c55e038ff7a45d2a059d50ff5fe34"
+    },
+    "01-clone-head.started.json": {
+      "bytes": 1819,
+      "sha256": "09f910bd64e44fa9f9cd5602c6adf89aa70ab5fb69be32533413a471a1b64264"
+    },
+    "05-product-command.command.json": {
+      "bytes": 1948,
+      "sha256": "ce07309259a795a3fc392c772aee25504e31876ff836341a3c51ea2ba28a3444"
+    },
+    "04-go-env.started.json": {
+      "bytes": 2106,
+      "sha256": "64eebdb5bb6b4ef9f0c4bdb40e3c353ce6ac0a6cda59d676a2363cda183f19ae"
+    },
+    "04-go-env.command.json": {
+      "bytes": 2015,
+      "sha256": "e7d04ac15c21284bff6c1a1ffdeb8b06555cea39c191d1622b95c8530f5545d0"
+    },
+    "05-product-command.stdout.bin": {
+      "bytes": 200,
+      "sha256": "507f07dce05f3be61e3c93d950f4dd7bab0ec98a116915e62a8b6b68c8ed116b"
+    },
+    "02-clone-status.command.json": {
+      "bytes": 1764,
+      "sha256": "e305bd84263a4d6a968db31f46a34694d0e8594499101bcefaadaf0c213e825f"
+    },
+    "05-product-command.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "01-clone-head.json": {
+      "bytes": 2466,
+      "sha256": "780a265488b91f4042782c4932eabdb1312b2d2b0226652accfd01e90d628e9e"
+    },
+    "02-clone-status.started.json": {
+      "bytes": 1855,
+      "sha256": "8e6fcd030f3934c3e38048434cf31d7631763fc03604cf08ed0769eb81e4fb0c"
+    },
+    "04-go-env.stderr.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "04-go-env.stdout.bin": {
+      "bytes": 408,
+      "sha256": "2c94fc3d5cf938aa2c26846d9f3104b186a09117b6833e72bf07fcd694ff4281"
+    },
+    "03-go-version.started.json": {
+      "bytes": 1876,
+      "sha256": "78b8523f4830073f5863a6026cc556b9b7623e417a5d3ff75af05c31ddbf6725"
+    },
+    "02-clone-status.stdout.bin": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "02-clone-status.json": {
+      "bytes": 2503,
+      "sha256": "062868847ff9671748f119dc1ea4680b551cb5aa20bc34e716ce4c47cb9c4b0f"
+    },
+    "03-go-version.stdout.bin": {
+      "bytes": 32,
+      "sha256": "5707bf75dd54b4fdd5ac209444d48c9c4179ebf8510f80e2f7293dfbedc1012b"
+    },
+    "03-go-version.json": {
+      "bytes": 2519,
+      "sha256": "0a07c6170a3b794e4eab3cf9e26bdeaaab74323354e620edb59130904115fae8"
+    },
+    "01-clone-head.command.json": {
+      "bytes": 1728,
+      "sha256": "877748fca88c552615904c0a44e3e6f876a471b5d5f5b8d0af5cad21ea80facc"
+    }
+  },
+  "no_original_evidence_modified": true,
+  "no_original_label_rerun": true
+}

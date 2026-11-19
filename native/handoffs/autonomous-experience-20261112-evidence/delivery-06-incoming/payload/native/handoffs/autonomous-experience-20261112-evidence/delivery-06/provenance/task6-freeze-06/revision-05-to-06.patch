@@ -1,0 +1,11 @@
+--- a/native/app/workspace.go
++++ b/native/app/workspace.go
+@@ -146,7 +146,7 @@
+ 		// Leave source input usable beside Find at the 760x480 minimum.
+ 		panelHeight = min(panelHeight, max(float32(110), height-260))
+ 	}
+-	ui.Column(c).Height(panelHeight).Shrink(0).Border(1, c.Theme().Border).Children(func() {
++	ui.Column(c).Height(panelHeight).Shrink(1).MinHeight(110).Border(1, c.Theme().Border).Children(func() {
+ 		ui.Row(c).Padding(8, 12).Gap(8).Children(func() {
+ 			label := a.SearchSummary
+ 			if a.Searching {

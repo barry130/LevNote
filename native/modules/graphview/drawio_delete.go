@@ -3,6 +3,7 @@ package graphview
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/core/text"
@@ -12,12 +13,17 @@ import (
 // deleteDrawioCell captures its target before synchronization or any host
 // callback. A source edit never licenses restoring an obsolete view or draft.
 func (v *view) deleteDrawioCell() bool {
+	selectionEpoch := v.drawSelection.epoch
 	buffer := v.host.Buffer
 	released, pageEpoch, epoch := v.releaseEpoch, v.pageEpoch, v.tagEpoch
+	targets := slices.Clone(v.drawSelection.ids)
 	page, selected, field := v.pageIndex, v.selectedID, v.field
+	if len(targets) == 0 && selected != "" {
+		targets = []string{selected}
+	}
 	input := v.fieldIdentity()
 	sameOwner := func() bool {
-		return v.host.Buffer == buffer && v.releaseEpoch == released &&
+		return v.drawSelection.epoch == selectionEpoch && v.host.Buffer == buffer && v.releaseEpoch == released &&
 			v.pageEpoch == pageEpoch && v.pageIndex == page && v.tagEpoch == epoch &&
 			v.selectedID == selected && v.field == field && v.sameFieldIdentity(input)
 	}
@@ -68,7 +74,7 @@ func (v *view) deleteDrawioCell() bool {
 	// Format refusal precedes ordinary-field Flush. An unsupported deletion
 	// must not write an otherwise retained property draft or add its history.
 	raw := buffer.String()
-	serialized, incident, err := drawioDeletedSource(raw, page, selected)
+	serialized, incident, err := drawioDeletedSource(raw, page, targets...)
 	if err != nil {
 		return refuse(err)
 	}
@@ -91,7 +97,7 @@ func (v *view) deleteDrawioCell() bool {
 	}
 	if receipt.written {
 		raw = buffer.String()
-		serialized, incident, err = drawioDeletedSource(raw, page, selected)
+		serialized, incident, err = drawioDeletedSource(raw, page, targets...)
 		if err != nil {
 			return refuse(err)
 		}
@@ -135,7 +141,7 @@ func (v *view) deleteDrawioCell() bool {
 	// Only after Changed's exact source/version/caret/owner proof may the
 	// deleted target's old draft and graph gesture be retired by synchronization.
 	v.cancelGraphGesture()
-	v.selectedID = ""
+	v.setDrawioSelection(nil, "")
 	v.lastSynced = ^uint64(0)
 	v.ensureSynced(nil)
 	if v.host.Buffer != buffer || v.releaseEpoch != released || v.pageEpoch != pageEpoch ||
@@ -143,7 +149,12 @@ func (v *view) deleteDrawioCell() bool {
 		v.host.ReadOnly || buffer.InGroup() || v.syncedBuffer != buffer || v.lastSynced != version || v.syncFailed {
 		return true
 	}
-	message := fmt.Sprintf("已删除选中图形及 %d 条关联线；可撤销。", incident)
+	message := "已删除选中图形及关联线；可撤销。"
+	if len(targets) > 1 {
+		message = fmt.Sprintf("已删除 %d 个图形及 %d 条关联线；可撤销。", len(targets), incident)
+	} else if incident > 0 {
+		message = fmt.Sprintf("已删除选中图形及 %d 条关联线；可撤销。", incident)
+	}
 	if clamped {
 		message += "源码光标已移到前一个有效的 UTF-16 边界。"
 	}
@@ -156,12 +167,12 @@ func (v *view) deleteDrawioCell() bool {
 	return true
 }
 
-func drawioDeletedSource(raw string, page int, selected string) ([]byte, int, error) {
+func drawioDeletedSource(raw string, page int, selected ...string) ([]byte, int, error) {
 	candidate, _, err := drawio.Parse([]byte(raw), drawio.ParseOptions{})
 	if err != nil {
 		return nil, 0, err
 	}
-	incident, err := candidate.DeleteCell(page, selected)
+	incident, err := candidate.DeleteCells(page, selected)
 	if err != nil {
 		return nil, 0, err
 	}

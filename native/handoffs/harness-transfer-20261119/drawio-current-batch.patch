@@ -1,0 +1,150 @@
+diff --git a/.localtools/noteboard-parity-20261119/baseline/source/native/formats/drawio/clone_cells.go b/native/formats/drawio/clone_cells.go
+index b99a7ac..64a5cc8 100644
+--- a/.localtools/noteboard-parity-20261119/baseline/source/native/formats/drawio/clone_cells.go
++++ b/native/formats/drawio/clone_cells.go
+@@ -41,9 +41,11 @@ func (d *Document) CloneCells(pageIndex int, cellIDs []string, dx, dy float64) (
+ 	}
+ 	remap := make(map[string]string, len(cells))
+ 	vertices := make([]string, 0, len(cellIDs))
++	nextIndex := 1
+ 	nextID := func() string {
+-		for index := 1; ; index++ {
+-			id := "levnote-" + strconv.Itoa(index)
++		for {
++			id := "levnote-" + strconv.Itoa(nextIndex)
++			nextIndex++
+ 			if !used[id] {
+ 				used[id] = true
+ 				return id
+@@ -75,7 +77,10 @@ func (d *Document) CloneCells(pageIndex int, cellIDs []string, dx, dy float64) (
+ 			emitOrder = append(emitOrder, index)
+ 		}
+ 	}
+-	var insertion []byte
++	// Keep source spans as references until the complete output fits. Only
++	// rewritten start tags are allocated before this byte-budget preflight.
++	var chunks [][]byte
++	total := int64(len(d.source))
+ 	for _, orderedIndex := range emitOrder {
+ 		cell := &cells[orderedIndex]
+ 		if !cell.emit {
+@@ -89,30 +94,34 @@ func (d *Document) CloneCells(pageIndex int, cellIDs []string, dx, dy float64) (
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		insertion = append(insertion, startTag...)
++		parts := [][]byte{startTag}
+ 		if !cell.vertex {
+-			insertion = append(insertion, d.source[cell.tagEnd:cell.end]...)
+-			continue
++			parts = append(parts, d.source[cell.tagEnd:cell.end])
++		} else {
++			geometry, err := setTagAttributes(d.source[cell.geometryStart:cell.geometryEnd], map[string]string{
++				"x": formatFloat(cell.x + dx), "y": formatFloat(cell.y + dy),
++			})
++			if err != nil {
++				return nil, err
++			}
++			parts = append(parts, d.source[cell.tagEnd:cell.geometryStart], geometry, d.source[cell.geometryEnd:cell.end])
+ 		}
+-		geometry, err := setTagAttributes(d.source[cell.geometryStart:cell.geometryEnd], map[string]string{
+-			"x": formatFloat(cell.x + dx), "y": formatFloat(cell.y + dy),
+-		})
+-		if err != nil {
+-			return nil, err
++		for _, part := range parts {
++			if int64(len(part)) > int64(d.options.MaxBytes)-total {
++				return nil, fmt.Errorf("%w: clone exceeds %d bytes", ErrLimitExceeded, d.options.MaxBytes)
++			}
++			total += int64(len(part))
+ 		}
+-		insertion = append(insertion, d.source[cell.tagEnd:cell.geometryStart]...)
+-		insertion = append(insertion, geometry...)
+-		insertion = append(insertion, d.source[cell.geometryEnd:cell.end]...)
++		chunks = append(chunks, parts...)
+ 	}
+ 	if page.rootClose < 0 || page.rootClose > len(d.source) {
+ 		return nil, fmt.Errorf("%w: no editable clone root", ErrUnsupported)
+ 	}
+-	if int64(len(d.source))+int64(len(insertion)) > int64(d.options.MaxBytes) {
+-		return nil, fmt.Errorf("%w: clone exceeds %d bytes", ErrLimitExceeded, d.options.MaxBytes)
+-	}
+-	next := make([]byte, 0, len(d.source)+len(insertion))
++	next := make([]byte, 0, int(total))
+ 	next = append(next, d.source[:page.rootClose]...)
+-	next = append(next, insertion...)
++	for _, chunk := range chunks {
++		next = append(next, chunk...)
++	}
+ 	next = append(next, d.source[page.rootClose:]...)
+ 	if err := d.rewriteAndReparse(next); err != nil {
+ 		return nil, err
+diff --git a/.localtools/noteboard-parity-20261119/baseline/source/native/modules/graphview/drawio_clone.go b/native/modules/graphview/drawio_clone.go
+index b95de0b..ef36f5a 100644
+--- a/.localtools/noteboard-parity-20261119/baseline/source/native/modules/graphview/drawio_clone.go
++++ b/native/modules/graphview/drawio_clone.go
+@@ -174,7 +174,12 @@ func (v *view) beginDrawioCloneHistory(buffer *text.Buffer, release, pageEpoch u
+ 		epoch, ids, raw := record.afterEpoch, record.afterIDs, record.beforeText
+ 		if !undo { epoch, ids, raw = record.undoEpoch, record.beforeIDs, record.afterText }
+ 		if buffer.String() != raw || !slices.Equal(v.drawSelection.ids, ids) { continue }
+-		if v.drawSelection.epoch != epoch && !v.knownDrawioCloneBoundary(buffer, release, pageEpoch, page, raw) { continue }
++		// Buffer history has already moved to raw, while the canvas still has
++		// the selection from the other side of this transaction. Witness that
++		// pre-replay boundary, not the source we are about to restore.
++		boundary := record.afterText
++		if !undo { boundary = record.beforeText }
++		if v.drawSelection.epoch != epoch && !v.knownDrawioCloneBoundary(buffer, release, pageEpoch, page, boundary) { continue }
+ 		record.pendingUndo = undo
+ 		record.pending = true
+ 		return record
+@@ -205,7 +210,6 @@ func (v *view) knownDrawioCloneBoundary(buffer *text.Buffer, release, pageEpoch
+ func (v *view) finishDrawioCloneHistory(record *drawioCloneHistory, buffer *text.Buffer, release, pageEpoch uint64, page int) {
+ 	if record == nil || !record.pending { return }
+ 	record.pending = false
+-	fmt.Printf("LEAD finish targets=%q live=%q buffersame=%t releasesame=%t pagesame=%t pageEpochSame=%t rawsame=%t page=%d/%d nil=%t lastSynced=%d/%d syncBuffer=%t\n",ids,v.drawSelection.ids,record.buffer==buffer,record.release==release,record.page==page,record.pageEpoch==pageEpoch,buffer.String()==raw,record.page,page,v.currentPage()==nil,v.lastSynced,buffer.Version(),v.syncedBuffer==buffer)
+ 	ids, raw := record.afterIDs, record.afterText
+ 	if record.pendingUndo { ids, raw = record.beforeIDs, record.beforeText }
+ 	if record.buffer != buffer || record.release != release || record.pageEpoch != pageEpoch || record.page != page ||
+@@ -213,7 +217,6 @@ func (v *view) finishDrawioCloneHistory(record *drawioCloneHistory, buffer *text
+ 	if v.currentPage() == nil { return }
+ 	for _, id := range ids {
+ 		found := false
+-		fmt.Printf("LEAD target id=%q pageHasCell=%t count=%d\n",id,v.pageHasCell(id),len(v.currentPage().Model.Nodes))
+ 		for _, node := range v.currentPage().Model.Nodes { if node.ID == id { found = true; break } }
+ 		if !found { return }
+ 	}
+diff --git a/.localtools/noteboard-parity-20261119/baseline/source/native/modules/graphview/drawio_clone_correction20261117_test.go b/native/modules/graphview/drawio_clone_correction20261117_test.go
+index dba045d..7acb63b 100644
+--- a/.localtools/noteboard-parity-20261119/baseline/source/native/modules/graphview/drawio_clone_correction20261117_test.go
++++ b/native/modules/graphview/drawio_clone_correction20261117_test.go
+@@ -11,23 +11,24 @@ import (
+ )
+ 
+ func TestDrawioMultiCloneClampCompletesSelectionHistoryAndFeedback(t *testing.T) {
+-	fixture := `<mxfile><diagram id="p1" name="clamp"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="a" value="Alpha" vertex="1" parent="1"><mxGeometry x="20" y="20" width="80" height="40" as="geometry"/></mxCell><mxCell id="b" value="Beta" vertex="1" parent="1"><mxGeometry x="160" y="20" width="80" height="40" as="geometry"/></mxCell><mxCell id="edge" value="🙂" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`
+-	prefix := `value="🙂`
+-	caretPosition := text.UTF16Len(fixture[:strings.Index(fixture, prefix)]) + text.UTF16Len(prefix)
++	fixture := `<mxfile><diagram id="p1" name="clamp"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell value="🙂" id="a" vertex="1" parent="1"><mxGeometry x="20" y="20" width="80" height="40" as="geometry"/></mxCell><mxCell id="b" value="Beta" vertex="1" parent="1"><mxGeometry x="160" y="20" width="80" height="40" as="geometry"/></mxCell><mxCell id="edge" value="🙂" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>`
++	// Clone insertion starts with <mxCell value="🙂. A previously valid
++	// numerical source caret in the closing tags now splits that surrogate.
++	caretPosition := text.UTF16Len(fixture[:strings.Index(fixture, "</root>")]) + 16
+ 	caret := text.Range{Anchor: caretPosition, Head: caretPosition}
+ 	v, tester, buffer, changed := newMultiDrawio(t, fixture, 1180, 780)
+ 	selectMultiNodes(t, tester, v, "a", "b")
+ 	if err := buffer.SetSelection(caret.Anchor, caret.Head); err != nil { t.Fatal(err) }
+ 	before, version := buffer.String(), buffer.Version()
+ 	tester.Key(ui.Cmd, ui.KeyD)
+-	after, displacement := buffer.String(), text.UTF16Len(buffer.String())-text.UTF16Len(before)
++	after := buffer.String()
+ 	clones := slices.Clone(v.drawSelection.ids)
+-	clamped := text.Range{Anchor: caretPosition+displacement-1, Head: caretPosition+displacement-1}
++	clamped := text.Range{Anchor: caretPosition-1, Head: caretPosition-1}
+ 	if after == before || *changed != 1 || len(v.drawSelection.ids) != 2 { t.Fatal("clone refused before commit", v.Warnings()) }
+ 	if *changed != 1 || buffer.Version() != version+1 || buffer.Selection() != clamped || len(clones) != 2 || v.selectedID != clones[1] { t.Fatal("real clone does not clamp and select result", *changed, buffer.Selection(), clones) }
+ 	if len(v.drawCloneHistory) != 1 { t.Fatal("actual commit must record history", len(v.drawCloneHistory)) }
+ 	if !slices.Contains(v.Warnings(), "已克隆 2 个图形及内部连线到当前页；可撤销。源码光标已移到前一个有效的 UTF-16 边界。") { t.Fatal("clamping disclosure missing", v.Warnings()) }
+-	if _, err := text.New(after).SliceUTF16(caretPosition+displacement, 0); !errors.Is(err, text.ErrSurrogate) { t.Fatal("source caret not mapped to surrogate") }
++	if _, err := text.New(after).SliceUTF16(caretPosition, caretPosition); !errors.Is(err, text.ErrSurrogate) { t.Fatal("source caret not mapped to surrogate") }
+ 	tester.Key(ui.Cmd, ui.KeyZ)
+ 	if buffer.String() != before || buffer.Selection() != caret || !slices.Equal(v.drawSelection.ids, []string{"a", "b"}) { t.Fatal("undo did not restore source and its selection", v.drawSelection.ids) }
+ 	tester.Key(ui.Cmd, ui.KeyY)

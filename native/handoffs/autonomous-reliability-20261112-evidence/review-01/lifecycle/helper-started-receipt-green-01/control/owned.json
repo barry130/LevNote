@@ -1,0 +1,61 @@
+{
+  "argv": [
+    "/usr/bin/python3",
+    "-I",
+    "-B",
+    "-c",
+    "print(\"owned control\")"
+  ],
+  "cwd": "/home/user/levnote-dev-reliability-20261112-01/evidence/helper-started-receipt-green-01/control",
+  "environment": {
+    "HOME": "/home/user/levnote-dev-reliability-20261112-01/evidence/helper-started-receipt-green-01/home",
+    "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/evidence/helper-started-receipt-green-01/home",
+    "XDG_CACHE_HOME": null,
+    "XDG_DATA_HOME": null,
+    "XDG_STATE_HOME": null,
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+    "GOROOT": null,
+    "GOPATH": null,
+    "GOCACHE": null,
+    "GOTMPDIR": null,
+    "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/evidence/helper-started-receipt-green-01",
+    "GOENV": null,
+    "GOWORK": null,
+    "GOVCS": null,
+    "GOFLAGS": null,
+    "GOTOOLCHAIN": null,
+    "GOPROXY": null,
+    "GOSUMDB": null,
+    "GONOPROXY": null,
+    "GONOSUMDB": null,
+    "GOPRIVATE": null,
+    "CGO_ENABLED": null,
+    "GOTELEMETRY": null,
+    "GOOS": null,
+    "GOARCH": null,
+    "GOEXPERIMENT": null
+  },
+  "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+  "started_at": "2026-11-12T08:33:12.428976+00:00",
+  "timeout_s": 5,
+  "timed_out": false,
+  "owned_cleanup": [],
+  "status": "completed",
+  "pid": 21594,
+  "owned_pgid": 21594,
+  "launched_at": "2026-11-12T08:33:12.449900+00:00",
+  "exit_code": 0,
+  "owned_group_remaining_after_wait": false,
+  "ended_at": "2026-11-12T08:33:12.484571+00:00",
+  "elapsed_s": 0.05560002301353961,
+  "stdout": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/evidence/helper-started-receipt-green-01/control/owned.stdout.bin",
+    "bytes": 14,
+    "sha256": "6588bc0131893cb76a0a27aea154412692680a28a4fbd01ccbe15e943cb7594c"
+  },
+  "stderr": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/evidence/helper-started-receipt-green-01/control/owned.stderr.bin",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

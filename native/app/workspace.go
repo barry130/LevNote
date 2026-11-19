@@ -61,6 +61,7 @@ func (a *App) Shutdown() {
 	}
 	defer close(a.shutdownJoined)
 	a.closeOpenDocuments()
+	a.closeCommandPalette()
 	a.clearClosedFiles()
 	a.cancelAutosave()
 	a.shutdownBinary()
@@ -374,11 +375,27 @@ func (a *App) conflictBar(c *ui.Context, t *Tab) {
 				return
 			}
 			defer a.deferExportDelivery()()
+			stillOwned := a.reloadOwnerCheck(t)
 			if !a.flushTab(t, "重新载入") {
 				return
 			}
+			if !stillOwned() {
+				a.report(fmt.Errorf("重新载入前文档或格式已变化，请重新操作"))
+				return
+			}
 			if t.Doc.Dirty() {
-				r, err := mygo.Dialog.Message(mygo.MessageOptions{Parent: a.Window, Title: "重新载入", Message: "放弃当前修改并读取磁盘版本？", Buttons: []string{"取消", "放弃并重新载入"}, CancelButton: 0, DestructiveButtons: []int{1}})
+				version, encoding, bom := t.Doc.Buffer.Version(), t.Doc.Encoding, t.Doc.BOM
+				baseline := t.Doc.DiskToken()
+				unchanged := func() bool {
+					return stillOwned() && t.Doc.Buffer.Version() == version &&
+						t.Doc.Encoding == encoding && t.Doc.BOM == bom &&
+						(!baseline.Valid() || t.Doc.SameBaseline(baseline))
+				}
+				show := mygo.Dialog.Message
+				if a.reloadDialog != nil {
+					show = a.reloadDialog
+				}
+				r, err := show(mygo.MessageOptions{Parent: a.Window, Title: "重新载入", Message: "放弃当前修改并读取磁盘版本？", Buttons: []string{"取消", "放弃并重新载入"}, CancelButton: 0, DestructiveButtons: []int{1}})
 				if err != nil {
 					a.report(err)
 					return
@@ -386,20 +403,23 @@ func (a *App) conflictBar(c *ui.Context, t *Tab) {
 				if r.Button != 1 {
 					return
 				}
+				if !unchanged() {
+					a.report(fmt.Errorf("确认重新载入期间文档或格式已变化，请重新操作"))
+					return
+				}
+				if !a.flushTab(t, "重新载入") {
+					return
+				}
+				if !unchanged() {
+					a.report(fmt.Errorf("确认重新载入期间文档或格式已变化，请重新操作"))
+					return
+				}
 			}
 			if err := t.Doc.Revert(); err != nil {
 				a.report(err)
 				return
 			}
-			a.invalidateTabExport(t, "文档已重新载入，已取消导出")
-			a.invalidateDiskChecks()
-			a.disposePresentation(t)
-			t.Editor.Buffer = t.Doc.Buffer
-			t.Editor.ReadOnly = t.Doc.ReadOnly
-			t.Conflict = false
-			t.Mode = "source"
-			a.configureTab(t)
-			a.Message = "已重新载入 " + t.Name
+			a.finishTextReload(t, "已重新载入 "+t.Name)
 		}
 		if ui.Button(c, "另存副本").Clicked() {
 			a.Save(t, true)

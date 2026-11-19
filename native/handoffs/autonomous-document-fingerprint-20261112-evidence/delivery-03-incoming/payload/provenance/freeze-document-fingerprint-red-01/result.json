@@ -1,0 +1,71 @@
+{
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/freeze-document-input-01.py",
+    "--label",
+    "document-fingerprint-red-01",
+    "--source",
+    "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native",
+    "--allow",
+    "core/document/document.go",
+    "--allow",
+    "core/document/fingerprint_boundary_test.go"
+  ],
+  "cwd": "/home/user/levnote-dev-reliability-20261112-01",
+  "pid": 28235,
+  "started_at": "2026-11-12T11:00:08.392769+00:00",
+  "script": {
+    "bytes": 5048,
+    "sha256": "dccc94dbe7d5e93528e84000e37f2ffe7f6d0c0e859e18a941eb443abfd9216e"
+  },
+  "runner": {
+    "bytes": 17964,
+    "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+  },
+  "source": "/home/user/levnote-dev-reliability-20261112-01/work/document-fingerprint-01/native",
+  "allowed_changed_files": [
+    "core/document/document.go",
+    "core/document/fingerprint_boundary_test.go"
+  ],
+  "head": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "go_executed": false,
+  "expected_manifest": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-fingerprint-red-01/expected-manifest.json",
+    "bytes": 200297,
+    "sha256": "fb9886ba6395e952542d422853863a9eb06e78c117c1f409d57956a3496b7b74"
+  },
+  "input_source": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-fingerprint-red-01/native",
+  "input_count": 1192,
+  "input_bytes": 16971991,
+  "overlay": [
+    {
+      "path": "core/document/document.go",
+      "baseline": {
+        "bytes": 12537,
+        "sha256": "6859017748c8884dd9cc84b185a405c0a78089aa0d84f191024489cb24c11219"
+      },
+      "input": {
+        "bytes": 13013,
+        "sha256": "5cedb9e0a0becfed489771c97e3aab3879e533b1a3c6d2b68a0b9666ac36bf40"
+      }
+    },
+    {
+      "path": "core/document/fingerprint_boundary_test.go",
+      "baseline": null,
+      "input": {
+        "bytes": 3399,
+        "sha256": "f0d3204bf2b7430eb1a95ca183ade789816faf7752433cad06c2e6a74f434aef"
+      }
+    }
+  ],
+  "source_before": {
+    "bytes": 199418,
+    "sha256": "a49db7a25cb7a9c72759486300b83080d3fc901268d46cc7beefd43e53d7658f"
+  },
+  "source_after": {
+    "bytes": 199418,
+    "sha256": "a49db7a25cb7a9c72759486300b83080d3fc901268d46cc7beefd43e53d7658f"
+  },
+  "outcome": "MATCHING_INPUT_CAPTURED_NOT_PRODUCT_ACCEPTANCE",
+  "exit_code": 0,
+  "ended_at": "2026-11-12T11:00:09.044039+00:00"
+}

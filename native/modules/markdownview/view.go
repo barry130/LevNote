@@ -32,9 +32,13 @@ type View struct {
 	editSpan                       text.Range // UTF-16 range of the latest synchronized field
 	editGuard                      text.Range // enclosing syntax cannot change under the draft
 	editBase                       string
+	fencedDraft                    *fencedDraft
 	editPanelHeight                float32
 	cellEdit                       *tableCellEdit
 	draftError                     error
+	inlineActionPress              inlineActionGesture
+	inlineActionError              error
+	inlineActionDraft              *editor.Editor
 	scroll                         ui.ScrollState
 	frameRows                      int // rows built in the most recent pass; resource acceptance
 	list                           *ui.ListState
@@ -152,6 +156,8 @@ func (v *View) refresh() {
 }
 
 func (v *View) Release() {
+	v.inlineActionPress = inlineActionGesture{}
+	v.inlineActionDraft, v.inlineActionError = nil, nil
 	v.historyReleased++
 	v.historyError = nil
 	v.list.Handle.CancelFocus()
@@ -277,6 +283,12 @@ func (v *View) Draw(c *ui.Context) {
 		if heldInlineGesture && v.linkActivation.buffer == nil && v.loaded && v.host.Buffer != nil &&
 			v.docBuffer == v.host.Buffer && v.version != v.host.Buffer.Version() && v.draft == nil {
 			c.Invalidate() // settle the one snapshot retained through a reference gesture
+		}
+		if v.inlineActionPress.up || v.inlineActionPress.active && !v.inlineActionCurrent(v.inlineActionPress) {
+			v.inlineActionPress = inlineActionGesture{}
+		}
+		if v.inlineActionDraft != v.draft {
+			v.inlineActionDraft, v.inlineActionError = nil, nil
 		}
 		if v.tableActionPress.up {
 			v.tableActionPress = tableActionGesture{}
@@ -438,6 +450,10 @@ func (v *View) drawDraft(c *ui.Context) {
 		}
 		v.draft.ReadOnly = v.host.ReadOnly && !v.pendingDraft()
 		draftBox := ui.Box(c).Height(editorHeight)
+		v.bindInlineDraftKeys(c, draftBox, v.draft)
+		if v.draft == nil {
+			return
+		}
 		if v.cellEdit != nil && !v.host.ReadOnly && draftBox.Shortcut(0, ui.KeyF6) {
 			// A local focus escape leaves Tab's text-indent behavior intact in
 			// the shared editor. MyGo unmarks on blur, so a live composition
@@ -470,13 +486,23 @@ func (v *View) drawDraft(c *ui.Context) {
 				message = "块草稿尚未写回；源码已变，可打开副本。"
 			}
 			ui.Text(c, message).MaxLines(2).Ellipsis("…").Tooltip(v.draftError.Error()).FontSize(11).TextColor(c.Theme().Warning)
+		} else if v.inlineActionError != nil && v.inlineActionDraft == v.draft {
+			ui.Text(c, v.inlineActionError.Error()).MaxLines(2).Ellipsis("…").Tooltip(v.inlineActionError.Error()).FontSize(11).TextColor(c.Theme().Warning)
 		} else if v.pendingDraft() {
 			ui.Text(c, "输入仍在草稿中；保存或完成编辑时写回").FontSize(11).TextColor(c.Theme().TextMuted)
 		} else {
 			ui.Text(c, "修改已同步到文档").FontSize(11).TextColor(c.Theme().TextMuted)
 		}
-		ui.Row(c).Wrap().Gap(8).Children(func() {
+		ui.Row(c).Wrap().Gap(4).Children(func() {
+			inline := v.inlineDraftEligible()
+			v.drawInlineActions(c)
+			if v.draft == nil {
+				return
+			}
 			finishFace, discardFace, recoverFace := "完成编辑", "放弃草稿", "打开未同步副本"
+			if inline {
+				finishFace, discardFace, recoverFace = "完成", "放弃", "副本"
+			}
 			if v.cellEdit != nil {
 				finishFace, discardFace, recoverFace = "完成", "放弃", "恢复"
 			}

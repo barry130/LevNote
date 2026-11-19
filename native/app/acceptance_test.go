@@ -198,6 +198,7 @@ func TestAcceptanceScreenshots(t *testing.T) {
 	}
 
 	sourceLight := newApp()
+	sourceLight.Dark = false
 	sourceLight.Open(sourcePath)
 	captureAcceptanceApp(t, filepath.Join(out, "source-light.png"), sourceLight, 1180, 780)
 	sourceDark := newApp()

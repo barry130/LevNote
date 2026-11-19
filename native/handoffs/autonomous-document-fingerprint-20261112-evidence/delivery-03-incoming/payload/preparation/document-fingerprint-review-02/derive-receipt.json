@@ -1,0 +1,20 @@
+{
+  "metadata_only": true,
+  "product_executed": false,
+  "observed_at": "2026-11-13T04:27:32.672073+00:00",
+  "source": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-01/prepare-report-and-fixed-archive-01.py",
+    "bytes": 30859,
+    "sha256": "5339e17224510685815255b61bc62981e7d0cd6d209d965a60990e32b2d70e91"
+  },
+  "successor": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-02/prepare-report-and-fixed-archive-02.py",
+    "bytes": 30896,
+    "sha256": "472533fb072622b3df0823c0b71dee147c9cd82e5d1ed5922e167c25b7d508a2"
+  },
+  "only_logic_change": "RUN primary classifier uses absence of slash in test name; Go verbose nested RUN lines are also unindented",
+  "old_failure_preserved": "/home/user/levnote-dev-reliability-20261112-01/delivery/document-fingerprint-review-01/preparation-failed-result.json",
+  "old_report_and_archive_absent": true,
+  "new_label_only": true,
+  "exit_code": 0
+}

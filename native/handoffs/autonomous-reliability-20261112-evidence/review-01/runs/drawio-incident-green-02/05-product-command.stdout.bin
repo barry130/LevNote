@@ -1,0 +1,6 @@
+=== RUN   TestDeleteCellPreservesUnrelatedSource
+--- PASS: TestDeleteCellPreservesUnrelatedSource (0.00s)
+=== RUN   TestDeleteCellRemovesIncidentEdgesOnce
+--- PASS: TestDeleteCellRemovesIncidentEdgesOnce (0.00s)
+PASS
+ok  	levnote.local/native/formats/drawio	0.003s

@@ -1,0 +1,23 @@
+diff --git a/native/app/list_lifetime_test.go b/native/app/list_lifetime_test.go
+--- a/native/app/list_lifetime_test.go
++++ b/native/app/list_lifetime_test.go
+@@ -387,7 +387,7 @@
+ 			// The public render is development evidence, not physical OS UI/IME.
+ 			a.ShowWorkspaceSearch = true
+ 			tester.Frame()
+-			image := tester.Render()
++			image := tester.Image()
+ 			path := filepath.Join(t.TempDir(), "workspace-results-minimum.png")
+ 			file, err := os.Create(path)
+ 			if err != nil { t.Fatal(err) }
+diff --git a/native/app/acceptance_test.go b/native/app/acceptance_test.go
+--- a/native/app/acceptance_test.go
++++ b/native/app/acceptance_test.go
+@@ -590,6 +590,7 @@
+ 	a.TreeSelected = treeEntryLimit - 1
+ 	a.TreeList.ScrollTo(a.TreeSelected, ui.Center)
+ 
++	a.searchRoot = workspace
+ 	a.SearchResults = make([]search.FileMatch, 2000)
+ 	for i := range a.SearchResults {
+ 		name := fmt.Sprintf("archive-%04d.txt", i)

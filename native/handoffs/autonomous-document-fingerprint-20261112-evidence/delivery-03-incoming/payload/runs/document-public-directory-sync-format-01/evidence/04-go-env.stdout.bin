@@ -1,0 +1,16 @@
+{
+	"CGO_ENABLED": "0",
+	"GOARCH": "amd64",
+	"GOENV": "",
+	"GOFLAGS": "-mod=vendor",
+	"GOOS": "linux",
+	"GOPROXY": "off",
+	"GOROOT": "/home/user/go",
+	"GOSUMDB": "off",
+	"GOTELEMETRY": "off",
+	"GOTELEMETRYDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/document-public-directory-sync-format-01/env/config/go/telemetry",
+	"GOTOOLCHAIN": "local",
+	"GOVCS": "*:off",
+	"GOVERSION": "go1.27.3",
+	"GOWORK": "off"
+}

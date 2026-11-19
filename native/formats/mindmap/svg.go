@@ -163,6 +163,9 @@ func svgColors(node *Node, fill, stroke, text string) (string, string, string) {
 	if node == nil || node.Style == nil {
 		return fill, stroke, text
 	}
+	if fallback, ok := StyleTextFallback(node); ok {
+		text = fallback
+	}
 	if value, ok := presentationObjectString(*node.Style, "background-color"); ok {
 		fill = svgColor(value, fill)
 	}

@@ -19,20 +19,13 @@ func (a *App) View(c *ui.Context) {
 		a.deliverEngineExport(a.exportJob)
 	}
 	a.deliverScene()
-	theme := ui.LightTheme()
-	if a.Dark {
-		theme = ui.DarkTheme()
-	}
-	theme.Accent = ui.Hex("#33766c")
-	theme.AccentHover = ui.Hex("#28655c")
-	theme.AccentPressed = ui.Hex("#20584f")
-	theme.Radius = 5
-	theme.FontSize = 13
-	theme.Font = "Microsoft YaHei UI"
+	style := workbenchAppearance(a.Dark)
+	theme := style.Theme
 	c.SetTheme(theme)
 	a.expireGoToLine()
 	a.expireFindFocus()
 	a.processOpenDocuments()
+	a.processCommandPalette()
 	if a.ShowPlugins && a.ShowFind {
 		a.clearFindTransient()
 	}
@@ -43,48 +36,21 @@ func (a *App) View(c *ui.Context) {
 	a.cancelHiddenListFocus()
 	a.consumeHistoryNotices()
 	ui.Column(c).Fill().Background(theme.Background).Children(func() {
-		ui.Row(c.Key("toolbar")).Height(46).Padding(7, 16).Gap(8).Background(theme.Surface).Children(func() {
-			ui.Text(c, "轻笺").Bold().FontSize(16).Margin(0, 12, 0, 0)
-			if ui.Button(c, "新建").Clicked() {
-				a.NewDocument("markdown")
-			}
-			if ui.Button(c, "打开").Clicked() {
-				a.ChooseOpen()
-			}
-			a.closedFilesMenu(c)
-			if ui.Button(c, "文件夹").Clicked() {
-				a.ChooseFolder()
-			}
-			if ui.Button(c, "保存").Disabled(a.Current() == nil).Clicked() {
-				a.Save(a.Current(), false)
-			}
-			ui.Spacer(c)
-			if ui.Button(c, "查找").Disabled(!a.Current().textCapable()).KeepFocus().Clicked() {
-				a.toggleFind()
-			}
-			if ui.Button(c, "插件").Clicked() {
-				a.closeGoToLine()
-				a.ShowPlugins = !a.ShowPlugins
-			}
-			if ui.Button(c, "设置").Clicked() {
-				a.ShowSettings = !a.ShowSettings
-			}
-		})
-		ui.Divider(c)
-		ui.Row(c).Grow(1).AlignItems(ui.Stretch).Children(func() {
+		a.workbenchToolbar(c)
+		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+			a.workbenchActivityBar(c)
 			a.sidebar(c)
 			// The fixed status row remains visually authoritative when a rich
 			// editor is squeezed below its preferred content height.
-			ui.Column(c.Key("main")).Grow(1).MinWidth(300).ClipY().Children(func() {
+			ui.Column(c.Key("main")).Grow(1).MinWidth(0).MinHeight(0).ClipY().Children(func() {
 				if len(a.Tabs) > 0 {
-					ui.Row(c.Key("tab-navigation")).Shrink(0).Children(func() {
+					ui.Row(c.Key("tab-navigation")).Height(workbenchTabsHeight).Shrink(0).AlignItems(ui.Center).Background(style.TabBar).Children(func() {
 						ui.Column(c).Grow(1).MinWidth(0).Children(func() { a.tabs(c) })
-						if ui.Button(c, "已打开文档").Height(30).Margin(4, 6).
+						if workbenchButton(c, "已打开文档").Height(32).Shrink(0).Margin(6, 8).
 							Tooltip("搜索已打开的文档 · Ctrl+P").KeepFocus().Clicked() {
 							a.openDocumentPicker()
 						}
 					})
-					ui.Divider(c)
 				} else {
 					a.revealedTabID = 0
 				}
@@ -145,80 +111,41 @@ func (a *App) View(c *ui.Context) {
 				}
 			})
 		})
-		ui.Divider(c)
-		width, _ := c.Size()
-		compactStatus := width < 820 && a.Message != ""
-		ui.Row(c.Key("status")).Height(29).Padding(4, 14).Gap(14).Clip().Children(func() {
-			if a.Message != "" {
-				ui.Text(c, a.Message).FontSize(11).Grow(1).Shrink(1).MaxWidth(650).SingleLine()
-			} else {
-				ui.Text(c, "本地文件 · 原生编辑").FontSize(11).TextColor(theme.TextMuted).Grow(1)
-			}
-			if t := a.Current(); t != nil && !compactStatus {
-				if t.isBinary() {
-					a.binaryStatus(c, t)
-				} else {
-					line, col, _ := t.Doc.Buffer.LineColumn(t.Doc.Buffer.Selection().Head)
-					position := fmt.Sprintf("第 %d 行，第 %d 列", line+1, col+1)
-					if ui.Button(c, position).
-						Label("转到源码行；当前" + position).
-						KeepFocus().
-						Height(24).
-						Clicked() {
-						a.openGoToLine()
-					}
-					encodingLabel := string(t.Doc.Encoding)
-					if t.ByteInspector {
-						encodingLabel = "二进制（字节视图）"
-						if t.CanReinterpret {
-							encodingLabel = "原始编码未知（字节视图）"
-						}
-					}
-					ui.Text(c, encodingLabel).FontSize(11)
-					state := "已保存"
-					if t.Doc.ReadOnly {
-						state = "只读"
-					} else if t.Doc.Dirty() {
-						state = "未保存"
-					}
-					ui.Text(c, state).FontSize(11).TextColor(theme.TextMuted)
-				}
-			}
-			if len(a.Issues) > 0 && ui.Button(c, fmt.Sprintf("问题 %d", len(a.Issues))).Height(24).Clicked() {
-				a.ShowIssues = !a.ShowIssues
-			}
-		})
+		a.workbenchStatus(c)
 	})
 	a.openDocumentsDialog(c)
+	a.commandPaletteDialog(c)
 }
 func (a *App) sidebar(c *ui.Context) {
+	s := workbenchAppearance(a.Dark)
 	t := c.Theme()
-	ui.Column(c.Key("sidebar")).Width(a.SidebarWidth).FillHeight().Background(t.Surface).Border(1, t.Border).Children(func() {
-		ui.Row(c).Padding(10, 8).Gap(5).Children(func() {
+	ui.Column(c.Key("sidebar")).Width(a.workbenchSidebarWidth(c)).Shrink(0).FillHeight().MinHeight(0).
+		Background(s.Sidebar).BorderWidth(0, 1, 0, 0).BorderColor(t.Border).Children(func() {
+		ui.Row(c).Height(workbenchTabsHeight).Shrink(0).Padding(6, 12).Gap(4).AlignItems(ui.Center).Children(func() {
 			label := "工作区"
 			if a.ShowOutline {
 				label = "文档大纲"
 			} else if a.Root != "" {
 				label = filepath.Base(a.Root)
 			}
-			ui.Text(c, label).Bold().Grow(1).SingleLine()
+			ui.Text(c, label).FontSize(14).TextColor(t.Text).Grow(1).MinWidth(0).SingleLine().Tooltip(label)
 			outlineLabel := "大纲"
 			if a.ShowOutline {
 				outlineLabel = "文件"
 			}
-			if ui.Button(c, outlineLabel).Label("切换文件树与文档大纲").Disabled(a.Current().isBinary() && !a.ShowOutline).Height(25).Clicked() {
+			if workbenchButton(c, outlineLabel).Label("切换文件树与文档大纲").Disabled(a.Current().isBinary() && !a.ShowOutline).Height(32).Shrink(0).Clicked() {
 				a.setOutlineVisible(!a.ShowOutline)
 			}
-			if !a.ShowOutline && ui.Button(c, "↻").Label("刷新文件树").Height(25).Width(28).Clicked() {
+			if !a.ShowOutline && workbenchButton(c, "↻").Label("刷新文件树").Height(32).Width(28).Shrink(0).Clicked() {
 				a.refreshTree()
 			}
 		})
 		if a.ShowOutline {
 			a.outlineSidebar(c)
 		} else if a.Root == "" {
-			ui.Column(c).Padding(12).Gap(12).Children(func() {
-				ui.Text(c, "打开一个文件夹，\n把资料放在一起。").FontSize(12).TextColor(t.TextMuted)
-				if ui.Button(c, "打开文件夹").Clicked() {
+			ui.Column(c).Padding(16, 12).Gap(14).Children(func() {
+				ui.Text(c, "打开一个文件夹，\n把资料放在一起。").FontSize(13).TextColor(t.TextMuted)
+				if ui.PrimaryButton(c, "打开文件夹").Height(32).Radius(6).FontSize(13).FillWidth().Clicked() {
 					a.ChooseFolder()
 				}
 			})
@@ -229,7 +156,7 @@ func (a *App) sidebar(c *ui.Context) {
 			entries := a.Entries
 			if len(entries) == 0 {
 				a.TreeList.Handle.CancelFocus()
-				ui.Text(c, "此文件夹为空。").FontSize(12).TextColor(t.TextMuted).Padding(10, 12)
+				ui.Text(c, "此文件夹为空。").FontSize(13).TextColor(t.TextMuted).Padding(10, 12)
 			} else {
 				root, generation := a.Root, a.treeGeneration
 				current := func() bool {
@@ -266,15 +193,25 @@ func (a *App) sidebar(c *ui.Context) {
 						return
 					}
 					entry := entries[i]
-					prefix := "  "
-					if entry.Directory {
-						prefix = "› "
-						if a.Expanded[entry.Path] {
-							prefix = "⌄ "
+					ui.Row(c).FillWidth().Height(32).Padding(6, 12, 6, 12+float32(entry.Depth)*14).Gap(6).AlignItems(ui.Center).Children(func() {
+						if entry.Directory {
+							chevron := ui.Icon(c, workbenchChevronIcon).Size(10, 10).TextColor(s.Subtle)
+							if a.Expanded[entry.Path] {
+								chevron.Rotate(90)
+							}
+							ui.Icon(c, workbenchFolderIcon).Size(16, 16).TextColor(s.Subtle)
+						} else {
+							ui.Box(c).Width(10).Shrink(0)
+							ui.Icon(c, workbenchFileIcon(entry.Name)).Size(16, 16).TextColor(t.Accent)
 						}
-					}
-					ui.Row(c).FillWidth().Height(29).Padding(4, 10+float32(entry.Depth)*14).Children(func() {
-						ui.Text(c, prefix+entry.Name).SingleLine().Grow(1).MinWidth(0).Tooltip(entry.Path)
+						name := ui.Text(c, entry.Name).FontSize(13).SingleLine().Grow(1).MinWidth(0).Tooltip(entry.Path)
+						if entry.Directory {
+							prefix := "› "
+							if a.Expanded[entry.Path] {
+								prefix = "⌄ "
+							}
+							name.Label(prefix + entry.Name)
+						}
 					})
 				}).Grow(1)
 				if current() {
@@ -286,12 +223,30 @@ func (a *App) sidebar(c *ui.Context) {
 				}
 			}
 		}
-		ui.Spacer(c)
-		ui.Divider(c)
-		ui.Column(c).Padding(12).Gap(5).Children(func() {
-			ui.Text(c, "新建文档").FontSize(11).TextColor(t.TextMuted)
-			for _, item := range []struct{ label, kind string }{{"Markdown", "markdown"}, {"纯文本", "text"}, {"思维导图", "mindmap"}, {"图纸", "drawio"}} {
-				if ui.Button(c, item.label).FillWidth().Clicked() {
+		if !a.ShowOutline && (a.Root == "" || len(a.Entries) == 0) {
+			ui.Spacer(c)
+		}
+		ui.Column(c).Padding(0, 12, 12, 12).Gap(2).Shrink(0).Children(func() {
+			ui.Row(c).Height(1).FillWidth().Margin(0, 0, 8, 0).Background(s.Theme.Border)
+			ui.Text(c, "新建文档").FontSize(11).TextColor(s.Subtle).Padding(2, 8, 4, 8).FillWidth()
+			items := []struct {
+				label, kind string
+				icon        *ui.SVG
+			}{
+				{"Markdown", "markdown", workbenchMarkdownIcon},
+				{"纯文本", "text", workbenchDocumentIcon},
+				{"思维导图", "mindmap", workbenchDiagramIcon},
+				{"图纸", "drawio", workbenchShapesIcon},
+			}
+			for _, item := range items {
+				b := workbenchButton(c.Key("sidebar-new-"+item.kind), "").Label(item.label).
+					Tooltip("新建 "+item.label).Height(30).Padding(0, 8).Gap(8).Radius(6).FillWidth().
+					Justify(ui.Start).AlignItems(ui.Center)
+				b.Children(func() {
+					ui.Icon(c, item.icon).Size(14, 14).Shrink(0).TextColor(s.Subtle)
+					ui.Text(c, item.label).FontSize(13).SingleLine()
+				})
+				if b.Clicked() {
 					a.NewDocument(item.kind)
 				}
 			}
@@ -313,20 +268,30 @@ func (a *App) activateTreeEntry(i int) {
 	a.Open(entry.Path)
 }
 func (a *App) tabs(c *ui.Context) {
+	s := workbenchAppearance(a.Dark)
 	var activeButton ui.Element
 	activeButtonID, closeIndex := 0, -1
-	ui.ScrollHorizontal(c.Key("tabs")).Height(38).Shrink(0).Children(func() {
-		ui.Row(c).Gap(1).Children(func() {
+	ui.ScrollHorizontal(c.Key("tabs")).Height(workbenchTabsHeight).Shrink(0).Padding(6, 8).Background(s.TabBar).Children(func() {
+		ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 			for i, t := range a.Tabs {
 				i, t := i, t
 				label := t.Name
 				if t.Doc != nil && !t.Doc.ReadOnly && t.Doc.Dirty() {
 					label = "• " + label
 				}
-				ui.Row(c.Key(t.ID)).Padding(3, 4).Gap(2).Children(func() {
-					b := ui.Button(c, label).Height(30)
+				tab := ui.Row(c.Key(t.ID)).Height(32).Shrink(0).Padding(0, 3).Gap(0).AlignItems(ui.Center).Radius(8)
+				if i == a.Active {
+					tab.Background(s.TabActive)
+				}
+				tab.Children(func() {
+					b := workbenchButton(c, label).Height(32).Radius(6).MaxWidth(230).Padding(5, 8, 5, 29).Tooltip(t.Name).
+						Draw(func(p *ui.Painter, r ui.Rect) {
+							p.Icon(workbenchFileIcon(t.Name), ui.Rect{X: r.X + 6, Y: r.Y + (r.H-16)/2, W: 16, H: 16}, s.Theme.Focus)
+						})
 					if i == a.Active {
-						b.Background(c.Theme().Selection).TextColor(c.Theme().Text)
+						b.TextColor(s.Theme.Text)
+					} else {
+						b.TextColor(s.Subtle)
 					}
 					if b.Clicked() {
 						a.Select(i)
@@ -334,7 +299,7 @@ func (a *App) tabs(c *ui.Context) {
 					if current := a.Current(); current != nil && current.ID == t.ID {
 						activeButton, activeButtonID = b, t.ID
 					}
-					if ui.Button(c, "×").Label("关闭 " + t.Name).Height(26).Width(24).Clicked() {
+					if workbenchButton(c, "×").Label("关闭 " + t.Name).Height(26).Width(26).Shrink(0).Padding(2).Clicked() {
 						closeIndex = i
 					}
 				})
@@ -355,18 +320,40 @@ func (a *App) tabs(c *ui.Context) {
 	}
 }
 func (a *App) welcome(c *ui.Context) {
-	ui.Column(c).Grow(1).Center().Gap(16).Children(func() {
-		ui.Text(c, "留一点空间给想法。").FontSize(28).Bold()
-		ui.Text(c, "在同一个工作区阅读、记录和整理。").TextColor(c.Theme().TextMuted)
-		ui.Row(c).Gap(10).Children(func() {
-			if ui.PrimaryButton(c, "打开文件").Clicked() {
-				a.ChooseOpen()
-			}
-			if ui.Button(c, "新建 Markdown").Clicked() {
-				a.NewDocument("markdown")
-			}
+	s := workbenchAppearance(a.Dark)
+	width, height := c.Size()
+	inset, top := float32(28), float32(24)
+	if width-workbenchActivityWidth-a.workbenchSidebarWidth(c) >= 720 && height >= 640 {
+		inset, top = 56, 60
+	}
+	ui.Scroll(c.Key("welcome")).Grow(1).MinHeight(0).Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(800).Padding(top, inset, 28, inset).Gap(8).Children(func() {
+			ui.Text(c, "LevNote").FontSize(16).TextColor(s.Subtle)
+			ui.Text(c, "留一点空间给想法。").FontSize(30).Bold().TextColor(s.Theme.Text)
+			ui.Text(c, "在同一个工作区阅读、记录和整理。").FontSize(13).TextColor(s.Subtle)
+			ui.Text(c, "开始").FontSize(14).Margin(8, 0, 4, 0)
+			ui.Row(c).FillWidth().MaxWidth(460).Gap(12).Wrap().Children(func() {
+				ui.Column(c).Grow(1).MinWidth(160).Gap(8).Children(func() {
+					if ui.PrimaryButton(c, "新建 Markdown").FillWidth().Height(44).Shrink(0).Padding(10, 16).Radius(10).FontSize(14).Clicked() {
+						a.NewDocument("markdown")
+					}
+					ui.Text(c, "Ctrl+N").FontSize(12).TextColor(s.Subtle)
+				})
+				ui.Column(c).Grow(1).MinWidth(160).Gap(8).Children(func() {
+					open := workbenchButton(c, "打开文件").FillWidth().Height(44).Shrink(0).Padding(10, 16).Radius(10).FontSize(14).
+						Border(1, s.Theme.Border)
+					if !open.Hovered() && !open.Pressed() {
+						open.Background(s.Sidebar)
+					}
+					if open.Clicked() {
+						a.ChooseOpen()
+					}
+					ui.Text(c, "Ctrl+O").FontSize(12).TextColor(s.Subtle)
+				})
+			})
+			ui.Text(c, "快捷操作").FontSize(14).Margin(12, 0, 4, 0)
+			ui.Text(c, "Ctrl+P  切换已打开文档     Ctrl+S  保存\nCtrl+F  查找与替换          Ctrl+G  转到行").FontSize(13).TextColor(s.Subtle)
 		})
-		ui.Text(c, "Ctrl+O 打开    Ctrl+N 新建    Ctrl+S 保存").FontSize(12).TextColor(c.Theme().TextMuted)
 	})
 }
 func (a *App) settings(c *ui.Context) {
@@ -571,6 +558,9 @@ func (a *App) issues(c *ui.Context) {
 	})
 }
 func (a *App) shortcuts(c *ui.Context) {
+	if c.Shortcut(ui.Cmd|ui.Shift, ui.KeyP) || c.Shortcut(0, ui.KeyF1) {
+		a.openCommandPalette()
+	}
 	if c.Shortcut(ui.Cmd, ui.KeyP) {
 		a.openDocumentPicker()
 	}
@@ -624,10 +614,10 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 	if t.Adapter == nil {
 		if t.MatchedPlugin.ID != "" && (t.MatchedPlugin.Declarative || t.Editor.Highlight != nil) {
 			label := t.MatchedPlugin.Name + " · " + t.MatchedPlugin.ID
-			ui.Row(c).Height(30).Shrink(0).Padding(4, 16).Gap(8).Clip().Children(func() {
-				ui.Text(c, label).FontSize(12).TextColor(c.Theme().TextMuted).
+			ui.Row(c).Height(42).Shrink(0).Padding(5, 12).Gap(8).AlignItems(ui.Center).Clip().Children(func() {
+				ui.Text(c, label).FontSize(13).TextColor(c.Theme().TextMuted).
 					SingleLine().Tooltip(label).Grow(1)
-				ui.Text(c, t.SourceCapabilityBadge).FontSize(11).TextColor(c.Theme().Text).
+				ui.Text(c, t.SourceCapabilityBadge).FontSize(12).TextColor(c.Theme().Text).
 					SingleLine().Tooltip(t.SourceCapabilityDetail).Padding(2, 8).
 					Background(c.Theme().Surface).Border(1, c.Theme().Border).Radius(4)
 			})
@@ -635,24 +625,32 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 		t.Editor.View(c.Key(t.ID))
 		return
 	}
-	ui.Row(c).Height(38).Shrink(0).Padding(5, 16).Gap(6).Children(func() {
+	s := workbenchAppearance(a.Dark)
+	ui.Row(c.Key("document-toolbar")).Height(42).Shrink(0).Padding(3, 12).Gap(8).AlignItems(ui.Center).Background(s.TabActive).Children(func() {
 		name, detail := t.Adapter.Name, t.Adapter.Name
 		if t.MatchedPlugin.Declarative {
 			name = t.SourceCapabilityBadge
 			detail = t.MatchedPlugin.Name + " · " + t.MatchedPlugin.ID + " · " + t.SourceCapabilityDetail
 		}
-		ui.Text(c, name).FontSize(12).TextColor(c.Theme().TextMuted).Grow(1).SingleLine().Tooltip(detail)
-		for _, mode := range []struct{ id, label string }{{"preview", "阅读 / 编辑"}, {"source", "源码"}, {"split", "分屏"}} {
-			b := ui.Button(c, mode.label).Height(28)
-			if mode.id == t.Mode {
-				b.Background(c.Theme().Selection)
-			}
-			if b.Clicked() {
+		ui.Text(c, name).FontSize(13).TextColor(c.Theme().TextMuted).Grow(1).MinWidth(0).SingleLine().Tooltip(detail)
+		currentModeClicked := false
+		ui.Row(c.Key("document-modes")).Height(36).Shrink(0).Padding(2).Gap(2).Radius(8).Background(s.Sidebar).Children(func() {
+			for _, mode := range []struct{ id, label string }{{"preview", "阅读 / 编辑"}, {"source", "源码"}, {"split", "分屏"}} {
+				b := workbenchButton(c, mode.label).Height(32).Radius(6)
 				if mode.id == t.Mode {
-					return
+					b.Background(c.Theme().Selection).TextColor(c.Theme().Text)
 				}
-				a.setMode(t, mode.id)
+				if b.Clicked() {
+					if mode.id == t.Mode {
+						currentModeClicked = true
+						return
+					}
+					a.setMode(t, mode.id)
+				}
 			}
+		})
+		if currentModeClicked {
+			return
 		}
 		if len(t.Adapter.Exports) > 0 {
 			label, access, tooltip := "导出", "导出", ""
@@ -669,7 +667,7 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 					disabled = true
 				}
 			}
-			button := ui.Button(c, label).Label(access).Height(28).Disabled(disabled)
+			button := workbenchButton(c, label).Label(access).Height(32).Shrink(0).Disabled(disabled)
 			if tooltip != "" {
 				button.Tooltip(tooltip)
 			}

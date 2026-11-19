@@ -1,0 +1,99 @@
+{
+  "label": "drawio-ui-green-01",
+  "caller_pid": 26789,
+  "collected_at": "2026-11-12T09:44:09.653081+00:00",
+  "product_executed": false,
+  "command": {
+    "argv": [
+      "/home/user/go/bin/go",
+      "test",
+      "-v",
+      "-count=1",
+      "-timeout=120s",
+      "-run",
+      "^TestDrawioCanvasDeleteUndoRedoPreservesSource$",
+      "./modules/graphview"
+    ],
+    "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/source/native",
+    "environment": {
+      "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/home",
+      "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/config",
+      "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/cache",
+      "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/data",
+      "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/state",
+      "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+      "GOROOT": "/home/user/go",
+      "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+      "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+      "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/tmp",
+      "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/tmp",
+      "GOENV": "off",
+      "GOWORK": "off",
+      "GOVCS": "*:off",
+      "GOFLAGS": "-mod=vendor",
+      "GOTOOLCHAIN": "local",
+      "GOPROXY": "off",
+      "GOSUMDB": "off",
+      "GONOPROXY": "",
+      "GONOSUMDB": "",
+      "GOPRIVATE": "",
+      "CGO_ENABLED": "0",
+      "GOTELEMETRY": "off",
+      "GOOS": "linux",
+      "GOARCH": "amd64",
+      "GOEXPERIMENT": ""
+    },
+    "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+    "started_at": "2026-11-12T09:39:19.406185+00:00",
+    "timeout_s": 180,
+    "timed_out": false,
+    "owned_cleanup": [],
+    "status": "completed",
+    "pid": 26273,
+    "owned_pgid": 26273,
+    "launched_at": "2026-11-12T09:39:19.407594+00:00",
+    "exit_code": 1,
+    "owned_group_remaining_after_wait": false,
+    "ended_at": "2026-11-12T09:39:36.406772+00:00",
+    "elapsed_s": 17.00060116700479,
+    "stdout": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/evidence/05-product-command.stdout.bin",
+      "bytes": 538,
+      "sha256": "76f06df775f0c3f572eba49d6af39d118e918fba85d5210787f71e5469464580"
+    },
+    "stderr": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/evidence/05-product-command.stderr.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "wrapper_exit": 2,
+  "outcome": "COMMAND_FAILED",
+  "expected_input": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-ui-green-01/expected-manifest.json",
+    "bytes": 201490,
+    "sha256": "da6b463ab7e61c32f8e10769c0e1973fa1316ff07f4a6a995970cf8096cb69ec"
+  },
+  "input_count": 1195,
+  "input_bytes": 16987405,
+  "source_guards": {
+    "source-before.json": {
+      "bytes": 199865,
+      "sha256": "14c98a13191f4650b6478c80dd0a4bff1ba80cb59fd2926fda738203210d07f4"
+    },
+    "source-after.json": {
+      "bytes": 199865,
+      "sha256": "14c98a13191f4650b6478c80dd0a4bff1ba80cb59fd2926fda738203210d07f4"
+    },
+    "snapshot-after.json": {
+      "bytes": 199865,
+      "sha256": "14c98a13191f4650b6478c80dd0a4bff1ba80cb59fd2926fda738203210d07f4"
+    }
+  },
+  "actual_all_inventories_equal": true,
+  "test_identity": {
+    "bytes": 2689,
+    "sha256": "8938202e1a2e94d156a42a1f3d00dfa6153628b8fb513d6186bff9c878831541"
+  },
+  "classification": "behavioral FAILED: exact Delete transaction passed, public native Undo at line45 changed=1/source still deleted; no successful full test or Redo coverage"
+}

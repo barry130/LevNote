@@ -330,7 +330,7 @@ func (a *App) binaryDocumentView(c *ui.Context, t *Tab) {
 	t.Editor.View(c.Key(t.ID))
 }
 
-func (a *App) binaryStatus(c *ui.Context, t *Tab) {
+func (a *App) binaryStatus(c *ui.Context, t *Tab) ui.Element {
 	label := strings.ToUpper(string(t.BinaryKind))
 	if label == "" {
 		label = "二进制"
@@ -338,5 +338,5 @@ func (a *App) binaryStatus(c *ui.Context, t *Tab) {
 	if t.ImageWidth > 0 {
 		label = fmt.Sprintf("%s · %d × %d", t.ImageFormat, t.ImageWidth, t.ImageHeight)
 	}
-	ui.Text(c, fmt.Sprintf("%s · %d 字节 · 只读", label, t.binarySize())).FontSize(11).TextColor(c.Theme().TextMuted)
+	return ui.Text(c, fmt.Sprintf("%s · %d 字节 · 只读", label, t.binarySize())).FontSize(11).TextColor(c.Theme().TextMuted)
 }

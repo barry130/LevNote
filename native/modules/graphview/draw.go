@@ -12,6 +12,9 @@ import (
 
 func (v *view) drawCanvas(p *ui.Painter, r ui.Rect) {
 	v.frameNodes, v.frameLabels, v.frameLabelUses, v.frameHiddenLabels, v.frameEdges = 0, 0, 0, 0, 0
+	if v.drawGesture.kind != drawioNoGesture && (r != v.drawGesture.canvas || !v.drawioGestureCurrent(v.drawGesture)) {
+		v.drawGesture = drawioPointerGesture{}
+	}
 	v.canvasRect = r
 	theme := p.Theme()
 	p.Fill(r, theme.Background, 0)
@@ -26,6 +29,7 @@ func (v *view) drawCanvas(p *ui.Painter, r ui.Rect) {
 			v.drawMindmap(p, r, theme)
 		case kindDrawio:
 			v.drawDiagram(p, r, theme)
+			v.drawDrawioGesture(p, r, theme)
 		}
 	})
 	if v.frameHiddenLabels > 0 {
@@ -107,10 +111,24 @@ func (v *view) drawMindmap(p *ui.Painter, r ui.Rect, theme *ui.Theme) {
 		if source := node.Node; source != nil {
 			fill, stroke, textColor = mindmapNodeColors(source, fill, stroke, textColor)
 		}
+		styledSelection := false
 		if node.ID == v.selectedID {
-			stroke = theme.Accent
+			if node.Node != nil && node.Node.Style != nil {
+				if value, exists := objectString(*node.Node.Style, "border"); exists {
+					_, styledSelection = graphColor(value)
+				}
+			}
+			if !styledSelection {
+				stroke = theme.Accent
+			}
 		}
 		v.drawNodeBox(p, node.ID, box, "rounded", fill, stroke, theme.Font, textColor, v.zoom, func() string { return boundedMindmapLabel(node.Node, node.Text) })
+		if styledSelection {
+			// The selection is an outer affordance, not a replacement for a
+			// document's real border. Nodes without border keep the old baseline.
+			ring := ui.Rect{X: box.X - 4, Y: box.Y - 4, W: box.W + 8, H: box.H + 8}
+			p.Stroke(ring, theme.Accent, max32(4, min32(box.W, box.H)*0.16)+4, 1.5)
+		}
 		if node.Collapsed {
 			badge := ui.Rect{X: box.X + box.W - 13, Y: box.Y + box.H/2 - 7, W: 14, H: 14}
 			p.Fill(badge, theme.Accent, 7)
@@ -163,7 +181,7 @@ func (v *view) drawDiagram(p *ui.Painter, r ui.Rect, theme *ui.Theme) {
 				textColor = parsed
 			}
 		}
-		if node.ID == v.selectedID {
+		if v.drawioSelected(node.ID) {
 			stroke = theme.Accent
 		}
 		v.drawNodeBox(p, node.ID, box, node.Shape, fill, stroke, theme.Font, textColor, v.zoom, func() string { return boundedLabel(node.PlainText) })
@@ -328,6 +346,9 @@ func rectBoundary(box ui.Rect, toward ui.Point) ui.Point {
 
 func mindmapNodeColors(node *mindmap.Node, fill, stroke, text ui.Color) (ui.Color, ui.Color, ui.Color) {
 	if node.Style != nil {
+		if fallback, ok := mindmap.StyleTextFallback(node); ok {
+			text = ui.Hex(fallback)
+		}
 		if value, ok := objectString(*node.Style, "color"); ok {
 			if parsed, ok := graphColor(value); ok {
 				text = parsed

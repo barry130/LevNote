@@ -1,0 +1,142 @@
+{
+  "owner": "native-reliability/task-5",
+  "started_at": "2026-11-12T09:39:18.716633+00:00",
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "--label",
+    "drawio-ui-green-01",
+    "--expected-head",
+    "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+    "--expected-manifest",
+    "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-ui-green-01/expected-manifest.json",
+    "--source",
+    "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-ui-green-01/native",
+    "--mode",
+    "test",
+    "--timeout",
+    "180",
+    "--",
+    "-v",
+    "-count=1",
+    "-timeout=120s",
+    "-run",
+    "^TestDrawioCanvasDeleteUndoRedoPreservesSource$",
+    "./modules/graphview"
+  ],
+  "wrapper_cwd": "/home/user/levnote-dev-reliability-20261112-01",
+  "python": "/usr/bin/python3",
+  "runner_input": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "bytes": 17964,
+    "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+  },
+  "mode": "test",
+  "source_root": "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-ui-green-01/native",
+  "expected_head": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "command_timeout_s": 180,
+  "not_windows_or_whole_application_acceptance": true,
+  "ordinary_env_input": {
+    "path": "/home/user/levnote-dev-env.sh",
+    "bytes": 175,
+    "sha256": "9b6b8b1aad396bd0add1d2f469de218ae3df99079b72da1b21e79f99f0b51e47"
+  },
+  "ordinary_env_use": "audited toolchain/vendor/CGO/local policy reused; HOME/cache/tmp isolated; no old guard sourcing",
+  "go_version_file": {
+    "bytes": 35,
+    "sha256": "49b1651ee92b70282766993b556905e9464050a811572e047a74f95534ee9ce6"
+  },
+  "source_before_manifest": {
+    "bytes": 199865,
+    "sha256": "14c98a13191f4650b6478c80dd0a4bff1ba80cb59fd2926fda738203210d07f4"
+  },
+  "expected_input": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-ui-green-01/expected-manifest.json",
+    "bytes": 201490,
+    "sha256": "da6b463ab7e61c32f8e10769c0e1973fa1316ff07f4a6a995970cf8096cb69ec"
+  },
+  "effective_go_environment": {
+    "CGO_ENABLED": "0",
+    "GOARCH": "amd64",
+    "GOENV": "",
+    "GOFLAGS": "-mod=vendor",
+    "GOOS": "linux",
+    "GOPROXY": "off",
+    "GOROOT": "/home/user/go",
+    "GOSUMDB": "off",
+    "GOTELEMETRY": "off",
+    "GOTELEMETRYDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/config/go/telemetry",
+    "GOTOOLCHAIN": "local",
+    "GOVCS": "*:off",
+    "GOVERSION": "go1.27.3",
+    "GOWORK": "off"
+  },
+  "product_command": {
+    "argv": [
+      "/home/user/go/bin/go",
+      "test",
+      "-v",
+      "-count=1",
+      "-timeout=120s",
+      "-run",
+      "^TestDrawioCanvasDeleteUndoRedoPreservesSource$",
+      "./modules/graphview"
+    ],
+    "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/source/native",
+    "environment": {
+      "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/home",
+      "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/config",
+      "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/cache",
+      "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/data",
+      "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/state",
+      "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+      "GOROOT": "/home/user/go",
+      "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+      "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+      "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/tmp",
+      "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/env/tmp",
+      "GOENV": "off",
+      "GOWORK": "off",
+      "GOVCS": "*:off",
+      "GOFLAGS": "-mod=vendor",
+      "GOTOOLCHAIN": "local",
+      "GOPROXY": "off",
+      "GOSUMDB": "off",
+      "GONOPROXY": "",
+      "GONOSUMDB": "",
+      "GOPRIVATE": "",
+      "CGO_ENABLED": "0",
+      "GOTELEMETRY": "off",
+      "GOOS": "linux",
+      "GOARCH": "amd64",
+      "GOEXPERIMENT": ""
+    },
+    "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+    "started_at": "2026-11-12T09:39:19.406185+00:00",
+    "timeout_s": 180,
+    "timed_out": false,
+    "owned_cleanup": [],
+    "status": "completed",
+    "pid": 26273,
+    "owned_pgid": 26273,
+    "launched_at": "2026-11-12T09:39:19.407594+00:00",
+    "exit_code": 1,
+    "owned_group_remaining_after_wait": false,
+    "ended_at": "2026-11-12T09:39:36.406772+00:00",
+    "elapsed_s": 17.00060116700479,
+    "stdout": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/evidence/05-product-command.stdout.bin",
+      "bytes": 538,
+      "sha256": "76f06df775f0c3f572eba49d6af39d118e918fba85d5210787f71e5469464580"
+    },
+    "stderr": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/evidence/05-product-command.stderr.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "formatted_copy": null,
+  "outcome": "COMMAND_FAILED",
+  "exit_code": 2,
+  "ended_at": "2026-11-12T09:39:36.724200+00:00",
+  "evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-ui-green-01/evidence"
+}

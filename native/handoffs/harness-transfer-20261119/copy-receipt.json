@@ -1,0 +1,30 @@
+{
+  "status": "unknown",
+  "error": {
+    "code": "RESULT_UNKNOWN",
+    "message": "Some effects are unknown; inspect retained observations before any recovery.",
+    "effectState": "unknown",
+    "retry": "never",
+    "nextAction": "Resume verifies unknown items only; inspect unresolved manifest entries before manual repair."
+  },
+  "data": {
+    "byteSemantics": "logical_path_bytes_not_physical_reclaimed_space",
+    "complete": false,
+    "detailsRef": "j-78914654-4a6c-4718-8b61-dc495a0a9128",
+    "done": 0,
+    "failed": 0,
+    "id": "j-78914654-4a6c-4718-8b61-dc495a0a9128",
+    "logicalBytes": 10275355,
+    "nextAction": "Resume verifies unknown items only; inspect unresolved manifest entries before manual repair.",
+    "omitted": 7,
+    "phase": "settled",
+    "status": "unknown",
+    "total": 7,
+    "unknown": 7,
+    "root": "F:\\AIproject\\LevNote",
+    "sandbox": {
+      "mode": "workspace-write",
+      "enforcement": "partial"
+    }
+  }
+}

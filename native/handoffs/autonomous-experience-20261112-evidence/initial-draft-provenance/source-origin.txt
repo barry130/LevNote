@@ -1,0 +1,5 @@
+baseline=8897244ffa4f00f5ec51f95545e7a3ca27d37d97
+origin=/home/user/LevNote
+source=/home/user/levnote-dev-experience-20261112-01/source
+author=native-experience
+local_drafts=unexecuted ancestry; final edits on this box only

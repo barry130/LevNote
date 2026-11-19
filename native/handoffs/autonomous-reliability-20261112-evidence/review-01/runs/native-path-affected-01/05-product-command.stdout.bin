@@ -1,0 +1,251 @@
+=== RUN   TestBinaryInspectorLabelsOriginalBytes
+--- PASS: TestBinaryInspectorLabelsOriginalBytes (0.09s)
+=== RUN   TestAutonomousReliabilityReopenNativeFileReadsCurrentBytes
+--- PASS: TestAutonomousReliabilityReopenNativeFileReadsCurrentBytes (0.05s)
+=== RUN   TestAutonomousReliabilityNativePathIdentity
+--- PASS: TestAutonomousReliabilityNativePathIdentity (0.03s)
+=== RUN   TestAutonomousReliabilityEditorHostNativeReferences
+=== RUN   TestAutonomousReliabilityEditorHostNativeReferences/native_absolute
+=== RUN   TestAutonomousReliabilityEditorHostNativeReferences/native_file_URL
+--- PASS: TestAutonomousReliabilityEditorHostNativeReferences (0.00s)
+    --- PASS: TestAutonomousReliabilityEditorHostNativeReferences/native_absolute (0.00s)
+    --- PASS: TestAutonomousReliabilityEditorHostNativeReferences/native_file_URL (0.00s)
+=== RUN   TestAutonomousReliabilityFileURLTokens
+=== RUN   TestAutonomousReliabilityFileURLTokens/#
+=== RUN   TestAutonomousReliabilityFileURLTokens/#target
+=== RUN   TestAutonomousReliabilityFileURLTokens/?
+=== RUN   TestAutonomousReliabilityFileURLTokens/?download=1
+=== RUN   TestAutonomousReliabilityFileURLTokens/%00
+=== RUN   TestAutonomousReliabilityFileURLTokens/#00
+--- PASS: TestAutonomousReliabilityFileURLTokens (0.01s)
+    --- PASS: TestAutonomousReliabilityFileURLTokens/# (0.00s)
+    --- PASS: TestAutonomousReliabilityFileURLTokens/#target (0.00s)
+    --- PASS: TestAutonomousReliabilityFileURLTokens/? (0.00s)
+    --- PASS: TestAutonomousReliabilityFileURLTokens/?download=1 (0.00s)
+    --- PASS: TestAutonomousReliabilityFileURLTokens/%00 (0.00s)
+    --- PASS: TestAutonomousReliabilityFileURLTokens/#00 (0.00s)
+=== RUN   TestAutonomousReliabilityFailedReopenRetainsHistory
+--- PASS: TestAutonomousReliabilityFailedReopenRetainsHistory (0.02s)
+=== RUN   TestNativeImageKeyboardByteAndTabBoundaries
+--- PASS: TestNativeImageKeyboardByteAndTabBoundaries (0.04s)
+=== RUN   TestNativeImageOpenMixedAuthorityAndCapabilities
+--- PASS: TestNativeImageOpenMixedAuthorityAndCapabilities (0.02s)
+=== RUN   TestNativeImageSignatureDisabledCorruptMismatchAndOversize
+--- PASS: TestNativeImageSignatureDisabledCorruptMismatchAndOversize (0.04s)
+=== RUN   TestNativeImageCopiesHeldBytesAndReloadsExplicitly
+--- PASS: TestNativeImageCopiesHeldBytesAndReloadsExplicitly (0.04s)
+=== RUN   TestNativeImageModalStaleAndFailedFlushKeepAuthority
+--- PASS: TestNativeImageModalStaleAndFailedFlushKeepAuthority (0.00s)
+=== RUN   TestNativeImageSessionOrderAndPathOnlyRestore
+--- PASS: TestNativeImageSessionOrderAndPathOnlyRestore (0.03s)
+=== RUN   TestNativeImageLaneLatestPendingAndShutdownJoin
+--- PASS: TestNativeImageLaneLatestPendingAndShutdownJoin (0.02s)
+=== RUN   TestNativeImageCopySurvivesNavigationAndClosedTabOutcome
+--- PASS: TestNativeImageCopySurvivesNavigationAndClosedTabOutcome (0.03s)
+=== RUN   TestNativeImageExternalObservationAndReacquireFailure
+--- PASS: TestNativeImageExternalObservationAndReacquireFailure (0.02s)
+=== RUN   TestNativeImageChooseOpenHeadlessAndDeliveryTimeout
+--- PASS: TestNativeImageChooseOpenHeadlessAndDeliveryTimeout (0.06s)
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/before_publication
+=== RUN   TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/after_publication
+--- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing (0.06s)
+    --- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/before_publication (0.01s)
+    --- PASS: TestNativeImageWindowCloseSurfacesCopyOutcomeBeforeClosing/after_publication (0.05s)
+=== RUN   TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin
+--- PASS: TestNativeImageDeletedSourceKeepsBytesThroughModeAndPlugin (0.05s)
+=== RUN   TestNativeImageTransactionalReloadOverlapAndNewestPending
+--- PASS: TestNativeImageTransactionalReloadOverlapAndNewestPending (0.00s)
+=== RUN   TestNativeImageCaptures
+    binary_test.go:699: explicit synthetic image/byte captures
+--- SKIP: TestNativeImageCaptures (0.00s)
+=== RUN   TestNativeImageDuplicateRecheckedAtPublication
+--- PASS: TestNativeImageDuplicateRecheckedAtPublication (0.00s)
+=== RUN   TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft
+--- PASS: TestNativeImageLegacySessionImageRoutingPreservesDirtyDraft (0.01s)
+=== RUN   TestNativeImageCallbacksAndReentrantCopyAreBounded
+--- PASS: TestNativeImageCallbacksAndReentrantCopyAreBounded (0.02s)
+=== RUN   TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate
+=== RUN   TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate/capacity-change
+=== RUN   TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate/late-duplicate
+=== RUN   TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate/post-flush
+--- PASS: TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate (0.02s)
+    --- PASS: TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate/capacity-change (0.01s)
+    --- PASS: TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate/late-duplicate (0.01s)
+    --- PASS: TestLiveTabAdmissionAsyncBinaryCleanupAndDuplicate/post-flush (0.01s)
+=== RUN   TestEditorHostStaleLocalReferenceIsRefused
+=== RUN   TestEditorHostStaleLocalReferenceIsRefused/closed
+=== RUN   TestEditorHostStaleLocalReferenceIsRefused/inactive
+--- PASS: TestEditorHostStaleLocalReferenceIsRefused (0.00s)
+    --- PASS: TestEditorHostStaleLocalReferenceIsRefused/closed (0.00s)
+    --- PASS: TestEditorHostStaleLocalReferenceIsRefused/inactive (0.00s)
+=== RUN   TestResolveLocalReferenceClassification
+=== RUN   TestResolveLocalReferenceClassification/relative_Unicode_and_spaces
+=== RUN   TestResolveLocalReferenceClassification/parent_path
+=== RUN   TestResolveLocalReferenceClassification/absolute_drive_slash
+=== RUN   TestResolveLocalReferenceClassification/absolute_drive_backslash
+=== RUN   TestResolveLocalReferenceClassification/single_rooted_local_path
+=== RUN   TestResolveLocalReferenceClassification/local_file_URL_decoded_once
+=== RUN   TestResolveLocalReferenceClassification/anchor
+=== RUN   TestResolveLocalReferenceClassification/empty_anchor
+=== RUN   TestResolveLocalReferenceClassification/unsaved_relative
+=== RUN   TestResolveLocalReferenceClassification/network_URL
+=== RUN   TestResolveLocalReferenceClassification/protocol_relative
+=== RUN   TestResolveLocalReferenceClassification/UNC_path
+=== RUN   TestResolveLocalReferenceClassification/remote_file_host
+=== RUN   TestResolveLocalReferenceClassification/encoded_UNC_file_URL
+=== RUN   TestResolveLocalReferenceClassification/double_encoded_UNC_remains_a_literal_path
+=== RUN   TestResolveLocalReferenceClassification/mailto
+=== RUN   TestResolveLocalReferenceClassification/javascript
+=== RUN   TestResolveLocalReferenceClassification/data
+=== RUN   TestResolveLocalReferenceClassification/drive_relative
+--- PASS: TestResolveLocalReferenceClassification (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/relative_Unicode_and_spaces (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/parent_path (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/absolute_drive_slash (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/absolute_drive_backslash (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/single_rooted_local_path (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/local_file_URL_decoded_once (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/anchor (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/empty_anchor (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/unsaved_relative (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/network_URL (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/protocol_relative (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/UNC_path (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/remote_file_host (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/encoded_UNC_file_URL (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/double_encoded_UNC_remains_a_literal_path (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/mailto (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/javascript (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/data (0.00s)
+    --- PASS: TestResolveLocalReferenceClassification/drive_relative (0.00s)
+=== RUN   TestEditorHostOpenReferenceUsesSavedSourceAndExistingBarriers
+--- PASS: TestEditorHostOpenReferenceUsesSavedSourceAndExistingBarriers (0.00s)
+=== RUN   TestEditorHostOpenReferenceRejectsUnsavedExternalAndRemoteFile
+--- PASS: TestEditorHostOpenReferenceRejectsUnsavedExternalAndRemoteFile (0.00s)
+=== RUN   TestEditorHostAnchorUsesOutlineSourceResolverAfterFlush
+--- PASS: TestEditorHostAnchorUsesOutlineSourceResolverAfterFlush (0.00s)
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf8.txt
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/bom.txt
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf16.txt
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/bytes.bin
+=== RUN   TestReopenClosedReadsCurrentDiskAndPreservesBytes/legacy.txt
+--- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes (0.06s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf8.txt (0.01s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/bom.txt (0.01s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/utf16.txt (0.01s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/bytes.bin (0.01s)
+    --- PASS: TestReopenClosedReadsCurrentDiskAndPreservesBytes/legacy.txt (0.01s)
+=== RUN   TestReopenClosedDoesNotRememberLegacyEncoding
+--- PASS: TestReopenClosedDoesNotRememberLegacyEncoding (0.02s)
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority/1
+=== RUN   TestReopenClosedSaveAsDiscardAndNoDraftAuthority/2
+--- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority (0.08s)
+    --- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority/1 (0.05s)
+    --- PASS: TestReopenClosedSaveAsDiscardAndNoDraftAuthority/2 (0.02s)
+=== RUN   TestReopenClosedFailedCloseNeverRecords
+=== RUN   TestReopenClosedFailedCloseNeverRecords/cancel
+=== RUN   TestReopenClosedFailedCloseNeverRecords/flush
+=== RUN   TestReopenClosedFailedCloseNeverRecords/save
+=== RUN   TestReopenClosedFailedCloseNeverRecords/persistence
+=== RUN   TestReopenClosedFailedCloseNeverRecords/slot-reentry
+=== RUN   TestReopenClosedFailedCloseNeverRecords/shutdown-reentry
+--- PASS: TestReopenClosedFailedCloseNeverRecords (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/cancel (0.00s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/flush (0.00s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/save (0.00s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/persistence (0.01s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/slot-reentry (0.00s)
+    --- PASS: TestReopenClosedFailedCloseNeverRecords/shutdown-reentry (0.00s)
+=== RUN   TestReopenClosedWindowCloseCancelsRunningImage
+--- PASS: TestReopenClosedWindowCloseCancelsRunningImage (0.03s)
+=== RUN   TestReopenClosedBoundDedupAndShutdownClearBacking
+    reopen_closed_test.go:279: reclose did not dedup with a new ID
+--- FAIL: TestReopenClosedBoundDedupAndShutdownClearBacking (0.22s)
+=== RUN   TestReopenClosedUnusualPathsAndBoundedLabels
+--- PASS: TestReopenClosedUnusualPathsAndBoundedLabels (0.05s)
+=== RUN   TestReopenClosedMissingTopRetainedMenuOpensOlder
+--- PASS: TestReopenClosedMissingTopRetainedMenuOpensOlder (0.04s)
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition/false
+=== RUN   TestReopenClosedSyntheticSourceAndRichComposition/true
+--- PASS: TestReopenClosedSyntheticSourceAndRichComposition (0.09s)
+    --- PASS: TestReopenClosedSyntheticSourceAndRichComposition/false (0.05s)
+    --- PASS: TestReopenClosedSyntheticSourceAndRichComposition/true (0.04s)
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/query
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/replacement
+=== RUN   TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/goto
+--- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus (0.07s)
+    --- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/query (0.03s)
+    --- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/replacement (0.02s)
+    --- PASS: TestReopenClosedUtilityPreeditBlocksKeyAndMenuFocus/goto (0.03s)
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/newer
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/reclose
+=== RUN   TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/evict
+--- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction (0.25s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/newer (0.02s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/reclose (0.02s)
+    --- PASS: TestReopenClosedAsyncIdentityNewCloseRecloseAndEviction/evict (0.20s)
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/false
+=== RUN   TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/true
+--- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal (0.03s)
+    --- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/false (0.02s)
+    --- PASS: TestReopenClosedExistingAndPublicationDuplicateFlushRefusal/true (0.02s)
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/text
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/existing
+=== RUN   TestReopenClosedSynchronousRecoveryDuringFlush/png
+--- PASS: TestReopenClosedSynchronousRecoveryDuringFlush (0.10s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/text (0.03s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/existing (0.03s)
+    --- PASS: TestReopenClosedSynchronousRecoveryDuringFlush/png (0.03s)
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/modal
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/restoring
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/query
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/replacement
+=== RUN   TestReopenClosedModalRestoringAndAdoptionPreedit/goto
+--- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit (0.08s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/modal (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/restoring (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/query (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/replacement (0.02s)
+    --- PASS: TestReopenClosedModalRestoringAndAdoptionPreedit/goto (0.02s)
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/lookup-timeout
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/adoption-timeout
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/shutdown
+=== RUN   TestReopenClosedTimeoutShutdownAndLateCallbacks/window-close
+--- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks (0.17s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/lookup-timeout (0.06s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/adoption-timeout (0.07s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/shutdown (0.02s)
+    --- PASS: TestReopenClosedTimeoutShutdownAndLateCallbacks/window-close (0.02s)
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/success
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/flush
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/duplicate
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/cancel
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/timeout
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/shutdown
+=== RUN   TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/modal-preedit
+--- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout (0.16s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/success (0.02s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/flush (0.02s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/duplicate (0.01s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/cancel (0.01s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/timeout (0.07s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/shutdown (0.01s)
+    --- PASS: TestReopenClosedPNGAdoptionRefusalCancellationAndTimeout/modal-preedit (0.01s)
+=== RUN   TestReopenClosedMenuGeometryAndEmptyState
+--- PASS: TestReopenClosedMenuGeometryAndEmptyState (0.04s)
+=== RUN   TestReopenClosedSuccessfulShortcutRepeatAndStaleMenuID
+--- PASS: TestReopenClosedSuccessfulShortcutRepeatAndStaleMenuID (0.07s)
+FAIL
+FAIL	levnote.local/native/app	2.245s
+FAIL

@@ -1,0 +1,86 @@
+{
+  "status": "FROZEN_UNFORMATTED_UNEXECUTED_NOT_ACCEPTANCE",
+  "created_utc": "2026-11-12T12:00:32.331476+00:00",
+  "baseline": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "parent_source_root": "/home/user/levnote-dev-experience-20261112-01/revision-03-source",
+  "source_root": "/home/user/levnote-dev-experience-20261112-01/revision-05-source",
+  "implementation_owner": "native-experience/task-6",
+  "product_command_owner": "native-reliability",
+  "source_files": 5967,
+  "source_bytes": 80238552,
+  "exact_parent_file_set": true,
+  "changed_from03": [
+    "native/app/outline.go",
+    "native/app/view.go",
+    "native/app/workers.go",
+    "native/app/workspace.go"
+  ],
+  "files": [
+    {
+      "path": "native/app/app.go",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde",
+      "identical_to03": true
+    },
+    {
+      "path": "native/app/view.go",
+      "bytes": 24375,
+      "sha256": "8b702c15dfcd265821ec10fe7a8f52927f6ffe667a349ff04b8b281c67ba3b77",
+      "identical_to03": false
+    },
+    {
+      "path": "native/app/workspace.go",
+      "bytes": 8324,
+      "sha256": "473f732d2e4d1e9950be852fd6eeb176cbc4188e0f60e1f345ec31ad94ea2d2e",
+      "identical_to03": false
+    },
+    {
+      "path": "native/app/outline.go",
+      "bytes": 15523,
+      "sha256": "c75435237f5d9eb9b466ed8b755cc8c22818f5dc4a6a57ac2045ae7136cad8cf",
+      "identical_to03": false
+    },
+    {
+      "path": "native/app/list_lifetime.go",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5",
+      "identical_to03": true
+    },
+    {
+      "path": "native/app/list_lifetime_test.go",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2",
+      "identical_to03": true
+    },
+    {
+      "path": "native/app/list_handle_lifetime_test.go",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+      "identical_to03": true
+    },
+    {
+      "path": "native/app/acceptance_test.go",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362",
+      "identical_to03": true
+    },
+    {
+      "path": "native/app/workers.go",
+      "bytes": 8225,
+      "sha256": "73c65d6aedc8b517c808314aae439f38c1c4137b013c2ca2db885e1fc88d9b83",
+      "identical_to03": false
+    }
+  ],
+  "diff": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/provenance/task6-freeze-05/revision-03-to-05.patch",
+    "bytes": 2059,
+    "sha256": "50b604f7210c65ab2f82967eff52504b76fb87a976a07ca807adaa433293e334"
+  },
+  "scanner_scope": "lead-recorded import and bounded retained Name sort only; unchanged worker, budget, error and delivery",
+  "oracle_7900_unchanged": true,
+  "tests_unchanged_from03": true,
+  "public_observer_excluded_from_production_freeze": true,
+  "author_product_commands": 0,
+  "prior_failed_runs_and_freezes_unchanged": true,
+  "not_windows_or_whole_application_acceptance": true
+}

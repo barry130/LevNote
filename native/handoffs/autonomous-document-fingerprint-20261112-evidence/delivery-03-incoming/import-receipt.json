@@ -1,0 +1,170 @@
+{
+  "status": "TASK11_PRIMARY03_EIGHT_BYTE_EXACT_SOURCE_MIRRORS_AND_REPORT_NOT_APP_ACCEPTANCE",
+  "startedUTC": "2026-11-13T10:40:57.075409+00:00",
+  "endedUTC": "2026-11-13T10:40:59.307086+00:00",
+  "pid": 11548,
+  "argv": [
+    "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\import-fingerprint03-final.py"
+  ],
+  "cwd": "F:\\AIproject\\LevNote",
+  "python": "C:\\Users\\canace\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\python\\python.exe",
+  "script": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\import-fingerprint03-final.py",
+    "bytes": 11251,
+    "sha256": "77c89b41848ec420ee27a4813318f74cc86059839e4e5f465a8cd5698ae28d13"
+  },
+  "archive": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\transport-03\\document-fingerprint-review-03.tar.xz",
+    "bytes": 77196,
+    "sha256": "fe2acbb546a93d35547bbdb95548b5a9e5f8ab6e6d403b04747fb6a0e0e90802"
+  },
+  "manifest": {
+    "bytes": 133142,
+    "sha256": "9417143226b1dfe967106764a21d4b79e797eef22f3ec9d6a8fe17c4e41ed09d"
+  },
+  "incoming": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\delivery-03-incoming",
+  "entryCount": 269,
+  "payloadBytes": 1025008,
+  "allEntriesByteExact": true,
+  "allFinalEightByteExact": true,
+  "finalEight": [
+    {
+      "name": "core/document/document.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\document.go",
+      "before": {
+        "bytes": 12537,
+        "sha256": "6859017748c8884dd9cc84b185a405c0a78089aa0d84f191024489cb24c11219"
+      },
+      "after": {
+        "bytes": 14511,
+        "sha256": "44da6396913741a18ed5ebd1d0c668853d28ad399eba9b13abb02aa08f76a3fe"
+      },
+      "changed": true,
+      "created": false
+    },
+    {
+      "name": "core/document/atomic.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\atomic.go",
+      "before": {
+        "bytes": 3516,
+        "sha256": "33d45a65253972d8547a5dc7acd1ac9fa04c0540ef11dd3de207676801a232cc"
+      },
+      "after": {
+        "bytes": 4873,
+        "sha256": "641601d61fe3da0ec83954c6b199cac46864099ffa78f09e2a309180491fec83"
+      },
+      "changed": true,
+      "created": false
+    },
+    {
+      "name": "core/document/utf8_save_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\utf8_save_test.go",
+      "before": {
+        "bytes": 8197,
+        "sha256": "446f7542b0447fea4f29b92796f6cb4b32b3aeb249e914bfb279731f78302863"
+      },
+      "after": {
+        "bytes": 8238,
+        "sha256": "7c02ad0c795cadda2b93c443d6816d742ff13bf0e9ae26facb3e8149f31b3ec0"
+      },
+      "changed": true,
+      "created": false
+    },
+    {
+      "name": "core/document/fingerprint_boundary_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\fingerprint_boundary_test.go",
+      "before": null,
+      "after": {
+        "bytes": 3399,
+        "sha256": "f0d3204bf2b7430eb1a95ca183ade789816faf7752433cad06c2e6a74f434aef"
+      },
+      "changed": true,
+      "created": true
+    },
+    {
+      "name": "core/document/fingerprint_public_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\fingerprint_public_test.go",
+      "before": null,
+      "after": {
+        "bytes": 2957,
+        "sha256": "3c94db4b1ac0604f03ebb3cc26fdf62e661dadfd266ad74b06d6d9fe587955d5"
+      },
+      "changed": true,
+      "created": true
+    },
+    {
+      "name": "core/document/fingerprint_conflict_public_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\fingerprint_conflict_public_test.go",
+      "before": null,
+      "after": {
+        "bytes": 6993,
+        "sha256": "c0556277c6d7ae7c7cf4a72d75d3901a23aedcedec94aa00711dc5ac0ab20b69"
+      },
+      "changed": true,
+      "created": true
+    },
+    {
+      "name": "core/document/fingerprint_encoding_public_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\fingerprint_encoding_public_test.go",
+      "before": null,
+      "after": {
+        "bytes": 4870,
+        "sha256": "40212ed1a6c5319b16e2e107ae1aaa8530b3d381fe3dac85d64266436f974edc"
+      },
+      "changed": true,
+      "created": true
+    },
+    {
+      "name": "core/document/fingerprint_directory_sync_public_linux_test.go",
+      "path": "F:\\AIproject\\LevNote\\native\\core\\document\\fingerprint_directory_sync_public_linux_test.go",
+      "before": null,
+      "after": {
+        "bytes": 7142,
+        "sha256": "8f68c732927b6375edeb8b589facef356a360f944512b4564968afaa6fe51951"
+      },
+      "changed": true,
+      "created": true
+    }
+  ],
+  "backups": [
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\core\\document\\document.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\delivery-03-incoming\\backups\\native\\core\\document\\document.go",
+      "bytes": 12537,
+      "sha256": "6859017748c8884dd9cc84b185a405c0a78089aa0d84f191024489cb24c11219"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\core\\document\\atomic.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\delivery-03-incoming\\backups\\native\\core\\document\\atomic.go",
+      "bytes": 3516,
+      "sha256": "33d45a65253972d8547a5dc7acd1ac9fa04c0540ef11dd3de207676801a232cc"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\core\\document\\utf8_save_test.go",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\delivery-03-incoming\\backups\\native\\core\\document\\utf8_save_test.go",
+      "bytes": 8197,
+      "sha256": "446f7542b0447fea4f29b92796f6cb4b32b3aeb249e914bfb279731f78302863"
+    },
+    {
+      "original": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-reliability-20261112.md",
+      "backup": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112-evidence\\delivery-03-incoming\\backups\\native\\handoffs\\autonomous-reliability-20261112.md",
+      "bytes": 34988,
+      "sha256": "503dbf1c32d21865774379ebfeea419a9fa57ac77994cb2ddc51c6f2de9aaf27"
+    }
+  ],
+  "newReport": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-document-fingerprint-20261112.md",
+    "bytes": 26084,
+    "sha256": "4344170197093c2230a6f1dcbd2f2850d9f442dfd2f28c807e7d34a0622b60a5"
+  },
+  "protectedReportsUnchanged": [
+    "native/handoffs/autonomous-reliability-20261112.md"
+  ],
+  "EvidenceReferences": {
+    "bytes": 234740,
+    "sha256": "bcaa1f2a9c812062486f783026c383b77ff9d4fb324f9f2fece66d28cff35b62"
+  },
+  "originalExpectedAndMapsReferencedNotCompleteBackup": true,
+  "productCommands": 0,
+  "notWindowsOrWholeApplicationAcceptance": true
+}

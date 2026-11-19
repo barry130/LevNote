@@ -17,18 +17,20 @@ type syncOwnership struct {
 	version                 uint64
 	releaseEpoch, pageEpoch uint64
 	pageIndex               int
+	selectionEpoch          uint64
 	lastSynced              uint64
 	syncedBuffer            *text.Buffer
 }
 
 func (v *view) captureSyncOwnership() syncOwnership {
 	ownership := syncOwnership{
-		buffer:       v.host.Buffer,
-		releaseEpoch: v.releaseEpoch,
-		pageEpoch:    v.pageEpoch,
-		pageIndex:    v.pageIndex,
-		lastSynced:   v.lastSynced,
-		syncedBuffer: v.syncedBuffer,
+		selectionEpoch: v.drawSelection.epoch,
+		buffer:         v.host.Buffer,
+		releaseEpoch:   v.releaseEpoch,
+		pageEpoch:      v.pageEpoch,
+		pageIndex:      v.pageIndex,
+		lastSynced:     v.lastSynced,
+		syncedBuffer:   v.syncedBuffer,
 	}
 	if ownership.buffer != nil {
 		ownership.version = ownership.buffer.Version()
@@ -37,7 +39,7 @@ func (v *view) captureSyncOwnership() syncOwnership {
 }
 
 func (v *view) sameSyncOwnership(ownership syncOwnership) bool {
-	if v.host.Buffer != ownership.buffer || v.releaseEpoch != ownership.releaseEpoch ||
+	if v.drawSelection.epoch != ownership.selectionEpoch || v.host.Buffer != ownership.buffer || v.releaseEpoch != ownership.releaseEpoch ||
 		v.pageEpoch != ownership.pageEpoch || v.pageIndex != ownership.pageIndex ||
 		v.lastSynced != ownership.lastSynced || v.syncedBuffer != ownership.syncedBuffer {
 		return false
@@ -58,7 +60,7 @@ func (v *view) ensureSynced(c *ui.Context) {
 	}
 	ownership := v.captureSyncOwnership()
 	gestureWarning := ""
-	if v.draggingID != "" || v.connectSource != "" || v.reparentSource != "" {
+	if v.drawGesture.kind != drawioNoGesture || v.draggingID != "" || v.connectSource != "" || v.reparentSource != "" {
 		v.cancelGraphGesture()
 		err := errors.New("图形源内容已改变，未完成的拖动或连接操作已取消；请重新操作")
 		v.report(err)
@@ -161,13 +163,7 @@ func (v *view) ensureSynced(c *ui.Context) {
 			v.addWarning(page.ReadOnlyReason)
 		}
 		v.syncFailed = false
-		if !v.pageHasCell(selected) && !pending {
-			selected = ""
-			if len(page.Model.Nodes) > 0 {
-				selected = page.Model.Nodes[0].ID
-			}
-		}
-		v.selectedID = selected
+		v.syncDrawioSelection()
 		for _, node := range page.Model.Nodes {
 			if len(node.PlainText) > maxGraphLabelBytes {
 				v.addWarning("较长节点标签仅显示前 512 字节；完整文本仍保留，可在节点文本中编辑")
@@ -210,6 +206,9 @@ func (v *view) selectedMindNode() *mindmap.Node {
 }
 
 func (v *view) selectedDrawioNode() *drawio.Node {
+	if v.drawioMultiSelected() {
+		return nil
+	}
 	if v.diagram == nil || v.pageIndex < 0 || v.pageIndex >= len(v.diagram.Pages) {
 		return nil
 	}

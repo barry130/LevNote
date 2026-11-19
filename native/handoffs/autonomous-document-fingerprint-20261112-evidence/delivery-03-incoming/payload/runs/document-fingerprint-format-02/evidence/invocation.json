@@ -1,0 +1,35 @@
+{
+  "owner": "native-reliability/task-5",
+  "started_at": "2026-11-12T12:00:33.113421+00:00",
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "--label",
+    "document-fingerprint-format-02",
+    "--expected-head",
+    "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+    "--expected-manifest",
+    "/home/user/levnote-dev-reliability-20261112-01/inputs/document-fingerprint-format-02/expected-manifest.json",
+    "--source",
+    "/home/user/levnote-dev-reliability-20261112-01/inputs/document-fingerprint-format-02/native",
+    "--mode",
+    "format",
+    "--timeout",
+    "120",
+    "--",
+    "core/document/document.go",
+    "core/document/atomic.go",
+    "core/document/utf8_save_test.go"
+  ],
+  "wrapper_cwd": "/home/user/levnote-dev-reliability-20261112-01",
+  "python": "/usr/bin/python3",
+  "runner_input": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "bytes": 17964,
+    "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+  },
+  "mode": "format",
+  "source_root": "/home/user/levnote-dev-reliability-20261112-01/inputs/document-fingerprint-format-02/native",
+  "expected_head": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "command_timeout_s": 120,
+  "not_windows_or_whole_application_acceptance": true
+}

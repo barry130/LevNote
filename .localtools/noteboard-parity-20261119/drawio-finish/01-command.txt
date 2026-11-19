@@ -1,0 +1,1 @@
+bash .localtools/gate.sh test -count=1 -timeout=300s ./modules/graphview -run DrawioClone -v

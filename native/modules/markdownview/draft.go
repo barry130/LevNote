@@ -10,6 +10,13 @@ import (
 	"levnote.local/native/ui/editor"
 )
 
+// fencedDraft keeps the syntax-required line ending out of the editor's input
+// history while tracking the exact source field used for conflict detection.
+type fencedDraft struct {
+	ending string
+	source string
+}
+
 func (v *View) pendingDraft() bool {
 	if v.draft == nil {
 		return false
@@ -35,6 +42,7 @@ func (v *View) clearDraft() {
 	v.draft, v.editBuffer = nil, nil
 	v.editing, v.editBase, v.editPanelHeight, v.draftError = -1, "", 0, nil
 	v.cellEdit = nil
+	v.fencedDraft = nil
 }
 
 func (v *View) setDraftError(err error) {
@@ -51,10 +59,14 @@ func (v *View) rebaseDraft() (bool, error) {
 	if v.draft == nil {
 		return false, nil
 	}
+	base := v.editBase
+	if v.fencedDraft != nil {
+		base = v.fencedDraft.source
+	}
 	if v.host.Buffer != nil && v.host.Buffer == v.editBuffer {
 		guard, guardOK := v.host.Buffer.MapRangeSince(v.editVersion, v.editGuard)
 		if span, ok := v.host.Buffer.MapRangeSince(v.editVersion, v.editSpan); ok && guardOK {
-			if current, err := v.host.Buffer.SliceUTF16(span.Start(), span.End()); err == nil && current == v.editBase {
+			if current, err := v.host.Buffer.SliceUTF16(span.Start(), span.End()); err == nil && current == base {
 				v.editSpan, v.editGuard, v.editVersion = span, guard, v.host.Buffer.Version()
 				return true, nil
 			}
@@ -99,20 +111,35 @@ func (v *View) syncDraft() error {
 		v.setDraftError(nil)
 		return nil
 	}
+	source := value
+	if v.fencedDraft != nil && source != "" {
+		// The final terminator separates the body from the closing fence.
+		// Keep its original style even when local Enter defaults to LF; the
+		// local input and all internal line endings remain unchanged.
+		if strings.HasSuffix(source, "\r\n") {
+			source = strings.TrimSuffix(source, "\r\n")
+		} else {
+			source = strings.TrimSuffix(source, "\n")
+		}
+		source += v.fencedDraft.ending
+	}
 	if v.host.ReadOnly {
 		err = errors.New("文档当前只读，块草稿仍保留")
 	} else if v.host.Buffer.InGroup() {
 		err = text.ErrGroup
 	} else {
-		err = v.host.Buffer.ReplaceUTF16(v.editSpan.Start(), v.editSpan.End(), value)
+		err = v.host.Buffer.ReplaceUTF16(v.editSpan.Start(), v.editSpan.End(), source)
 	}
 	if err != nil {
 		v.setDraftError(err)
 		return err
 	}
-	v.editGuard.Head += text.UTF16Len(value) - (v.editSpan.End() - v.editSpan.Start())
+	v.editGuard.Head += text.UTF16Len(source) - (v.editSpan.End() - v.editSpan.Start())
 	v.editBase, v.editVersion = value, v.host.Buffer.Version()
-	v.editSpan.Head = v.editSpan.Start() + text.UTF16Len(value)
+	v.editSpan.Head = v.editSpan.Start() + text.UTF16Len(source)
+	if v.fencedDraft != nil {
+		v.fencedDraft.source = source
+	}
 	v.setDraftError(nil)
 	if v.host.Changed != nil {
 		v.host.Changed()
@@ -221,6 +248,15 @@ func (v *View) openDraft(index int, block markdown.Block, doc markdown.Document,
 	v.editSpan = text.Range{Anchor: text.UTF16Len(raw[:field.Start]), Head: text.UTF16Len(raw[:field.End])}
 	v.editGuard = text.Range{Anchor: text.UTF16Len(raw[:block.Range.Start]), Head: text.UTF16Len(raw[:block.Range.End])}
 	v.editBase = strings.Clone(raw[field.Start:field.End])
+	if block.Kind == markdown.BlockCode && field == block.TextRange && field.End < block.Range.End {
+		// TextRange ends at the closing fence, including its preceding line
+		// ending. An empty body borrows the opening fence's line ending.
+		ending := "\n"
+		if strings.HasSuffix(raw[:field.End], "\r\n") {
+			ending = "\r\n"
+		}
+		v.fencedDraft = &fencedDraft{ending: ending, source: v.editBase}
+	}
 	draft := editor.New(text.New(v.editBase))
 	draft.ShapeLimit = shapeLimit
 	draft.MinHeight = 48

@@ -1,0 +1,142 @@
+{
+  "owner": "native-reliability/task-5",
+  "started_at": "2026-11-12T08:53:27.130500+00:00",
+  "argv": [
+    "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "--label",
+    "drawio-incident-green-02",
+    "--expected-head",
+    "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+    "--expected-manifest",
+    "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-incident-green-02/expected-manifest.json",
+    "--source",
+    "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-incident-green-02/native",
+    "--mode",
+    "test",
+    "--timeout",
+    "180",
+    "--",
+    "-v",
+    "-count=1",
+    "-timeout=120s",
+    "-run",
+    "^TestDeleteCell(PreservesUnrelatedSource|RemovesIncidentEdgesOnce)$",
+    "./formats/drawio"
+  ],
+  "wrapper_cwd": "/home/user/levnote-dev-reliability-20261112-01",
+  "python": "/usr/bin/python3",
+  "runner_input": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/tools/dev-remote-validation-20261112-03.py",
+    "bytes": 17964,
+    "sha256": "6f3dd79076e9f284691f24be1a8e3b0c91d57d9c0ed5766d07cc87445acdff89"
+  },
+  "mode": "test",
+  "source_root": "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-incident-green-02/native",
+  "expected_head": "8897244ffa4f00f5ec51f95545e7a3ca27d37d97",
+  "command_timeout_s": 180,
+  "not_windows_or_whole_application_acceptance": true,
+  "ordinary_env_input": {
+    "path": "/home/user/levnote-dev-env.sh",
+    "bytes": 175,
+    "sha256": "9b6b8b1aad396bd0add1d2f469de218ae3df99079b72da1b21e79f99f0b51e47"
+  },
+  "ordinary_env_use": "audited toolchain/vendor/CGO/local policy reused; HOME/cache/tmp isolated; no old guard sourcing",
+  "go_version_file": {
+    "bytes": 35,
+    "sha256": "49b1651ee92b70282766993b556905e9464050a811572e047a74f95534ee9ce6"
+  },
+  "source_before_manifest": {
+    "bytes": 199550,
+    "sha256": "a70511188f4bbc0a0153d5e22c308cc5c375db82d31f0f0f27ada443a511b955"
+  },
+  "expected_input": {
+    "path": "/home/user/levnote-dev-reliability-20261112-01/inputs/drawio-incident-green-02/expected-manifest.json",
+    "bytes": 200417,
+    "sha256": "5e69cf222b84953b1f249d1ba25578a3c056f59a9237ac703402a20dcdbd6de8"
+  },
+  "effective_go_environment": {
+    "CGO_ENABLED": "0",
+    "GOARCH": "amd64",
+    "GOENV": "",
+    "GOFLAGS": "-mod=vendor",
+    "GOOS": "linux",
+    "GOPROXY": "off",
+    "GOROOT": "/home/user/go",
+    "GOSUMDB": "off",
+    "GOTELEMETRY": "off",
+    "GOTELEMETRYDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/config/go/telemetry",
+    "GOTOOLCHAIN": "local",
+    "GOVCS": "*:off",
+    "GOVERSION": "go1.27.3",
+    "GOWORK": "off"
+  },
+  "product_command": {
+    "argv": [
+      "/home/user/go/bin/go",
+      "test",
+      "-v",
+      "-count=1",
+      "-timeout=120s",
+      "-run",
+      "^TestDeleteCell(PreservesUnrelatedSource|RemovesIncidentEdgesOnce)$",
+      "./formats/drawio"
+    ],
+    "cwd": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/source/native",
+    "environment": {
+      "HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/home",
+      "XDG_CONFIG_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/config",
+      "XDG_CACHE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/cache",
+      "XDG_DATA_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/data",
+      "XDG_STATE_HOME": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/state",
+      "PATH": "/home/user/go/bin:/usr/local/bin:/usr/bin:/bin",
+      "GOROOT": "/home/user/go",
+      "GOPATH": "/home/user/levnote-dev-reliability-20261112-01/gopath",
+      "GOCACHE": "/home/user/levnote-dev-reliability-20261112-01/gocache",
+      "GOTMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/tmp",
+      "TMPDIR": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/env/tmp",
+      "GOENV": "off",
+      "GOWORK": "off",
+      "GOVCS": "*:off",
+      "GOFLAGS": "-mod=vendor",
+      "GOTOOLCHAIN": "local",
+      "GOPROXY": "off",
+      "GOSUMDB": "off",
+      "GONOPROXY": "",
+      "GONOSUMDB": "",
+      "GOPRIVATE": "",
+      "CGO_ENABLED": "0",
+      "GOTELEMETRY": "off",
+      "GOOS": "linux",
+      "GOARCH": "amd64",
+      "GOEXPERIMENT": ""
+    },
+    "environment_capture": "allowlisted development keys; no credentials or proxy inspection",
+    "started_at": "2026-11-12T08:53:28.341733+00:00",
+    "timeout_s": 180,
+    "timed_out": false,
+    "owned_cleanup": [],
+    "status": "completed",
+    "pid": 21736,
+    "owned_pgid": 21736,
+    "launched_at": "2026-11-12T08:53:28.343356+00:00",
+    "exit_code": 0,
+    "owned_group_remaining_after_wait": false,
+    "ended_at": "2026-11-12T08:53:30.931140+00:00",
+    "elapsed_s": 2.5894142799952533,
+    "stdout": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/evidence/05-product-command.stdout.bin",
+      "bytes": 265,
+      "sha256": "ec4995e3b8397f4f71f0349544f3c427695a918725a21002409f00d32e3b6079"
+    },
+    "stderr": {
+      "path": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/evidence/05-product-command.stderr.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "formatted_copy": null,
+  "outcome": "COMMAND_PASSED_LIMITED_SCOPE",
+  "exit_code": 0,
+  "ended_at": "2026-11-12T08:53:31.405275+00:00",
+  "evidence": "/home/user/levnote-dev-reliability-20261112-01/runs/drawio-incident-green-02/evidence"
+}

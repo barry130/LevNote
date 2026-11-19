@@ -1,0 +1,189 @@
+--- RED/core/document/document.go
++++ GREEN-work/core/document/document.go
+@@ -153,8 +153,11 @@
+ 	if d.IsNew || d.Path == "" {
+ 		return false, nil
+ 	}
+-	id, err := fingerprint(d.Path)
+-	if errors.Is(err, os.ErrNotExist) {
++	if d.disk.info == nil {
++		return true, nil
++	}
++	id, err := fingerprint(d.Path, d.disk.info.Size(), d.disk.info)
++	if errors.Is(err, os.ErrNotExist) || errors.Is(err, ErrConflict) {
+ 		return true, nil
+ 	}
+ 	if err != nil {
+@@ -202,7 +205,7 @@
+ 		return &Error{"save", d.Path, ErrReadOnly, nil}
+ 	}
+ 	check := func() error {
+-		id, err := fingerprint(d.Path)
++		id, err := fingerprint(d.Path, d.disk.info.Size(), d.disk.info)
+ 		if errors.Is(err, os.ErrNotExist) {
+ 			return &Error{"save", d.Path, ErrConflict, err}
+ 		}
+@@ -228,20 +231,21 @@
+ 		return nil
+ 	}
+ 	if d.Encoding == UTF8 {
+-		digest, err := writeUTF8Atomic(d.Path, d.disk.info.Mode(), false, check, d.Buffer.Snapshot(), d.BOM)
++		digest, encodedLength, outcome, err := writeUTF8AtomicOutcome(d.Path, d.disk.info.Mode(), false, check, d.Buffer.Snapshot(), d.BOM)
+ 		if err != nil {
+ 			return err
+ 		}
+-		return d.didSave(digest)
++		return d.didSave(digest, encodedLength, outcome.info)
+ 	}
+ 	bytes, err := encode(d.Buffer.String(), d.Encoding, d.BOM)
+ 	if err != nil {
+ 		return err
+ 	}
+-	if err = writeAtomic(d.Path, bytes, d.disk.info.Mode(), false, check); err != nil {
+-		return err
+-	}
+-	return d.didSave(sha256.Sum256(bytes))
++	outcome, err := writeAtomicOutcome(d.Path, bytes, d.disk.info.Mode(), false, check)
++	if err != nil {
++		return err
++	}
++	return d.didSave(sha256.Sum256(bytes), int64(len(bytes)), outcome.info)
+ }
+ 
+ // SaveAs is deliberately non-overwriting. The host may offer a separate
+@@ -263,45 +267,44 @@
+ 		return err
+ 	}
+ 	if d.Encoding == UTF8 {
+-		digest, err := writeUTF8Atomic(path, 0600, true, nil, d.Buffer.Snapshot(), d.BOM)
++		digest, encodedLength, outcome, err := writeUTF8AtomicOutcome(path, 0600, true, nil, d.Buffer.Snapshot(), d.BOM)
+ 		if err != nil {
+ 			return err
+ 		}
+ 		d.Path = path
+ 		d.IsNew = false
+ 		d.ReadOnly = false
+-		return d.didSave(digest)
+-	} else {
+-		bytes, err := encode(d.Buffer.String(), d.Encoding, d.BOM)
+-		if err != nil {
+-			return err
+-		}
+-		if err = writeAtomic(path, bytes, 0600, true, nil); err != nil {
+-			return err
+-		}
+-		d.Path = path
+-		d.IsNew = false
+-		d.ReadOnly = false
+-		return d.didSave(sha256.Sum256(bytes))
+-	}
+-}
+-
+-func (d *Document) didSave(expected [32]byte) error {
+-	info, err := os.Stat(d.Path)
++		return d.didSave(digest, encodedLength, outcome.info)
++	}
++	bytes, err := encode(d.Buffer.String(), d.Encoding, d.BOM)
++	if err != nil {
++		return err
++	}
++	outcome, err := writeAtomicOutcome(path, bytes, 0600, true, nil)
++	if err != nil {
++		return err
++	}
++	d.Path = path
++	d.IsNew = false
++	d.ReadOnly = false
++	return d.didSave(sha256.Sum256(bytes), int64(len(bytes)), outcome.info)
++}
++
++func (d *Document) didSave(expected [32]byte, encodedLength int64, expectedInfo os.FileInfo) error {
++	// Read back at most the exact published encoded length plus one. The real
++	// intended temp-file identity, not another writer's post-publication Stat,
++	// anchors verification. Published bytes cannot be rolled back here; refuse
++	// visibly without adopting the live buffer or saved/disk state. SaveAs has
++	// already changed Path/IsNew/ReadOnly after successful publication.
++	id, err := fingerprint(d.Path, encodedLength, expectedInfo)
+ 	if err != nil {
+ 		return &Error{"verify save", d.Path, err, nil}
+-	}
+-	// Read back the committed file so successful saves never silently establish
+-	// a baseline for another process's content written immediately after ours.
+-	id, err := fingerprint(d.Path)
+-	if err != nil {
+-		return err
+ 	}
+ 	if id.hash != expected {
+ 		return &Error{"verify save", d.Path, ErrConflict, nil}
+ 	}
+ 	d.disk = id
+-	d.ReadOnly = info.Mode().Perm()&0200 == 0
++	d.ReadOnly = id.info.Mode().Perm()&0200 == 0
+ 	d.baselineRevision++
+ 	d.saved = d.Buffer.Snapshot()
+ 	d.savedEncoding, d.savedBOM = d.Encoding, d.BOM
+@@ -376,13 +379,23 @@
+ 	}
+ 	return bytes, identity{sha256.Sum256(bytes), after}, nil
+ }
+-func fingerprint(path string) (identity, error) {
++func fingerprint(path string, expectedLength int64, expectedInfo os.FileInfo) (identity, error) {
++	current, err := os.Stat(path)
++	if err != nil {
++		return identity{}, err
++	}
++	if !current.Mode().IsRegular() {
++		return identity{}, ErrNotRegular
++	}
++	if current.Size() != expectedLength || expectedInfo != nil && !os.SameFile(expectedInfo, current) {
++		return identity{}, ErrConflict
++	}
+ 	f, err := os.Open(path)
+ 	if err != nil {
+ 		return identity{}, err
+ 	}
+ 	defer f.Close()
+-	return fingerprintOpened(path, f, 0, nil)
++	return fingerprintOpened(path, f, expectedLength, expectedInfo)
+ }
+ 
+ type fingerprintFile interface {
+@@ -390,9 +403,10 @@
+ 	Stat() (os.FileInfo, error)
+ }
+ 
+-// fingerprintOpened keeps the real opened-file and current-path observations
+-// together. The expected encoded length and identity are wired in a later
+-// bounded-read change; this extraction deliberately retains the old io.Copy.
++// fingerprintOpened hashes at most the expected encoded bytes plus one. Expected
++// info establishes size and file identity, never baseline mtime: a same-file,
++// same-content touch is not a conflict. Only observations during this read must
++// agree on mtime, so concurrent writes cannot establish a successful identity.
+ func fingerprintOpened(path string, f fingerprintFile, expectedLength int64, expectedInfo os.FileInfo) (identity, error) {
+ 	before, err := f.Stat()
+ 	if err != nil {
+@@ -401,8 +415,13 @@
+ 	if !before.Mode().IsRegular() {
+ 		return identity{}, ErrNotRegular
+ 	}
++	if expectedLength < 0 || expectedLength == 1<<63-1 || before.Size() != expectedLength ||
++		expectedInfo != nil && (expectedInfo.Size() != expectedLength || !os.SameFile(expectedInfo, before)) {
++		return identity{}, ErrConflict
++	}
+ 	h := sha256.New()
+-	if _, err = io.Copy(h, f); err != nil {
++	count, err := io.Copy(h, io.LimitReader(f, expectedLength+1))
++	if err != nil {
+ 		return identity{}, err
+ 	}
+ 	after, err := f.Stat()
+@@ -413,7 +432,8 @@
+ 	if err != nil {
+ 		return identity{}, err
+ 	}
+-	if before.Size() != after.Size() || !before.ModTime().Equal(after.ModTime()) ||
++	if count != expectedLength || !after.Mode().IsRegular() || !current.Mode().IsRegular() ||
++		before.Size() != after.Size() || !before.ModTime().Equal(after.ModTime()) || !os.SameFile(before, after) ||
+ 		after.Size() != current.Size() || !after.ModTime().Equal(current.ModTime()) || !os.SameFile(after, current) {
+ 		return identity{}, ErrConflict
+ 	}

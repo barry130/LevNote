@@ -1,0 +1,6 @@
+=== RUN   TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne
+    fingerprint_boundary_test.go:97: encoded-byte work boundary crossed: delivered=79 allowed=13 grew=true error=fingerprint delivered beyond expected encoded bytes plus one
+--- FAIL: TestFingerprintGrowthReadsAtMostExpectedEncodedBytesPlusOne (0.00s)
+FAIL
+FAIL	levnote.local/native/core/document	0.003s
+FAIL

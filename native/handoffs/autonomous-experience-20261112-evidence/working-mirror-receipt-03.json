@@ -1,0 +1,175 @@
+{
+  "status": "EXACT_BYTE_WORKING_MIRROR_VERIFIED_NOT_PRODUCT_ACCEPTANCE",
+  "sourceRoot": "/home/user/levnote-dev-experience-20261112-01/revision-03-source",
+  "verifiedAtUTC": "2026-11-12T08:37:52.375Z",
+  "archive": {
+    "path": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\incoming-03\\mirror-03.tar.gz",
+    "bytes": 48175,
+    "sha256": "520e57570ca53d598a434f5fdbeaa477d64921b8b46d234671f9a9156acd79b4"
+  },
+  "boxMirrorInputsSha256": "f0340241dff6096cc58bc674eb7f49496fcf14ece6287c87b3ae0d4784d0cf2e",
+  "sourceInputsSha256": "ccc1461d5b26a34fe4c7788b4fff7dfa9d40cd11812bdd1ae2745f28586ae71b",
+  "targets": [
+    {
+      "path": "native/app/outline.go",
+      "bytes": 15407,
+      "sha256": "7caed4b54a69af411f916b42b1e5d5a9de7db7fb9480799c38d3552d2299bf3a",
+      "allowedPreviousSha256": [
+        "1663301f203ed6045eda3d7120dc0d21803b87ed62328b3a06c2eac663c99583",
+        "7caed4b54a69af411f916b42b1e5d5a9de7db7fb9480799c38d3552d2299bf3a"
+      ],
+      "before": "1663301f203ed6045eda3d7120dc0d21803b87ed62328b3a06c2eac663c99583",
+      "localPath": "F:\\AIproject\\LevNote\\native\\app\\outline.go",
+      "verified": true
+    },
+    {
+      "path": "native/app/list_lifetime_test.go",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2",
+      "allowedPreviousSha256": [
+        "a1fa56c46ce0dd9863dc77cf830fe8b6e90a195eaf2b3aeb0a0f61e6682cd634"
+      ],
+      "before": "a1fa56c46ce0dd9863dc77cf830fe8b6e90a195eaf2b3aeb0a0f61e6682cd634",
+      "localPath": "F:\\AIproject\\LevNote\\native\\app\\list_lifetime_test.go",
+      "verified": true
+    },
+    {
+      "path": "native/app/acceptance_test.go",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362",
+      "allowedPreviousSha256": [
+        "9fd7158839c54068d6e0606496b64f5a07f45daae46113ccc994b5560f4ce082"
+      ],
+      "before": "9fd7158839c54068d6e0606496b64f5a07f45daae46113ccc994b5560f4ce082",
+      "localPath": "F:\\AIproject\\LevNote\\native\\app\\acceptance_test.go",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-02/source-inputs.json",
+      "bytes": 5828,
+      "sha256": "42b1f7630140629a24ffed141233cabb377a10cabd43c4952c5d01ad41b178c5",
+      "allowedPreviousSha256": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\freeze-02\\source-inputs.json",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-02/source.patch",
+      "bytes": 43033,
+      "sha256": "6735913db1c512406455c8bcecaf1d1f01a25de3ee6d82daca22be07f44807f9",
+      "allowedPreviousSha256": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\freeze-02\\source.patch",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-03/source-inputs.json",
+      "bytes": 7681,
+      "sha256": "ccc1461d5b26a34fe4c7788b4fff7dfa9d40cd11812bdd1ae2745f28586ae71b",
+      "allowedPreviousSha256": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\freeze-03\\source-inputs.json",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-03/source.patch",
+      "bytes": 43920,
+      "sha256": "c08c305d7002449d208053a17329f6fb50e9f0389de408e1ce97c738a7468d1c",
+      "allowedPreviousSha256": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\freeze-03\\source.patch",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-03/revision-02-to-03.patch",
+      "bytes": 917,
+      "sha256": "07c3649c54788be2c7599f102af093101dcb0f8ed9d1f92f89728bbc631815b5",
+      "allowedPreviousSha256": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\freeze-03\\revision-02-to-03.patch",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-02/report-02.md",
+      "bytes": 10190,
+      "sha256": "bc880d2d772f751351a5fe03fb22dda7ef7724baaba3061f54d3603bdcf410ba",
+      "allowedPreviousSha256": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\freeze-02\\report-02.md",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112.md",
+      "bytes": 14089,
+      "sha256": "ee31ec3a5cfa5be3b83422c6848830fb407a109d7d73ba50f6188b97027c123b",
+      "allowedPreviousSha256": [
+        "bc880d2d772f751351a5fe03fb22dda7ef7724baaba3061f54d3603bdcf410ba"
+      ],
+      "before": "bc880d2d772f751351a5fe03fb22dda7ef7724baaba3061f54d3603bdcf410ba",
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112.md",
+      "verified": true
+    },
+    {
+      "path": "native/handoffs/autonomous-experience-20261112-evidence/freeze-03/mirror-inputs.json",
+      "bytes": 2902,
+      "sha256": "f0340241dff6096cc58bc674eb7f49496fcf14ece6287c87b3ae0d4784d0cf2e",
+      "allowedPreviousSha256": [],
+      "before": null,
+      "localPath": "F:\\AIproject\\LevNote\\native\\handoffs\\autonomous-experience-20261112-evidence\\freeze-03\\mirror-inputs.json",
+      "verified": true
+    }
+  ],
+  "finalSourceFiles": [
+    {
+      "path": "native/app/app.go",
+      "bytes": 39471,
+      "sha256": "b4e8b96ac45a336d3cc2524f513fe652f6cd638c075ad53fb590c509d09fdbde",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/view.go",
+      "bytes": 24252,
+      "sha256": "a102bd5266bcf35296ba5973c2856a8211b1118ef7068f3f2470502a0d8fb935",
+      "origin": "unexecuted local draft applied on box; unchanged afterward"
+    },
+    {
+      "path": "native/app/workspace.go",
+      "bytes": 8220,
+      "sha256": "3a2863c49554a4574d45d650c5d388c33d64599f428241366c700baed2e50be9",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/outline.go",
+      "bytes": 15407,
+      "sha256": "7caed4b54a69af411f916b42b1e5d5a9de7db7fb9480799c38d3552d2299bf3a",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/list_lifetime.go",
+      "bytes": 2345,
+      "sha256": "14c4d6cc436a6633ca5055fb18b6bc5b63703ebce0d7c8a817092ea5bdf24bb5",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/list_lifetime_test.go",
+      "bytes": 17378,
+      "sha256": "982e3ec121e9d5c020df3e9d4661748e894186cf91976de118d32be47da120a2",
+      "origin": "box-authored from named baseline"
+    },
+    {
+      "path": "native/app/list_handle_lifetime_test.go",
+      "bytes": 7900,
+      "sha256": "ba98054601b1bfd421d1fe721cf8ea6cb97a01081f89a073507f17e3d293d5e5",
+      "origin": "unexecuted-local-draft-direction + box edits"
+    },
+    {
+      "path": "native/app/acceptance_test.go",
+      "bytes": 25229,
+      "sha256": "0d54cd2308b545d98cb3f2d81b35ef367c310b66658e2b3ea4672dd7edd6e362",
+      "origin": "named baseline fixture; box-only authorized searchRoot metadata line"
+    }
+  ],
+  "productCommandsExecutedByAuthor": 0,
+  "originalFreeze01Preserved": true,
+  "session": "9e20bc49-fddb-490b-a752-c3b11da86ccc"
+}

@@ -1,0 +1,14 @@
+{
+  "status": "REPORT_ONLY_SOURCE03_UNCHANGED_NOT_PRODUCT_ACCEPTANCE",
+  "sourceRoot": "/home/user/levnote-dev-experience-20261112-01/revision-03-source",
+  "reportPath": "/home/user/levnote-dev-experience-20261112-01/report-only-04/native/handoffs/autonomous-experience-20261112.md",
+  "bytes": 19105,
+  "sha256": "5f16c8c368b043475bc3fab36217bbbd72de8748ce0751918d704033edfe55aa",
+  "previousReport": {
+    "path": "/home/user/levnote-dev-experience-20261112-01/revision-03-source/native/handoffs/autonomous-experience-20261112.md",
+    "bytes": 14089,
+    "sha256": "ee31ec3a5cfa5be3b83422c6848830fb407a109d7d73ba50f6188b97027c123b"
+  },
+  "createdAtUTC": "2026-11-12T08:53:54.619959+00:00",
+  "authorProductExecutions": 0
+}

@@ -1241,24 +1241,30 @@ func TestPluginManagerRowsReflowAtMinimumWidth(t *testing.T) {
 		"格式插件", "安装", "重新扫描", "安装目录", "关闭插件",
 		"Code / Text", "code", "停用插件 Code / Text",
 	}
+	// Larger chrome can put later rows below the fold. Every control and
+	// metadata line must remain reachable within the actual scroll viewport.
+	requireReachable := func(label string) {
+		t.Helper()
+		tester.Scroll(600, 400, 0, -10000)
+		tester.Frame()
+		var rect ui.Rect
+		var ok bool
+		for attempt := 0; attempt < 16; attempt++ {
+			rect, ok = tester.Find(label)
+			if ok && rect.W > 0 && rect.H > 0 && rect.X >= 0 && rect.X+rect.W <= 760 &&
+				rect.Y >= workbenchToolbarHeight && rect.Y+rect.H <= 480-workbenchStatusHeight {
+				return
+			}
+			tester.Scroll(600, 400, 0, 48)
+			tester.Frame()
+		}
+		t.Fatalf("%q is unreachable in the narrow plugin manager: found=%v bounds=%#v", label, ok, rect)
+	}
 	for _, label := range labels {
-		rect, ok := tester.Find(label)
-		if !ok {
-			t.Fatalf("%q is missing from the narrow plugin manager: %#v", label, tester.Texts())
-		}
-		if rect.X < 0 || rect.Y < 0 || rect.X+rect.W > 760 || rect.Y+rect.H > 480 {
-			t.Fatalf("%q falls outside the 760x480 plugin manager: %#v", label, rect)
-		}
+		requireReachable(label)
 	}
 	for _, manifest := range a.pluginManager.Manifests() {
-		metadata := extensionLines(manifest.Extensions)
-		rect, ok := tester.Find(metadata)
-		if !ok {
-			t.Fatalf("%s extension metadata is missing: %#v", manifest.ID, tester.Texts())
-		}
-		if rect.X < 0 || rect.Y < 0 || rect.X+rect.W > 760 || rect.Y+rect.H > 480 {
-			t.Fatalf("%s extension metadata falls outside the 760x480 plugin manager: %#v", manifest.ID, rect)
-		}
+		requireReachable(extensionLines(manifest.Extensions))
 	}
 }
 

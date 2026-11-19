@@ -1,5 +1,7 @@
 # 原生验证记录与测量口径
 
+当前状态与待验收项见[当前状态](STATUS.md)。2026-11-15本轮工作区完整检查为3232 RUN、3183 PASS、49原SKIP、0 FAIL，vet/build退出0；[最终验收](handoffs/continuation-root-acceptance-20261115.md)记录原3152项与新增31项的精确身份比对、冻结输入和双轴审阅。基点`f2c2ceb`的[搜索快照验证](handoffs/autonomous-workspace-snapshot-20261115.md)及以下历史结果保留；源码检查不外推为新包或物理桌面验收。
+
 <a id="current-source-convergence-20261114"></a>
 ## 本地源码收敛与未接受的新交付：2026-11-14
 
