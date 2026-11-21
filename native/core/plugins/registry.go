@@ -17,8 +17,9 @@ const APIVersion = 1
 
 // ErrEnabledNotLoaded means settings were saved and the registry reloaded,
 // but the requested plugin could not be made active. Consumers must reconcile
-// their views even though SetEnabled returns an error. Persistence failures do
-// not wrap this sentinel and leave the live registry unchanged.
+// their views even though SetEnabled returns an error. Prepublication failures
+// leave the live registry unchanged. A committed StatePublicationError may be
+// joined with this sentinel; callers must preserve both independent outcomes.
 var ErrEnabledNotLoaded = errors.New("enabled plugin could not be loaded")
 
 type Capabilities struct {
@@ -61,6 +62,8 @@ type Manager struct {
 	settingsErr  *PluginError
 	settingsRoot string
 	installRoot  string
+	// An instance-local persistence boundary; nil uses the real private-state writer.
+	saveSettings func(string, Settings) error
 }
 
 func NewRegistry() *Registry {
@@ -323,18 +326,30 @@ func (m *Manager) SetEnabled(id string, enabled bool) error {
 	if !enabled {
 		nextDisabled[id] = true
 	}
-	if err := SaveSettings(m.settingsRoot, Settings{Disabled: nextDisabled}); err != nil {
-		return fmt.Errorf("save plugin settings: %w", err)
+	saveSettings := m.saveSettings
+	if saveSettings == nil {
+		saveSettings = SaveSettings
 	}
+	saveErr := saveSettings(m.settingsRoot, Settings{Disabled: nextDisabled})
+	if saveErr != nil {
+		saveErr = fmt.Errorf("save plugin settings: %w", saveErr)
+		var publication *document.StatePublicationError
+		if !errors.As(saveErr, &publication) || !publication.Committed {
+			return saveErr
+		}
+	}
+	// A committed warning means the new settings are already visible on disk.
+	// Reconcile live matching with them while retaining the durability/cleanup
+	// warning, including when the requested plugin also fails to load.
 	m.disabled = nextDisabled
 	m.settingsErr = nil
 	m.reload()
 	if enabled {
 		if current, lookupErr := m.Manifest(id); lookupErr != nil || !current.Active {
-			return fmt.Errorf("%w: plugin %q; inspect plugin errors", ErrEnabledNotLoaded, manifest.ID)
+			return errors.Join(saveErr, fmt.Errorf("%w: plugin %q; inspect plugin errors", ErrEnabledNotLoaded, manifest.ID))
 		}
 	}
-	return nil
+	return saveErr
 }
 
 // InstallFile validates and copies one declarative manifest into the install

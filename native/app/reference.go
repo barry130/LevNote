@@ -192,6 +192,12 @@ func (a *App) editorHost(t *Tab) editor.Host {
 		RecoverDraft: func(title, content string) error {
 			return a.recoverDraft(title, content)
 		},
+		DraftRecoveryChanged: func(owner editor.View) {
+			if owner != nil && t.View == owner && a.tabIsOpen(t) && !a.shuttingDown.Load() {
+				a.draftRecoveryGeneration++
+				a.noteEdit()
+			}
+		},
 		BeginScene: func(owner editor.View, request editor.SceneRequest, complete func(editor.SceneResult, error)) (func(), error) {
 			return a.beginScene(t, owner, request, complete)
 		},

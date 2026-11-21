@@ -1,0 +1,13 @@
+{
+	"Dir": "F:\\Task57-Fictitious\\LevNote\\native\\app",
+	"ImportPath": "levnote.local/native/app",
+	"Incomplete": true,
+	"Module": {
+		"Path": "levnote.local/native",
+		"Main": true,
+		"Dir": "F:\\Task57-Fictitious\\LevNote\\native",
+		"GoMod": "F:\\Task57-Fictitious\\LevNote\\native\\go.mod"
+	},
+	"TestGoFiles": ["internal_test.go", "ordering_test.go"],
+	"XTestGoFiles": ["external_test.go"]
+}

@@ -3,6 +3,7 @@
 package document
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -33,9 +34,47 @@ func lockExclusive(t *testing.T, path string) (release func()) {
 	}
 }
 
-// A destination held briefly by another process is normal on Windows. The save
-// must wait it out and commit, rather than reporting a failure the user cannot
-// act on.
+func TestPreparedPrivateStateWaitsOutTransientWindowsReplaceLock(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "session.json")
+	if err := os.WriteFile(path, []byte("old recovery"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	prepared, err := PreparePrivateStateTo(path, func(w io.Writer) error {
+		_, err := io.WriteString(w, "new recovery")
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := prepared.Abort(); err != nil {
+			t.Error(err)
+		}
+	}()
+	release := lockExclusive(t, path)
+	defer release()
+	wait := replaceRetryWait
+	defer func() { replaceRetryWait = wait }()
+	waits := 0
+	replaceRetryWait = func(delay time.Duration) {
+		wait(delay)
+		waits++
+		if waits == 1 {
+			release()
+		}
+	}
+	if err := prepared.Commit(nil); err != nil {
+		t.Fatalf("a transient Windows ReplaceFile lock failed prepared state: %v", err)
+	}
+	if waits != 1 {
+		t.Fatalf("prepared state did not use the bounded ReplaceFile retry: waits=%d", waits)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || string(got) != "new recovery" {
+		t.Fatalf("prepared state bytes = %q, err=%v", got, err)
+	}
+}
+
 func TestSaveWaitsOutTransientWindowsReplaceLock(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "doc.md")
 	if err := os.WriteFile(path, []byte("old"), 0600); err != nil {

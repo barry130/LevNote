@@ -57,6 +57,7 @@ func TestIssuesSnapshotCarriesEveryFamilyAndOmission(t *testing.T) {
 // dropped, and the omission count is the honest line about what is missing.
 func TestIssuesSnapshotStaysBoundedAndDisclosesOmissions(t *testing.T) {
 	a := newTestApp(t, t.TempDir())
+	wantDropped := a.IssuesDropped + len(a.Issues) + 7
 	for i := 0; i < issueHistoryLimit+7; i++ {
 		a.report(fmt.Errorf("issue-%03d", i))
 	}
@@ -67,7 +68,7 @@ func TestIssuesSnapshotStaysBoundedAndDisclosesOmissions(t *testing.T) {
 	if !strings.Contains(snapshot, "issue-007") || !strings.Contains(snapshot, "issue-206") {
 		t.Fatalf("snapshot lost the retained window edges:\n%s", snapshot)
 	}
-	if !strings.Contains(snapshot, fmt.Sprintf("另有 %d 条较早记录未保留。", 7)) {
+	if !strings.Contains(snapshot, fmt.Sprintf("另有 %d 条较早记录未保留。", wantDropped)) {
 		t.Fatalf("snapshot hid the omission count:\n%s", snapshot)
 	}
 }
@@ -76,6 +77,7 @@ func TestIssuesSnapshotStaysBoundedAndDisclosesOmissions(t *testing.T) {
 // still states the bound, and absent families add no lead lines.
 func TestIssuesSnapshotWithoutFamiliesStaysMinimal(t *testing.T) {
 	a := newTestApp(t, t.TempDir())
+	a.Issues, a.IssuesDropped = nil, 0 // This case represents an empty history.
 	snapshot := a.issuesSnapshot()
 	for _, want := range []string{
 		"当前标签：无",
@@ -97,6 +99,7 @@ func TestIssuesSnapshotWithoutFamiliesStaysMinimal(t *testing.T) {
 func TestCopyIssuesWritesSnapshotThroughClipboardSeam(t *testing.T) {
 	a := newTestApp(t, t.TempDir())
 	a.report(errors.New("保存失败示例"))
+	issuesBefore := len(a.Issues)
 	var captured string
 	writes := 0
 	write := func(text string) error {
@@ -114,7 +117,7 @@ func TestCopyIssuesWritesSnapshotThroughClipboardSeam(t *testing.T) {
 	if a.Message != "问题清单已复制到剪贴板。" {
 		t.Fatalf("success message = %q", a.Message)
 	}
-	if len(a.Issues) != 1 {
+	if len(a.Issues) != issuesBefore {
 		t.Fatalf("success was logged as an issue: %#v", a.Issues)
 	}
 }
@@ -125,6 +128,7 @@ func TestCopyIssuesWritesSnapshotThroughClipboardSeam(t *testing.T) {
 // failing clipboard cannot recurse.
 func TestCopyIssuesDisclosesClipboardFailureWithoutRecursion(t *testing.T) {
 	a := newTestApp(t, t.TempDir())
+	issuesBefore := len(a.Issues)
 	calls := 0
 	write := func(text string) error {
 		calls++
@@ -134,12 +138,12 @@ func TestCopyIssuesDisclosesClipboardFailureWithoutRecursion(t *testing.T) {
 	if calls != 1 {
 		t.Fatalf("clipboard attempts = %d, want exactly 1", calls)
 	}
-	if len(a.Issues) != 1 {
-		t.Fatalf("clipboard failure left no trace: %#v", a.Issues)
+	if len(a.Issues) != issuesBefore+1 {
+		t.Fatalf("expected one new clipboard failure: %#v", a.Issues)
 	}
-	if !strings.Contains(a.Issues[0], "复制问题清单失败") ||
-		!strings.Contains(a.Issues[0], "剪贴板被其他程序锁定") {
-		t.Fatalf("failure entry = %q", a.Issues[0])
+	if issue := a.Issues[issuesBefore]; !strings.Contains(issue, "复制问题清单失败") ||
+		!strings.Contains(issue, "剪贴板被其他程序锁定") {
+		t.Fatalf("failure entry = %q", issue)
 	}
 	if !strings.Contains(a.Message, "复制问题清单失败") {
 		t.Fatalf("failure message = %q", a.Message)
@@ -153,8 +157,9 @@ func TestCopyIssuesDisclosesClipboardFailureWithoutRecursion(t *testing.T) {
 // the silent-data-loss failure mode this app exists to avoid.
 func TestCopyIssuesRejectsMissingClipboardLoudly(t *testing.T) {
 	a := newTestApp(t, t.TempDir())
+	issuesBefore := len(a.Issues)
 	a.copyIssues(nil)
-	if len(a.Issues) != 1 || !strings.Contains(a.Issues[0], "复制问题清单失败") {
+	if len(a.Issues) != issuesBefore+1 || !strings.Contains(a.Issues[issuesBefore], "复制问题清单失败") {
 		t.Fatalf("missing clipboard was not disclosed: %#v", a.Issues)
 	}
 }

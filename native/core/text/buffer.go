@@ -62,10 +62,14 @@ type change struct {
 	old, next string
 }
 type transaction struct {
-	edits         []change
-	before, after Range
-	bytes         int
-	bytesOverflow bool
+	edits                             []change
+	before, after                     Range
+	beforeSelections, afterSelections selectionExtra
+	bytes                             int
+	bytesOverflow                     bool
+	// Exact settled byte classification; structural metadata is not part of
+	// the existing logical text/selection history-byte accounting.
+	confirmedChange bool
 }
 
 // CompositionToken identifies one group in its issuing Buffer. It keeps no
@@ -78,6 +82,9 @@ type compositionGroup struct {
 	owner         *Buffer
 	span          Range
 	ready, suffix bool
+	// Only the explicit selection-set lifecycle requires native final text.
+	// Legacy Begin/End retain their primary-only completion contract.
+	requireFinal bool
 	// Only a net-zero/initial no-op suffix needs a separate baseline. A live
 	// suffix keeps its original/current strings in the last transaction edit.
 	baseline string
@@ -89,6 +96,7 @@ type Snapshot struct {
 	pieces              []piece
 	units, bytes, lines int
 	selection           Range
+	selections          selectionExtra
 	hash                uint64
 }
 
@@ -107,7 +115,10 @@ type Buffer struct {
 	prefix                       []piecePrefix
 	units, bytes, lines          int
 	selection                    Range
+	selections                   selectionExtra
+	selectionGeneration          uint64
 	version                      uint64
+	changeStamp                  ChangeStamp
 	hash                         uint64
 	undo, redo                   []transaction
 	group                        *transaction
@@ -135,7 +146,8 @@ func NewWithLimit(value string, limit int) *Buffer {
 	if limit <= 0 {
 		panic("text content limit must be positive")
 	}
-	b := &Buffer{historyEntries: 256, historyBytes: 32 << 20, baseLimit: limit, maxBytes: max(limit, len(value))}
+	b := &Buffer{historyEntries: 256, historyBytes: 32 << 20, baseLimit: limit, maxBytes: max(limit, len(value)),
+		changeStamp: newChangeStamp()}
 	b.pieces = piecesOf(value)
 	b.recount()
 	return b
@@ -203,7 +215,10 @@ func (s Snapshot) String() string {
 	return out.String()
 }
 func (b *Buffer) Snapshot() Snapshot {
-	return Snapshot{append([]piece(nil), b.pieces...), b.units, b.bytes, b.lines, b.selection, b.hash}
+	return Snapshot{
+		pieces: append([]piece(nil), b.pieces...), units: b.units, bytes: b.bytes, lines: b.lines,
+		selection: b.selection, selections: cloneExtra(b.selections), hash: b.hash,
+	}
 }
 
 // EqualSnapshot rejects ordinary changes through a composable fingerprint. Hash
@@ -240,10 +255,15 @@ func (b *Buffer) EqualSnapshot(s Snapshot) bool {
 // commands should edit the buffer, so the user can still undo them.
 func (b *Buffer) Restore(s Snapshot) {
 	b.pieces = append([]piece(nil), s.pieces...)
-	b.units, b.bytes, b.lines, b.selection, b.hash = s.units, s.bytes, s.lines, s.selection, s.hash
+	b.units, b.bytes, b.lines, b.hash = s.units, s.bytes, s.lines, s.hash
+	b.setSelections(s.selection, s.selections, true)
 	b.maxBytes = max(b.baseLimit, s.bytes)
 	b.recount()
+	baseline := b.changeStamp.BaselineID
 	b.ResetHistory()
+	if b.changeStamp.BaselineID == baseline {
+		b.invalidateChangeBaseline()
+	}
 	b.version++
 	b.changedLines[b.version%uint64(len(b.changedLines))] = 0
 	b.rangeChanges[b.version%uint64(len(b.rangeChanges))] = rangeChange{reset: true}
@@ -255,7 +275,7 @@ func (b *Buffer) SetSelection(anchor, head int) error {
 	if _, err := b.byteOffset(head); err != nil {
 		return err
 	}
-	b.selection = Range{anchor, head}
+	b.setSelections(Range{anchor, head}, selectionExtra{}, false)
 	return nil
 }
 func (b *Buffer) SliceUTF16(start, end int) (string, error) {
@@ -323,14 +343,17 @@ func (b *Buffer) ReplaceUTF16(start, end int, value string) error {
 	}
 	// Admission precedes materializing removed bytes or allocating history.
 	old := b.sliceBytes(left, right)
-	before := b.selection
+	after := Range{start + UTF16Len(value), start + UTF16Len(value)}
 	if old == value {
-		b.selection = Range{start + UTF16Len(value), start + UTF16Len(value)}
+		b.setSelections(after, selectionExtra{}, false)
 		return nil
 	}
+	t := transaction{before: b.selection}
+	if b.group == nil {
+		t.beforeSelections = cloneExtra(b.selections)
+	}
 	b.replace(start, end, value)
-	after := Range{start + UTF16Len(value), start + UTF16Len(value)}
-	b.selection = after
+	b.setSelections(after, selectionExtra{}, false)
 	c := change{start: start, old: old, next: value}
 	if b.group != nil {
 		b.group.edits = append(b.group.edits, c)
@@ -338,7 +361,7 @@ func (b *Buffer) ReplaceUTF16(start, end int, value string) error {
 		b.group.addBytes(len(old))
 		b.group.addBytes(len(value))
 	} else {
-		t := transaction{edits: []change{c}, before: before, after: after}
+		t.edits, t.after = []change{c}, after
 		t.recountBytes()
 		b.commit(t)
 	}
@@ -372,6 +395,17 @@ func (b *Buffer) ReplaceCompositionUTF16(token CompositionToken, start, end int,
 		return err
 	}
 	c, t := b.composition, b.group
+	// A multi-selection owner previews only its original primary, then that
+	// same live span. The captured before-set remains the commit authority.
+	if len(t.beforeSelections.secondary) != 0 {
+		span := t.before
+		if c.ready {
+			span = c.span
+		}
+		if start != span.Start() || end != span.End() {
+			return ErrRange
+		}
+	}
 	full := c.ready && start == c.span.Start() && end == c.span.End()
 	current := c.baseline
 	if full && c.suffix {
@@ -385,7 +419,8 @@ func (b *Buffer) ReplaceCompositionUTF16(token CompositionToken, start, end int,
 		b.replace(start, end, value)
 	}
 	after := Range{start + UTF16Len(value), start + UTF16Len(value)}
-	b.selection, t.after = after, after
+	b.setSelections(after, selectionExtra{}, false)
+	t.after = after
 	if full && c.suffix {
 		i := len(t.edits) - 1
 		last := &t.edits[i]
@@ -424,9 +459,16 @@ func (b *Buffer) ReplaceCompositionUTF16(token CompositionToken, start, end int,
 	return nil
 }
 
+// EndCompositionGroup preserves the legacy BeginCompositionGroup primary-only
+// completion contract. BeginCompositionSetGroup multi-point owners instead
+// require native final text via CommitCompositionSetUTF16; implicit unmark/flush
+// must propagate ErrCompositionPending and keep that explicit owner alive.
 func (b *Buffer) EndCompositionGroup(token CompositionToken) error {
 	if !b.OwnsComposition(token) {
 		return ErrComposition
+	}
+	if b.composition.requireFinal {
+		return ErrCompositionPending
 	}
 	b.composition = nil
 	b.EndGroup()
@@ -470,7 +512,7 @@ func (b *Buffer) BeginGroup() error {
 	if b.group != nil {
 		return ErrGroup
 	}
-	b.group = &transaction{before: b.selection, after: b.selection}
+	b.group = &transaction{before: b.selection, after: b.selection, beforeSelections: cloneExtra(b.selections)}
 	return nil
 }
 func (b *Buffer) EndGroup() bool {
@@ -483,6 +525,7 @@ func (b *Buffer) EndGroup() bool {
 	if len(t.edits) == 0 {
 		return false
 	}
+	t.afterSelections = cloneExtra(b.selections)
 	b.commit(t)
 	return true
 }
@@ -496,7 +539,7 @@ func (b *Buffer) CancelGroup() bool {
 		c := t.edits[i]
 		b.replace(c.start, c.start+UTF16Len(c.next), c.old)
 	}
-	b.selection = t.before
+	b.setSelections(t.before, t.beforeSelections, true)
 	return true
 }
 func (b *Buffer) CanUndo() bool { return b.group == nil && len(b.undo) > 0 }
@@ -513,8 +556,11 @@ func (b *Buffer) Undo() bool {
 		c := t.edits[i]
 		b.replace(c.start, c.start+UTF16Len(c.next), c.old)
 	}
-	b.selection = t.before
+	b.setSelections(t.before, t.beforeSelections, true)
 	b.redo = append(b.redo, t)
+	if t.confirmedChange {
+		b.advanceConfirmedChange()
+	}
 	return true
 }
 func (b *Buffer) Redo() bool {
@@ -528,11 +574,19 @@ func (b *Buffer) Redo() bool {
 	for _, c := range t.edits {
 		b.replace(c.start, c.start+UTF16Len(c.old), c.next)
 	}
-	b.selection = t.after
+	b.setSelections(t.after, t.afterSelections, true)
 	b.undo = append(b.undo, t)
+	if t.confirmedChange {
+		b.advanceConfirmedChange()
+	}
 	return true
 }
 func (b *Buffer) ResetHistory() {
+	if b.group != nil || b.composition != nil {
+		b.invalidateChangeBaseline()
+	}
+	clear(b.undo)
+	clear(b.redo)
 	b.undo = nil
 	b.redo = nil
 	b.group = nil
@@ -563,11 +617,24 @@ func (b *Buffer) retainedHistoryBytes() (int, bool) {
 			if overflow || t.bytesOverflow {
 				return int(^uint(0) >> 1), true
 			}
+			n, overflow = saturatedBytes(n, t.selectionBytes())
+			if overflow {
+				return int(^uint(0) >> 1), true
+			}
 		}
 	}
 	return n, false
 }
-func (b *Buffer) commit(t transaction) { b.redo = nil; b.undo = append(b.undo, t); b.trimHistory() }
+func (b *Buffer) commit(t transaction) {
+	t.confirmedChange = b.transactionChangesBytes(t, nil)
+	if t.confirmedChange {
+		b.advanceConfirmedChange()
+	}
+	clear(b.redo)
+	b.redo = nil
+	b.undo = append(b.undo, t)
+	b.trimHistory()
+}
 func (b *Buffer) trimHistory() {
 	for {
 		n, overflow := b.retainedHistoryBytes()

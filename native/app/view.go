@@ -12,6 +12,7 @@ import (
 
 func (a *App) View(c *ui.Context) {
 	a.beginAppListFrame()
+	a.beginSourceLanguageFrame()
 	a.deliverBinary()
 	a.expireFindCache()
 	a.deliverPackageWork()
@@ -26,6 +27,7 @@ func (a *App) View(c *ui.Context) {
 	a.expireFindFocus()
 	a.processOpenDocuments()
 	a.processCommandPalette()
+	a.processSourceLanguageActions()
 	if a.ShowPlugins && a.ShowFind {
 		a.clearFindTransient()
 	}
@@ -34,6 +36,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.shortcuts(c)
 	a.cancelHiddenListFocus()
+	a.cancelHiddenSourceLanguageListFocus()
 	a.consumeHistoryNotices()
 	ui.Column(c).Fill().Background(theme.Background).Children(func() {
 		a.workbenchToolbar(c)
@@ -68,6 +71,7 @@ func (a *App) View(c *ui.Context) {
 					a.pluginPanel(c)
 					return
 				}
+				a.sourceLanguagePanel(c)
 				if a.ShowFind {
 					a.findbar(c)
 				}

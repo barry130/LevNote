@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -96,7 +97,7 @@ func (a *App) startEngineExport(t *Tab) {
 		return
 	}
 	name, generation := t.Name, a.exportGeneration
-	descriptor, err := exportDescriptor(capability)
+	descriptor, err := a.exportDescriptor(capability)
 	if err != nil {
 		a.report(err)
 		return
@@ -378,10 +379,59 @@ func (a *App) invalidateTabExport(t *Tab, reason string) {
 	}
 }
 
+// Keep only this accumulator flat. Errors from the runner and package store
+// are kept intact, including their own wrapping, types and Is/As behavior.
+type engineCleanupCauses struct{ causes []error }
+
+func (e *engineCleanupCauses) Error() string {
+	var text strings.Builder
+	for i, cause := range e.causes {
+		if i > 0 {
+			text.WriteByte('\n')
+		}
+		text.WriteString(cause.Error())
+	}
+	return text.String()
+}
+
+func (e *engineCleanupCauses) Unwrap() []error { return e.causes }
+
+func (a *App) recordEngineCleanup(cause error) {
+	if cause == nil {
+		return
+	}
+	previous := a.enginePoison
+	if previous == nil {
+		a.enginePoison = cause
+		return
+	}
+	// Compare exact values only when safe. Neither equal text nor a shared
+	// errors.Is match implies that two failures from different work are equal.
+	comparable := reflect.ValueOf(cause).Comparable()
+	if comparable && cause == previous {
+		return
+	}
+	known, multiple := previous.(*engineCleanupCauses)
+	if !multiple {
+		a.enginePoison = &engineCleanupCauses{causes: []error{previous, cause}}
+		return
+	}
+	if comparable {
+		for _, old := range known.causes {
+			if cause == old {
+				return
+			}
+		}
+	}
+	// A new cause never wraps the previous accumulator or mutates its slice.
+	causes := known.causes[:len(known.causes):len(known.causes)]
+	a.enginePoison = &engineCleanupCauses{causes: append(causes, cause)}
+}
+
 // Cleanup never needs UI dispatch. Close remains idempotent in the runner;
 // waiting done joins the small result-slot handoff after runner cleanup.
 func (a *App) closeEngineExport() error {
-	packageErr := a.joinPackageWork()
+	a.joinPackageWork()
 	a.cancelPreview(nil)
 	j := a.exportJob
 	if j != nil {
@@ -389,8 +439,17 @@ func (a *App) closeEngineExport() error {
 		a.exportGeneration++
 	}
 	var err error
-	if a.engineLane != nil {
-		err = a.engineLane.close()
+	var laneAlreadyJoined bool
+	if lane := a.engineLane; lane != nil {
+		// Package workers close only detached lanes. For this UI-owned lane
+		// a closed barrier means we already consumed its one terminal error,
+		// which may not have a comparable Go value. Still join the lane.
+		select {
+		case <-lane.closed:
+			laneAlreadyJoined = true
+		default:
+		}
+		err = lane.close()
 	} else if a.exporter != nil {
 		err = a.exporter.Close()
 	}
@@ -416,7 +475,10 @@ func (a *App) closeEngineExport() error {
 			a.exportJob = nil
 		}
 	}
-	return errors.Join(packageErr, err, a.enginePoison)
+	if !laneAlreadyJoined {
+		a.recordEngineCleanup(err)
+	}
+	return a.enginePoison
 }
 
 // Native dialogs can pump nested UI callbacks. Deferral spans the full owning
@@ -453,7 +515,7 @@ func (a *App) chooseOpenPaths(options mygo.OpenDialogOptions) ([]string, error) 
 }
 
 func (a *App) exportStatusText(capability editor.ExportEngine) string {
-	descriptor, err := exportDescriptor(capability)
+	descriptor, err := a.exportDescriptor(capability)
 	if err != nil {
 		return "本地引擎导出不可用 · " + err.Error()
 	}
@@ -481,12 +543,23 @@ func (a *App) exportStatusText(capability editor.ExportEngine) string {
 	return label + "\n界面与编辑原生运行；只读导图场景由所选程序计算"
 }
 
-func exportDescriptor(capability editor.ExportEngine) (enginecatalog.Descriptor, error) {
+// matchEnginePackage normally admits only the runtime platform. Controlled
+// in-process runners implement the private platform method in tests so they
+// can exercise the coordinator using the same fixed catalog and limits.
+func (a *App) matchEnginePackage(id enginecatalog.EngineID, format string) (enginecatalog.Descriptor, bool) {
+	goos, goarch := runtime.GOOS, runtime.GOARCH
+	if fixture, ok := a.exporter.(interface{ testEnginePlatform() (string, string) }); ok {
+		goos, goarch = fixture.testEnginePlatform()
+	}
+	return enginecatalog.Match(id, format, goos, goarch)
+}
+
+func (a *App) exportDescriptor(capability editor.ExportEngine) (enginecatalog.Descriptor, error) {
 	descriptor, ok := enginecatalog.Lookup(enginecatalog.EngineID(capability.ID))
 	if !ok || descriptor.Format != capability.Format {
 		return enginecatalog.Descriptor{}, errors.New("导出引擎与格式声明不匹配")
 	}
-	if _, ok := enginecatalog.Match(descriptor.Engine, capability.Format, runtime.GOOS, runtime.GOARCH); !ok {
+	if _, ok := a.matchEnginePackage(descriptor.Engine, capability.Format); !ok {
 		return enginecatalog.Descriptor{}, errors.New("当前平台不支持此导出程序包")
 	}
 	return descriptor, nil

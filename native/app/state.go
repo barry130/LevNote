@@ -51,6 +51,7 @@ func (a *App) Restore() {
 		a.report(fmt.Errorf("已有文件操作，未开始会话恢复"))
 		return
 	}
+	a.resetSourceLanguageSession()
 	a.cancelAutosave()
 	a.restoring = true
 	defer func() { a.restoring = false }()
@@ -174,15 +175,48 @@ func (a *App) persistQuitTabs(tabs []*Tab, active int, discarded []bool) error {
 }
 
 func (a *App) persistTabsWithDiscard(tabs []*Tab, active int, discarded []bool, action string) error {
+	builder, err := a.captureSessionTabs(tabs, active, discarded, action)
+	if err != nil {
+		return err
+	}
+	if err := builder.Save(filepath.Join(a.configDir, "session.json")); err != nil {
+		var publication *document.StatePublicationError
+		if errors.As(err, &publication) && publication.Committed {
+			return a.reportPersistFailure(fmt.Errorf("恢复状态已发布；后续操作失败：%w", err))
+		}
+		return a.reportPersistFailure(fmt.Errorf("%s：%w", action, err))
+	}
+	a.lastPersistError = ""
+	return nil
+}
+
+func (a *App) captureSessionTabs(tabs []*Tab, active int, discarded []bool, action string) (*session.SnapshotBuilder, error) {
 	// Explicit save/close and automatic attempts supersede queued timer work,
 	// including callbacks already posted before the timer could be stopped.
 	a.cancelAutosave()
 	if a.restoring {
-		return fmt.Errorf("会话恢复尚未完成；未覆盖现有恢复状态")
+		return nil, fmt.Errorf("会话恢复尚未完成；未覆盖现有恢复状态")
 	}
 	// This attempt consumes the current request even on failure. In particular,
 	// unwinding a failed close dialog must not silently retry unchanged state.
 	a.persistPending = false
+	// Query every source before creating a builder or calling any draft owner.
+	// A first refused multi preedit can retain an owner without a live mark.
+	pendingInput := func() error {
+		for i, t := range tabs {
+			if !t.textCapable() || t.ByteInspector || i < len(discarded) && discarded[i] {
+				continue
+			}
+			if t.Editor.MultiCompositionPending() {
+				return fmt.Errorf("%s：%s：%w；草稿未写入恢复快照，现有恢复快照保持不变", action, t.Name, text.ErrCompositionPending)
+			}
+		}
+		return nil
+	}
+	if err := pendingInput(); err != nil {
+		return nil, a.reportPersistFailure(err)
+	}
+	valid := a.sessionSeal(true)
 	theme := "light"
 	if a.Dark {
 		theme = "dark"
@@ -193,7 +227,7 @@ func (a *App) persistTabsWithDiscard(tabs []*Tab, active int, discarded []bool, 
 		Theme: theme, FontSize: a.FontSize, LineNumbers: &lineNumbers,
 		WordWrap: a.SoftWrap, SidebarWidth: a.SidebarWidth,
 	}); err != nil {
-		return a.reportPersistFailure(fmt.Errorf(
+		return nil, a.reportPersistFailure(fmt.Errorf(
 			"%s：%w；草稿未写入恢复快照，现有恢复快照保持不变", action, err,
 		))
 	}
@@ -204,7 +238,7 @@ func (a *App) persistTabsWithDiscard(tabs []*Tab, active int, discarded []bool, 
 				mappedActive = builder.Len()
 			}
 			if err := builder.AddBinaryTab(session.BinaryTab{Path: t.path(), Kind: t.BinaryKind, Title: t.Name, PluginID: t.MatchedPlugin.ID, View: t.Mode}); err != nil {
-				return a.reportPersistFailure(fmt.Errorf("%s：%s：%w；现有恢复快照保持不变", action, t.Name, err))
+				return nil, a.reportPersistFailure(fmt.Errorf("%s：%s：%w；现有恢复快照保持不变", action, t.Name, err))
 			}
 			continue
 		}
@@ -231,8 +265,11 @@ func (a *App) persistTabsWithDiscard(tabs []*Tab, active int, discarded []bool, 
 				PluginID: t.MatchedPlugin.ID, View: t.Mode,
 			})
 		}
+		if err == nil && !dropDraft {
+			err = appendSessionDraft(builder, t)
+		}
 		if err != nil {
-			return a.reportPersistFailure(fmt.Errorf(
+			return nil, a.reportPersistFailure(fmt.Errorf(
 				"%s：%s：%w；草稿未写入恢复快照，现有恢复快照保持不变",
 				action, t.Name, err,
 			))
@@ -247,20 +284,27 @@ func (a *App) persistTabsWithDiscard(tabs []*Tab, active int, discarded []bool, 
 		}
 	}
 	if err := builder.SetActive(activeToSave); err != nil {
-		return a.reportPersistFailure(fmt.Errorf(
+		return nil, a.reportPersistFailure(fmt.Errorf(
 			"%s：%w；草稿未写入恢复快照，现有恢复快照保持不变", action, err,
 		))
 	}
-	if err := builder.Save(filepath.Join(a.configDir, "session.json")); err != nil {
-		return a.reportPersistFailure(fmt.Errorf("%s：%w", action, err))
+	// A later draft callback can establish pending input on an earlier tab
+	// without changing bytes, selection or the existing session seal.
+	if err := pendingInput(); err != nil {
+		return nil, a.reportPersistFailure(err)
 	}
-	a.lastPersistError = ""
-	a.persistPending = false
-	return nil
+	if !valid() {
+		return nil, a.reportPersistFailure(errCloseOwnerChanged)
+	}
+	return builder, nil
 }
 
 func (a *App) reportPersistFailure(err error) error {
-	if err == nil || err.Error() == a.lastPersistError {
+	if err == nil {
+		return nil
+	}
+	if err.Error() == a.lastPersistError {
+		a.Message = err.Error()
 		return err
 	}
 	a.report(err)

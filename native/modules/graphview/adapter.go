@@ -110,6 +110,7 @@ type view struct {
 	linkHandle             ui.Handle
 	linkEnabled            bool
 	markerHandle           ui.Handle
+	markerButtons          [markerClear + 1]ui.Handle
 	markerOpen             bool
 	markerInfo             markerPresentation
 	markerPress            markerGesture
@@ -167,6 +168,7 @@ type view struct {
 	edgeScratch          [][2]float32
 	outline              *mindmapOutlineSource
 	pendingOutlineCenter string
+	search               graphFieldSearch
 }
 
 func newView(kind documentKind, host editor.Host) *view {
@@ -181,6 +183,9 @@ func newView(kind documentKind, host editor.Host) *view {
 }
 
 func (v *view) CompositionActive() bool {
+	if v.fieldSearchCompositionActive() {
+		return true
+	}
 	if v.draft != nil {
 		if _, composing := v.draft.input.MarkedRange(); composing {
 			return true
@@ -223,8 +228,10 @@ func (v *view) Draw(c *ui.Context) {
 			v.observeGraphInspectorInput(ev)
 			v.observeStyleInput(ev)
 			v.observeDrawioInput(ev)
+			v.observeFieldSearchInput(ev)
 		}).HandleInput(v.graphInspectorScrollInput).Children(func() {
 		v.drawToolbar(c)
+		v.drawFieldSearch(c)
 		if len(v.warnings) > 0 {
 			v.drawWarnings(c)
 		}
@@ -250,6 +257,7 @@ func (v *view) Draw(c *ui.Context) {
 }
 
 func (v *view) Release() {
+	v.releaseFieldSearch()
 	v.releaseEpoch++
 	v.bumpExportEpoch()
 	v.invalidateTagActions()

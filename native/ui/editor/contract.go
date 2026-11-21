@@ -24,6 +24,20 @@ type Flusher interface{ Flush() error }
 // input is composing text in a rich view.
 type Composer interface{ CompositionActive() bool }
 
+// HostFindFocusGuard is an optional, UI-thread-only View admission check for
+// host Find focus. It must be a pure, repeatable observation: it must not flush
+// or settle input, move/cancel focus, mutate drafts, or establish source target
+// or route identity. Implementations must refuse before host Find changes focus
+// or panels when an independent draft is confirmed but uncommitted, or its
+// readiness cannot be proved. Preserve the actual owned input/draft error when
+// one exists; use ErrHostFindFocusDraft only for an independent or uncertain
+// draft, not as a source-conflict label. Clean readonly idle input may pass.
+type HostFindFocusGuard interface{ HostFindFocusError() error }
+
+// ErrHostFindFocusDraft reports an unsettled or not-provably-clean independent
+// draft. It deliberately does not describe a source conflict or input owner.
+var ErrHostFindFocusDraft = errors.New("请先完成或放弃当前未写回草稿，再打开查找")
+
 func FlushView(view View) error {
 	if flusher, ok := view.(Flusher); ok {
 		return flusher.Flush()
@@ -91,6 +105,10 @@ type Host struct {
 	// RecoverDraft opens unsynchronized text as a new unsaved document. The
 	// originating view may clear its draft only after this succeeds.
 	RecoverDraft func(title, content string) error
+	// DraftRecoveryChanged asks the host to schedule session capture for the
+	// current live owner. Call on the UI thread when a confirmed independent
+	// draft changes or is cleared. The callback does not commit the draft.
+	DraftRecoveryChanged func(owner View)
 	// SceneEngine is copied from the enabled adapter. BeginScene and its
 	// idempotent cancel handle are UI-only and nonblocking. Completion transfers
 	// result ownership asynchronously, at most once, unless canceled first.

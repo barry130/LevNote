@@ -60,6 +60,7 @@ func (a *App) Shutdown() {
 		return
 	}
 	defer close(a.shutdownJoined)
+	languageTask := a.stopSourceLanguage()
 	a.closeOpenDocuments()
 	a.closeCommandPalette()
 	a.clearClosedFiles()
@@ -80,6 +81,12 @@ func (a *App) Shutdown() {
 	}
 	a.treeWorker.close()
 	a.diskWorker.close()
+	// Engine/binary cleanup completes before joining an uninterruptible
+	// language parser. Its done never depends on queued UI publication.
+	if languageTask != nil {
+		<-languageTask.done
+	}
+	a.sourceLanguage.task = nil
 }
 func (a *App) searchWorkspace() {
 	if a.searchCancel != nil {

@@ -1,8 +1,10 @@
 package graphview
 
 import (
+	"crypto/sha256"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -36,42 +38,105 @@ func TestDrawioMultiCloneClampCompletesSelectionHistoryAndFeedback(t *testing.T)
 }
 
 func TestDrawioCloneHistoryEntryAndByteBudgets(t *testing.T) {
-	weight := drawioCloneHistoryMaxBytes/(2*drawioCloneHistoryMaxEntries)
+	// Two digests, two string headers and the one-byte after ID. Old tests
+	// filled the budget with XML; the bounded record now owns only digests and IDs.
+	const base = 2*sha256.Size + 4*(strconv.IntSize/8) + 1
+	const weight = drawioCloneHistoryMaxBytes / drawioCloneHistoryMaxEntries
+	makeRecord := func(size int, id string) drawioCloneHistory {
+		return drawioCloneHistory{
+			beforeText: drawioCloneTextIdentity([]byte("original")), afterText: drawioCloneTextIdentity([]byte("result")),
+			beforeIDs: []string{strings.Repeat(id, size-base)}, afterIDs: []string{"n"},
+		}
+	}
 	history := make([]drawioCloneHistory, drawioCloneHistoryMaxEntries, drawioCloneHistoryMaxEntries+1)
-	for i := range history { history[i] = drawioCloneHistory{beforeText: strings.Repeat("a", weight), afterText: strings.Repeat("b", weight), beforeIDs: []string{"old"}, afterIDs: []string{"new"}} }
-	if drawioCloneHistoryBytes(history) != drawioCloneHistoryMaxBytes { t.Fatal("byte-boundary fixture invalid") }
-	partial := appendDrawioCloneHistory(history[:len(history)-1], drawioCloneHistory{beforeText: strings.Repeat("a", weight), afterText: strings.Repeat("b", weight)})
-	if len(partial) != drawioCloneHistoryMaxEntries || drawioCloneHistoryBytes(partial) != drawioCloneHistoryMaxBytes { t.Fatal("exact 256/32MiB combination must fit") }
+	for i := range history {
+		history[i] = makeRecord(weight, "a")
+	}
+	if drawioCloneHistoryBytes(history) != drawioCloneHistoryMaxBytes {
+		t.Fatal("byte-boundary fixture invalid")
+	}
+	partial, recorded := appendDrawioCloneHistory(history[:len(history)-1], makeRecord(weight, "b"))
+	if !recorded || len(partial) != drawioCloneHistoryMaxEntries || drawioCloneHistoryBytes(partial) != drawioCloneHistoryMaxBytes {
+		t.Fatal("exact 256/32MiB combination must fit")
+	}
 	slots := history
-	history = appendDrawioCloneHistory(history, drawioCloneHistory{beforeIDs: []string{"newest"}})
-	if len(history) != drawioCloneHistoryMaxEntries || drawioCloneHistoryBytes(history) != drawioCloneHistoryMaxBytes-2*weight || history[0].beforeIDs == nil || !slices.Equal(history[len(history)-1].beforeIDs, []string{"newest"}) || slots[0].beforeText != "" || slots[0].afterText != "" || slots[0].beforeIDs != nil || slots[0].afterIDs != nil { t.Fatal("entry overflow did not clean physical oldest slot and retain newest", len(history)) }
-	history = make([]drawioCloneHistory, drawioCloneHistoryMaxEntries)
-	for i := range history { history[i] = drawioCloneHistory{beforeText: strings.Repeat("x", weight), afterText: strings.Repeat("y", weight)} }
-	history = appendDrawioCloneHistory(history, drawioCloneHistory{beforeText:"a", afterText:"b"})
-	if len(history) != drawioCloneHistoryMaxEntries || drawioCloneHistoryBytes(history) != drawioCloneHistoryMaxBytes-2*weight+2 || history[0].beforeText != strings.Repeat("x", weight) || history[len(history)-1].beforeText != "a" { t.Fatal("32 MiB plus one byte did not evict exactly oldest") }
-	history = []drawioCloneHistory{{beforeText: strings.Repeat("x", drawioCloneHistoryMaxBytes/2), afterText: strings.Repeat("y", drawioCloneHistoryMaxBytes/2)}}
-	history = appendDrawioCloneHistory(history, drawioCloneHistory{beforeText: "a"})
-	if len(history) != 1 || drawioCloneHistoryBytes(history) != 1 || history[0].beforeText != "a" { t.Fatal("oversized history must free all older records") }
-	if got := appendDrawioCloneHistory(nil, drawioCloneHistory{beforeText: strings.Repeat("x", drawioCloneHistoryMaxBytes+1)}); len(got) != 0 { t.Fatal("oversized single record retained") }
+	newest := makeRecord(base+len("newest"), "n")
+	newest.beforeIDs[0] = "newest"
+	history, recorded = appendDrawioCloneHistory(history, newest)
+	if !recorded || len(history) != drawioCloneHistoryMaxEntries ||
+		drawioCloneHistoryBytes(history) != drawioCloneHistoryMaxBytes-weight+base+len("newest") || history[0].beforeIDs == nil ||
+		!slices.Equal(history[len(history)-1].beforeIDs, []string{"newest"}) || slots[0].beforeText != "" || slots[0].afterText != "" ||
+		slots[0].beforeIDs != nil || slots[0].afterIDs != nil {
+		t.Fatal("entry overflow did not clean physical oldest slot and retain newest", len(history))
+	}
+
+	// Test below the entry cap, where incoming would exceed the byte cap by
+	// exactly one byte. Only the oldest record should be evicted.
+	history = make([]drawioCloneHistory, drawioCloneHistoryMaxEntries-1)
+	for i := range history {
+		history[i] = makeRecord(weight, "x")
+	}
+	history[len(history)-1] = makeRecord(2*weight-base, "y")
+	slots = history
+	history, recorded = appendDrawioCloneHistory(history, makeRecord(base+1, "a"))
+	if !recorded || len(history) != drawioCloneHistoryMaxEntries-1 ||
+		drawioCloneHistoryBytes(history) != drawioCloneHistoryMaxBytes-weight+1 || history[0].beforeIDs[0] != strings.Repeat("x", weight-base) ||
+		history[len(history)-1].beforeIDs[0] != "a" || slots[0].beforeIDs != nil || slots[0].afterIDs != nil {
+		t.Fatal("32 MiB plus one byte did not evict exactly oldest")
+	}
+
+	history = []drawioCloneHistory{makeRecord(drawioCloneHistoryMaxBytes, "x")}
+	history, recorded = appendDrawioCloneHistory(history, makeRecord(base+1, "a"))
+	if !recorded || len(history) != 1 || drawioCloneHistoryBytes(history) != base+1 || history[0].beforeIDs[0] != "a" {
+		t.Fatal("full-budget history must free all older records")
+	}
+	if got, recorded := appendDrawioCloneHistory(nil, makeRecord(drawioCloneHistoryMaxBytes+1, "x")); recorded || len(got) != 0 {
+		t.Fatal("oversized single record retained")
+	}
 }
 
 func TestDrawioCloneHistoryWitnessOwnerAndReleaseReferences(t *testing.T) {
 	v, _, buffer, _ := newMultiDrawio(t, multiDrawio, 1180, 780)
 	v.setDrawioSelection([]string{"a", "b"}, "b")
-	target := drawioCloneHistory{buffer:buffer, release:v.releaseEpoch, pageEpoch:v.pageEpoch, beforeText:"original", afterText:"intermediate", beforeIDs:[]string{"a", "b"}, afterIDs:[]string{"a", "b"}}
-	later := drawioCloneHistory{buffer:buffer, release:v.releaseEpoch, pageEpoch:v.pageEpoch, beforeText:"intermediate", afterText:"next", beforeIDs:[]string{"a", "b"}, undoEpoch:v.drawSelection.epoch}
+	original := drawioCloneTextIdentity([]byte("original"))
+	intermediate := drawioCloneTextIdentity([]byte("intermediate"))
+	target := drawioCloneHistory{buffer: buffer, release: v.releaseEpoch, pageEpoch: v.pageEpoch,
+		beforeText: original, afterText: intermediate, beforeIDs: []string{"a", "b"}, afterIDs: []string{"a", "b"}}
+	later := drawioCloneHistory{buffer: buffer, release: v.releaseEpoch, pageEpoch: v.pageEpoch,
+		beforeText: intermediate, afterText: drawioCloneTextIdentity([]byte("next")), beforeIDs: []string{"a", "b"}, undoEpoch: v.drawSelection.epoch}
 	v.drawCloneHistory = []drawioCloneHistory{target, later}
-	if !v.knownDrawioCloneBoundary(buffer, v.releaseEpoch, v.pageEpoch, 0, "intermediate") { t.Fatal("adjacent same-owner witness rejected") }
-	for _, mutate := range []func(*drawioCloneHistory){func(r *drawioCloneHistory){r.release++},func(r *drawioCloneHistory){r.pageEpoch++},func(r *drawioCloneHistory){r.page++},func(r *drawioCloneHistory){r.buffer=text.New("intermediate")},func(r *drawioCloneHistory){r.undoEpoch++},func(r *drawioCloneHistory){r.beforeIDs=[]string{"other"}}} {
+	if !v.knownDrawioCloneBoundary(buffer, v.releaseEpoch, v.pageEpoch, 0, intermediate) {
+		t.Fatal("adjacent same-owner witness rejected")
+	}
+	for _, mutate := range []func(*drawioCloneHistory){
+		func(r *drawioCloneHistory) { r.release++ },
+		func(r *drawioCloneHistory) { r.pageEpoch++ },
+		func(r *drawioCloneHistory) { r.page++ },
+		func(r *drawioCloneHistory) { r.buffer = text.New("intermediate") },
+		func(r *drawioCloneHistory) { r.undoEpoch++ },
+		func(r *drawioCloneHistory) { r.beforeIDs = []string{"other"} },
+	} {
 		saved := v.drawCloneHistory[1]
 		mutate(&v.drawCloneHistory[1])
-		if v.knownDrawioCloneBoundary(buffer, v.releaseEpoch, v.pageEpoch, 0, "intermediate") { t.Fatal("later witness accepted different owner or unknown epoch") }
+		if v.knownDrawioCloneBoundary(buffer, v.releaseEpoch, v.pageEpoch, 0, intermediate) {
+			t.Fatal("later witness accepted different owner or unknown epoch")
+		}
 		v.drawCloneHistory[1] = saved
 	}
-	if v.knownDrawioCloneBoundary(buffer, v.releaseEpoch, v.pageEpoch, 0, "original") { t.Fatal("lookup accepted original text as later explicit-selection witness") }
+	if v.knownDrawioCloneBoundary(buffer, v.releaseEpoch, v.pageEpoch, 0, original) {
+		t.Fatal("lookup accepted original text as later explicit-selection witness")
+	}
 	slots := v.drawCloneHistory
 	v.Release()
-	if len(v.drawCloneHistory) != 0 { t.Fatal("history remains after release") }
-	for i, slot := range slots { if slot.buffer != nil || slot.beforeText != "" || slot.afterText != "" || slot.beforeIDs != nil || slot.afterIDs != nil { t.Fatal("Release retained view slot", i) } }
-	if v.beginDrawioCloneHistory(buffer, target.release, target.pageEpoch, 0, true) != nil { t.Fatal("history accepted after release") }
+	if len(v.drawCloneHistory) != 0 {
+		t.Fatal("history remains after release")
+	}
+	for i, slot := range slots {
+		if slot.buffer != nil || slot.beforeText != "" || slot.afterText != "" || slot.beforeIDs != nil || slot.afterIDs != nil {
+			t.Fatal("Release retained view slot", i)
+		}
+	}
+	if v.beginDrawioCloneHistory(buffer, target.release, target.pageEpoch, 0, true) != nil {
+		t.Fatal("history accepted after release")
+	}
 }

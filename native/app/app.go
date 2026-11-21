@@ -24,6 +24,7 @@ import (
 	"levnote.local/native/core/search"
 	"levnote.local/native/core/session"
 	"levnote.local/native/core/text"
+	"levnote.local/native/formats/code"
 	"levnote.local/native/modules"
 	"levnote.local/native/ui/editor"
 )
@@ -61,6 +62,8 @@ type Tab struct {
 	OutlineFactory           func(editor.Host) editor.OutlineSource
 	OutlineFactoryGeneration uint64
 	MatchedPlugin            plugins.Manifest
+	sourceLanguageRoute      uint64
+	sourceLanguageProfile    code.StructureProfile
 	OriginalPath             string
 	View                     editor.View
 	Conflict                 bool
@@ -104,10 +107,14 @@ type App struct {
 	engineCleanupReported                           bool
 	exportJob                                       *exportJob
 	exportGeneration                                uint64
+	draftRecoveryGeneration                         uint64
+	prepareSessionState                             func(string, session.Snapshot) (preparedSessionState, error)
 	exportStatuses                                  map[string]exportEngineStatus
 	modalDepth                                      int
 	openDocuments                                   openDocumentPicker
 	commandPalette                                  commandPaletteState
+	sourceLanguage                                  sourceLanguageState
+	sourceLanguageHooks                             *sourceLanguageHooks
 	Tabs                                            []*Tab
 	Active                                          int
 	revealedTabID                                   int
@@ -252,6 +259,7 @@ func New(configDir string) *App {
 		Dark: true, FontSize: 16, SidebarWidth: 228, LineNumbers: true,
 		Expanded: map[string]bool{}, configDir: configDir,
 		adapters: modules.Builtins(), pluginManager: manager,
+		sourceLanguage:    sourceLanguageState{session: 1, status: sourceLanguageIdle},
 		watches:           map[string]context.CancelFunc{},
 		updateWaitTimeout: 5 * time.Second,
 		shutdownDone:      make(chan struct{}),
@@ -646,6 +654,7 @@ func (a *App) recoverDraft(title, content string) error {
 		name += ".txt"
 	}
 	if old := a.Current(); old != nil {
+		a.retireSourceLanguage(old)
 		a.invalidateTabExport(old, "恢复草稿，已取消导出")
 		// Recovery can activate a new tab without the ordinary selection path.
 		// A readonly scene must be reactivatable when the user returns to it.
@@ -679,8 +688,8 @@ func (a *App) reopenWithEncoding(t *Tab, encoding document.Encoding) bool {
 	a.disposePresentation(t)
 	t.Doc = d
 	a.invalidateDiskChecks()
-	t.Editor.Buffer = d.Buffer
-	t.Editor.ReadOnly = d.ReadOnly
+	t.Editor.SetBuffer(d.Buffer)
+	t.Editor.SetReadOnly(d.ReadOnly)
 	t.ByteInspector = false
 	t.CanReinterpret = false
 	t.Warning = fmt.Sprintf("已按明确选择的 %s 编码打开。", encoding)
@@ -1001,7 +1010,7 @@ func (a *App) Save(t *Tab, as bool) bool {
 			return doc.Save()
 		}
 	}
-	var err error
+	var destination string
 	if as || t.Doc.IsNew || t.Doc.Path == "" {
 		path, dialogErr := a.chooseSavePath(t)
 		if dialogErr != nil {
@@ -1022,11 +1031,9 @@ func (a *App) Save(t *Tab, as bool) bool {
 			a.report(errors.New("另存为前文档或格式已变化，请重新保存"))
 			return false
 		}
-		err = save(t.Doc, path)
-	} else {
-		err = save(t.Doc, "")
+		destination = path
 	}
-	if err != nil {
+	if err := save(t.Doc, destination); err != nil {
 		if errors.Is(err, document.ErrConflict) {
 			t.Conflict = true
 		}
@@ -1037,7 +1044,7 @@ func (a *App) Save(t *Tab, as bool) bool {
 				// The flush/ownership barriers above succeeded. Rebind only the
 				// presentation metadata; the original saved/disk baseline and
 				// current source-buffer draft remain owned by the document.
-				a.reconcileSavedMetadata(t, oldPath, oldMode)
+				a.reconcileSavedMetadata(t, oldPath, oldMode, true)
 				a.markPersistPending()
 				state = "文档路径/新建/只读元数据已采用目标，保存基线未确认"
 			}
@@ -1047,9 +1054,8 @@ func (a *App) Save(t *Tab, as bool) bool {
 		}
 		return false
 	}
-	t.Name = filepath.Base(t.Doc.Path)
 	t.Conflict = false
-	a.reconcileSavedMetadata(t, oldPath, oldMode)
+	a.reconcileSavedMetadata(t, oldPath, oldMode, destination != "")
 	a.Message = "已保存 " + t.Name
 	a.Persist()
 	return true
@@ -1058,9 +1064,17 @@ func (a *App) Save(t *Tab, as bool) bool {
 // reconcileSavedMetadata also serves SaveAs failures after target adoption.
 // It is not a success transition: it never clears conflict, marks the document
 // clean, persists a clean receipt, or reports completion.
-func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string) {
-	t.Name = filepath.Base(t.Doc.Path)
-	t.Editor.ReadOnly = t.Doc.ReadOnly
+func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string, forceLanguageRetirement bool) {
+	savedName := filepath.Base(t.Doc.Path)
+	owner := a.sourceLanguage.owner
+	// Check the language seal before name and readonly reconciliation can
+	// overwrite evidence of a changed owner. The disk baseline is independent.
+	if forceLanguageRetirement || owner != nil && owner.tab == t &&
+		(t.Name != savedName || t.Editor.ReadOnly != t.Doc.ReadOnly || a.sourceLanguageOwnerValid(owner, false) != nil) {
+		a.retireSourceLanguage(t)
+	}
+	t.Name = savedName
+	t.Editor.SetReadOnly(t.Doc.ReadOnly)
 	a.invalidateDiskChecks()
 	if !strings.EqualFold(oldPath, t.Doc.Path) {
 		a.invalidateTabExport(t, "文档路径或格式已变化，已取消导出")
@@ -1105,30 +1119,42 @@ func (a *App) CloseTab(index int) bool {
 	path, omission := closedFilePath(t)
 	remaining, active := tabsAfterRemoval(a.Tabs, a.Active, index)
 	removed := false
-	if !a.commitClose(remaining, active, func() {
+	committedWithWarning := false
+	if !a.commitCloseWithOutcome(remaining, active, func() {
 		if index < len(a.Tabs) && a.Tabs[index] == t {
 			a.removeTab(index)
 			removed = !a.tabIsOpen(t)
 		}
-	}) || !removed {
+	}, &committedWithWarning) || !removed {
 		return false
 	}
 	if path != "" {
 		a.recordClosedFile(path)
-	} else if omission != "" {
+	} else if omission != "" && !committedWithWarning {
 		a.Message = omission
 	}
 	return true
 }
 func (a *App) prepareClose(t *Tab) (discarded bool, ok bool) {
+	owner := sealSessionTab(t, false)
+	active, config := a.Active, a.configDir
 	if !a.flushTab(t, "关闭标签") {
+		return false, false
+	}
+	if !owner() || a.Active != active || a.configDir != config || a.shuttingDown.Load() {
+		a.report(errCloseOwnerChanged)
 		return false, false
 	}
 	if t.isBinary() {
 		return false, true
 	}
 	if t.Doc.Dirty() || t.Doc.IsNew {
+		valid := a.sessionSeal(true)
 		decision, err := a.chooseCloseAction(t)
+		if !valid() {
+			a.report(errCloseOwnerChanged)
+			return false, false
+		}
 		if err != nil {
 			a.report(err)
 			return false, false
@@ -1172,6 +1198,7 @@ func (a *App) releaseTabPresentation(t *Tab, keepBinarySnapshot bool) {
 	if t == nil {
 		return
 	}
+	a.retireSourceLanguage(t)
 	a.cancelPreview(t)
 	if keepBinarySnapshot && t.isBinary() {
 		t.BinaryGeneration++
@@ -1230,40 +1257,88 @@ func (a *App) CanClose() bool {
 		return false
 	}
 	defer a.deferExportDelivery()()
-	discarded := make([]bool, len(a.Tabs))
-	for i, t := range a.Tabs {
+	tabs := append([]*Tab(nil), a.Tabs...)
+	active, config := a.Active, a.configDir
+	discarded := make([]bool, len(tabs))
+	processed := make([]func() bool, 0, len(tabs))
+	for i, t := range tabs {
 		var ok bool
 		discarded[i], ok = a.prepareClose(t)
 		if !ok {
 			return false
 		}
-	}
-	if err := a.persistQuitTabs(a.Tabs, a.Active, discarded); err != nil {
-		return false
-	}
-	if err := a.closeEngineExport(); err != nil {
-		a.report(fmt.Errorf("关闭未完成：导出进程清理失败：%w", err))
-		// Quit persistence may have recorded explicit discard decisions. Since
-		// cleanup refused closing, restore recovery for the still-open live tabs.
-		// A second persistence failure is independently reported and retryable.
-		if a.persistTabs(a.Tabs, a.Active, "关闭已取消：恢复当前草稿失败") != nil {
-			a.markPersistPending()
+		if len(a.Tabs) != len(tabs) || a.Active != active || a.configDir != config {
+			a.report(errCloseOwnerChanged)
+			return false
 		}
-		return false
-	}
-	func() {
-		a.cancelReopen()
-		for len(a.Tabs) > 0 {
-			a.removeTab(len(a.Tabs) - 1)
+		for j, expected := range tabs {
+			if a.Tabs[j] != expected {
+				a.report(errCloseOwnerChanged)
+				return false
+			}
 		}
-	}()
-	return true
+		for _, unchanged := range processed {
+			if !unchanged() {
+				a.report(errCloseOwnerChanged)
+				return false
+			}
+		}
+		processed = append(processed, sealSessionTab(t, true))
+	}
+	return a.closePreparedSession(discarded)
 }
 func (a *App) commitClose(remaining []*Tab, active int, remove func()) bool {
-	if err := a.persistTabs(remaining, active, "关闭未完成：无法持久化恢复状态"); err != nil {
+	return a.commitCloseWithOutcome(remaining, active, remove, nil)
+}
+
+func (a *App) commitCloseWithOutcome(remaining []*Tab, active int, remove func(), committedWarning *bool) bool {
+	valid := a.sessionSeal(true)
+	builder, err := a.captureSessionTabs(remaining, active, nil, "关闭标签")
+	if err != nil {
 		return false
 	}
+	if !valid() {
+		a.report(errCloseOwnerChanged)
+		return false
+	}
+	snapshot, err := builder.Snapshot()
+	if err != nil {
+		a.reportPersistFailure(err)
+		return false
+	}
+	path := filepath.Join(a.configDir, "session.json")
+	prepared, err := a.prepareCloseSnapshot(path, snapshot)
+	if err != nil {
+		a.reportPersistFailure(fmt.Errorf("关闭未完成：无法准备恢复状态；现有恢复快照保持不变：%w", err))
+		return false
+	}
+	if !valid() {
+		err = closePublicationResult(path, errCloseOwnerChanged, prepared.Abort())
+		a.reportPersistFailure(err)
+		return false
+	}
+	check := func() error {
+		if !valid() {
+			return errCloseOwnerChanged
+		}
+		return nil
+	}
+	err = closePublicationResult(path, prepared.Commit(check), prepared.Abort())
+	var publication *document.StatePublicationError
+	if err != nil && (!errors.As(err, &publication) || !publication.Committed) {
+		a.reportPersistFailure(fmt.Errorf("关闭未完成：恢复状态未发布；现有恢复快照保持不变：%w", err))
+		return false
+	}
+	a.lastPersistError = ""
 	remove()
+	a.cancelAutosave()
+	a.persistPending = false
+	if err != nil {
+		a.report(fmt.Errorf("关闭已提交，恢复文件已发布：%w", err))
+		if committedWarning != nil {
+			*committedWarning = true
+		}
+	}
 	return true
 }
 func tabsAfterRemoval(tabs []*Tab, active, index int) ([]*Tab, int) {
@@ -1328,8 +1403,8 @@ func (a *App) finishTextReload(t *Tab, message string) {
 	a.invalidateTabExport(t, "文档已重新载入，已取消导出")
 	a.invalidateDiskChecks()
 	a.disposePresentation(t)
-	t.Editor.Buffer = t.Doc.Buffer
-	t.Editor.ReadOnly = t.Doc.ReadOnly
+	t.Editor.SetBuffer(t.Doc.Buffer)
+	t.Editor.SetReadOnly(t.Doc.ReadOnly)
 	t.Conflict = false
 	t.Mode = "source"
 	a.configureTab(t)

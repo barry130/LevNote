@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -21,6 +22,28 @@ func TestEnginePackagePoisonRefusesTransitionsButLeavesInspectionAvailable(t *te
 	}
 	a := newTestApp(t, config)
 	a.enginePoison = os.ErrClosed
+
+	if runtime.GOOS != "windows" {
+		const unavailable = "当前平台不支持本地引擎包仓库"
+		if a.packageManager != nil || a.packageInitErr == nil || !strings.Contains(a.packageInitErr.Error(), unavailable) {
+			t.Fatalf("expected platform refusal, manager=%v err=%v", a.packageManager, a.packageInitErr)
+		}
+		for _, action := range []packageAction{packageRepairAction, packageActivateAction, packageListAction} {
+			a.startPackageWork(action, enginecatalog.MarkdownHTML, "")
+			if a.packageJob != nil || a.Message != "本地引擎包仓库不可用" {
+				t.Fatalf("%s escaped unavailable repository: job=%v message=%q", action, a.packageJob, a.Message)
+			}
+		}
+		a.ShowPlugins, a.showEnginePackages = true, true
+		tester := ui.NewTester(a.View, 760, 480)
+		if !tester.HasText("引擎包仓库不可用：" + a.packageInitErr.Error()) {
+			t.Fatalf("platform refusal is missing from the panel: %q", tester.Texts())
+		}
+		return
+	}
+	if a.packageManager == nil || a.packageInitErr != nil {
+		t.Fatalf("Windows package manager unavailable: %v", a.packageInitErr)
+	}
 
 	// A poisoned runner cannot safely perform a transition: it must be a
 	// visible refusal rather than a package job that is guaranteed to fail.

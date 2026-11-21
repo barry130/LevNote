@@ -58,6 +58,11 @@ type ListItem struct {
 	Text      string
 	Inline    []InlineSpan
 	Task      *TaskMarker
+	// Depth and Ordered describe the item's list nesting without losing its
+	// original byte ranges. Start is the literal ordered marker value.
+	Depth   int
+	Ordered bool
+	Start   int
 }
 
 type DocBlockAttrs struct {

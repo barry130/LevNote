@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -15,10 +16,12 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/core/document"
+	"levnote.local/native/core/enginecatalog"
 	"levnote.local/native/core/engineipc"
 	"levnote.local/native/core/engineruntime"
 	"levnote.local/native/core/session"
 	"levnote.local/native/core/text"
+	"levnote.local/native/ui/editor"
 )
 
 type exportCall struct {
@@ -46,6 +49,8 @@ type controlledExporter struct {
 func newControlledExporter() *controlledExporter {
 	return &controlledExporter{calls: make(chan *exportCall, 8), closed: make(chan struct{})}
 }
+func (*controlledExporter) testEnginePlatform() (string, string) { return "windows", "amd64" }
+
 func (f *controlledExporter) Export(ctx context.Context, id engineipc.EngineID, source engineruntime.Source) (engineruntime.Result, error) {
 	call := &exportCall{ctx: ctx, id: id, source: source, response: make(chan exportOutcome, 1)}
 	f.calls <- call
@@ -131,6 +136,28 @@ type exportForbiddenView struct {
 func (v *exportForbiddenView) Export(string) ([]byte, error) {
 	v.exports++
 	return []byte("forbidden fallback"), nil
+}
+
+func TestWorkerExportRuntimeDescriptorAdmission(t *testing.T) {
+	a := newTestApp(t, t.TempDir())
+	for _, capability := range []editor.ExportEngine{
+		{ID: string(enginecatalog.MarkdownHTML), Format: "html"},
+		{ID: string(enginecatalog.MindmapSVG), Format: "svg"},
+		{ID: string(enginecatalog.DrawioSVG), Format: "svg", RequiresView: true},
+	} {
+		descriptor, err := a.exportDescriptor(capability)
+		if runtime.GOOS == "windows" && runtime.GOARCH == "amd64" {
+			if err != nil || string(descriptor.Engine) != capability.ID || descriptor.SourceMaxBytes <= 0 {
+				t.Fatalf("%s: real Windows amd64 descriptor=%+v err=%v", capability.ID, descriptor, err)
+			}
+		} else if err == nil || !strings.Contains(err.Error(), "当前平台不支持此导出程序包") {
+			t.Fatalf("%s: runtime platform %s/%s was not refused: %+v, %v", capability.ID, runtime.GOOS, runtime.GOARCH, descriptor, err)
+		}
+	}
+	_, ok := a.matchEnginePackage(enginecatalog.MindmapPreview, "mindmap-scene-v1")
+	if ok != (runtime.GOOS == "windows" && runtime.GOARCH == "amd64") {
+		t.Fatalf("preview admission=%v for runtime platform %s/%s", ok, runtime.GOOS, runtime.GOARCH)
+	}
 }
 
 func TestWorkerExportActualDescriptorAllModesAndPreservesSource(t *testing.T) {
@@ -675,7 +702,9 @@ func TestWorkerExportFailedCloseRestoresDiscardedRecovery(t *testing.T) {
 			}
 			newTab := a.appendTab(document.New("new dirty🙂"), "new.md", "", false, false)
 			a.Persist()
+			h := installAutosaveClock(a)
 			originalConfig := a.configDir
+			originalRecovery := mustReadFile(t, filepath.Join(originalConfig, "session.json"))
 			f.closeErr = errors.New("cleanup still active")
 			if secondaryFailure {
 				f.onClose = func() {
@@ -698,9 +727,25 @@ func TestWorkerExportFailedCloseRestoresDiscardedRecovery(t *testing.T) {
 			if len(a.Tabs) != 2 || !existing.Doc.Dirty() || newTab.Doc.Buffer.String() != "new dirty🙂" {
 				t.Fatal("refused close disposed live drafts")
 			}
+			if got := mustReadFile(t, filepath.Join(originalConfig, "session.json")); !bytes.Equal(got, originalRecovery) {
+				t.Fatal("failed cleanup published discard before the close committed")
+			}
+			beforeRepair, issues := session.Load(filepath.Join(originalConfig, "session.json"))
+			if len(issues) != 0 || len(beforeRepair.Tabs) != 2 {
+				t.Fatalf("pre-repair recovery was lost: %#v, %v", beforeRepair, issues)
+			}
+			for i, want := range []string{existing.Doc.Buffer.String(), newTab.Doc.Buffer.String()} {
+				restored, err := session.RestoreTab(beforeRepair.Tabs[i])
+				if err != nil || restored.Document.Path != "" || !restored.Document.IsNew || restored.Document.Buffer.String() != want {
+					t.Fatalf("pre-repair real restore lost draft %d: %v", i, err)
+				}
+			}
 			if secondaryFailure {
-				if !a.persistPending || !strings.Contains(strings.Join(a.Issues, "\n"), "恢复当前草稿失败") || !strings.Contains(strings.Join(a.Issues, "\n"), "清理失败") {
-					t.Fatal("secondary recovery failure not explicit/retryable")
+				if !strings.Contains(strings.Join(a.Issues, "\n"), "清理失败") || strings.Contains(strings.Join(a.Issues, "\n"), "恢复当前草稿失败") {
+					t.Fatal("cleanup failure was hidden or required a compensating recovery write")
+				}
+				if a.persistPending || len(h.timers) != 0 {
+					t.Fatalf("unchanged state was rearmed after secondary recovery failure: pending=%v timers=%d", a.persistPending, len(h.timers))
 				}
 				a.configDir = originalConfig
 				a.Persist()

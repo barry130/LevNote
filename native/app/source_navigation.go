@@ -84,7 +84,7 @@ func (a *App) sourceCompositionActive(t *Tab) bool {
 	if t == nil {
 		return false
 	}
-	if _, composing := t.Editor.MarkedRange(); composing {
+	if t.Editor.CompositionActive() {
 		return true
 	}
 	if composer, ok := t.View.(editor.Composer); ok {

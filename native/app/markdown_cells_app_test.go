@@ -140,24 +140,27 @@ func TestMarkdownCellsRealAdapterStagedSessionHeaderBodyUndoRedoSaveReopen(t *te
 		t.Fatalf("staged header state is not fully visible: %#v", tester.Texts())
 	}
 
-	// Session persistence captures the host document. It must neither commit
-	// nor claim to recover this view-local staged value.
+	// Confirm native input in the independent cell, then capture it alongside
+	// the still-clean original Markdown document.
+	tester.Type("称谓")
+	tester.Frame()
 	if err := a.persistTabs(a.Tabs, a.Active, "接受单元格草稿持久化边界测试"); err != nil {
 		t.Fatalf("session snapshot failed while a cell draft was staged: %v", err)
 	}
 	snapshot, issues := session.Load(filepath.Join(a.configDir, "session.json"))
-	if len(issues) != 0 || len(snapshot.Tabs) != 1 {
+	if len(issues) != 0 || len(snapshot.Tabs) != 2 || snapshot.Active != 0 {
 		t.Fatalf("session snapshot while staged = %#v issues=%#v", snapshot, issues)
 	}
 	if snapshot.Tabs[0].Draft != nil || snapshot.Tabs[0].Path != path {
-		t.Fatalf("staged cell value was incorrectly captured: %#v", snapshot.Tabs[0])
+		t.Fatalf("session capture changed the main document record: %#v", snapshot.Tabs[0])
 	}
-	sessionBytes := mustReadFile(t, filepath.Join(a.configDir, "session.json"))
-	if bytes.Contains(sessionBytes, []byte("称谓")) {
-		t.Fatal("session file silently captured the uncommitted cell value")
+	copy := snapshot.Tabs[1]
+	if copy.Path != "" || copy.OriginalPath != path || copy.Draft == nil || *copy.Draft != "称谓" || !strings.HasSuffix(copy.Title, ".txt") {
+		t.Fatalf("confirmed cell draft is missing its independent recovery record: %#v", copy)
 	}
-	if buffer.String() != markdownTablesBody || tab.Doc.Dirty() {
-		t.Fatal("session persistence committed the staged cell value")
+	if buffer.String() != markdownTablesBody || tab.Doc.Dirty() || buffer.Version() != version ||
+		buffer.Selection() != selection || buffer.History() != history {
+		t.Fatal("session persistence committed the staged cell value or changed host state")
 	}
 
 	if err := tester.Click(markdownCellFinishLabel); err != nil {

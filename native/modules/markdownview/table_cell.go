@@ -373,12 +373,21 @@ func (v *View) openTableCellDraft(context tableCellContext, target tableCellTarg
 	draft.Label = v.cellEdit.label
 	draft.OnError = v.setDraftError
 	draft.OnChange = func() {
-		if v.draft != draft || v.cellEdit != nil {
+		if v.draft != draft {
 			return
 		}
-		_ = v.syncDraft()
+		v.observeCellDraftConfirmation(draft)
 	}
 	v.draft = draft
+	v.recoveryDraft = draft
+	v.recoverySnapshot = draft.Buffer.Snapshot()
+	v.recoverySnapshotBytes = draft.Buffer.LenBytes()
+	v.recoverySnapshotSet = true
+	v.recoveryObservedSelection = draft.Buffer.Selection()
+	v.recoveryConfirmedSelection = draft.Buffer.Selection()
+	v.recoveryVersion = draft.Buffer.Version()
+	v.recoveryMarked, v.recoveryMarkedActive = draft.MarkedRange()
+	v.recoveryOverflow = false
 	draft.Focus()
 	return nil
 }

@@ -655,4 +655,42 @@ func TestPluginRootsRejectSymlinks(t *testing.T) {
 	if err := SaveSettings(link, Settings{Disabled: map[string]bool{}}); err == nil {
 		t.Fatal("settings save followed a symlinked root")
 	}
+	assertRefused := func(root string) {
+		t.Helper()
+		if settings, err := LoadSettings(root); err == nil || !strings.Contains(err.Error(), "symbolic link") || settings.Disabled != nil {
+			t.Fatalf("LoadSettings(%q) = %#v, %v; want symlink refusal", root, settings, err)
+		}
+	}
+	assertRefused(link) // The target has no settings file yet.
+	if err := SaveSettings(target, Settings{Disabled: map[string]bool{"markdown": true}}); err != nil {
+		t.Fatal(err)
+	}
+	assertRefused(link)
+	assertRefused(link + string(filepath.Separator))
+	if err := SaveSettings(link+string(filepath.Separator), Settings{}); err == nil {
+		t.Fatal("settings save followed a symlinked root with a trailing separator")
+	}
+	if settings, err := LoadSettings(target); err != nil || !reflect.DeepEqual(settings.Disabled, map[string]bool{"markdown": true}) {
+		t.Fatalf("settings under ordinary root = %#v, %v", settings, err)
+	}
+}
+
+func TestLoadSettingsAllowsAbsentConfiguration(t *testing.T) {
+	base := t.TempDir()
+	missing := filepath.Join(base, "new-config")
+	for _, root := range []string{base, missing} {
+		settings, err := LoadSettings(root)
+		if err != nil || settings.Disabled == nil || len(settings.Disabled) != 0 {
+			t.Fatalf("LoadSettings(%q) = %#v, %v; want initialized empty settings", root, settings, err)
+		}
+	}
+	if _, err := os.Lstat(missing); !os.IsNotExist(err) {
+		t.Fatalf("LoadSettings unexpectedly created the missing root: %v", err)
+	}
+	if err := SaveSettings(missing, Settings{Disabled: map[string]bool{"markdown": true}}); err != nil {
+		t.Fatal(err)
+	}
+	if settings, err := LoadSettings(missing); err != nil || !reflect.DeepEqual(settings.Disabled, map[string]bool{"markdown": true}) {
+		t.Fatalf("initialized settings = %#v, %v", settings, err)
+	}
 }

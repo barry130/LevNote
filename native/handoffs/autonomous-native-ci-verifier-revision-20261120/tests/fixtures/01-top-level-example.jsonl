@@ -1,0 +1,6 @@
+{"Action":"start","Package":"levnote.local/native/app"}
+{"Action":"run","Package":"levnote.local/native/app","Test":"Example"}
+{"Action":"pass","Package":"levnote.local/native/app","Test":"Example"}
+{"Action":"run","Package":"levnote.local/native/app","Test":"ExampleWidget"}
+{"Action":"pass","Package":"levnote.local/native/app","Test":"ExampleWidget"}
+{"Action":"pass","Package":"levnote.local/native/app"}

@@ -125,6 +125,8 @@ func TestCopyIssuesManyRecordsPreserveFamilyHeadersAndExactOmissions(t *testing.
 	if !a.Select(0) {
 		t.Fatal("fixture tab was not activated")
 	}
+	// The budget oracle uses exactly 200 seeded issues on every host.
+	a.Issues = make([]string, 0, 200)
 	for i := 0; i < 200; i++ {
 		tab.ViewWarnings = append(tab.ViewWarnings, strings.Repeat("W", 2047))
 		a.SearchIssues = append(a.SearchIssues, search.FileIssue{Path: strings.Repeat("P", 640), Reason: strings.Repeat("R", 640), Detail: strings.Repeat("D", 640)})
@@ -160,6 +162,8 @@ func TestCopyIssuesManyOversizedRecordsSeparateOmissionAndTruncation(t *testing.
 		t.Fatal("fixture tab was not activated")
 	}
 	giant := strings.Repeat("甲🙂乙", 100000)
+	// The budget oracle uses exactly 200 seeded issues on every host.
+	a.Issues = make([]string, 0, 200)
 	for i := 0; i < 200; i++ {
 		tab.ViewWarnings = append(tab.ViewWarnings, giant)
 		a.SearchIssues = append(a.SearchIssues, search.FileIssue{Path: giant, Reason: giant, Detail: giant})
@@ -191,6 +195,8 @@ func TestCopyIssuesKeepsEveryShortRecordWithoutFalseOmissions(t *testing.T) {
 	if !a.Select(0) {
 		t.Fatal("fixture tab was not activated")
 	}
+	// The budget oracle uses exactly 200 seeded issues on every host.
+	a.Issues = make([]string, 0, 200)
 	for i := 0; i < 200; i++ {
 		tab.ViewWarnings = append(tab.ViewWarnings, fmt.Sprintf("warning-%03d-甲🙂", i))
 		a.SearchIssues = append(a.SearchIssues, search.FileIssue{Path: fmt.Sprintf("path-%03d", i), Reason: "reason", Detail: "detail🙂"})
@@ -298,6 +304,7 @@ func TestCopyIssuesDoesNotAllocateWholeOversizedInputs(t *testing.T) {
 
 func TestCopyIssuesResamplesTimeAndWaitsForWriteAcknowledgement(t *testing.T) {
 	a := newTestApp(t, t.TempDir())
+	issuesBefore := len(a.Issues)
 	a.Message = "before copy"
 	var first string
 	a.copyIssues(func(value string) error {
@@ -334,7 +341,7 @@ func TestCopyIssuesResamplesTimeAndWaitsForWriteAcknowledgement(t *testing.T) {
 	if err != nil || !secondTime.After(firstTime) || secondTime.Before(before) || secondTime.After(after) {
 		t.Fatalf("second export time is stale/outside copy interval: %q, %v", stamp, err)
 	}
-	if !strings.Contains(a.Message, "explicit second-write failure") || len(a.Issues) != 1 || !strings.Contains(a.Issues[0], "复制问题清单失败") {
+	if !strings.Contains(a.Message, "explicit second-write failure") || len(a.Issues) != issuesBefore+1 || !strings.Contains(a.Issues[issuesBefore], "复制问题清单失败") {
 		t.Fatal("second failed write was not explicit and nonrecursive")
 	}
 }

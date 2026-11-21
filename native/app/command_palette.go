@@ -39,6 +39,17 @@ var workbenchCommands = []workbenchCommand{
 	{"navigation.documents", "导航：搜索已打开文档", "open documents tabs switch", "Ctrl+P", func(a *App) bool { return a.Current() != nil }, func(a *App) { a.openDocumentPicker() }},
 	{"navigation.line", "导航：转到行号", "go to line column", "Ctrl+G", commandHasText, func(a *App) { a.ShowPlugins = false; a.openGoToLine() }},
 	{"navigation.find", "编辑：查找与替换", "find search replace", "Ctrl+F", commandHasText, func(a *App) { a.ShowPlugins = false; a.openFind() }},
+	{"fold.current", "编辑：折叠当前位置", "fold collapse current block", "", sourceFoldCommandAvailable, func(a *App) { a.runSourceFoldCommand(foldCurrentPosition) }},
+	{"fold.unfoldCurrent", "编辑：展开当前位置", "unfold expand current block", "", sourceFoldCommandAvailable, func(a *App) { a.runSourceFoldCommand(unfoldCurrentPosition) }},
+	{"fold.unfoldAll", "编辑：展开全部", "unfold expand all", "", sourceFoldCommandAvailable, func(a *App) { a.runSourceFoldCommand(unfoldEverything) }},
+	{"fold.refresh", "编辑：重新分析折叠", "fold refresh reanalyze", "", sourceFoldCommandAvailable, func(a *App) { a.runSourceFoldCommand(reanalyzeFolds) }},
+	{"language.analyze", "语言：分析当前文档", "language analyze diagnostics Go JSON syntax", "", languageReadCommandAvailable, func(a *App) { a.runSourceLanguageCommand("diagnostics") }},
+	{"language.symbols", "语言：转到文档符号", "language symbols Go JSON", "", languageReadCommandAvailable, func(a *App) { a.runSourceLanguageCommand("symbols") }},
+	{"language.definition", "语言：转到本文件定义", "language definition Go", "", languageGoCommandAvailable, func(a *App) { a.runSourceLanguageCommand("definition") }},
+	{"language.references", "语言：查找本文件引用", "language references Go", "", languageGoCommandAvailable, func(a *App) { a.runSourceLanguageCommand("references") }},
+	{"language.info", "语言：查看符号信息", "language info declaration documentation Go", "", languageGoCommandAvailable, func(a *App) { a.runSourceLanguageCommand("info") }},
+	{"language.cancel", "语言：取消当前分析", "language cancel", "", languageCancelCommandAvailable, func(a *App) { a.runSourceLanguageCancel() }},
+
 	{"view.source", "视图：源码", "source code", "", commandHasView, func(a *App) { a.ShowPlugins = false; a.setMode(a.Current(), "source") }},
 	{"view.preview", "视图：阅读与编辑", "preview read edit", "", commandHasView, func(a *App) { a.ShowPlugins = false; a.setMode(a.Current(), "preview") }},
 	{"view.split", "视图：分屏", "split preview source", "", commandHasView, func(a *App) { a.ShowPlugins = false; a.setMode(a.Current(), "split") }},
@@ -71,7 +82,12 @@ func (a *App) commandPaletteAllowed() error {
 	if a.shuttingDown.Load() || a.restoring || a.modalDepth > 0 {
 		return errors.New("请先结束当前对话框或工作区恢复，再打开命令面板")
 	}
-	if a.openDocuments.composing || a.findCompositionActive() || a.GoToLineComposing || a.sourceCompositionActive(a.Current()) {
+	// This pure input-only check also sees a first refused native preedit,
+	// before any focus, flush, palette close, or command side effect.
+	if err := a.sourceLanguageInputError(); err != nil {
+		return err
+	}
+	if a.commandPalette.composing || a.openDocuments.composing || a.findCompositionActive() || a.GoToLineComposing || a.sourceCompositionActive(a.Current()) {
 		return errors.New("请先完成或取消输入法组合，再打开命令面板")
 	}
 	return nil
@@ -79,13 +95,17 @@ func (a *App) commandPaletteAllowed() error {
 
 func (a *App) openCommandPalette() bool {
 	p := &a.commandPalette
-	if p.open {
-		p.queryHandle.Focus()
-		return true
-	}
 	if err := a.commandPaletteAllowed(); err != nil {
 		a.report(err)
 		return false
+	}
+	if p.open {
+		if !a.commandPaletteCurrent(p.generation) {
+			a.closeCommandPalette()
+			return false
+		}
+		p.queryHandle.Focus()
+		return true
 	}
 	origin := a.Current()
 	if origin != nil && !a.flushTab(origin, "打开命令面板") {
@@ -162,20 +182,29 @@ func (a *App) processCommandPalette() {
 		a.closeCommandPalette()
 		return
 	}
-	id, close := p.pendingID, p.pendingClose
-	p.pendingID, p.pendingClose = "", false
+	// Do not consume close/execute intent until every input owner has passed
+	// its pure admission check. In particular a markless first-refusal must
+	// retain the original editor's Escape/final-text route and the palette's
+	// exact pending action/list identity.
 	if p.composing {
 		return
 	}
+	if err := a.commandPaletteAllowed(); err != nil {
+		if a.commandPaletteCurrent(p.generation) {
+			// Drop this refused action so it cannot fire automatically after the
+			// source owner later settles; keep the same open palette/list state.
+			p.pendingID, p.pendingClose = "", false
+			p.message = err.Error()
+		}
+		return
+	}
+	id, close := p.pendingID, p.pendingClose
+	p.pendingID, p.pendingClose = "", false
 	if close {
 		a.closeCommandPalette()
 		return
 	}
 	if id == "" {
-		return
-	}
-	if err := a.commandPaletteAllowed(); err != nil {
-		p.message = err.Error()
 		return
 	}
 	for _, command := range workbenchCommands {
@@ -257,7 +286,13 @@ func (a *App) commandPaletteDialog(c *ui.Context) {
 				}
 			})
 		if panel.Shortcut(ui.Cmd|ui.Shift, ui.KeyP) || panel.Shortcut(0, ui.KeyF1) {
-			p.queryHandle.Focus()
+			if err := a.commandPaletteAllowed(); err != nil {
+				if a.commandPaletteCurrent(generation) {
+					p.message = err.Error()
+				}
+			} else if a.commandPaletteCurrent(generation) {
+				p.queryHandle.Focus()
+			}
 		}
 		ui.Column(c).Fill().Padding(14).Gap(9).Children(func() {
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {

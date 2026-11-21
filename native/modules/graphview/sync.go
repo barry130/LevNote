@@ -48,6 +48,7 @@ func (v *view) sameSyncOwnership(ownership syncOwnership) bool {
 }
 
 func (v *view) ensureSynced(c *ui.Context) {
+	v.syncFieldSearchOwner()
 	if v.host.Buffer == nil {
 		v.clearParsedCache()
 		v.syncFailed = true

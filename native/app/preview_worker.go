@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"runtime"
 	"sync"
 
 	"levnote.local/native/core/document"
@@ -116,7 +115,7 @@ func (a *App) beginScene(t *Tab, owner editor.View, request editor.SceneRequest,
 		t.Adapter == nil || t.Adapter.SceneEngine == nil || *t.Adapter.SceneEngine != request.Capability {
 		return nil, errors.New("预览所属文档或格式已变化，请重新进入阅读视图")
 	}
-	descriptor, ok := enginecatalog.Match(enginecatalog.EngineID(request.Capability.ID), request.Capability.Format, runtime.GOOS, runtime.GOARCH)
+	descriptor, ok := a.matchEnginePackage(enginecatalog.EngineID(request.Capability.ID), request.Capability.Format)
 	if !ok || descriptor.Engine != enginecatalog.MindmapPreview {
 		return nil, errors.New("此格式没有可用的原生场景引擎")
 	}

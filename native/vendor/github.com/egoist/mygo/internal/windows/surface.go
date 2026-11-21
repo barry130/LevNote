@@ -119,6 +119,9 @@ type candidateForm struct {
 
 type surface struct {
 	clientComposition platform.InputComposition
+	inputRequest      uint64 // SetTextInput reentry, including equal-client metadata
+	inputEpoch        uint64 // attachment/activation transitions, never caret-only updates
+	inputTransition   bool
 	w                 *window
 	hwnd              uintptr
 
@@ -569,32 +572,55 @@ func cursorHandle(c platform.Cursor) uintptr {
 }
 
 func (s *surface) SetTextInput(t platform.TextInputState) {
-	// Without input methods, the window has no input context: keys type
-	// the layout's characters, as WM_CHAR, as winit's do.
-	active, caret := t.Active && !t.NoInputMethod, t.Caret
-	if s.input.Active && s.input.Client != t.Client {
-		s.clientComposition.Reset()
+	// Native notifications may synchronously install a successor. Mark the old
+	// scope unavailable first and check the request before every continuation.
+	s.inputRequest++
+	request := s.inputRequest
+	previous := s.input
+	active := t.Active && !t.NoInputMethod
+	scopeChange := s.inputTransition || previous.Client != t.Client || previous.Active != t.Active || previous.NoInputMethod != t.NoInputMethod
+	if scopeChange {
+		s.inputEpoch++
+		s.inputTransition = true
+		s.clientComposition.Invalidate()
+		s.reconvert = nil
+	}
+	if previous.Active && previous.Client != t.Client {
 		if himc, _, _ := procImmGetContext.Call(s.hwnd); himc != 0 {
 			procImmNotifyIME.Call(himc, niCompositionStr, cpsCancel, 0)
 			procImmReleaseContext.Call(s.hwnd, himc)
 		}
-		s.reconvert = nil
+		if s.inputRequest != request || s.w.closed {
+			return
+		}
 	}
-	s.input = t
 	if active != s.ime {
 		s.ime = active
 		if active {
 			procImmAssociateContextEx.Call(s.hwnd, 0, iaceDefault)
 		} else {
-			s.reconvert = nil
 			if himc, _, _ := procImmGetContext.Call(s.hwnd); himc != 0 {
 				procImmNotifyIME.Call(himc, niCompositionStr, cpsComplete, 0)
 				procImmReleaseContext.Call(s.hwnd, himc)
 			}
+			if s.inputRequest != request || s.w.closed {
+				return
+			}
 			procImmAssociateContextEx.Call(s.hwnd, 0, 0)
 		}
+		if s.inputRequest != request || s.w.closed {
+			return
+		}
 	}
-	s.caret = caret
+	s.input, s.caret = t, t.Caret
+	if scopeChange {
+		if active {
+			s.clientComposition.SetClient(t.Client)
+		} else {
+			s.clientComposition.SetClient(nil)
+		}
+	}
+	s.inputTransition = false
 	if active {
 		s.placeIME()
 	}
@@ -618,7 +644,13 @@ func (s *surface) placeIME() {
 }
 
 func (s *surface) send(ev platform.SurfaceEvent) bool {
-	if ev.Kind == platform.PointerDown || ev.Kind == platform.SurfaceBlur {
+	if ev.Kind == platform.SurfaceBlur {
+		s.inputRequest++
+		s.inputEpoch++
+		s.inputTransition = true
+		s.clientComposition.Invalidate()
+		s.reconvert = nil
+	} else if ev.Kind == platform.PointerDown {
 		s.clientComposition.Reset()
 	}
 	if !s.held.Track(ev) {
@@ -975,47 +1007,94 @@ func (s *surface) message(hwnd uintptr, m uint32, wp, lp uintptr) (uintptr, bool
 		s.send(platform.SurfaceEvent{Kind: platform.TextInput, Text: string(rune(c))})
 		return 0, true
 	case wmImeSetContext:
+		// IME deactivation is a hard scope boundary before DefWindowProc can
+		// synchronously send an old composition message back into this surface.
+		if wp == 0 {
+			s.inputRequest++
+			s.inputEpoch++
+			s.inputTransition = true
+			s.clientComposition.Invalidate()
+			s.reconvert = nil
+		} else if s.inputTransition && s.input.Active && s.ime {
+			s.inputTransition = false
+			s.clientComposition.SetClient(s.input.Client)
+		}
 		r, _, _ := procDefWindowProcW.Call(hwnd, uintptr(m), wp, lp&^iscShowUICompWindow)
 		return r, true
 	case wmImeStartComp:
-		s.placeIME()
+		if !s.inputTransition {
+			epoch, client := s.inputEpoch, s.input.Client
+			if client != nil {
+				handle := s.clientComposition.Start(client)
+				if !s.clientComposition.Current(handle, client) {
+					return 0, true
+				}
+			}
+			if epoch == s.inputEpoch && s.input.Client == client && !s.inputTransition && !s.w.closed {
+				s.placeIME()
+			}
+		}
 		return 0, true
 	case wmImeComposition:
+		if s.inputTransition {
+			return 0, true
+		}
+		epoch := s.inputEpoch
 		himc, _, _ := procImmGetContext.Call(hwnd)
 		if himc == 0 {
 			return 0, true
 		}
+		// RESULT precedes flagged COMP, even when the result is quarantined.
+		// A callback-created successor makes the remainder of this message stale.
 		if lp&gcsResultStr != 0 {
 			if text := imeString(himc, gcsResultStr); text != "" {
-				s.composed(platform.SurfaceEvent{Kind: platform.TextInput, Text: text})
+				if !s.composed(platform.SurfaceEvent{Kind: platform.TextInput, Text: text}) {
+					procImmReleaseContext.Call(hwnd, himc)
+					return 0, true
+				}
 			}
+		}
+		if epoch != s.inputEpoch || s.inputTransition || s.w.closed {
+			procImmReleaseContext.Call(hwnd, himc)
+			return 0, true
 		}
 		if lp&gcsCompStr != 0 {
 			text := imeString(himc, gcsCompStr)
 			pos, _, _ := procImmGetCompositionStrW.Call(himc, gcsCursorPos, 0, 0)
 			units := utf16.Encode([]rune(text))
 			caret := len(utf16.Decode(units[:min(int(pos), len(units))]))
-			s.composed(platform.SurfaceEvent{Kind: platform.TextComposition, Text: text, Caret: caret})
+			if !s.composed(platform.SurfaceEvent{Kind: platform.TextComposition, Text: text, Caret: caret}) {
+				procImmReleaseContext.Call(hwnd, himc)
+				return 0, true
+			}
+		}
+		if epoch != s.inputEpoch || s.inputTransition || s.w.closed {
+			procImmReleaseContext.Call(hwnd, himc)
+			return 0, true
 		}
 		if lp&(gcsResultStr|gcsCompStr) == 0 && imeString(himc, gcsCompStr) == "" {
-			// Microsoft's Japanese IME gives the composition up (Esc) with
-			// neither, rather than with an empty GCS_COMPSTR, before
-			// WM_IME_ENDCOMPOSITION, which would keep the marked text.
-			if c := s.input.Client; c != nil {
-				s.clientComposition.Cancel(c)
+			// The only explicit Windows Cancel; an empty flagged preedit above
+			// remains a real update and can restart a cancelled session.
+			if client := s.input.Client; client != nil {
+				s.cancelNativeComposition(client)
 			} else {
 				s.send(platform.SurfaceEvent{Kind: platform.TextComposition})
 			}
 		}
 		procImmReleaseContext.Call(hwnd, himc)
-		s.placeIME()
+		if epoch == s.inputEpoch && !s.inputTransition && !s.w.closed {
+			s.placeIME()
+		}
 		return 0, true
 	case wmImeEndComp:
-		s.reconvert = nil
-		if c := s.input.Client; c != nil {
-			s.clientComposition.End(c)
+		if s.inputTransition {
 			return 0, true
 		}
+		if client := s.input.Client; client != nil {
+			s.endNativeComposition(client)
+			return 0, true
+		}
+		s.reconvert = nil
 		s.send(platform.SurfaceEvent{Kind: platform.TextComposition})
 		return 0, true
 	case wmImeChar:

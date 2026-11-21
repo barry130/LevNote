@@ -50,6 +50,7 @@ type markerGesture struct {
 	action   int
 	active   bool
 	released bool
+	bounds   ui.Rect // displayed press bounds survive inspector relayout
 	err      error
 }
 
@@ -399,8 +400,9 @@ func (v *view) drawMarkerButton(c *ui.Context, info markerPresentation, action i
 			face = "✓ " + choice.face
 		}
 	}
+	handle := &v.markerButtons[action]
 	button := ui.Button(c.Key(action), face).Label(label).Grow(1).MinWidth(0).
-		Height(30).Padding(4, 3).FontSize(11).Tooltip(tip).Disabled(disabled)
+		Height(30).Padding(4, 3).FontSize(11).Tooltip(tip).Disabled(disabled).Bind(handle)
 	if action != markerClear && info.err == nil {
 		button.Checked(selected)
 	}
@@ -422,11 +424,29 @@ func (v *view) drawMarkerButton(c *ui.Context, info markerPresentation, action i
 			v.markerPress.released = true
 		} else if ev.Kind == ui.InputPointerDown && ev.Button == 0 {
 			v.markerPress = v.captureMarker(action, buffer, id, version)
+			v.markerPress.bounds = handle.Bounds(c)
 		} else if ev.Kind == ui.InputPointerUp {
 			if ev.Canceled {
 				v.markerPress = markerGesture{}
 			} else {
 				v.markerPress.released = true
+				target := v.markerPress
+				bounds := handle.Bounds(c)
+				// Native release coordinates follow the relaid-out button. A
+				// release in its original displayed bounds can lose Clicked when
+				// a changed node/summary moved it. Report only an actual stale
+				// identity here; cancellation and releases outside stay silent,
+				// and this refusal never Flushes an unrelated pending field.
+				if target.active && target.action == action &&
+					target.bounds.Contains(bounds.X+ev.X, bounds.Y+ev.Y) &&
+					!bounds.Contains(bounds.X+ev.X, bounds.Y+ev.Y) {
+					values, present := markerValues(v.selectedMindNode())
+					if target.buffer != v.host.Buffer || target.nodeID != v.selectedID ||
+						present != target.present || !slices.Equal(values, target.icons) {
+						v.setMarkerError(fmt.Errorf("未完成“%s”：%w", label, errMarkerStale))
+						c.Invalidate()
+					}
+				}
 			}
 		}
 		return false

@@ -273,7 +273,14 @@ func TestReopenClosedBoundDedupAndShutdownClearBacking(t *testing.T) {
 		t.Fatalf("wrong bounded order: %v", a.closedFiles)
 	}
 	prior := a.closedFiles[8]
-	a.Open(strings.ToUpper(prior.path))
+	path := prior.path
+	if filepath.Separator == '\\' {
+		path = strings.ToUpper(path) // Keep the alternate-case Windows identity check.
+	}
+	a.Open(path)
+	if a.Current() == nil || !sameNativeFilePath(a.Current().path(), canonical(prior.path)) {
+		t.Fatalf("dedup fixture did not reopen the original file: %s", a.Message)
+	}
 	if !a.CloseTab(a.Active) || len(a.closedFiles) != 16 || a.closedFiles[0].id == prior.id ||
 		!strings.EqualFold(a.closedFiles[0].path, prior.path) {
 		t.Fatal("reclose did not dedup with a new ID")

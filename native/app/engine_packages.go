@@ -148,20 +148,18 @@ func (a *App) startPackageWork(action packageAction, engine enginecatalog.Engine
 	if a.Window != nil {
 		notify = a.Window.Invalidate
 	}
-	poison := a.enginePoison
-	go j.run(ctx, value, poison, notify)
+	go j.run(ctx, value, notify)
 }
 
-func (j *packageJob) run(ctx context.Context, value string, poison error, notify func()) {
+func (j *packageJob) run(ctx context.Context, value string, notify func()) {
 	var err, cleanupErr error
 	var receipts []engineruntime.PackageReceipt
 	var receipt engineruntime.PackageReceipt
 	if j.transition {
-		cleanupErr = poison
 		if j.oldLane != nil {
-			cleanupErr = errors.Join(cleanupErr, j.oldLane.close())
+			cleanupErr = j.oldLane.close()
 		} else if j.oldRunner != nil {
-			cleanupErr = errors.Join(cleanupErr, j.oldRunner.Close())
+			cleanupErr = j.oldRunner.Close()
 		}
 		if j.oldExport != nil {
 			<-j.oldExport.done
@@ -189,7 +187,7 @@ func (j *packageJob) run(ctx context.Context, value string, poison error, notify
 			err = j.manager.RepairResetAll(ctx)
 		}
 		if cleanupFailure(err) {
-			cleanupErr = errors.Join(cleanupErr, err)
+			cleanupErr = err
 		}
 	}
 	j.cancel()
@@ -219,7 +217,7 @@ func (a *App) deliverPackageWork() {
 	j.receipts, j.receipt = nil, engineruntime.PackageReceipt{}
 	j.mu.Unlock()
 	if cleanupErr != nil {
-		a.enginePoison = errors.Join(a.enginePoison, cleanupErr)
+		a.recordEngineCleanup(cleanupErr)
 		a.report(fmt.Errorf("引擎服务清理失败，已停止新任务：%w", cleanupErr))
 	}
 	// Cleanup poison is retained even when UI ownership changed. Other data is
@@ -273,10 +271,10 @@ func (a *App) deliverPackageWork() {
 // UI invalidation occurs before joining; no worker needs a UI callback to close
 // its done barrier. Called only after CanClose's save/persistence decisions, or
 // after Shutdown has marked the app closed.
-func (a *App) joinPackageWork() error {
+func (a *App) joinPackageWork() {
 	j := a.packageJob
 	if j == nil {
-		return a.enginePoison
+		return
 	}
 	j.cancel()
 	<-j.done
@@ -284,15 +282,12 @@ func (a *App) joinPackageWork() error {
 	cleanupErr := j.cleanupErr
 	j.receipts, j.receipt = nil, engineruntime.PackageReceipt{}
 	j.mu.Unlock()
-	if cleanupErr != nil {
-		a.enginePoison = errors.Join(a.enginePoison, cleanupErr)
-	}
+	a.recordEngineCleanup(cleanupErr)
 	if a.packageManager == j.manager {
 		a.packageStatuses = j.manager.Snapshot()
 	}
 	a.packageJob = nil
 	a.engineSwitching = false
-	return a.enginePoison
 }
 
 func packageActionLabel(action packageAction) string {

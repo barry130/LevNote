@@ -155,7 +155,7 @@ func (a *App) appendBinary(out binaryOutput, name, notice string) *Tab {
 	}
 	if out.inspection != nil {
 		t.BinaryPath, t.BinarySize = out.inspection.Path, out.inspection.Size
-		input.Buffer = text.New(hex.Dump(out.inspection.Bytes))
+		input.SetBuffer(text.New(hex.Dump(out.inspection.Bytes)))
 	}
 	a.configureTab(t)
 	a.Tabs = append(a.Tabs, t)
@@ -170,7 +170,7 @@ func (a *App) attachBinarySnapshot(t *Tab, snapshot *document.BinarySnapshot) {
 	a.binarySnapshotTab, a.binarySnapshot = t, snapshot
 	prefix := make([]byte, min(snapshot.Size(), 64<<10))
 	_, _ = snapshot.ReaderAt().ReadAt(prefix, 0)
-	t.Editor.Buffer = text.New(hex.Dump(prefix))
+	t.Editor.SetBuffer(text.New(hex.Dump(prefix)))
 }
 
 func (a *App) heldBinary(t *Tab) *document.BinarySnapshot {
@@ -191,7 +191,7 @@ func (a *App) deactivateBinary(t *Tab) {
 	}
 	t.ImageFormat, t.ImageWidth, t.ImageHeight = "", 0, 0
 	if t.Binary != nil {
-		t.Editor.Buffer = text.New("")
+		t.Editor.SetBuffer(text.New(""))
 	}
 }
 
@@ -294,7 +294,7 @@ func (a *App) deliverBinary() {
 	}
 	// Failed byte reacquire waits for explicit reload/selection; no idle retries.
 	if j.op == "bytes" && out.err != nil {
-		t.Editor.Buffer = text.New("无法验证原始字节；请明确重新载入。")
+		t.Editor.SetBuffer(text.New("无法验证原始字节；请明确重新载入。"))
 	}
 }
 

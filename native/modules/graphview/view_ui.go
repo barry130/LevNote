@@ -27,6 +27,7 @@ func (v *view) drawToolbar(c *ui.Context) {
 			case kindDrawio:
 				v.drawDrawioToolbar(c, readOnly)
 			}
+			v.drawFieldSearchToggle(c)
 			ui.Row(c).Shrink(0).Gap(6).Children(func() {
 				if ui.Button(c, "−").Label("缩小画布").Width(30).Tooltip("缩小").Clicked() {
 					v.zoomAroundCenter(0.85)

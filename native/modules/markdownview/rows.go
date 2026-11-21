@@ -11,6 +11,7 @@ import (
 type previewRow struct {
 	id               uint64
 	block, item      int // item -1 means a whole block
+	ordinal          int // logical ordered-list number, independent of the source marker
 	tableRow         int // -1 means this row is not one physical table row
 	span             text.Range
 	tableSpan        text.Range // complete table span, for a physical table row
@@ -98,9 +99,29 @@ func (v *View) setPreview(doc markdown.Document) {
 					appendRow(index, -1, -1, block.Range, text.Range{}, 0)
 				}
 			} else if block.Kind == markdown.BlockList && len(block.Items) > 0 {
+				type listRun struct {
+					ordered bool
+					ordinal int
+				}
+				var runs []listRun
 				for item, entry := range block.Items {
+					ordered := entry.Ordered || entry.Depth == 0 && block.Ordered
+					ordinal := entry.Start
+					if entry.Depth < len(runs) {
+						// Returning to a parent preserves its run but discards
+						// children, which belong to the previous sibling item.
+						runs = runs[:entry.Depth+1]
+						if ordered && runs[entry.Depth].ordered {
+							ordinal = runs[entry.Depth].ordinal + 1
+						}
+						runs[entry.Depth] = listRun{ordered, ordinal}
+					} else {
+						// First child of this parent starts an independent run.
+						runs = append(runs, listRun{ordered, ordinal})
+					}
 					v.hasLinks = v.hasLinks || containsLink(entry.Inline)
 					appendRow(index, item, -1, entry.Range, text.Range{}, 0)
+					rows[len(rows)-1].ordinal = ordinal
 				}
 			} else {
 				appendRow(index, -1, -1, block.Range, text.Range{}, 0)

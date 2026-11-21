@@ -16,6 +16,19 @@ type TextInputRange = platform.TextRange
 // additional cursors or discontiguous ranges in its own state.
 type TextInputSelection = platform.TextSelection
 
+type CompositionCancelStamp = platform.CompositionCancelStamp
+type CompositionCancelAvailability = platform.CompositionCancelAvailability
+
+const (
+	CancelLegacy      = platform.CancelLegacy
+	CancelUnavailable = platform.CancelUnavailable
+	CancelReady       = platform.CancelReady
+)
+
+// TextInputCompositionCanceler is an optional application-owned cancellation
+// contract. HasTarget includes retained refused input without a live mark/token.
+type TextInputCompositionCanceler = platform.TextInputCompositionCanceler
+
 // Point is a position in DIPs relative to an element or text layout.
 type Point struct{ X, Y float32 }
 
@@ -79,9 +92,13 @@ func UTF16ByteOffset(s string, index int) int { return platform.UTF16ByteOffset(
 
 // textInputAdapter is stable for an element's lifetime. A stale native
 // reference cannot edit another element after focus, disposal or reuse.
+type textInputCancelLease struct{ marker byte }
+
 type textInputAdapter struct {
 	rt *engine
 	id uint64
+	// Every release replaces the lease before callbacks, including focus ABA.
+	cancelLease *textInputCancelLease
 }
 
 func (a *textInputAdapter) client() (TextInputClient, *state) {
@@ -96,12 +113,67 @@ func (a *textInputAdapter) client() (TextInputClient, *state) {
 }
 
 func (a *textInputAdapter) release() {
+	a.cancelLease = &textInputCancelLease{1}
 	if s := a.rt.states[a.id]; s != nil && s.textAdapter == a && s.textClient != nil {
 		if _, marked := s.textClient.MarkedRange(); marked {
 			s.textClient.UnmarkText()
 		}
 	}
 }
+func (a *textInputAdapter) cancelCurrent(client TextInputClient, state *state, lease *textInputCancelLease) bool {
+	current, currentState := a.client()
+	return current != nil && current == client && currentState == state && a.cancelLease == lease
+}
+
+func (a *textInputAdapter) CompositionCancelState() (CompositionCancelStamp, CompositionCancelAvailability) {
+	client, state := a.client()
+	if client == nil {
+		return CompositionCancelStamp{}, CancelUnavailable
+	}
+	optional, ok := client.(TextInputCompositionCanceler)
+	if !ok {
+		return CompositionCancelStamp{}, CancelLegacy
+	}
+	lease := a.cancelLease
+	stamp, availability := optional.CompositionCancelState()
+	if !a.cancelCurrent(client, state, lease) {
+		return CompositionCancelStamp{}, CancelUnavailable
+	}
+	return stamp, availability
+}
+
+func (a *textInputAdapter) CancelComposition(expected CompositionCancelStamp) (CompositionCancelStamp, bool) {
+	client, state := a.client()
+	if client == nil {
+		return CompositionCancelStamp{}, false
+	}
+	optional, ok := client.(TextInputCompositionCanceler)
+	if !ok {
+		return CompositionCancelStamp{}, false // controller owns legacy fallback
+	}
+	lease := a.cancelLease
+	before, availability := optional.CompositionCancelState()
+	if availability != CancelReady || before != expected || !a.cancelCurrent(client, state, lease) {
+		return CompositionCancelStamp{}, false
+	}
+	after, handled := optional.CancelComposition(expected)
+	if !handled || !a.cancelCurrent(client, state, lease) {
+		return after, false
+	}
+	current, availability := optional.CompositionCancelState()
+	if availability != CancelReady || current != after || !a.cancelCurrent(client, state, lease) {
+		return after, false
+	}
+	// updateTextInput can itself release this adapter and reenter native code.
+	a.changed()
+	if !a.cancelCurrent(client, state, lease) {
+		return after, false
+	}
+	current, availability = optional.CompositionCancelState()
+	valid := availability == CancelReady && current == after && a.cancelCurrent(client, state, lease)
+	return after, valid
+}
+
 func (a *textInputAdapter) TextForRange(r platform.TextRange) (string, platform.TextRange) {
 	if c, _ := a.client(); c != nil {
 		return c.TextForRange(platform.NormalizeTextRange(r))
@@ -117,11 +189,31 @@ func (a *textInputAdapter) Selection() platform.TextSelection {
 	return platform.TextSelection{}
 }
 func (a *textInputAdapter) MarkedRange() (platform.TextRange, bool) {
-	if c, _ := a.client(); c != nil {
-		r, ok := c.MarkedRange()
-		return platform.NormalizeTextRange(r), ok
+	client, state := a.client()
+	if client == nil {
+		return platform.TextRange{}, false
 	}
-	return platform.TextRange{}, false
+	lease := a.cancelLease
+	optional, hasOptional := client.(TextInputCompositionCanceler)
+	var before CompositionCancelStamp
+	if hasOptional {
+		var availability CompositionCancelAvailability
+		before, availability = optional.CompositionCancelState()
+		if availability != CancelReady || !a.cancelCurrent(client, state, lease) {
+			return platform.TextRange{}, false
+		}
+	}
+	r, marked := client.MarkedRange()
+	if !a.cancelCurrent(client, state, lease) {
+		return platform.TextRange{}, false
+	}
+	if hasOptional {
+		after, availability := optional.CompositionCancelState()
+		if availability != CancelReady || after != before || !a.cancelCurrent(client, state, lease) {
+			return platform.TextRange{}, false
+		}
+	}
+	return platform.NormalizeTextRange(r), marked
 }
 func (a *textInputAdapter) changed() { a.rt.requestFrame(); a.rt.updateTextInput() }
 func (a *textInputAdapter) ReplaceText(r *platform.TextRange, s string) {

@@ -32,6 +32,7 @@ func (v *View) pendingDraft() bool {
 }
 
 func (v *View) clearDraft() {
+	v.clearCellDraftRecovery()
 	v.tableActionEpoch++
 	v.tableActionPress = tableActionGesture{}
 	v.tableActionPointerContinuation = false

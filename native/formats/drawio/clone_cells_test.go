@@ -2,6 +2,7 @@ package drawio_test
 
 import (
 	"bytes"
+	"errors"
 	"math"
 	"strings"
 	"testing"
@@ -67,6 +68,57 @@ func TestCloneCellsEmitsVerticesInSelectionOrderThenInternalEdges(t *testing.T) 
 	wantE := `<mxCell id="levnote-4" edge="1" parent="1" source="levnote-3" target="levnote-2">`
 	posB, posA, posE := strings.Index(string(after), wantB), strings.Index(string(after), wantA), strings.Index(string(after), wantE)
 	if posB < 0 || posA <= posB || posE <= posA { t.Fatalf("clone order must be requested vertices, then internal edges: %d/%d/%d", posB, posA, posE) }
+}
+
+func TestCloneCellsHonorsExactByteBudgetBeforeCommit(t *testing.T) {
+	baseline, _, err := drawio.Parse([]byte(cloneCellsXML), drawio.ParseOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := baseline.CloneCells(0, []string{"a", "b"}, 10.25, 20); err != nil {
+		t.Fatal(err)
+	}
+	want, err := baseline.Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(want) <= len(cloneCellsXML) {
+		t.Fatal("clone fixture must exceed its original byte size")
+	}
+
+	exact, _, err := drawio.Parse([]byte(cloneCellsXML), drawio.ParseOptions{MaxBytes: len(want)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids, err := exact.CloneCells(0, []string{"a", "b"}, 10.25, 20)
+	if err != nil {
+		t.Fatalf("exact-fit clone refused: %v", err)
+	}
+	got, err := exact.Serialize()
+	if err != nil || !bytes.Equal(got, want) || !exact.Dirty() {
+		t.Fatalf("exact-fit clone differs: dirty=%v err=%v", exact.Dirty(), err)
+	}
+	if !bytes.Equal(exact.OriginalBytes(), []byte(cloneCellsXML)) || len(ids) != 2 {
+		t.Fatal("exact-fit clone changed pristine input or returned incomplete IDs")
+	}
+
+	under, _, err := drawio.Parse([]byte(cloneCellsXML), drawio.ParseOptions{MaxBytes: len(want) - 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := under.Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := under.OriginalBytes()
+	ids, err = under.CloneCells(0, []string{"a", "b"}, 10.25, 20)
+	if !errors.Is(err, drawio.ErrLimitExceeded) || ids != nil {
+		t.Fatalf("one-byte-over clone = (%v, %v), want atomic limit refusal", ids, err)
+	}
+	after, err := under.Serialize()
+	if err != nil || !bytes.Equal(after, before) || !bytes.Equal(under.OriginalBytes(), original) || under.Dirty() {
+		t.Fatalf("over-budget refusal changed source/original/dirty state: dirty=%v err=%v", under.Dirty(), err)
+	}
 }
 
 func TestCloneCellsFailureLeavesSourceOriginalAndClean(t *testing.T) {

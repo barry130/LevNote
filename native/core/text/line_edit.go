@@ -1,5 +1,10 @@
 package text
 
+import (
+	"sort"
+	"strings"
+)
+
 // LineEditAction edits logical lines, independently of visual wrapping.
 type LineEditAction uint8
 
@@ -8,6 +13,8 @@ const (
 	MoveLinesDown
 	CopyLinesUp
 	CopyLinesDown
+	IndentLines
+	OutdentLines
 )
 
 // LineEditPlan is a read-only plan for the current buffer and selection. It is
@@ -42,6 +49,13 @@ func (b *Buffer) PlanLineEdit(action LineEditAction) (LineEditPlan, error) {
 	if first != last && column == 0 {
 		last-- // the endpoint at the next line's start does not select that line
 	}
+	return b.planLineEditBlock(action, b.selection, first, last)
+}
+
+// The explicit line interval also represents a final empty logical line, which
+// cannot be encoded by a nonempty half-open range ending at that line's start.
+func (b *Buffer) planLineEditBlock(action LineEditAction, selection Range, first, last int) (LineEditPlan, error) {
+	plan := LineEditPlan{Selection: selection}
 	if action == MoveLinesUp && first == 0 || action == MoveLinesDown && last == b.LineCount()-1 {
 		return plan, nil
 	}
@@ -111,7 +125,7 @@ func (b *Buffer) PlanLineEdit(action LineEditAction) (LineEditPlan, error) {
 		if action == MoveLinesDown {
 			gapStart, gapEnd = end, neighbor.Start()
 			plan.Start, plan.End = start, neighbor.End()
-			newStart = start + neighbor.End() - neighbor.Start() + gapEnd - gapStart
+			newStart = start + (neighbor.End() - neighbor.Start()) + (gapEnd - gapStart)
 			neighborTail, err := b.lineEditTail(neighborLine)
 			if err != nil {
 				return plan, err
@@ -162,10 +176,254 @@ func (b *Buffer) PlanLineEdit(action LineEditAction) (LineEditPlan, error) {
 		if offset == tail {
 			extra = newTail
 		}
-		return newStart + end - start + extra
+		return newStart + (end - start) + extra
 	}
-	plan.Selection = Range{Anchor: mapOffset(b.selection.Anchor), Head: mapOffset(b.selection.Head)}
+	plan.Selection = Range{Anchor: mapOffset(selection.Anchor), Head: mapOffset(selection.Head)}
 	return plan, nil
+}
+
+// LineEditPlanSet describes one ordinary transaction. Edits use original source
+// coordinates; After uses final output coordinates. Changed reports byte change,
+// so an identical-text move can still have a distinct After. No Edits means an
+// exact whole-action edge no-op; callers must not publish a new selection then.
+// Apply nonempty Edits with ReplaceBatchWithSelectionUTF16 at the captured text
+// and selection generations. Planning itself never settles or changes an owner.
+type LineEditPlanSet struct {
+	Edits   []Replacement
+	After   SelectionSet
+	Changed bool
+}
+
+type lineEditSetBlock struct {
+	first, last      int
+	from, to         int
+	start, end, tail int
+}
+
+// PlanLineEditSet unions overlapping/adjacent selected logical line blocks.
+// Moves swap each block with one neighbor; if any block is at the requested
+// edge the entire action is an exact no-op. Copies select the inserted duplicate.
+// Indent inserts four spaces per line; outdent removes one tab or up to four
+// spaces. Separators and all unedited source bytes remain verbatim. At most one
+// replacement is produced per merged block, not per selected logical line.
+func (b *Buffer) PlanLineEditSet(action LineEditAction, set SelectionSet) (LineEditPlanSet, error) {
+	var result LineEditPlanSet
+	if action > OutdentLines {
+		return result, ErrRange
+	}
+	before, err := b.NormalizeSelectionSet(set)
+	if err != nil {
+		return result, err
+	}
+	result.After = before
+	blocks := make([]lineEditSetBlock, 0, len(before.Ranges))
+	for i, r := range before.Ranges {
+		first, _, err := b.LineColumn(r.Start())
+		if err != nil {
+			return LineEditPlanSet{}, err
+		}
+		last, column, err := b.LineColumn(r.End())
+		if err != nil {
+			return LineEditPlanSet{}, err
+		}
+		if first != last && column == 0 {
+			last--
+		}
+		if len(blocks) != 0 && first-blocks[len(blocks)-1].last <= 1 {
+			block := &blocks[len(blocks)-1]
+			block.last, block.to = max(block.last, last), i+1
+		} else {
+			blocks = append(blocks, lineEditSetBlock{first: first, last: last, from: i, to: i + 1})
+		}
+	}
+	for _, block := range blocks {
+		if action == MoveLinesUp && block.first == 0 || action == MoveLinesDown && block.last == b.LineCount()-1 {
+			return result, nil
+		}
+	}
+	// Admit aggregate copy/indent growth before materializing selected blocks.
+	// Moves/outdent cannot grow. This is content admission, not a new history cap.
+	currentBytes := b.bytes
+	for i := range blocks {
+		block := &blocks[i]
+		block.start, err = b.OffsetOfLine(block.first)
+		if err != nil {
+			return LineEditPlanSet{}, err
+		}
+		lastRange, err := b.LineRange(block.last)
+		if err != nil {
+			return LineEditPlanSet{}, err
+		}
+		block.end = lastRange.End()
+		block.tail, err = b.lineEditTail(block.last)
+		if err != nil {
+			return LineEditPlanSet{}, err
+		}
+		if action == CopyLinesUp || action == CopyLinesDown {
+			left, err := b.byteOffset(block.start)
+			if err != nil {
+				return LineEditPlanSet{}, err
+			}
+			right, err := b.byteOffset(block.end)
+			if err != nil {
+				return LineEditPlanSet{}, err
+			}
+			separator, err := b.lineEditSeparator(block.last, block.end, block.tail)
+			if err != nil {
+				return LineEditPlanSet{}, err
+			}
+			currentBytes, err = b.CheckReplaceSize(currentBytes, 0, right-left)
+			if err == nil {
+				currentBytes, err = b.CheckReplaceSize(currentBytes, 0, len(separator))
+			}
+			if err != nil {
+				return LineEditPlanSet{}, err
+			}
+		} else if action == IndentLines {
+			lines := block.last - block.first + 1
+			if lines > (b.maxBytes-currentBytes)/4 {
+				return LineEditPlanSet{}, &SizeLimitError{Limit: b.maxBytes}
+			}
+			currentBytes += 4 * lines
+		}
+	}
+	after := SelectionSet{Ranges: make([]Range, len(before.Ranges)), Primary: before.Primary}
+	result.Edits = make([]Replacement, 0, len(blocks))
+	inputBase, outputBase := 0, 0
+	for _, block := range blocks {
+		var edit Replacement
+		local := make([]Range, block.to-block.from)
+		if action == IndentLines || action == OutdentLines {
+			edit, local, err = b.planLineIndentBlock(action, block, before.Ranges[block.from:block.to])
+			if err != nil {
+				return LineEditPlanSet{}, err
+			}
+		} else {
+			plan, err := b.planLineEditBlock(action, Range{block.start, block.tail}, block.first, block.last)
+			if err != nil {
+				return LineEditPlanSet{}, err
+			}
+			edit = Replacement{plan.Start, plan.End, plan.Text}
+			newStart := plan.Selection.Anchor
+			newTail := plan.Selection.Head - newStart - (block.end - block.start)
+			mapOffset := func(offset int) int {
+				if offset <= block.end {
+					return newStart + (offset - block.start)
+				}
+				extra := min(offset-block.end, newTail)
+				if offset == block.tail {
+					extra = newTail
+				}
+				return newStart + (block.end - block.start) + extra
+			}
+			for i, r := range before.Ranges[block.from:block.to] {
+				local[i] = Range{mapOffset(r.Anchor), mapOffset(r.Head)}
+			}
+		}
+		outputStart, ok := ordinaryBatchOffset(outputBase, edit.Start-inputBase)
+		if !ok {
+			return LineEditPlanSet{}, ErrRange
+		}
+		for i, r := range local {
+			anchor, aok := ordinaryBatchOffset(outputStart, r.Anchor-edit.Start)
+			head, hok := ordinaryBatchOffset(outputStart, r.Head-edit.Start)
+			if !aok || !hok {
+				return LineEditPlanSet{}, ErrRange
+			}
+			after.Ranges[block.from+i] = Range{anchor, head}
+		}
+		outputBase, ok = ordinaryBatchOffset(outputStart, UTF16Len(edit.Text))
+		if !ok {
+			return LineEditPlanSet{}, ErrRange
+		}
+		inputBase = edit.End
+		result.Edits = append(result.Edits, edit)
+	}
+	plan, finalBytes, err := b.prepareOrdinaryBatch(result.Edits)
+	if err != nil {
+		return LineEditPlanSet{}, err
+	}
+	result.After, err = b.normalizeBatchOutput(plan, after)
+	if err != nil {
+		return LineEditPlanSet{}, err
+	}
+	result.Changed = finalBytes != b.bytes || !b.batchTextUnchanged(plan)
+	return result, nil
+}
+
+type lineIndentEndpoint struct {
+	offset, index int
+	anchor, left  bool
+}
+
+// This single forward block scan constructs edited text and maps at most 512
+// endpoints. It keeps no per-line slice/map and never copies an unrelated gap.
+func (b *Buffer) planLineIndentBlock(action LineEditAction, block lineEditSetBlock, ranges []Range) (Replacement, []Range, error) {
+	value, err := b.SliceUTF16(block.start, block.end)
+	if err != nil {
+		return Replacement{}, nil, err
+	}
+	points := make([]lineIndentEndpoint, 0, 2*len(ranges))
+	for i, r := range ranges {
+		points = append(points, lineIndentEndpoint{r.Anchor, i, true, r.Anchor == r.End() && r.Anchor != r.Head},
+			lineIndentEndpoint{r.Head, i, false, r.Head == r.End() && r.Anchor != r.Head})
+	}
+	sort.SliceStable(points, func(i, j int) bool { return points[i].offset < points[j].offset })
+	after := make([]Range, len(ranges))
+	writePoint := func(p lineIndentEndpoint, offset int) {
+		if p.anchor {
+			after[p.index].Anchor = offset
+		} else {
+			after[p.index].Head = offset
+		}
+	}
+	var out strings.Builder
+	at, inputUnits, outputUnits, point := 0, block.start, block.start, 0
+	for {
+		lineEnd := len(value)
+		if newline := strings.IndexByte(value[at:], '\n'); newline >= 0 {
+			lineEnd = at + newline + 1
+		}
+		line := value[at:lineEnd]
+		removed, added := 0, 0
+		if action == IndentLines {
+			out.WriteString("    ")
+			added = 4
+		} else if len(line) > 0 && line[0] == '\t' {
+			removed = 1
+		} else {
+			for removed < min(4, len(line)) && line[removed] == ' ' {
+				removed++
+			}
+		}
+		out.WriteString(line[removed:])
+		units := UTF16Len(line)
+		nextInput, nextOutput := inputUnits+units, outputUnits+added+units-removed
+		last := lineEnd == len(value) && (len(line) == 0 || line[len(line)-1] != '\n')
+		for point < len(points) && (points[point].offset < nextInput || last && points[point].offset <= nextInput) {
+			p := points[point]
+			mapped := outputUnits + added + max(0, p.offset-inputUnits-removed)
+			// A nonempty high endpoint at a following line's start excludes
+			// that line, even when another range makes it part of this union.
+			if p.left && p.offset == inputUnits && inputUnits != block.start {
+				mapped = outputUnits
+			}
+			writePoint(p, mapped)
+			point++
+		}
+		inputUnits, outputUnits = nextInput, nextOutput
+		if last {
+			break
+		}
+		at = lineEnd
+	}
+	// Endpoints within the final separator retain their exact relative units;
+	// the next logical line was excluded by the nonempty half-open range rule.
+	for ; point < len(points); point++ {
+		p := points[point]
+		writePoint(p, outputUnits+(p.offset-block.end))
+	}
+	return Replacement{block.start, block.end, out.String()}, after, nil
 }
 
 func (b *Buffer) lineEditTail(line int) (int, error) {

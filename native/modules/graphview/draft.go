@@ -330,7 +330,11 @@ func (v *view) flushOrdinaryField() (receipt fieldFlushReceipt, result error) {
 			end := text.UTF16Len(value)
 			expectedSelection = text.Range{Anchor: end, Head: end}
 		}
-		err = v.commitBuffer(value)
+		if written && v.kind == kindDrawio {
+			err = v.commitBufferDelta(raw, value)
+		} else {
+			err = v.commitBuffer(value)
+		}
 		if err == nil {
 			receipt.written, receipt.version, receipt.selection = written, expectedVersion, expectedSelection
 			// Nothing may restore old selectedID/base/cache until Changed has

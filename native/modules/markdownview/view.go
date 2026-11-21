@@ -36,6 +36,17 @@ type View struct {
 	editPanelHeight                float32
 	cellEdit                       *tableCellEdit
 	draftError                     error
+	recoverySnapshot               text.Snapshot
+	recoverySnapshotBytes          int
+	recoverySnapshotSet            bool
+	recoveryObservedSelection      text.Range
+	recoveryConfirmedSelection     text.Range
+	recoveryDraft                  *editor.Editor
+	recoveryComposing              bool
+	recoveryVersion                uint64
+	recoveryMarked                 ui.TextInputRange
+	recoveryMarkedActive           bool
+	recoveryOverflow               bool
 	inlineActionPress              inlineActionGesture
 	inlineActionError              error
 	inlineActionDraft              *editor.Editor
@@ -462,7 +473,12 @@ func (v *View) drawDraft(c *ui.Context) {
 				v.tableActionHandle.Focus()
 			}
 		}
-		draftBox.Children(func() { v.draft.View(c) })
+		draftBox.Children(func() {
+			v.draft.View(c)
+			if v.cellEdit != nil {
+				v.observeCellDraftConfirmation(v.draft)
+			}
+		})
 		if v.cellEdit != nil {
 			ui.Text(c, tableCellStagedNotice).FontSize(11).TextColor(c.Theme().TextMuted).
 				Tooltip(tableCellSessionHint)

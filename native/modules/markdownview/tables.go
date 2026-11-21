@@ -356,7 +356,7 @@ func (v *View) drawStackedTableRow(c *ui.Context, preview previewSnapshot, row p
 				valueBox.Children(func() {
 					text := ui.Text(c, tableVisibleCell(value, ok)).Font("monospace").FontSize(13).
 						LineHeight(1.35).MaxLines(tableCellLines).Ellipsis("…").Tooltip(tip).
-						TextAlign(tableAlignment(alignmentAt(preview, row, index)))
+						TextAlign(tableAlignment(alignmentAt(preview, row, index))).IgnoreInput(true)
 					if !ok || value == "" {
 						text.TextColor(c.Theme().TextMuted)
 					}

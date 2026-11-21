@@ -274,36 +274,7 @@ func renderHTML(out *htmlSink, doc Document, warnings *[]Warning) {
 			renderInline(out, block.Inline, block.Text, block.TextRange.Start, warnings)
 			out.WriteString("</p>\n")
 		case BlockList:
-			tag := "ul"
-			if block.Ordered {
-				tag = "ol"
-				if block.Start != 1 {
-					out.WriteString("<" + tag + " start=\"" + strconv.Itoa(block.Start) + "\">\n")
-				} else {
-					out.WriteString("<" + tag + ">\n")
-				}
-			} else {
-				out.WriteString("<" + tag + ">\n")
-			}
-			for _, item := range block.Items {
-				if out.err != nil {
-					return
-				}
-				out.WriteString("<li>")
-				if item.Task != nil {
-					out.WriteString(`<input type="checkbox" disabled`)
-					if item.Task.Checked {
-						out.WriteString(" checked")
-					}
-					out.WriteString(">")
-					if item.Text != "" {
-						out.WriteString(" ")
-					}
-				}
-				renderInline(out, item.Inline, item.Text, item.TextRange.Start, warnings)
-				out.WriteString("</li>\n")
-			}
-			out.WriteString("</" + tag + ">\n")
+			renderList(out, block, warnings)
 		case BlockQuote:
 			renderPre(out, block.Text)
 		case BlockCode:
@@ -321,6 +292,98 @@ func renderHTML(out *htmlSink, doc Document, warnings *[]Warning) {
 		}
 	}
 	out.WriteString("</body>\n")
+}
+
+type htmlListFrame struct {
+	ordered bool
+}
+
+func listTag(ordered bool) string {
+	if ordered {
+		return "ol"
+	}
+	return "ul"
+}
+
+func openHTMLList(out *htmlSink, item ListItem) htmlListFrame {
+	frame := htmlListFrame{ordered: item.Ordered}
+	tag := listTag(frame.ordered)
+	if frame.ordered && item.Start != 1 {
+		out.WriteString("<" + tag + " start=\"" + strconv.Itoa(item.Start) + "\">\n")
+	} else {
+		out.WriteString("<" + tag + ">\n")
+	}
+	return frame
+}
+
+func closeHTMLListFrame(out *htmlSink, frame htmlListFrame) {
+	out.WriteString("</li>\n")
+	out.WriteString("</" + listTag(frame.ordered) + ">\n")
+}
+
+func renderList(out *htmlSink, block Block, warnings *[]Warning) {
+	if len(block.Items) == 0 {
+		exportWarning(warnings, "export-list", "empty or invalid list descriptor; source was exported as raw text", block.Range)
+		renderPre(out, block.Raw)
+		return
+	}
+	previousDepth := -1
+	for _, item := range block.Items {
+		if item.Depth < 0 || item.Depth > maxListDepth || item.Depth > previousDepth+1 ||
+			previousDepth < 0 && item.Depth != 0 ||
+			item.Range.Start < block.Range.Start || item.Range.End < item.Range.Start || item.Range.End > block.Range.End ||
+			item.TextRange.Start < item.Range.Start || item.TextRange.End < item.TextRange.Start || item.TextRange.End > item.Range.End ||
+			item.Task != nil && (item.Task.Range.Start < item.Range.Start || item.Task.Range.End < item.Task.Range.Start || item.Task.Range.End > item.Range.End) {
+			exportWarning(warnings, "export-list", "list item ranges or nesting are invalid; source was exported as raw text", block.Range)
+			renderPre(out, block.Raw)
+			return
+		}
+		previousDepth = item.Depth
+	}
+
+	frames := make([]htmlListFrame, 0, min(maxListDepth+1, len(block.Items)))
+	previousDepth = -1
+	for _, item := range block.Items {
+		depth := item.Depth
+		if len(frames) == 0 {
+			frames = append(frames, openHTMLList(out, item))
+		} else if depth > previousDepth {
+			// The parent <li> remains open while its child list is emitted.
+			frames = append(frames, openHTMLList(out, item))
+		} else {
+			for len(frames) > depth+1 {
+				closeHTMLListFrame(out, frames[len(frames)-1])
+				frames = frames[:len(frames)-1]
+			}
+			frame := frames[len(frames)-1]
+			if frame.ordered != item.Ordered {
+				closeHTMLListFrame(out, frame)
+				frames = frames[:len(frames)-1]
+				frames = append(frames, openHTMLList(out, item))
+			} else {
+				out.WriteString("</li>\n")
+			}
+		}
+		out.WriteString("<li>")
+		if item.Task != nil {
+			out.WriteString(`<input type="checkbox" disabled`)
+			if item.Task.Checked {
+				out.WriteString(" checked")
+			}
+			out.WriteString(">")
+			if item.Text != "" {
+				out.WriteString(" ")
+			}
+		}
+		renderInline(out, item.Inline, item.Text, item.TextRange.Start, warnings)
+		previousDepth = depth
+		if out.err != nil {
+			return
+		}
+	}
+	for index := len(frames) - 1; index >= 0; index-- {
+		closeHTMLListFrame(out, frames[index])
+	}
 }
 
 func renderPre(out *htmlSink, text string) {

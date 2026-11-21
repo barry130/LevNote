@@ -3,8 +3,6 @@ package document
 import (
 	"errors"
 	"io"
-	"os"
-	"path/filepath"
 )
 
 // WritePrivateState persists application-owned recovery/configuration data.
@@ -23,16 +21,31 @@ func WritePrivateState(path string, data []byte) error {
 // The callback writes only to the durable temp file; publication remains the
 // commit point after the callback, sync, close and optional checks succeed.
 func WritePrivateStateTo(path string, write func(io.Writer) error) error {
-	if write == nil {
-		return errors.New("private-state writer is nil")
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+	prepared, err := PreparePrivateStateTo(path, write)
+	if err != nil {
 		return err
 	}
-	_, err := os.Stat(path)
-	create := errors.Is(err, os.ErrNotExist)
-	if err != nil && !create {
-		return err
+	commitErr := prepared.Commit(nil)
+	cleanupErr := prepared.Abort()
+	return finishPrivateStateWrite(prepared.path, prepared.committed, commitErr, cleanupErr)
+}
+
+func finishPrivateStateWrite(path string, committed bool, commitErr, cleanupErr error) error {
+	var publication *StatePublicationError
+	if errors.As(commitErr, &publication) {
+		return &StatePublicationError{
+			Path: publication.Path, Committed: committed, Err: publication.Err,
+			CleanupErr: errors.Join(publication.CleanupErr, cleanupErr),
+		}
 	}
-	return writeAtomicWriter(path, 0600, create, nil, write)
+	if committed {
+		if commitErr == nil && cleanupErr == nil {
+			return nil
+		}
+		return &StatePublicationError{Path: path, Committed: true, Err: commitErr, CleanupErr: cleanupErr}
+	}
+	if commitErr == nil && cleanupErr == nil {
+		return nil
+	}
+	return &StatePublicationError{Path: path, Err: commitErr, CleanupErr: cleanupErr}
 }

@@ -136,7 +136,18 @@ func mustBuilderSnapshot(t *testing.T, builder *SnapshotBuilder) Snapshot {
 func TestBinaryRecordStrictWireContract(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "session.json")
-	base := binaryWireFixture(t, "record", "binary")
+	absolutePathJSON, err := json.Marshal(filepath.Join(dir, "a.png"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validPathField := `"path":` + string(absolutePathJSON)
+	base := binaryWireFixture(t, dir, "record", "binary")
+	if err := os.WriteFile(path, []byte(base), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot, issues := Load(path); len(issues) != 0 || len(snapshot.Tabs) != 1 {
+		t.Fatalf("valid control record was rejected: snapshot=%#v issues=%v", snapshot, issues)
+	}
 	for _, test := range []struct {
 		name string
 		data string
@@ -145,20 +156,20 @@ func TestBinaryRecordStrictWireContract(t *testing.T) {
 		{"missing-kind", strings.Replace(base, `"kind":"png",`, ``, 1)},
 		{"unknown-record", strings.Replace(base, `"record":"binary"`, `"record":"text"`, 1)},
 		{"null-kind", strings.Replace(base, `"kind":"png"`, `"kind":null`, 1)},
-		{"empty-path", strings.Replace(base, `"path":"C:\\a.png"`, `"path":""`, 1)},
-		{"relative-path", strings.Replace(base, `"path":"C:\\a.png"`, `"path":"a.png"`, 1)},
-		{"unknown-field", binaryWireFixture(t, "pixels", nil)},
-		{"draft-empty", binaryWireFixture(t, "draft", "")},
-		{"encoding-null", binaryWireFixture(t, "encoding", nil)},
-		{"bom-false", binaryWireFixture(t, "bom", false)},
-		{"originalPath-empty", binaryWireFixture(t, "originalPath", "")},
-		{"selection-zero", binaryWireFixture(t, "selection", text.Range{})},
-		{"unknown-nested-array", binaryWireFixture(t, "unknown", map[string]any{
+		{"empty-path", strings.Replace(base, validPathField, `"path":""`, 1)},
+		{"relative-path", strings.Replace(base, validPathField, `"path":"a.png"`, 1)},
+		{"unknown-field", binaryWireFixture(t, dir, "pixels", nil)},
+		{"draft-empty", binaryWireFixture(t, dir, "draft", "")},
+		{"encoding-null", binaryWireFixture(t, dir, "encoding", nil)},
+		{"bom-false", binaryWireFixture(t, dir, "bom", false)},
+		{"originalPath-empty", binaryWireFixture(t, dir, "originalPath", "")},
+		{"selection-zero", binaryWireFixture(t, dir, "selection", text.Range{})},
+		{"unknown-nested-array", binaryWireFixture(t, dir, "unknown", map[string]any{
 			"nested": []any{1, 2, map[string]any{"x": "text"}, map[string]any{"y": true}},
 		})},
-		{"last-primitive-unknown", binaryWireFixture(t, "unknown", nil)},
-		{"last-string-unknown", binaryWireFixture(t, "unknown", "last")},
-		{"scroll-zero", binaryWireFixture(t, "scroll", float32(0))},
+		{"last-primitive-unknown", binaryWireFixture(t, dir, "unknown", nil)},
+		{"last-string-unknown", binaryWireFixture(t, dir, "unknown", "last")},
+		{"scroll-zero", binaryWireFixture(t, dir, "scroll", float32(0))},
 		{"wrong-discriminator-type", strings.Replace(base, `"record":"binary"`, `"record":null`, 1)},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -229,12 +240,12 @@ func TestWireScannerHandlesEscapedAndNestedTextFields(t *testing.T) {
 	}
 }
 
-func binaryWireFixture(t *testing.T, key string, value any) string {
+func binaryWireFixture(t *testing.T, dir, key string, value any) string {
 	t.Helper()
 	entry := map[string]any{
 		"record": "binary",
 		"kind":   "png",
-		"path":   `C:\a.png`,
+		"path":   filepath.Join(dir, "a.png"),
 	}
 	entry[key] = value
 	data, err := json.Marshal(entry)
@@ -283,7 +294,8 @@ func indexBytes(data, value []byte) int {
 
 func TestBinaryBuilderAndSnapshotAreIndependent(t *testing.T) {
 	builder := NewSnapshotBuilder("")
-	record := BinaryTab{Path: `C:\photo.png`, Kind: document.BinaryKindJPEG}
+	dir := t.TempDir()
+	record := BinaryTab{Path: filepath.Join(dir, "photo.png"), Kind: document.BinaryKindJPEG}
 	if err := builder.AddBinaryTab(record); err != nil {
 		t.Fatal(err)
 	}
@@ -291,10 +303,11 @@ func TestBinaryBuilderAndSnapshotAreIndependent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first.Tabs[0].binary.Path = `C:\changed.png`
-	first.Tabs[0].Path = `C:\changed.png`
+	changedPath := filepath.Join(dir, "changed.png")
+	first.Tabs[0].binary.Path = changedPath
+	first.Tabs[0].Path = changedPath
 	second, err := builder.Snapshot()
-	if err != nil || second.Tabs[0].Path != `C:\photo.png` || second.Tabs[0].binary.Path != `C:\photo.png` {
+	if err != nil || second.Tabs[0].Path != record.Path || second.Tabs[0].binary.Path != record.Path {
 		t.Fatalf("binary clone leaked: %#v err=%v", second, err)
 	}
 	before := builder.Len()
@@ -325,14 +338,14 @@ func TestBinaryRecordLimitsAndTextByteCompatibility(t *testing.T) {
 	binaryPath := filepath.Join(dir, "binary-session.json")
 	builder := NewSnapshotBuilder("")
 	for range MaxTabs {
-		if err := builder.AddBinaryTab(BinaryTab{Path: `C:\photo.png`, Kind: document.BinaryKindPNG}); err != nil {
+		if err := builder.AddBinaryTab(BinaryTab{Path: filepath.Join(dir, "photo.png"), Kind: document.BinaryKindPNG}); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if err := builder.Save(binaryPath); err != nil {
 		t.Fatal(err)
 	}
-	if err := builder.AddBinaryTab(BinaryTab{Path: `C:\extra.png`, Kind: document.BinaryKindPNG}); err == nil {
+	if err := builder.AddBinaryTab(BinaryTab{Path: filepath.Join(dir, "extra.png"), Kind: document.BinaryKindPNG}); err == nil {
 		t.Fatal("MaxTabs boundary bypassed")
 	}
 	loaded, issues := Load(binaryPath)
@@ -343,7 +356,7 @@ func TestBinaryRecordLimitsAndTextByteCompatibility(t *testing.T) {
 	// A metadata-only value crosses the exact remaining JSON budget. Rejection
 	// happens before the private-state destination directory is created.
 	bounded := NewSnapshotBuilder("")
-	if err := bounded.AddBinaryTab(BinaryTab{Path: `C:\photo.png`, Kind: document.BinaryKindPNG}); err != nil {
+	if err := bounded.AddBinaryTab(BinaryTab{Path: filepath.Join(dir, "photo.png"), Kind: document.BinaryKindPNG}); err != nil {
 		t.Fatal(err)
 	}
 	snapshot, err := bounded.Snapshot()
@@ -355,7 +368,7 @@ func TestBinaryRecordLimitsAndTextByteCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 	record := BinaryTab{
-		Path:  `C:\over.png`,
+		Path:  filepath.Join(dir, "over.png"),
 		Kind:  document.BinaryKindPNG,
 		Title: strings.Repeat("a", MaxBytes-size+1),
 	}

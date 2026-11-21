@@ -8,6 +8,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"levnote.local/native/core/document"
 	"levnote.local/native/core/plugins"
 	"levnote.local/native/formats/code"
 	"levnote.local/native/modules"
@@ -44,6 +45,11 @@ func (a *App) configureTab(t *Tab) {
 	if t == nil {
 		return
 	}
+	a.retireSourceLanguage(t)
+	a.sourceLanguage.routeSequence++
+	t.sourceLanguageRoute = a.sourceLanguage.routeSequence
+	t.sourceLanguageProfile = ""
+	a.disableSourceFolding(t)
 	a.invalidateFindCache()
 	a.closeGoToLine()
 	a.invalidateTabExport(t, "文档格式已重新配置，已取消导出")
@@ -146,6 +152,8 @@ func (a *App) configureTab(t *Tab) {
 		}
 	}
 	t.Mode = "source"
+	a.installConfiguredSourceFolding(t)
+	a.configureSourceLanguage(t)
 }
 
 func sourceFallbackText(t *Tab) string {
@@ -258,8 +266,16 @@ func (a *App) setPluginEnabled(id string, enabled bool) {
 	if !a.flushAllViews("更改格式插件") {
 		return
 	}
-	if err := a.pluginManager.SetEnabled(id, enabled); err != nil {
-		if errors.Is(err, plugins.ErrEnabledNotLoaded) {
+	a.finishSetPluginEnabled(id, enabled, a.pluginManager.SetEnabled(id, enabled))
+}
+
+// finishSetPluginEnabled reconciles the persistence/registry outcome on the UI
+// thread. Keeping this boundary separate also permits instance-local fault tests.
+func (a *App) finishSetPluginEnabled(id string, enabled bool, err error) {
+	if err != nil {
+		var publication *document.StatePublicationError
+		published := errors.As(err, &publication) && publication.Committed
+		if published || errors.Is(err, plugins.ErrEnabledNotLoaded) {
 			a.reconfigureTabs()
 		}
 		a.report(fmt.Errorf("格式插件 %s：%w", id, err))

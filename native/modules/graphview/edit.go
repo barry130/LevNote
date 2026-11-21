@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"unicode/utf8"
 
 	"levnote.local/native/core/text"
 	"levnote.local/native/formats/drawio"
@@ -13,6 +14,74 @@ import (
 func (v *view) commitBuffer(value string) error {
 	_, err := v.commitBufferSelection(value, false)
 	return err
+}
+
+// commitBufferDelta keeps an ordinary field edit's history proportional to the
+// changed field, even when the full source is near its format byte limit.
+func (v *view) commitBufferDelta(before, after string) error {
+	buffer := v.host.Buffer
+	if buffer == nil {
+		return errors.New("no host buffer")
+	}
+	if v.host.ReadOnly {
+		return errors.New("document is read-only")
+	}
+	if buffer.String() != before {
+		return ErrDraftConflict
+	}
+	if before == after {
+		return nil
+	}
+
+	prefix := 0
+	for prefix < len(before) && prefix < len(after) && before[prefix] == after[prefix] {
+		prefix++
+	}
+	for prefix > 0 {
+		beforeBoundary := prefix == len(before) || utf8.RuneStart(before[prefix])
+		afterBoundary := prefix == len(after) || utf8.RuneStart(after[prefix])
+		if beforeBoundary && afterBoundary {
+			break
+		}
+		prefix--
+	}
+	suffix := 0
+	for suffix < len(before)-prefix && suffix < len(after)-prefix &&
+		before[len(before)-suffix-1] == after[len(after)-suffix-1] {
+		suffix++
+	}
+	for suffix > 0 {
+		beforeStart, afterStart := len(before)-suffix, len(after)-suffix
+		beforeBoundary := beforeStart == len(before) || utf8.RuneStart(before[beforeStart])
+		afterBoundary := afterStart == len(after) || utf8.RuneStart(after[afterStart])
+		if beforeBoundary && afterBoundary {
+			break
+		}
+		suffix--
+	}
+	beforeEnd, afterEnd := len(before)-suffix, len(after)-suffix
+	start := text.UTF16Len(before[:prefix])
+	end := text.UTF16Len(before[:beforeEnd])
+	caret := text.UTF16Len(after)
+	if err := buffer.BeginGroup(); err != nil {
+		return err
+	}
+	if err := buffer.ReplaceUTF16(start, end, after[prefix:afterEnd]); err != nil {
+		buffer.CancelGroup()
+		return err
+	}
+	if err := buffer.SetSelection(caret, caret); err != nil {
+		buffer.CancelGroup()
+		return err
+	}
+	if !buffer.EndGroup() {
+		return errors.New("graph field edit produced no buffer transaction")
+	}
+	v.lastSynced = ^uint64(0)
+	if v.host.Changed != nil {
+		v.host.Changed()
+	}
+	return nil
 }
 
 // Selection restoration belongs inside the transaction so redo does not move

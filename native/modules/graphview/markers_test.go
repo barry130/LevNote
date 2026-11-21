@@ -293,6 +293,48 @@ func TestMarkersNativeHeldGestureIdentityRefusalAndMerge(t *testing.T) {
 	}
 }
 
+func TestMarkersStaleRelayoutCancellationRemainsSilent(t *testing.T) {
+	for _, change := range []string{"node", "presence"} {
+		for _, cancel := range []string{"cancel", "outside", "scroll"} {
+			t.Run(change+"/"+cancel, func(t *testing.T) {
+				source := markerFixture(nil, false)
+				buffer := text.New(source)
+				changed, reports := 0, 0
+				v := newView(kindMindmap, editor.Host{Buffer: buffer, Changed: func() { changed++ }, Report: func(error) { reports++ }})
+				tester := ui.NewTester(v.Draw, 760, 480)
+				openMarkers(t, tester, 760, 480)
+				revealFieldControl(t, tester, "优先级 2", 760, 480)
+				r, _ := tester.Find("优先级 2")
+				x, y := r.X+r.W/2, r.Y+r.H/2
+				tester.Press(x, y)
+				if change == "node" {
+					v.selectNode("left")
+				} else {
+					replaceSource(t, buffer, `"id":"root"`, `"id":"root","icons":[]`)
+				}
+				tester.Frame()
+				authority, history := buffer.String(), buffer.History()
+				switch cancel {
+				case "cancel":
+					tester.CancelPress()
+				case "outside":
+					x, y = 10, 10
+				case "scroll":
+					tester.Wheel(750, 445, 0, 30)
+					tester.Advance(time.Second)
+				}
+				tester.Release(x, y)
+				if buffer.String() != authority || buffer.History() != history || changed != 0 || reports != 0 || v.markerError != nil {
+					t.Fatal("canceled stale gesture changed source or reported a refusal", changed, reports, v.markerError)
+				}
+				if v.markerPress.active || v.markerPress.icons != nil {
+					t.Fatal("canceled stale gesture retained its snapshot")
+				}
+			})
+		}
+	}
+}
+
 func TestMarkersHeldSelectionRoundTripMergesOnReturn(t *testing.T) {
 	source := markerFixture([]string{"custom", "1️⃣"}, true)
 	buffer := text.New(source)

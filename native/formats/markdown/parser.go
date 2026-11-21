@@ -11,6 +11,7 @@ const (
 	maxLines      = 65536
 	maxBlocks     = 8192
 	maxListItems  = 4096
+	maxListDepth  = 8
 	warningLimit  = 256
 	maxLineSlice  = 128
 )
@@ -70,7 +71,7 @@ var (
 	orderedRe   = regexp.MustCompile(`^(\d{1,9})[.)][ \t]+(.*)$`)
 	bulletRe    = regexp.MustCompile(`^[-*+][ \t]+(.*)$`)
 	openFenceRe = regexp.MustCompile("^(`{3,})[ \\t]*([^`\\s]*)[^\\n]*$")
-	fenceOnlyRe = regexp.MustCompile("^( {0,3})(`{3,})[ \\t]*$")
+	fenceOnlyRe    = regexp.MustCompile("^( {0,3})(`{3,})[ \\t]*$")
 )
 
 func isTableRow(content string) bool {
@@ -402,39 +403,71 @@ func parseTaskMarker(source string, bodyStart, bodyEnd int) (*TaskMarker, int, b
 	}, labelStart, true
 }
 
+func listColumn(content string) int {
+	column := 0
+	for i := 0; i < len(content); i++ {
+		if content[i] == '\t' {
+			column += 4 - column%4
+		} else {
+			column++
+		}
+	}
+	return column
+}
+
+func listMarkerLine(content string) (indent, contentColumn, textStart int, ordered bool, number int, ok bool) {
+	for textStart < len(content) && (content[textStart] == ' ' || content[textStart] == '\t') {
+		textStart++
+	}
+	indent = listColumn(content[:textStart])
+	trimmed := content[textStart:]
+	if match := orderedRe.FindStringSubmatchIndex(trimmed); match != nil {
+		number, err := strconv.Atoi(trimmed[match[2]:match[3]])
+		if err != nil {
+			return 0, 0, 0, false, 0, false
+		}
+		bodyStart := textStart + match[4]
+		return indent, listColumn(content[:bodyStart]), bodyStart, true, number, true
+	}
+	if match := bulletRe.FindStringSubmatchIndex(trimmed); match != nil {
+		bodyStart := textStart + match[2]
+		return indent, listColumn(content[:bodyStart]), bodyStart, false, 0, true
+	}
+	return 0, 0, 0, false, 0, false
+}
+
 func parseList(source string, lines []line, index int, ordered bool, inlineBudget *inlineLimit) (Block, int, []Warning, bool) {
 	items := []ListItem{}
 	var warnings []Warning
-	i := index
-	start := 1
-	if ordered {
-		orderedMatch := orderedRe.FindStringSubmatchIndex(lines[index].content)
-		if orderedMatch != nil && len(orderedMatch) >= 4 {
-			if number, err := strconv.Atoi(lines[index].content[orderedMatch[2]:orderedMatch[3]]); err == nil {
-				start = number
-			}
-		}
+	baseIndent, baseContentColumn, _, firstOrdered, start, ok := listMarkerLine(lines[index].content)
+	if !ok || firstOrdered != ordered {
+		return Block{}, index, nil, false
 	}
+	markerIndents := []int{baseIndent}
+	contentColumns := []int{baseContentColumn}
+	i := index
 	for i < len(lines) {
 		current := lines[i]
-		orderedMatch := orderedRe.FindStringSubmatchIndex(current.content)
-		bulletMatch := bulletRe.FindStringSubmatchIndex(current.content)
-		if i == index && ordered {
-			bulletMatch = nil
-		}
-		var textStart int
-		var kindOrdered bool
-		if orderedMatch != nil {
-			textStart = orderedMatch[4]
-			kindOrdered = true
-		} else if bulletMatch != nil {
-			textStart = bulletMatch[2]
-			kindOrdered = false
-		}
-		if orderedMatch == nil && bulletMatch == nil {
+		indent, contentColumn, textStart, kindOrdered, number, markerOK := listMarkerLine(current.content)
+		if !markerOK {
+			if !isBlank(current.content) {
+				leadingEnd := 0
+				for leadingEnd < len(current.content) && (current.content[leadingEnd] == ' ' || current.content[leadingEnd] == '\t') {
+					leadingEnd++
+				}
+				indentColumn := listColumn(current.content[:leadingEnd])
+				trimmed := current.content[leadingEnd:]
+				fenceContinuation := strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~")
+				parentIndent := markerIndents[len(markerIndents)-1]
+				parentContent := contentColumns[len(contentColumns)-1]
+				if indentColumn >= parentContent || indentColumn >= parentIndent+2 && fenceContinuation {
+					warnings = appendSyntaxWarning(warnings, "unsupported-list-continuation",
+						"Indented list continuation or inner fence is unsupported and remains visible as raw text", lineRange(current))
+				}
+			}
 			break
 		}
-		if kindOrdered != ordered {
+		if indent < baseIndent || indent == baseIndent && kindOrdered != ordered {
 			break
 		}
 		if len(items) >= maxListItems {
@@ -445,26 +478,8 @@ func parseList(source string, lines []line, index int, ordered bool, inlineBudge
 				Range: rangeAt(lines[index].start, current.start), Raw: source[lines[index].start:current.start],
 			}, i, warnings, false
 		}
-		if textStart >= len(current.content) {
-			textEnd := current.start + len(strings.TrimRight(current.content, " \t"))
-			textStart = min(current.start+textStart, textEnd)
-			task, labelStart, isTask := parseTaskMarker(source, textStart, textEnd)
-			if isTask {
-				textStart = labelStart
-			}
-			itemInline, inlineWarnings := parseInline("", textStart, inlineBudget)
-			warnings = appendWarningsCapped(warnings, inlineWarnings)
-			items = append(items, ListItem{
-				Range: lineRange(current), TextRange: rangeAt(textStart, textEnd),
-				Text: "", Inline: itemInline,
-				Task: task,
-			})
-			i++
-			break
-		}
 		textEnd := current.start + len(strings.TrimRight(current.content, " \t"))
-		textStart = current.start + textStart
-		textStart = min(textStart, textEnd)
+		textStart = min(current.start+textStart, textEnd)
 		task, labelStart, isTask := parseTaskMarker(source, textStart, textEnd)
 		if isTask {
 			textStart = labelStart
@@ -472,18 +487,71 @@ func parseList(source string, lines []line, index int, ordered bool, inlineBudge
 		visible := source[textStart:textEnd]
 		itemInline, inlineWarnings := parseInline(visible, textStart, inlineBudget)
 		warnings = appendWarningsCapped(warnings, inlineWarnings)
+		depth := -1
+		// A marker exactly on an already-seen list column returns to that
+		// real parent. Otherwise it is a child of the deepest actual item's
+		// content column. Large indentation jumps create only one level; they
+		// never manufacture missing ancestors.
+		for level := len(markerIndents) - 1; level >= 0; level-- {
+			if indent == markerIndents[level] {
+				depth = level
+				break
+			}
+		}
+		if depth < 0 {
+			for level := len(markerIndents) - 1; level >= 0; level-- {
+				// A child must be indented past both the marker and its actual
+				// content column (important for three-digit ordered markers).
+				// One large jump still adds only one real child level.
+				minimumChild := max(markerIndents[level]+2, contentColumns[level])
+				if indent >= minimumChild {
+					depth = level + 1
+					break
+				}
+			}
+		}
+		if depth < 0 {
+			warnings = appendSyntaxWarning(warnings, "unsupported-list-indent",
+				"Markdown list marker does not align with an existing item content column; remaining source is left visible",
+				rangeAt(current.start, len(source)))
+			return Block{Kind: BlockList, Ordered: ordered, Start: start, Items: items,
+				Range: rangeAt(lines[index].start, current.start), Raw: source[lines[index].start:current.start],
+			}, i, warnings, false
+		}
+		if depth > maxListDepth {
+			warnings = appendSyntaxWarning(warnings, "parse-limit",
+				"Markdown list nesting limit reached; remaining source is preserved as raw text",
+				rangeAt(current.start, len(source)))
+			return Block{Kind: BlockList, Ordered: ordered, Start: start, Items: items,
+				Range: rangeAt(lines[index].start, current.start), Raw: source[lines[index].start:current.start],
+			}, i, warnings, false
+		}
+		if depth == len(markerIndents) {
+			markerIndents = append(markerIndents, indent)
+			contentColumns = append(contentColumns, contentColumn)
+		} else if depth < len(markerIndents) {
+			markerIndents[depth] = indent
+			contentColumns[depth] = contentColumn
+			markerIndents = markerIndents[:depth+1]
+			contentColumns = contentColumns[:depth+1]
+		} else {
+			warnings = appendSyntaxWarning(warnings, "unsupported-list-indent",
+				"Markdown list nesting skipped a parent item; remaining source is left visible",
+				rangeAt(current.start, len(source)))
+			return Block{Kind: BlockList, Ordered: ordered, Start: start, Items: items,
+				Range: rangeAt(lines[index].start, current.start), Raw: source[lines[index].start:current.start],
+			}, i, warnings, false
+		}
 		items = append(items, ListItem{
 			Range: lineRange(current), TextRange: rangeAt(textStart, textEnd),
-			Text: visible, Inline: itemInline,
-			Task: task,
+			Text: visible, Inline: itemInline, Task: task,
+			Depth: depth, Ordered: kindOrdered, Start: number,
 		})
 		i++
-		if i < len(lines) && !isBlank(lines[i].content) &&
-			(strings.HasPrefix(lines[i].content, " ") || strings.HasPrefix(lines[i].content, "\t")) {
-			continue
-		}
 	}
-
+	if len(items) == 0 {
+		return Block{}, index, warnings, false
+	}
 	raw := source[lines[index].start:lines[i-1].end]
 	return Block{
 		Kind: BlockList, Range: rangeAt(lines[index].start, lines[i-1].end),

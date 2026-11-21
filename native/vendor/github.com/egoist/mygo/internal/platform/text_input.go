@@ -38,34 +38,427 @@ type TextInputClient interface {
 	IndexForPoint(x, y float64) (int, bool)
 }
 
-// InputComposition preserves the native end-preedit/commit ordering without
-// owning text. Some input methods unmark before delivering their result.
-type InputComposition struct{ pending *TextRange }
+// CompositionCancelStamp identifies retained application input, including a
+// refusal without a mark or a core token. The client must retire its attachment
+// before reusing a Generation (including uint64 wrap).
+type CompositionCancelStamp struct {
+	Generation uint64
+	HasTarget  bool
+}
 
-func (c *InputComposition) Reset() { c.pending = nil }
-func (c *InputComposition) End(client TextInputClient) {
-	if r, ok := client.MarkedRange(); ok {
-		c.pending = &r
+type CompositionCancelAvailability uint8
+
+const (
+	CancelLegacy CompositionCancelAvailability = iota
+	CancelUnavailable
+	CancelReady
+)
+
+// TextInputCompositionCanceler is optional; required client methods stay intact.
+// Queries are observational. The returned after stamp is local to the completed
+// cancellation, before its final application callback; transports revalidate it.
+type TextInputCompositionCanceler interface {
+	CompositionCancelState() (CompositionCancelStamp, CompositionCancelAvailability)
+	CancelComposition(CompositionCancelStamp) (CompositionCancelStamp, bool)
+}
+
+// Nonzero identities reject attachment and session ABA without keeping text.
+type compositionAttachment struct{ marker byte }
+type compositionSession struct{ marker byte }
+
+// CompositionSession is a captured transport identity, not an application token.
+// Retained/queued events must use the For methods with their original handle.
+type CompositionSession struct {
+	attachment *compositionAttachment
+	session    *compositionSession
+}
+
+// InputComposition owns transport ordering only. Legacy End/Replace/Reset retain
+// their original behavior on backends which do not opt into SetClient/Start.
+// UI-thread-only; no callback can be assumed non-reentrant.
+type InputComposition struct {
+	pending                  *TextRange
+	client                   TextInputClient
+	attachment               *compositionAttachment
+	session                  *compositionSession
+	revision                 uint64
+	stamp                    CompositionCancelStamp
+	tracked, idle, cancelled bool
+}
+
+func cancelState(client TextInputClient) (CompositionCancelStamp, CompositionCancelAvailability) {
+	if optional, ok := client.(TextInputCompositionCanceler); ok {
+		return optional.CompositionCancelState()
+	}
+	return CompositionCancelStamp{}, CancelLegacy
+}
+
+// Invalidate is the hard attachment boundary, including focus ABA and IME-off.
+// Call it before native notifications that may synchronously reenter.
+func (c *InputComposition) Invalidate() {
+	c.pending, c.client, c.session = nil, nil, nil
+	c.attachment = &compositionAttachment{1}
+	c.revision = 0
+	c.stamp = CompositionCancelStamp{}
+	c.tracked, c.idle, c.cancelled = false, false, false
+}
+
+// SetClient requires stable pointer clients, as the native text contract does.
+func (c *InputComposition) SetClient(client TextInputClient) {
+	if c.attachment != nil && c.client == client {
+		return
+	}
+	c.Invalidate()
+	c.client = client
+}
+
+func (c *InputComposition) Capture() CompositionSession {
+	return CompositionSession{c.attachment, c.session}
+}
+
+func (c *InputComposition) Current(h CompositionSession, client TextInputClient) bool {
+	return h.attachment != nil && h.attachment == c.attachment && h.session == c.session && client == c.client
+}
+
+func (c *InputComposition) touch() {
+	c.revision++
+	if c.revision == 0 {
+		// Do not let an outstanding callback regain authority after wrap.
+		c.attachment = &compositionAttachment{1}
+		c.session, c.pending = nil, nil
+		c.tracked, c.idle, c.cancelled = false, false, false
+	}
+}
+
+func (c *InputComposition) unchanged(h CompositionSession, client TextInputClient, revision uint64) bool {
+	return c.Current(h, client) && c.revision == revision
+}
+
+// Legacy continuation authority is attachment/session/client identity only.
+// A same-scope pending-only Reset keeps the original callback sequence valid.
+// Installing any new attachment (including A->B->A or from an unconfigured
+// backend) still rejects the old tail. Opt-in paths use unchanged as well.
+func (c *InputComposition) legacyUnchanged(h CompositionSession, client TextInputClient) bool {
+	if c.Capture() != h {
+		return false
+	}
+	return h.attachment == nil || c.client == client
+}
+
+func nextCancelGeneration(before, after CompositionCancelStamp) bool {
+	return before.Generation != ^uint64(0) && after.Generation == before.Generation+1
+}
+
+// Reset is deliberately pending-only. It cannot lift cancelled-session isolation.
+func (c *InputComposition) Reset() { c.touch(); c.pending = nil }
+
+// Start keeps a live owner or an End->final span. Otherwise it begins a new
+// session. A pre-existing target is not acquired merely by observing it here.
+func (c *InputComposition) Start(client TextInputClient) CompositionSession {
+	entry, revision := c.Capture(), c.revision
+	stamp, availability := cancelState(client)
+	if entry != c.Capture() || c.revision != revision {
+		return CompositionSession{}
+	}
+	if availability != CancelReady {
+		return c.Capture() // legacy START never resets its pending span
+	}
+	if c.client != client || c.attachment == nil {
+		c.SetClient(client)
+	}
+	c.touch()
+	h := c.Capture()
+	if c.session != nil && !c.cancelled && stamp == c.stamp && (c.tracked && stamp.HasTarget || c.pending != nil) {
+		return h
+	}
+	c.session = &compositionSession{1}
+	c.pending = nil
+	c.stamp, c.tracked, c.idle, c.cancelled = stamp, false, !stamp.HasTarget, false
+	return c.Capture()
+}
+
+// Preedit is a flagged composition boundary, including an empty string. It can
+// restart a cancelled session without START. Binding is proved from this call's
+// before/after stamps, including a first refusal that retains only an error.
+func (c *InputComposition) Preedit(client TextInputClient, r *TextRange, value string, selected TextRange) bool {
+	return c.PreeditFor(c.Capture(), client, r, value, selected)
+}
+
+func (c *InputComposition) PreeditFor(h CompositionSession, client TextInputClient, r *TextRange, value string, selected TextRange) bool {
+	if c.attachment != nil && !c.Current(h, client) {
+		return false
+	}
+	c.touch()
+	h, revision := c.Capture(), c.revision
+	before, availability := cancelState(client)
+	if c.attachment != nil && !c.unchanged(h, client, revision) {
+		return false
+	}
+	if availability == CancelLegacy {
+		c.pending = nil
+		client.SetMarkedText(r, value, selected)
+		return c.legacyUnchanged(h, client)
+	}
+	if availability != CancelReady || !c.Current(h, client) {
+		return false
+	}
+	if before.HasTarget && (!c.tracked || c.cancelled || before != c.stamp) {
+		return false // reject an observed/foreign owner before changing session state
+	}
+	if c.session == nil || c.cancelled || before != c.stamp || !c.tracked && !c.idle {
+		c.session = &compositionSession{1}
+		c.tracked, c.idle, c.cancelled = false, false, false
+		c.stamp = before
+		h = c.Capture()
+	}
+	wasTracked := c.tracked
+	if before.HasTarget && !wasTracked {
+		return false // START/query cannot acquire someone else's existing owner
+	}
+	pending := c.pending
+	client.SetMarkedText(r, value, selected)
+	if !c.unchanged(h, client, revision) {
+		return false
+	}
+	after, availability := cancelState(client)
+	if !c.unchanged(h, client, revision) || availability != CancelReady {
+		return false
+	}
+	if before.HasTarget {
+		if !wasTracked || after != before {
+			return false
+		}
+	} else if after.HasTarget {
+		if !nextCancelGeneration(before, after) {
+			return false
+		}
+	} else if after != before {
+		return false
+	}
+	if c.pending == pending {
+		c.pending = nil
+	}
+	c.stamp, c.tracked = after, after.HasTarget
+	return true
+}
+
+// CanReplace is checked before a backend consumes its reconversion span. A
+// different ready application stamp retires only old cancellation isolation and
+// its old span; it never acquires the new target. The changed session handle
+// makes the event which observed that transition stale.
+func (c *InputComposition) CanReplace(client TextInputClient) bool {
+	if c.attachment == nil {
+		return true // untouched backends retain their ordinary Replace route
+	}
+	h, revision := c.Capture(), c.revision
+	stamp, availability := cancelState(client)
+	if c.attachment != nil && !c.unchanged(h, client, revision) {
+		return false
+	}
+	if availability == CancelLegacy {
+		return true
+	}
+	if availability != CancelReady || !c.Current(h, client) {
+		return false
+	}
+	if c.cancelled {
+		if stamp != c.stamp {
+			c.touch()
+			c.session = &compositionSession{1}
+			c.pending = nil
+			c.stamp, c.cancelled, c.tracked, c.idle = stamp, false, false, false
+		}
+		return false
+	}
+	if c.session == nil {
+		return !stamp.HasTarget // ordinary result-only, never acquire an owner
+	}
+	return stamp == c.stamp && (c.tracked || c.pending != nil || !stamp.HasTarget)
+}
+
+// SuppressesResult distinguishes a proved old cancelled result from a stale or
+// unavailable client. It is used for the result-first half of a dual-flag event.
+func (c *InputComposition) SuppressesResult(client TextInputClient) bool {
+	h, revision := c.Capture(), c.revision
+	stamp, availability := cancelState(client)
+	return c.unchanged(h, client, revision) && availability == CancelReady && c.cancelled && stamp == c.stamp
+}
+
+func (c *InputComposition) Cancel(client TextInputClient) bool {
+	return c.CancelFor(c.Capture(), client)
+}
+
+func (c *InputComposition) CancelFor(h CompositionSession, client TextInputClient) bool {
+	if c.attachment != nil && !c.Current(h, client) {
+		return false
+	}
+	c.touch()
+	h, revision := c.Capture(), c.revision
+	before, availability := cancelState(client)
+	if c.attachment != nil && !c.unchanged(h, client, revision) {
+		return false
+	}
+	if availability == CancelLegacy {
+		// Preserve the old early clear and sequence only within the same scope.
+		c.pending = nil
+		_, marked := client.MarkedRange()
+		if !c.legacyUnchanged(h, client) {
+			return false
+		}
+		if marked {
+			client.SetMarkedText(nil, "", TextRange{})
+			if !c.legacyUnchanged(h, client) {
+				return false
+			}
+			client.UnmarkText()
+		}
+		return c.legacyUnchanged(h, client)
+	}
+	if availability != CancelReady || !c.Current(h, client) || c.session == nil || c.cancelled || before != c.stamp || !(c.tracked || c.idle && !before.HasTarget) {
+		return false
+	}
+	optional := client.(TextInputCompositionCanceler)
+	after, handled := optional.CancelComposition(before)
+	if !handled || !c.unchanged(h, client, revision) {
+		return false
+	}
+	current, availability := cancelState(client)
+	if !c.unchanged(h, client, revision) || availability != CancelReady || current != after || after.HasTarget {
+		return false
+	}
+	if before.HasTarget && !nextCancelGeneration(before, after) || !before.HasTarget && after != before && !nextCancelGeneration(before, after) {
+		return false
+	}
+	// The application and every callback finished. Only now clear the old span
+	// and install suppression. No application callback follows these writes.
+	c.pending = nil
+	c.stamp, c.cancelled, c.tracked, c.idle = after, true, false, false
+	return true
+}
+
+func (c *InputComposition) End(client TextInputClient) bool {
+	return c.EndFor(c.Capture(), client)
+}
+
+func (c *InputComposition) EndFor(h CompositionSession, client TextInputClient) bool {
+	if c.attachment != nil && !c.Current(h, client) {
+		return false
+	}
+	c.touch()
+	h, revision := c.Capture(), c.revision
+	before, availability := CompositionCancelStamp{}, CancelLegacy
+	if c.attachment != nil {
+		before, availability = cancelState(client)
+	}
+	if !c.legacyUnchanged(h, client) {
+		return false
+	}
+	if availability == CancelLegacy {
+		mark, marked := client.MarkedRange()
+		if !c.legacyUnchanged(h, client) {
+			return false
+		}
+		if marked {
+			c.pending = &mark
+		}
+		client.UnmarkText()
+		return c.legacyUnchanged(h, client)
+	}
+	if availability != CancelReady || !c.unchanged(h, client, revision) || c.session == nil || c.cancelled || before != c.stamp {
+		return false
+	}
+	ownedTarget := c.tracked && before.HasTarget
+	ownedIdleOrPending := !before.HasTarget && (c.idle || c.pending != nil)
+	if !ownedTarget && !ownedIdleOrPending {
+		return false // observing a target at START is never settlement authority
+	}
+	wasTracked := c.tracked
+	pending := c.pending
+	mark, marked := client.MarkedRange()
+	if !c.unchanged(h, client, revision) {
+		return false
+	}
+	fresh, availability := cancelState(client)
+	if !c.unchanged(h, client, revision) || availability != CancelReady || fresh != before {
+		return false // a getter may retire the old owner without touching transport
+	}
+	proposed := pending
+	if marked {
+		proposed = &mark
 	}
 	client.UnmarkText()
+	if !c.unchanged(h, client, revision) {
+		return false
+	}
+	after, availability := cancelState(client)
+	if !c.unchanged(h, client, revision) || availability != CancelReady {
+		return false
+	}
+	if after != before && !(before.HasTarget && !after.HasTarget && nextCancelGeneration(before, after)) {
+		return false // unproved retirement must not clear a successor/old span
+	}
+	if c.pending == pending {
+		c.pending = proposed
+	}
+	c.stamp, c.tracked, c.idle = after, wasTracked && after.HasTarget, false
+	return true
 }
 
-// Cancel discards the marked text, for an input method that gives its
-// composition up without emptying it first. The rest of the document,
-// the selection included, stays as it is.
-func (c *InputComposition) Cancel(client TextInputClient) {
-	c.pending = nil
-	if _, ok := client.MarkedRange(); ok {
-		client.SetMarkedText(nil, "", TextRange{})
-		client.UnmarkText()
-	}
+func (c *InputComposition) Replace(client TextInputClient, r *TextRange, value string) bool {
+	return c.ReplaceFor(c.Capture(), client, r, value)
 }
-func (c *InputComposition) Replace(client TextInputClient, r *TextRange, text string) {
-	if r == nil && c.pending != nil {
-		r = c.pending
+
+func (c *InputComposition) ReplaceFor(h CompositionSession, client TextInputClient, r *TextRange, value string) bool {
+	if c.attachment != nil && !c.Current(h, client) || !c.CanReplace(client) {
+		return false
 	}
-	c.pending = nil
-	client.ReplaceText(r, text)
+	if c.attachment != nil && !c.Current(h, client) {
+		return false
+	}
+	c.touch()
+	h, revision := c.Capture(), c.revision
+	before, availability := CompositionCancelStamp{}, CancelLegacy
+	if c.attachment != nil {
+		before, availability = cancelState(client)
+	}
+	if !c.legacyUnchanged(h, client) {
+		return false
+	}
+	if availability != CancelLegacy && (availability != CancelReady || !c.unchanged(h, client, revision) || c.cancelled || c.session != nil && before != c.stamp || c.session == nil && before.HasTarget) {
+		return false
+	}
+	pending := c.pending
+	if r == nil && pending != nil {
+		r = pending
+	}
+	if availability == CancelLegacy {
+		c.pending = nil // preserve original legacy consumption timing
+		client.ReplaceText(r, value)
+		return c.legacyUnchanged(h, client)
+	}
+	client.ReplaceText(r, value)
+	if !c.unchanged(h, client, revision) {
+		return false
+	}
+	after, availability := cancelState(client)
+	if !c.unchanged(h, client, revision) || availability != CancelReady {
+		return false
+	}
+	if before.HasTarget && after == before {
+		if c.pending == pending {
+			c.pending = nil
+		}
+		return true // refused final; the same owner retains its retry route
+	}
+	if after.HasTarget || before.HasTarget && !nextCancelGeneration(before, after) || !before.HasTarget && after != before {
+		return false
+	}
+	if c.pending == pending {
+		c.pending = nil
+	}
+	c.session = &compositionSession{1} // retire every completed result handle
+	c.stamp, c.tracked, c.idle = after, false, false
+	return true
 }
 
 // UTF16Len counts native text offsets without allocating an encoded string.

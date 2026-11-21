@@ -5,53 +5,65 @@ import "levnote.local/native/core/text"
 // editLines shares admission, composition ownership and history semantics for
 // keyboard and command callers. The planner never changes the live buffer.
 func (e *Editor) editLines(action text.LineEditAction) {
+	a := e.beginInputAction()
+	e.editLinesInputAction(a, action)
+	a.finish()
+}
+func (e *Editor) editLinesInputAction(a *inputAction, action text.LineEditAction) {
+	if err := e.compositionIssue(); err != nil {
+		a.fail(err)
+		return
+	}
 	if e.ReadOnly {
 		return
 	}
-	if err := e.compositionIssue(); err != nil {
-		e.fail(err)
-		return
-	}
 	if e.Buffer.InGroup() && !e.composing {
-		e.fail(text.ErrGroup)
+		a.fail(text.ErrGroup)
 		return
 	}
 	plan, err := e.Buffer.PlanLineEdit(action)
 	if err != nil {
-		e.fail(err)
+		a.fail(err)
 		return
 	}
 	if !plan.Changed && plan.Selection == e.Buffer.Selection() {
 		return
 	}
-	// Admission must precede settlement: a rejected copy leaves the marked
-	// text, its owner, the selection and both history stacks exactly intact.
-	e.UnmarkText()
+	if plan.Changed {
+		if err := e.Buffer.CheckReplaceUTF16(plan.Start, plan.End, plan.Text); err != nil {
+			a.fail(err)
+			return
+		}
+	}
+	e.revealFolds(plan.Start, plan.End, true)
+	if err := e.settleSingleInput(a); err != nil {
+		a.fail(err)
+		return
+	}
 	if !plan.Changed {
 		if err := e.Buffer.SetSelection(plan.Selection.Anchor, plan.Selection.Head); err != nil {
-			e.fail(err)
+			a.fail(err)
 			return
 		}
 		e.hasDesiredX = false
-		e.ensureCaret()
-		e.services.Invalidate()
+		e.prepareInputSelection()
 		return
 	}
 	if err := e.Buffer.BeginGroup(); err != nil {
-		e.fail(err)
+		a.fail(err)
 		return
 	}
 	if err := e.Buffer.ReplaceUTF16(plan.Start, plan.End, plan.Text); err != nil {
 		e.Buffer.CancelGroup()
-		e.fail(err)
+		a.fail(err)
 		return
 	}
 	if err := e.Buffer.SetSelection(plan.Selection.Anchor, plan.Selection.Head); err != nil {
 		e.Buffer.CancelGroup()
-		e.fail(err)
+		a.fail(err)
 		return
 	}
 	if e.Buffer.EndGroup() {
-		e.changed()
+		a.preparedChange()
 	}
 }

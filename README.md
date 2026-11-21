@@ -5,7 +5,17 @@
 页面中运行；文本编辑、Markdown、思维导图和 draw.io 格式处理由本项目实现。
 当前能力是有限但明确的子集，尚未等价迁移旧版全部功能。
 
-**2026-11-14 当前源码状态：有限源码收敛，不是新应用交付 GO。**
+**2026-11-19 当前状态：原生开发已继续，尚未完成新版本交付。**
+当前工作包含 Markdown 表格草稿恢复与嵌套列表、关闭持久化修复、图形撤销检查，
+以及代码折叠、多选区和本地语言服务。部分定向回归已通过，源码仍在集成与独立审阅中；
+当前完整回归、Windows 桌面输入、随包引擎和重启恢复验收尚未收敛。
+详细范围与证据见[原生状态](native/STATUS.md)和[本轮接续记录](native/handoffs/full-delivery-continuation-20261119.md)。
+
+可下载的最新正式接受包仍为 [Windows x64 `.29` ZIP](native/downloads/LevNote-native-worker-20261110.29-windows-x64.zip)。
+[Flowix `.6` 工作台体验 ZIP](native/downloads/LevNote-Flowix-preview-20261116.6-windows-x64.zip)
+另供历史布局体验；这两个包均不包含本轮新增源码。解压后从包内运行宿主，随包说明列出对应版本的能力与边界。
+
+**2026-11-14 源码状态（历史记录）：有限源码收敛，不是新应用交付 GO。**
 六产品根在本地 Windows / Go1.27.3 / offline vendor 下的一次 test 为
 3,019 PASS（1,181 parent + 1,838 nested）、0 FAIL、49 SKIP（47 parent + 2 nested），
 26 测试包 PASS、1 host 包无测试，wall45.295191s；vet/build 各 exit0、空输出。

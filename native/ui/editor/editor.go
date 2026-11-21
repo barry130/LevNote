@@ -23,6 +23,8 @@ const (
 var errLineTooLong = errors.New("超长行已按段显示；全部内容仍可编辑和保存。使用编辑区上方的上一段 / 下一段浏览")
 
 type Editor struct {
+	// Use SetBuffer and SetReadOnly when changing an attached editor. Direct
+	// field assignments are supported for compatibility but can miss ABA.
 	Buffer      *text.Buffer
 	ReadOnly    bool
 	SoftWrap    bool
@@ -52,6 +54,7 @@ type Editor struct {
 	version                      uint64
 	cache                        map[int]lineLayout
 	cachedShapeLimit             int
+	cachedGutter                 float32
 	cachedBuffer                 *text.Buffer
 	rowCounts                    map[int]int
 	rowTree                      map[int]int
@@ -64,6 +67,14 @@ type Editor struct {
 	compositionBuffer            *text.Buffer
 	compositionToken             text.CompositionToken
 	compositionError             error
+	compositionStamp             inputStamp
+	compositionGeneration        uint64
+	compositionMulti             bool
+	compositionMarked            bool
+	compositionPrimary           text.Range
+	compositionTargetAdmitted    bool
+	inputOwner                   inputOwner
+	nativeClient                 *nativeInputClient
 	longLineWarned               bool
 	theme                        *ui.Theme
 	frameNow                     time.Time
@@ -71,67 +82,149 @@ type Editor struct {
 	revealCaret                  bool
 	viewGeneration               uint64
 	pendingClipboard             *clipboardRequest
+	folds                        *foldState
+	foldControl                  foldControlPress
+	// UI-thread mutations that can invalidate a detached source navigation.
+	geometryGeneration   uint64
+	navigationGeneration uint64
+
+	terminalObservedBuffer                                        *text.Buffer
+	terminalObservedReadonly                                      bool
+	terminalObservedView                                          uint64
+	terminalBufferEpoch, terminalReadonlyEpoch, terminalViewEpoch *inputTerminalEpoch
+	terminalRegistration                                          *inputTerminalEpoch
+	inputTerminal                                                 func(InputDelivery)
+	inputDelivery                                                 InputDelivery
+	inputDeliveryValid                                            bool
+	inputActionID, inputDeliveryID                                InputNotificationID
+	compositionChangeStamp                                        text.ChangeStamp
 }
 
 type clipboardRequest struct {
 	value      string
 	cut        bool
 	dispatched bool
-	buffer     *text.Buffer
-	version    uint64
-	generation uint64
-	selection  text.Range
-	owner      text.CompositionToken
+	completed  bool
+	target     clipboardTarget
+	fold       FoldTarget
+	origin     InputBinding
+	onChange   func()
+	onError    func(error)
+}
+
+// Both clipboard transports report completion on the UI thread. Claim the
+// first result before its callback can change a shared initiating action.
+func (r *clipboardRequest) claimCompletion() bool {
+	if r.completed {
+		return false
+	}
+	r.completed = true
+	return true
 }
 
 func New(buffer *text.Buffer) *Editor {
-	return &Editor{
+	e := &Editor{
 		Buffer: buffer, FontSize: 16, LineNumbers: true,
 		Label: "文档编辑区", MinHeight: 80,
 		cache: map[int]lineLayout{},
 	}
+	e.observeTerminalAttachment()
+	return e
 }
 
 func (e *Editor) View(c *ui.Context) {
+	a := e.beginInputAction()
+	e.viewInputAction(a, c)
+	a.finish()
+}
+func (e *Editor) viewInputAction(a *inputAction, c *ui.Context) {
 	e.services, e.theme = c.Services(), c.Theme()
 	e.frameNow = c.Now()
 	if request := e.pendingClipboard; request != nil && !request.dispatched {
+		// This frame admits the queued write. Any pre-dispatch failure belongs
+		// to the current View action. A transport result retains request origin.
+		if err := e.clipboardIssue(request.target); err != nil {
+			e.pendingClipboard = nil
+			a.fail(err)
+			return
+		}
 		request.dispatched = true
-		c.WriteClipboardThen(request.value, func(err error) { e.finishClipboard(request, err) })
+		returned, delivery := false, e.inputDeliveryID
+		c.WriteClipboardThen(request.value, func(err error) {
+			if returned {
+				e.finishClipboard(request, err)
+				return
+			}
+			if !request.claimCompletion() {
+				return
+			}
+			if e.inputDeliveryID != delivery {
+				a.suppressPublish = true
+			}
+			e.finishClipboardInput(a, request, err)
+			if a.changed || a.errorCount != 0 {
+				a.finish()
+			}
+		})
+		returned = true
+		if a.finished {
+			return
+		}
+		if a.abandoned || !a.attachmentCurrent() || e.inputDeliveryID != delivery {
+			a.abandoned = true
+			return
+		}
+	}
+	e.syncFolds()
+	if e.folds != nil && e.folds.provider != nil {
+		binding, delivery, buffer := e.terminalBinding(), e.inputDeliveryID, e.Buffer
+		version, selection := buffer.Version(), buffer.SelectionGeneration()
+		e.foldControls(c)
+		if e.terminalBinding() != binding || e.inputDeliveryID != delivery || e.Buffer != buffer || buffer.Version() != version || buffer.SelectionGeneration() != selection {
+			a.abandoned = true
+			return
+		}
+	}
+	if e.compositionMulti {
+		status := text.ErrCompositionPending
+		if e.compositionError != nil {
+			status = e.compositionError
+		}
+		ui.Text(c.Key("multi-input-status"), status.Error()).FontSize(11)
 	}
 	line, column, _ := e.Buffer.LineColumn(e.Buffer.Selection().Head)
 	span, _ := e.Buffer.LineRange(line)
-	if span.End()-span.Start() > e.shapingLimit() {
-		l := e.lineAt(line, column)
+	if !e.hiddenLine(line) && span.End()-span.Start() > e.shapingLimit() {
+		l, ok := a.line(line, column)
+		if !ok {
+			return
+		}
 		ui.Row(c.Key("segment-controls")).Wrap().Padding(4, 8).Gap(6).Children(func() {
 			label := fmt.Sprintf("UTF-16 位置 %d–%d / %d", l.windowStart+1, l.windowStart+ui.UTF16Len(l.value), l.totalUnits)
 			if e.ShapeLimit > 0 {
 				label = fmt.Sprintf("位置 %d–%d / %d", l.windowStart+1, l.windowStart+ui.UTF16Len(l.value), l.totalUnits)
 			}
 			ui.Text(c, label).FontSize(11)
-			if ui.Button(c, "上一段").Disabled(l.windowStart == 0).Clicked() {
-				e.selectTo(span.Start()+max(0, l.windowStart-e.segmentSize()), false)
-				e.Focus()
+			if ui.Button(c, "上一段").KeepFocus().Disabled(l.windowStart == 0).Clicked() && !a.rejectedMulti() {
+				e.segmentInputAction(a, span.Start()+max(0, l.windowStart-e.segmentSize()), line)
 			}
-			if ui.Button(c, "下一段").Disabled(l.windowStart+ui.UTF16Len(l.value) >= l.totalUnits).Clicked() {
-				e.selectTo(l.start+ui.UTF16Len(l.value), false)
-				e.lineAt(line, min(l.totalUnits, l.windowStart+ui.UTF16Len(l.value)+1))
-				e.ensureCaret()
-				e.Focus()
+			if ui.Button(c, "下一段").KeepFocus().Disabled(l.windowStart+ui.UTF16Len(l.value) >= l.totalUnits).Clicked() && !a.rejectedMulti() {
+				e.segmentInputAction(a, l.start+ui.UTF16Len(l.value), line)
 			}
 		})
 	}
+	client := e.nativeTextClient()
 	box := ui.Box(c.Key("editor-input")).Grow(1).MinHeight(e.MinHeight).MinWidth(80).Clip().
 		Label(e.Label).Role(ui.RoleTextField).Focusable().
-		Bind(&e.handle).HandleInput(e.HandleInput).Draw(e.Draw)
+		Bind(&e.handle).HandleInput(client.handleInput).Draw(e.Draw)
 	if !e.ReadOnly {
-		box.HandleTextInput(e)
+		box.HandleTextInput(client)
 	}
 	// A focused editor owns cancellation while input is pending. Register on
 	// the element so a host's window Escape shortcut cannot swallow it, even
 	// when the first refused preedit has no marked range yet.
 	if (e.composing || e.compositionIssue() != nil) && box.Shortcut(0, ui.KeyEscape) {
-		e.cancelComposition()
+		e.cancelInputAction(a)
 	}
 	e.focused = box.Focused()
 	if e.focused {
@@ -143,20 +236,27 @@ func (e *Editor) View(c *ui.Context) {
 	}
 }
 
-func (e *Editor) Focus() { e.handle.Focus() }
+func (e *Editor) Focus() {
+	if !e.rejectPendingMulti() {
+		e.navigationGeneration++
+		e.handle.Focus()
+	}
+}
 
-func (e *Editor) CancelFocus() { e.handle.CancelFocus() }
+func (e *Editor) CancelFocus() {
+	if !e.rejectPendingMulti() {
+		e.navigationGeneration++
+		e.handle.CancelFocus()
+	}
+}
 
 func (e *Editor) ReleaseView() {
-	if e.composing {
-		e.UnmarkText()
+	a := e.beginInputAction()
+	if e.composing && !e.compositionMulti && e.compositionIssue() == nil {
+		a.fail(e.settleSingleInput(a))
 	}
-	e.releaseGeometry()
-	e.viewGeneration++
-	e.pendingClipboard = nil
-	e.focused = false
-	e.dragging = false
-	e.handle.CancelFocus()
+	e.finishInputRelease(a)
+	a.finish()
 }
 
 func (e *Editor) SetFontSize(size float32) {
@@ -192,7 +292,6 @@ func (e *Editor) GetPosition() (line, column, visualLine int) {
 	if err != nil {
 		return 0, 0, 0
 	}
-	e.lineAt(line, column)
 	return line, column, e.visualLineOf(line, column)
 }
 
@@ -200,25 +299,36 @@ func (e *Editor) SetPosition(line, column int) error {
 	if err := e.compositionIssue(); err != nil {
 		return err
 	}
-	e.UnmarkText()
+	a := e.beginInputAction()
+	if err := e.settleSingleInput(a); err != nil {
+		return err
+	}
 	e.hasDesiredX = false
 	e.affinity = ui.TextDownstream
 	line = max(0, min(line, e.Buffer.LineCount()-1))
 	span, _ := e.Buffer.LineRange(line)
 	column = max(0, min(column, span.End()-span.Start()))
+	e.revealFolds(span.Start()+column, span.Start()+column, false)
 	r := e.normalized(ui.TextInputRange{Start: span.Start() + column, End: span.Start() + column})
 	if err := e.Buffer.SetSelection(r.Start, r.Start); err != nil {
 		return err
 	}
-	e.ensureCaret()
-	e.services.Invalidate()
+	e.prepareInputSelection()
+	a.finish()
 	return nil
 }
 
 func (e *Editor) rowHeight() float32 { return e.FontSize * 1.65 }
 func (e *Editor) gutter() float32 {
+	folding := e.folds != nil && e.folds.provider != nil
 	if e.LineNumbers {
+		if folding {
+			return 114
+		}
 		return 64
+	}
+	if folding {
+		return 74
 	}
 	return 24
 }
@@ -230,24 +340,24 @@ func (e *Editor) fail(err error) {
 }
 
 func (e *Editor) changed() {
-	e.invalidateCacheIfChanged()
-	e.hasDesiredX = false
-	e.affinity = ui.TextDownstream
-	e.blinkStart = e.frameNow
-	e.ensureCaret()
-	if e.OnChange != nil {
-		e.OnChange()
-	}
-	e.services.Invalidate()
+	a := e.beginInputAction()
+	a.preparedChange()
+	a.finish()
 }
 
 func (e *Editor) normalized(r ui.TextInputRange) ui.TextInputRange {
-	r.Start = max(0, min(r.Start, e.Buffer.LenUTF16()))
-	r.End = max(r.Start, min(r.End, e.Buffer.LenUTF16()))
-	if _, err := e.Buffer.SliceUTF16(r.Start, r.Start); err != nil && r.Start > 0 {
+	return normalizedBufferRange(e.Buffer, r)
+}
+
+// Geometry preparation uses the fixed, admitted Buffer rather than a live
+// Editor attachment, which a synchronous host callback may replace.
+func normalizedBufferRange(buffer *text.Buffer, r ui.TextInputRange) ui.TextInputRange {
+	r.Start = max(0, min(r.Start, buffer.LenUTF16()))
+	r.End = max(r.Start, min(r.End, buffer.LenUTF16()))
+	if _, err := buffer.SliceUTF16(r.Start, r.Start); err != nil && r.Start > 0 {
 		r.Start--
 	}
-	if _, err := e.Buffer.SliceUTF16(r.End, r.End); err != nil && r.End < e.Buffer.LenUTF16() {
+	if _, err := buffer.SliceUTF16(r.End, r.End); err != nil && r.End < buffer.LenUTF16() {
 		r.End++
 	}
 	return r
@@ -269,53 +379,101 @@ func (e *Editor) Selection() ui.TextInputSelection {
 }
 
 func (e *Editor) MarkedRange() (ui.TextInputRange, bool) {
-	return e.marked, e.composing && e.compositionBuffer == e.Buffer && e.Buffer.OwnsComposition(e.compositionToken)
+	return e.marked, e.compositionMarked && e.compositionBuffer == e.Buffer && e.Buffer.OwnsComposition(e.compositionToken)
+}
+
+// CompositionActive includes pending multi-selection input without a live mark.
+func (e *Editor) CompositionActive() bool {
+	if e == nil {
+		return false
+	}
+	if e.compositionMulti {
+		return true
+	}
+	_, active := e.MarkedRange()
+	return active
+}
+
+// MultiCompositionPending reports retained input awaiting native final text or Esc.
+func (e *Editor) MultiCompositionPending() bool {
+	return e != nil && e.compositionMulti
 }
 
 // A refused IME update is not permission to commit the preceding preedit.
 // Retain only its small error and owner, never the rejected incoming string.
 func (e *Editor) compositionIssue() error {
+	if err := e.pendingMultiIssue(); err != nil {
+		return err
+	}
 	if e.compositionError != nil {
 		return e.compositionError
 	}
-	if e.compositionBuffer != nil && e.compositionBuffer != e.Buffer {
-		return errors.New("文档已变化；请按 Esc 取消未完成的输入后重试")
-	}
-	if e.composing && !e.Buffer.OwnsComposition(e.compositionToken) {
-		return text.ErrComposition
-	}
-	return nil
+	return e.compositionOwnerIssue(false)
 }
 
-func (e *Editor) refuseComposition(err error) {
+func (e *Editor) retainCompositionError(err error) error {
 	if errors.Is(err, text.ErrSizeLimit) {
-		e.compositionBuffer = e.Buffer
-		e.compositionError = fmt.Errorf("%w；输入法内容尚未接受，请缩短后重试，或按 Esc 取消本次输入", err)
+		if e.compositionBuffer == nil {
+			e.compositionBuffer = e.Buffer
+			e.compositionGeneration++
+			e.compositionStamp = e.inputStamp()
+			e.compositionChangeStamp = e.Buffer.ChangeStamp()
+		}
+		err = fmt.Errorf("%w。输入法内容尚未接受，请缩短后重试，或按 Esc 取消本次输入", err)
+		e.compositionError = err
 		e.dragging = false
-		err = e.compositionError
 	}
-	e.fail(err)
+	if e.compositionMulti {
+		e.compositionError = err
+		e.services.Invalidate()
+	}
+	return err
+}
+func (e *Editor) refuseComposition(err error) {
+	a := e.beginInputAction()
+	a.fail(e.retainCompositionError(err))
+	a.finish()
 }
 
 func (e *Editor) cancelComposition() bool {
-	if !e.composing && e.compositionError == nil && e.compositionBuffer == nil {
+	if e.compositionBuffer == nil {
+		return false
+	}
+	a := e.beginInputAction()
+	handled := e.cancelInputAction(a)
+	a.finish()
+	return handled
+}
+func (e *Editor) cancelInputAction(a *inputAction) bool {
+	if e.compositionBuffer == nil {
 		return false
 	}
 	owner, composed := e.compositionBuffer, e.composing
+	version := owner.Version()
+	proved := owner == a.origin.buffer && a.attachmentCurrent() && e.compositionChangeStamp.BaselineID == owner.ChangeStamp().BaselineID
+	if !composed {
+		proved = proved && e.compositionStamp == e.inputStamp()
+	}
 	var err error
 	if composed {
 		err = owner.CancelCompositionGroup(e.compositionToken)
 	}
-	e.composing = false
-	e.marked = ui.TextInputRange{}
-	e.compositionBuffer, e.compositionError = nil, nil
-	e.compositionToken = text.CompositionToken{}
-	e.fail(err)
+	proved = proved && err == nil
+	if e.compositionMulti {
+		e.nativeClient = nil
+	}
+	e.clearComposition()
+	a.reason = InputOwnCancel
+	a.retired, a.unproved = proved, !proved
+	if owner.Version() != version {
+		a.recovery = InputRecoveryRollback
+	}
 	if composed && err == nil && owner == e.Buffer {
-		e.changed()
+		a.preparedChange()
 	} else {
 		e.services.Invalidate()
 	}
+	a.fail(err)
 	return true
 }
 
@@ -329,138 +487,200 @@ func (e *Editor) replacement(r *ui.TextInputRange) ui.TextInputRange {
 	return e.Selection().Range
 }
 
+// ReplaceText is the programmatic editing entry point. It retains the single
+// selection contract, including edits inside an ordinary BeginGroup/EndGroup.
 func (e *Editor) ReplaceText(r *ui.TextInputRange, value string) {
+	a := e.beginInputAction()
+	e.replaceInputAction(a, r, value)
+	a.finish()
+}
+func (e *Editor) replaceText(r *ui.TextInputRange, value string) {
+	e.ReplaceText(r, value)
+}
+func (e *Editor) replaceInputAction(a *inputAction, r *ui.TextInputRange, value string) {
+	if a.rejectedMulti() {
+		return
+	}
+	if err := e.compositionOwnerIssue(false); err != nil {
+		a.fail(err)
+		return
+	}
 	if e.ReadOnly {
 		return
 	}
-	if e.compositionBuffer != nil && e.compositionBuffer != e.Buffer {
-		e.fail(e.compositionIssue())
+	rr := e.replacement(r)
+	if !e.composing && e.Buffer.InGroup() && (e.compositionError != nil || e.hasCollapsedFolds()) {
+		a.fail(text.ErrGroup)
 		return
 	}
-	rr := e.replacement(r)
-	before := e.Buffer.Version()
-	wasComposing := e.composing
+	if e.hasCollapsedFolds() {
+		if err := e.Buffer.CheckReplaceUTF16(rr.Start, rr.End, value); err != nil {
+			if e.composing || e.compositionError != nil {
+				err = e.retainCompositionError(err)
+			}
+			a.fail(err)
+			return
+		}
+		e.revealFolds(rr.Start, rr.End, true)
+	}
+	before, wasComposing := e.Buffer.Version(), e.composing
 	var err error
 	if e.composing {
 		err = e.Buffer.ReplaceCompositionUTF16(e.compositionToken, rr.Start, rr.End, value)
-	} else if e.compositionError != nil && e.Buffer.InGroup() {
-		err = text.ErrGroup
 	} else {
 		err = e.Buffer.ReplaceUTF16(rr.Start, rr.End, value)
 	}
 	if err != nil {
 		if e.composing || e.compositionError != nil {
-			e.refuseComposition(err)
-		} else {
-			e.fail(err)
+			err = e.retainCompositionError(err)
 		}
+		a.fail(err)
 		return
 	}
-	pos := rr.Start + ui.UTF16Len(value)
-	e.fail(e.Buffer.SetSelection(pos, pos))
 	if e.composing {
 		if err = e.Buffer.EndCompositionGroup(e.compositionToken); err != nil {
-			e.fail(err)
+			a.fail(err)
 			return
 		}
-		e.composing = false
-		e.marked = ui.TextInputRange{}
+		a.retired, a.reason = true, InputFinal
 	}
-	e.compositionBuffer, e.compositionError = nil, nil
-	e.compositionToken = text.CompositionToken{}
+	e.clearComposition()
 	if e.Buffer.Version() != before || wasComposing {
-		e.changed()
+		a.preparedChange()
 	} else {
-		e.ensureCaret()
-		if e.OnChange != nil {
-			e.OnChange()
-		}
-		e.services.Invalidate()
+		e.prepareInputSelection()
+		a.changed = true
 	}
 }
 
+// SetMarkedText retains the direct single-selection API. Multi-selection
+// preedit and confirmation both belong to the native input path.
 func (e *Editor) SetMarkedText(r *ui.TextInputRange, value string, selected ui.TextInputRange) {
+	a := e.beginInputAction()
+	if !a.rejectedMulti() {
+		e.markedInputAction(a, r, value, selected, false)
+	}
+	a.finish()
+}
+func (e *Editor) setMarkedText(r *ui.TextInputRange, value string, selected ui.TextInputRange, native bool) {
+	a := e.beginInputAction()
+	e.markedInputAction(a, r, value, selected, native)
+	a.finish()
+}
+func (e *Editor) markedInputAction(a *inputAction, r *ui.TextInputRange, value string, selected ui.TextInputRange, native bool) {
+	if err := e.compositionOwnerIssue(native); err != nil {
+		a.fail(err)
+		return
+	}
 	if e.ReadOnly {
 		return
 	}
-	if e.compositionBuffer != nil && e.compositionBuffer != e.Buffer {
-		e.fail(e.compositionIssue())
-		return
-	}
-	rr := e.replacement(r)
-	started := !e.composing
-	if started {
+	if !e.composing {
 		if e.Buffer.InGroup() {
-			e.fail(text.ErrGroup)
+			a.fail(text.ErrGroup)
 			return
 		}
-		if err := e.Buffer.CheckReplaceUTF16(rr.Start, rr.End, value); err != nil {
-			e.refuseComposition(err)
-			return
-		}
-		token, err := e.Buffer.BeginCompositionGroup()
-		if err != nil {
-			e.fail(err)
-			return
-		}
-		e.composing = true
-		e.compositionBuffer = e.Buffer
-		e.compositionToken = token
-	}
-	if err := e.Buffer.ReplaceCompositionUTF16(e.compositionToken, rr.Start, rr.End, value); err != nil {
-		e.refuseComposition(err)
-		if started {
-			e.fail(e.Buffer.CancelCompositionGroup(e.compositionToken))
-			e.composing = false
-			e.compositionToken = text.CompositionToken{}
-			if e.compositionError == nil {
-				e.compositionBuffer = nil
+		if len(e.Buffer.SelectionSet().Ranges) > 1 {
+			if !native {
+				a.fail(text.ErrComposition)
+				return
+			}
+			if err := e.beginComposition(true); err != nil {
+				a.fail(err)
+				return
 			}
 		}
+	}
+	var rr ui.TextInputRange
+	if e.compositionMulti {
+		rr = ui.TextInputRange{Start: e.compositionPrimary.Start(), End: e.compositionPrimary.End()}
+		if e.compositionMarked {
+			rr = e.marked
+		}
+		if r != nil && *r != rr {
+			a.fail(e.retainCompositionError(fmt.Errorf("%w：原生预编辑必须替换完整的主选区或标记范围", text.ErrRange)))
+			return
+		}
+		e.compositionTargetAdmitted = true
+	} else {
+		rr = e.replacement(r)
+	}
+	if err := e.Buffer.CheckReplaceUTF16(rr.Start, rr.End, value); err != nil {
+		a.fail(e.retainCompositionError(err))
 		return
 	}
-	e.compositionError = nil
-	e.marked = ui.TextInputRange{Start: rr.Start, End: rr.Start + ui.UTF16Len(value)}
-	selectedRange := e.normalized(ui.TextInputRange{
-		Start: e.marked.Start + max(0, min(selected.Start, ui.UTF16Len(value))),
-		End:   e.marked.Start + max(0, min(selected.End, ui.UTF16Len(value))),
-	})
-	e.fail(e.Buffer.SetSelection(selectedRange.Start, selectedRange.End))
-	e.changed()
+	started := !e.composing
+	if started {
+		if err := e.beginComposition(false); err != nil {
+			a.fail(err)
+			return
+		}
+	}
+	e.revealFolds(rr.Start, rr.End, true)
+	version := e.Buffer.Version()
+	if err := e.Buffer.ReplaceCompositionUTF16(e.compositionToken, rr.Start, rr.End, value); err != nil {
+		var cancelErr error
+		if started {
+			cancelErr = e.compositionBuffer.CancelCompositionGroup(e.compositionToken)
+			e.clearComposition()
+		}
+		refusal := e.retainCompositionError(err)
+		a.fail(cancelErr)
+		a.fail(refusal)
+		return
+	}
+	e.compositionError, e.compositionMarked = nil, true
+	length := ui.UTF16Len(value)
+	e.marked = ui.TextInputRange{Start: rr.Start, End: rr.Start + length}
+	selectedRange := e.normalized(ui.TextInputRange{Start: e.marked.Start + max(0, min(selected.Start, length)), End: e.marked.Start + max(0, min(selected.End, length))})
+	err := e.Buffer.SetSelection(selectedRange.Start, selectedRange.End)
+	e.compositionStamp = e.inputStamp()
+	a.reason = InputPreedit
+	if version != e.Buffer.Version() {
+		a.recovery = InputRecoveryProvisional
+	}
+	a.preparedChange()
+	a.fail(err)
 }
 
 func (e *Editor) UnmarkText() {
-	// Toolkit focus loss and host geometry release also call this method;
-	// neither is an explicit cancellation of a refused input.
-	if e.compositionIssue() != nil {
+	if e.rejectPendingMulti() || e.compositionIssue() != nil || !e.composing {
 		return
 	}
-	if e.composing {
-		if err := e.Buffer.EndCompositionGroup(e.compositionToken); err != nil {
-			e.fail(err)
-			return
-		}
-		e.composing = false
-		e.marked = ui.TextInputRange{}
-		e.compositionBuffer = nil
-		e.compositionToken = text.CompositionToken{}
-		e.services.Invalidate()
-	}
+	a := e.beginInputAction()
+	a.fail(e.settleSingleInput(a))
+	a.finish()
 }
 
-// Flush commits the current native composition before a host saves or switches
-// views. It never closes a transaction owned by another editor operation.
+// Preserve the historical private entry as a callback-free helper. Complete
+// public actions pass their own record to settleSingleInput instead.
+func (e *Editor) endSingleComposition() error {
+	return e.settleSingleInput(e.captureInputAction())
+}
+
+// Flush never settles a foreign group or pending/refused composition. An idle
+// repeat is observational and produces neither a delivery nor metadata writes.
 func (e *Editor) Flush() error {
 	if err := e.compositionIssue(); err != nil {
 		return err
 	}
-	e.UnmarkText()
-	return nil
+	if !e.composing {
+		return nil
+	}
+	a := e.beginInputAction()
+	err := e.settleSingleInput(a)
+	a.finish()
+	return err
 }
 
 func (e *Editor) selectTo(pos int, extend bool) {
+	a := e.beginInputAction()
+	e.selectInputAction(a, pos, extend)
+	a.finish()
+}
+func (e *Editor) selectInputAction(a *inputAction, pos int, extend bool) {
 	if err := e.compositionIssue(); err != nil {
-		e.fail(err)
+		a.fail(err)
 		return
 	}
 	r := e.normalized(ui.TextInputRange{Start: pos, End: pos})
@@ -469,10 +689,12 @@ func (e *Editor) selectTo(pos int, extend bool) {
 	if extend {
 		anchor = e.Buffer.Selection().Anchor
 	}
-	e.fail(e.Buffer.SetSelection(anchor, pos))
-	e.blinkStart = e.frameNow
-	e.ensureCaret()
-	e.services.Invalidate()
+	e.revealFolds(pos, pos, false)
+	if err := e.Buffer.SetSelection(anchor, pos); err != nil {
+		a.fail(err)
+		return
+	}
+	e.prepareInputSelection()
 }
 
 func (e *Editor) boundary(pos, dir int) int {
@@ -554,26 +776,34 @@ func (e *Editor) selectedLines() (int, int) {
 }
 
 func (e *Editor) indentSelected(direction int) {
+	a := e.beginInputAction()
+	e.indentInputAction(a, direction)
+	a.finish()
+}
+func (e *Editor) indentInputAction(a *inputAction, direction int) {
+	if a.rejectedMulti() {
+		return
+	}
 	startLine, endLine := e.selectedLines()
 	if endLine < startLine {
 		return
 	}
 	if e.Buffer.InGroup() && !e.composing {
-		e.fail(text.ErrGroup)
+		a.fail(text.ErrGroup)
 		return
 	}
-	// Comparing the zero-based line span avoids overflowing a line count or
-	// multiplying that count by the four-byte indentation.
 	if direction > 0 && endLine-startLine >= (e.Buffer.MaxBytes()-e.Buffer.LenBytes())/len(tabWidth) {
-		e.fail(&text.SizeLimitError{Limit: e.Buffer.MaxBytes()})
+		a.fail(&text.SizeLimitError{Limit: e.Buffer.MaxBytes()})
 		return
 	}
-	e.UnmarkText()
+	if err := e.settleSingleInput(a); err != nil {
+		a.fail(err)
+		return
+	}
 	selection := e.Buffer.Selection()
-	anchor, head := selection.Anchor, selection.Head
-	changed := false
+	anchor, head, changed := selection.Anchor, selection.Head, false
 	if err := e.Buffer.BeginGroup(); err != nil {
-		e.fail(err)
+		a.fail(err)
 		return
 	}
 	mapOffset := func(offset, start, removed, added int) int {
@@ -583,14 +813,13 @@ func (e *Editor) indentSelected(direction int) {
 		return max(start, offset-removed) + added
 	}
 	for line := startLine; line <= endLine; line++ {
-		span, lineErr := e.Buffer.LineRange(line)
-		if lineErr != nil {
+		span, err := e.Buffer.LineRange(line)
+		if err != nil {
 			e.Buffer.CancelGroup()
-			e.fail(lineErr)
+			a.fail(err)
 			return
 		}
-		pos := span.Start()
-		remove, insert := 0, tabWidth
+		pos, remove, insert := span.Start(), 0, tabWidth
 		if direction < 0 {
 			insert = ""
 			prefix := e.normalized(ui.TextInputRange{Start: pos, End: min(pos+4, span.End())})
@@ -606,26 +835,41 @@ func (e *Editor) indentSelected(direction int) {
 		if remove == 0 && insert == "" {
 			continue
 		}
+		if !changed && e.hasCollapsedFolds() {
+			first, _ := e.Buffer.OffsetOfLine(startLine)
+			last, _ := e.Buffer.LineRange(endLine)
+			e.revealFolds(first, last.End(), true)
+		}
 		if err := e.Buffer.ReplaceUTF16(pos, pos+remove, insert); err != nil {
 			e.Buffer.CancelGroup()
-			e.fail(err)
+			a.fail(err)
 			return
 		}
 		changed = true
-		anchor = mapOffset(anchor, pos, remove, len(insert))
-		head = mapOffset(head, pos, remove, len(insert))
+		anchor, head = mapOffset(anchor, pos, remove, len(insert)), mapOffset(head, pos, remove, len(insert))
 	}
-	e.fail(e.Buffer.SetSelection(anchor, head))
-	// EndGroup reports whether there were edits, not whether closing succeeded.
+	if err := e.Buffer.SetSelection(anchor, head); err != nil {
+		e.Buffer.CancelGroup()
+		a.fail(err)
+		return
+	}
 	e.Buffer.EndGroup()
 	if changed {
-		e.changed()
+		a.preparedChange()
 	}
 }
 
 func (e *Editor) insertNewlineWithIndent() {
-	e.UnmarkText()
-	position := e.Buffer.Selection().Start()
+	a := e.beginInputAction()
+	e.newlineInputAction(a)
+	a.finish()
+}
+func (e *Editor) newlineInputAction(a *inputAction) {
+	if a.rejectedMulti() {
+		return
+	}
+	selection := e.Buffer.Selection()
+	position := selection.Start()
 	line, _, _ := e.Buffer.LineColumn(position)
 	span, _ := e.Buffer.LineRange(line)
 	// Copy only leading spaces/tabs before the insertion point. Inspect bounded
@@ -653,146 +897,228 @@ func (e *Editor) insertNewlineWithIndent() {
 		previous, _ := e.Buffer.LineRange(line - 1)
 		newline, _ = e.Buffer.SliceUTF16(previous.End(), span.Start())
 	}
-	e.ReplaceText(nil, newline+indentation.String())
+	value := newline + indentation.String()
+	if e.composing {
+		if err := e.Buffer.CheckReplaceUTF16(selection.Start(), selection.End(), value); err != nil {
+			a.fail(err)
+			return
+		}
+	}
+	if err := e.settleSingleInput(a); err != nil {
+		a.fail(err)
+		return
+	}
+	e.replaceInputAction(a, nil, value)
+}
+
+func (e *Editor) clipboardIssue(target clipboardTarget) error {
+	if err := e.compositionIssue(); err != nil {
+		return err
+	}
+	if !target.matches(e) {
+		return errors.New("文档、选区或输入状态已改变，已停止剪贴板操作")
+	}
+	return nil
 }
 
 func (e *Editor) finishClipboard(request *clipboardRequest, err error) {
+	if e.pendingClipboard != request || !request.claimCompletion() {
+		return
+	}
+	a := e.beginInputAction()
+	e.finishClipboardInput(a, request, err)
+	a.finish()
+}
+
+func (e *Editor) finishClipboardInput(a *inputAction, request *clipboardRequest, err error) {
 	if e.pendingClipboard != request {
+		a.abandoned = true
 		return
 	}
 	e.pendingClipboard = nil
+	if err == nil && !request.cut {
+		return
+	}
+	// A delayed result owns a fresh action but retains the originating
+	// request's notification seal and handlers.
+	a.origin, a.onChange, a.onError = request.origin, request.onChange, request.onError
 	if err != nil {
-		e.fail(err)
+		a.failClipboard(err)
 		return
 	}
-	if !request.cut {
+	if err := e.clipboardIssue(request.target); err != nil {
+		a.failClipboard(err)
 		return
 	}
-	if err := e.compositionIssue(); err != nil {
-		e.fail(err)
+	if request.fold.buffer != nil && !sameFoldSource(request.fold, e.foldIdentity()) {
+		a.failClipboard(ErrFoldStale)
 		return
 	}
-	// A new same-text preedit can preserve both version and selection. The
-	// completed write must not delete or settle that host's composition.
-	if e.compositionToken != request.owner {
-		e.fail(errors.New("输入法组合已改变，未删除原内容"))
-		return
-	}
-	if e.ReadOnly || e.Buffer != request.buffer || e.Buffer.Version() != request.version || e.Buffer.Selection() != request.selection || e.viewGeneration != request.generation {
-		e.fail(errors.New("复制已完成；文档或选区已改变，未删除原内容"))
-		return
-	}
-	e.ReplaceText(nil, "")
+	e.replaceInputAction(a, nil, "")
 }
 
 func (e *Editor) Command(command string) bool {
+	a := e.beginInputAction()
+	handled := e.commandInputAction(a, command)
+	a.finish()
+	return handled
+}
+func (e *Editor) commandInputAction(a *inputAction, command string) bool {
 	if err := e.compositionIssue(); err != nil {
-		e.fail(err)
+		a.fail(err)
 		return true
 	}
 	selection := e.Buffer.Selection()
 	switch command {
 	case "selectAll":
-		e.fail(e.Buffer.SetSelection(0, e.Buffer.LenUTF16()))
-		e.ensureCaret()
-		e.services.Invalidate()
+		if err := e.Buffer.SetSelection(0, e.Buffer.LenUTF16()); err != nil {
+			a.fail(err)
+		} else if e.composing {
+			e.compositionStamp = e.inputStamp()
+		}
+		e.prepareInputSelection()
 		return true
 	case "copy", "cut":
 		if selection.Start() == selection.End() {
 			return true
 		}
+		if e.pendingClipboard != nil {
+			a.fail(errors.New("上一次复制尚未完成，请稍后重试"))
+			return true
+		}
+		if e.Buffer.InGroup() && !e.composing {
+			a.fail(text.ErrGroup)
+			return true
+		}
 		value, err := e.Buffer.SliceUTF16(selection.Start(), selection.End())
 		if err != nil {
-			e.fail(err)
+			a.fail(err)
 			return true
 		}
-		if e.pendingClipboard != nil {
-			e.fail(errors.New("上一次复制尚未完成，请稍后重试"))
+		if err := e.settleSingleInput(a); err != nil {
+			a.fail(err)
 			return true
 		}
-		e.UnmarkText()
-		request := &clipboardRequest{value: value, cut: command == "cut" && !e.ReadOnly, buffer: e.Buffer, version: e.Buffer.Version(), generation: e.viewGeneration, selection: selection, owner: e.compositionToken}
+		request := &clipboardRequest{
+			value: value, cut: command == "cut" && !e.ReadOnly, target: e.clipboardTarget(),
+			origin: a.origin, onChange: a.onChange, onError: a.onError,
+		}
+		if e.folds != nil && e.folds.provider != nil {
+			request.fold = e.foldIdentity()
+		}
 		e.pendingClipboard = request
-		if e.Copy != nil {
-			e.finishClipboard(request, e.Copy(value))
-		} else if e.CopyThen != nil {
+		copy, copyThen := e.Copy, e.CopyThen
+		delivery := e.inputDeliveryID
+		if copy != nil {
+			err := copy(value)
+			if e.inputDeliveryID != delivery {
+				a.suppressPublish = true
+			}
+			e.finishClipboardInput(a, request, err)
+		} else if copyThen != nil {
 			request.dispatched = true
-			e.CopyThen(value, func(err error) { e.finishClipboard(request, err) })
+			copyThen(value, func(err error) {
+				if a.returned {
+					e.finishClipboard(request, err)
+					return
+				}
+				if !request.claimCompletion() {
+					return
+				}
+				if e.inputDeliveryID != delivery {
+					a.suppressPublish = true
+				}
+				e.finishClipboardInput(a, request, err)
+				if a.changed || a.errorCount != 0 {
+					a.finish()
+				}
+			})
+			a.returned = true
+			if a.finished {
+				return true
+			}
+			if e.inputDeliveryID != delivery {
+				a.suppressPublish = true
+			}
+			if e.pendingClipboard != nil && e.pendingClipboard != request {
+				a.abandoned = true
+			}
 		} else {
 			e.services.Invalidate()
 		}
 		return true
 	case "paste", "pasteAndMatchStyle":
-		if !e.ReadOnly {
-			buffer, version, generation := e.Buffer, e.Buffer.Version(), e.viewGeneration
-			composition := e.compositionToken
-			var value string
-			if e.Paste != nil {
-				var err error
-				value, err = e.Paste()
-				if err != nil {
-					e.fail(err)
-					return true
-				}
-			} else {
-				value = e.services.ReadClipboard()
-			}
-			if err := e.compositionIssue(); err != nil {
-				e.fail(err)
-				return true
-			}
-			if e.compositionToken != composition {
-				e.fail(errors.New("输入法组合已改变，未粘贴内容"))
-				return true
-			}
-			if e.ReadOnly || e.Buffer != buffer || e.Buffer.Version() != version || e.Buffer.Selection() != selection || e.viewGeneration != generation {
-				e.fail(errors.New("剪贴板已读取；文档或选区已改变，未粘贴内容"))
-				return true
-			}
-			e.ReplaceText(nil, value)
+		if e.ReadOnly {
+			return true
 		}
-		return true
-	case "undo":
-		if !e.ReadOnly {
-			e.UnmarkText()
-			if e.Buffer.Undo() {
-				e.changed()
-			}
+		if e.Buffer.InGroup() && !e.composing {
+			a.fail(text.ErrGroup)
+			return true
 		}
+		target, delivery := e.clipboardTarget(), e.inputDeliveryID
+		var value string
+		var err error
+		if paste := e.Paste; paste != nil {
+			value, err = paste()
+		} else {
+			value = e.services.ReadClipboard()
+		}
+		if e.inputDeliveryID != delivery {
+			a.suppressPublish = true
+		}
+		if err != nil {
+			a.failClipboard(err)
+			return true
+		}
+		if err := e.clipboardIssue(target); err != nil {
+			a.failClipboard(err)
+			return true
+		}
+		e.replaceInputAction(a, nil, value)
 		return true
-	case "redo":
-		if !e.ReadOnly {
-			e.UnmarkText()
-			if e.Buffer.Redo() {
-				e.changed()
-			}
+	case "undo", "redo":
+		if e.ReadOnly {
+			return true
+		}
+		if err := e.settleSingleInput(a); err != nil {
+			a.fail(err)
+			return true
+		}
+		changed := false
+		if command == "undo" {
+			changed = e.Buffer.Undo()
+		} else {
+			changed = e.Buffer.Redo()
+		}
+		if changed {
+			a.preparedChange()
 		}
 		return true
 	case "delete":
 		if !e.ReadOnly {
-			e.delete(1)
+			e.deleteInputAction(a, 1)
 		}
 		return true
 	case "moveLinesUp":
-		e.editLines(text.MoveLinesUp)
+		e.editLinesInputAction(a, text.MoveLinesUp)
 		return true
 	case "moveLinesDown":
-		e.editLines(text.MoveLinesDown)
+		e.editLinesInputAction(a, text.MoveLinesDown)
 		return true
 	case "copyLinesUp":
-		e.editLines(text.CopyLinesUp)
+		e.editLinesInputAction(a, text.CopyLinesUp)
 		return true
 	case "copyLinesDown":
-		e.editLines(text.CopyLinesDown)
+		e.editLinesInputAction(a, text.CopyLinesDown)
 		return true
 	case "indent":
 		if !e.ReadOnly {
-			e.indentSelected(1)
+			e.indentInputAction(a, 1)
 		}
 		return true
 	case "outdent":
 		if !e.ReadOnly {
-			e.indentSelected(-1)
+			e.indentInputAction(a, -1)
 		}
 		return true
 	}
@@ -800,50 +1126,88 @@ func (e *Editor) Command(command string) bool {
 }
 
 func (e *Editor) delete(dir int) {
-	e.UnmarkText()
+	a := e.beginInputAction()
+	e.deleteInputAction(a, dir)
+	a.finish()
+}
+func (e *Editor) deleteInputAction(a *inputAction, dir int) {
+	if a.rejectedMulti() {
+		return
+	}
+	if err := e.settleSingleInput(a); err != nil {
+		a.fail(err)
+		return
+	}
 	selection := e.Buffer.Selection()
 	r := ui.TextInputRange{Start: selection.Start(), End: selection.End()}
 	if r.Start == r.End {
-		next := e.boundary(selection.Head, dir)
-		r.Start = min(selection.Head, next)
-		r.End = max(selection.Head, next)
+		next := a.boundary(selection.Head, dir)
+		r.Start, r.End = min(selection.Head, next), max(selection.Head, next)
 	}
-	e.ReplaceText(&r, "")
+	if a.errorCount == 0 {
+		e.replaceInputAction(a, &r, "")
+	}
 }
 
 func (e *Editor) HandleInput(ev ui.InputEvent) bool {
-	selection := e.Buffer.Selection()
+	a := e.beginInputAction()
+	handled := e.handleInputAction(a, ev)
+	a.finish()
+	return handled
+}
+func (e *Editor) handleInputAction(a *inputAction, ev ui.InputEvent) bool {
 	switch ev.Kind {
 	case ui.InputText:
-		e.ReplaceText(nil, ev.Text)
+		e.nativeInputAction(a, nil, ev.Text)
 		return true
 	case ui.InputCompose:
-		e.SetMarkedText(nil, ev.Text, ui.TextInputRange{Start: ui.UTF16Len(ev.Text), End: ui.UTF16Len(ev.Text)})
+		length := ui.UTF16Len(ev.Text)
+		e.markedInputAction(a, nil, ev.Text, ui.TextInputRange{Start: length, End: length}, true)
 		return true
 	case ui.InputCommand:
-		return e.Command(ev.Text)
+		return e.commandInputAction(a, ev.Text)
+	case ui.InputKeyDown:
+		if ev.Key == ui.KeyEscape && ev.Mods == 0 && e.cancelInputAction(a) {
+			return true
+		}
+		if a.rejectedMulti() {
+			return true
+		}
+	case ui.InputPointerDown, ui.InputPointerUp, ui.InputPointerMove, ui.InputSelect:
+		if a.rejectedMulti() {
+			return true
+		}
+	}
+	if e.foldPointer(ev) {
+		return true
+	}
+	selection := e.Buffer.Selection()
+	switch ev.Kind {
 	case ui.InputPointerDown:
 		if ev.Button != 0 {
 			return false
 		}
 		if err := e.compositionIssue(); err != nil {
-			e.fail(err)
+			a.fail(err)
 			return true
 		}
-		e.UnmarkText()
-		position, ok := e.positionForPoint(ui.Point{X: ev.X, Y: ev.Y})
+		if err := e.settleSingleInput(a); err != nil {
+			a.fail(err)
+			return true
+		}
+		position, ok := a.point(ui.Point{X: ev.X, Y: ev.Y})
 		if !ok {
 			return false
 		}
 		e.hasDesiredX = false
 		e.affinity = position.Affinity
 		pos := position.Index
-		e.selectTo(pos, ev.Mods&ui.Shift != 0)
+		e.selectInputAction(a, pos, ev.Mods&ui.Shift != 0)
 		e.dragging = true
-		if ev.Clicks == 2 && e.insideSelectionWord(pos) {
-			e.fail(e.Buffer.SetSelection(e.selectionWordBoundary(pos, -1), e.selectionWordBoundary(pos, 1)))
+		if ev.Clicks == 2 && a.insideWord(pos) {
+			a.fail(e.Buffer.SetSelection(a.word(pos, -1, true), a.word(pos, 1, true)))
 		} else if ev.Clicks >= 2 {
-			e.fail(e.Buffer.SetSelection(e.word(pos, -1), e.word(pos, 1)))
+			a.fail(e.Buffer.SetSelection(a.word(pos, -1, false), a.word(pos, 1, false)))
 		}
 		return true
 	case ui.InputPointerMove:
@@ -851,10 +1215,10 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 			return true
 		}
 		if e.dragging {
-			position, ok := e.positionForPoint(ui.Point{X: ev.X, Y: ev.Y})
+			position, ok := a.point(ui.Point{X: ev.X, Y: ev.Y})
 			if ok {
 				e.affinity = position.Affinity
-				e.selectTo(position.Index, true)
+				e.selectInputAction(a, position.Index, true)
 			}
 			return true
 		}
@@ -873,57 +1237,56 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 		e.clampScroll()
 		return true
 	case ui.InputKeyDown:
-		if ev.Key == ui.KeyEscape && ev.Mods == 0 && e.cancelComposition() {
-			return true
-		}
 		if err := e.compositionIssue(); err != nil {
-			e.fail(err)
+			a.fail(err)
 			return true
 		}
 		if ev.Mods == ui.Alt || ev.Mods == ui.Alt|ui.Shift {
 			switch ev.Key {
 			case ui.KeyUp:
 				if ev.Mods&ui.Shift != 0 {
-					return e.Command("copyLinesUp")
+					return e.commandInputAction(a, "copyLinesUp")
 				}
-				return e.Command("moveLinesUp")
+				return e.commandInputAction(a, "moveLinesUp")
 			case ui.KeyDown:
 				if ev.Mods&ui.Shift != 0 {
-					return e.Command("copyLinesDown")
+					return e.commandInputAction(a, "copyLinesDown")
 				}
-				return e.Command("moveLinesDown")
+				return e.commandInputAction(a, "moveLinesDown")
 			}
 		}
 		cmd, extend := ev.Mods&ui.Cmd != 0, ev.Mods&ui.Shift != 0
 		if cmd {
 			switch ev.Key {
 			case ui.KeyA:
-				return e.Command("selectAll")
+				return e.commandInputAction(a, "selectAll")
 			case ui.KeyC:
-				return e.Command("copy")
+				return e.commandInputAction(a, "copy")
 			case ui.KeyX:
-				return e.Command("cut")
+				return e.commandInputAction(a, "cut")
 			case ui.KeyV:
-				return e.Command("paste")
+				return e.commandInputAction(a, "paste")
 			case ui.KeyZ:
 				if extend {
-					return e.Command("redo")
+					return e.commandInputAction(a, "redo")
 				}
-				return e.Command("undo")
+				return e.commandInputAction(a, "undo")
 			case ui.KeyY:
-				return e.Command("redo")
+				return e.commandInputAction(a, "redo")
 			}
 		}
 		switch ev.Key {
 		case ui.KeyLeft, ui.KeyRight:
-			e.UnmarkText()
-			e.hasDesiredX = false
-			e.affinity = ui.TextDownstream
+			if err := e.settleSingleInput(a); err != nil {
+				a.fail(err)
+				return true
+			}
+			e.hasDesiredX, e.affinity = false, ui.TextDownstream
 			dir := 1
 			if ev.Key == ui.KeyLeft {
 				dir = -1
 			}
-			next := e.boundary(selection.Head, dir)
+			next := a.boundary(selection.Head, dir)
 			if !extend && selection.Start() != selection.End() {
 				if dir < 0 {
 					next = selection.Start()
@@ -931,12 +1294,17 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 					next = selection.End()
 				}
 			} else if cmd {
-				next = e.word(selection.Head, dir)
+				next = a.word(selection.Head, dir, false)
 			}
-			e.selectTo(next, extend)
+			if a.errorCount == 0 {
+				e.selectInputAction(a, next, extend)
+			}
 			return true
 		case ui.KeyUp, ui.KeyDown, ui.KeyPageUp, ui.KeyPageDown:
-			e.UnmarkText()
+			if err := e.settleSingleInput(a); err != nil {
+				a.fail(err)
+				return true
+			}
 			delta := 1
 			if ev.Key == ui.KeyPageUp || ev.Key == ui.KeyPageDown {
 				delta = max(1, int(e.height/e.rowHeight())-1)
@@ -944,41 +1312,28 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 			if ev.Key == ui.KeyUp || ev.Key == ui.KeyPageUp {
 				delta = -delta
 			}
-			e.moveVertical(delta, extend)
+			a.vertical(delta, extend)
 			return true
 		case ui.KeyHome, ui.KeyEnd:
-			e.UnmarkText()
-			e.hasDesiredX = false
-			line, column, _ := e.Buffer.LineColumn(selection.Head)
-			l := e.lineAt(line, column)
-			row := l.caretRow(column-l.windowStart, e.affinity)
-			next := l.start + l.lines[row].Start
-			e.affinity = ui.TextDownstream
-			if ev.Key == ui.KeyEnd {
-				next = l.start + l.lines[row].End
-				e.affinity = ui.TextUpstream
+			if err := e.settleSingleInput(a); err != nil {
+				a.fail(err)
+				return true
 			}
-			if cmd {
-				next = 0
-				if ev.Key == ui.KeyEnd {
-					next = e.Buffer.LenUTF16()
-				}
-			}
-			e.selectTo(next, extend)
+			a.homeEnd(ev.Key == ui.KeyEnd, cmd, extend)
 			return true
 		case ui.KeyBackspace:
 			if !e.ReadOnly {
-				e.delete(-1)
+				e.deleteInputAction(a, -1)
 			}
 			return true
 		case ui.KeyDelete:
 			if !e.ReadOnly {
-				e.delete(1)
+				e.deleteInputAction(a, 1)
 			}
 			return true
 		case ui.KeyEnter:
 			if !e.ReadOnly {
-				e.insertNewlineWithIndent()
+				e.newlineInputAction(a)
 			}
 			return true
 		case ui.KeyTab:
@@ -986,11 +1341,11 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 				return false
 			}
 			if extend {
-				e.Command("outdent")
+				e.commandInputAction(a, "outdent")
 			} else if selection.Start() != selection.End() {
-				e.Command("indent")
+				e.commandInputAction(a, "indent")
 			} else {
-				e.ReplaceText(nil, tabWidth)
+				e.replaceInputAction(a, nil, tabWidth)
 			}
 			return true
 		}
@@ -999,16 +1354,40 @@ func (e *Editor) HandleInput(ev ui.InputEvent) bool {
 }
 
 func (e *Editor) Reveal(start, end int) {
-	if err := e.compositionIssue(); err != nil {
-		e.fail(err)
-		e.Focus()
+	a := e.beginInputAction()
+	e.revealInputAction(a, start, end)
+	a.finish()
+}
+func (e *Editor) revealInputAction(a *inputAction, start, end int) {
+	if a.rejectedMulti() {
 		return
 	}
+	if err := e.compositionIssue(); err != nil {
+		e.navigationGeneration++
+		e.handle.Focus()
+		a.fail(err)
+		return
+	}
+	if _, err := e.Buffer.SliceUTF16(start, start); err != nil {
+		e.navigationGeneration++
+		e.handle.Focus()
+		a.fail(err)
+		return
+	}
+	if _, err := e.Buffer.SliceUTF16(end, end); err != nil {
+		e.navigationGeneration++
+		e.handle.Focus()
+		a.fail(err)
+		return
+	}
+	e.revealFolds(start, end, false)
+	e.revealFolds(end, end, false)
 	if err := e.Buffer.SetSelection(start, end); err != nil {
-		e.fail(err)
+		a.fail(err)
 	} else {
 		e.hasDesiredX = false
 	}
-	e.ensureCaret()
-	e.Focus()
+	e.prepareInputSelection()
+	e.navigationGeneration++
+	e.handle.Focus()
 }

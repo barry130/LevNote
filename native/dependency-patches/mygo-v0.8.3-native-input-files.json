@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "module": "github.com/egoist/mygo v0.8.3",
+  "files": [
+    {
+      "path": "dependency-patches/mygo-v0.8.3-native-input.patch",
+      "sha256": "53ec1faee7b126ee9d044e6c66ad0034e20a05b7d08d04bee50fcafdfa5666d0"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/platform/text_input.go",
+      "sha256": "6a84882703265771294e357adde0b2ae8905caa86eb32bfd1420119855e401b2"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/windows/surface.go",
+      "sha256": "390f809cab7ff312243678fc3bfd9a4bb208ba3863db29b108d2da7e453017b0"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/internal/windows/surface_input.go",
+      "sha256": "45d6fd1ab2c1a8b7b6db0827e83216204cea893e75965dfca314b7ea022fdb09"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go",
+      "sha256": "2add5bd776576a5c0fe10eba863494def4a85878cfa79b5419e02ff4fc236521"
+    },
+    {
+      "path": "vendor/github.com/egoist/mygo/ui/text_input_client.go",
+      "sha256": "59c634eafd4b6308e09fd362853cf96de55bfd8db08c07609d34123d7e655be7"
+    }
+  ]
+}

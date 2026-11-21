@@ -1,0 +1,8 @@
+{"Action":"start","Package":"levnote.local/native/app"}
+{"Action":"run","Package":"levnote.local/native/app","Test":"TestParent"}
+{"Action":"run","Package":"levnote.local/native/app","Test":"TestParent/Group"}
+{"Action":"pass","Package":"levnote.local/native/app","Test":"TestParent/Group"}
+{"Action":"run","Package":"levnote.local/native/app","Test":"TestParent/Group/Label"}
+{"Action":"pass","Package":"levnote.local/native/app","Test":"TestParent/Group/Label"}
+{"Action":"pass","Package":"levnote.local/native/app","Test":"TestParent"}
+{"Action":"pass","Package":"levnote.local/native/app"}

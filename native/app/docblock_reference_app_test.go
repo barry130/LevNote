@@ -295,7 +295,11 @@ func TestDocBlockReferenceRealAdapterReadonlyFileURLAndRefusal(t *testing.T) {
 	t.Run("file-url", func(t *testing.T) {
 		root := t.TempDir()
 		target := filepath.Join(root, "file url target.txt")
-		fileURL := (&url.URL{Scheme: "file", Path: "/" + filepath.ToSlash(target)}).String()
+		urlPath := filepath.ToSlash(target)
+		if !strings.HasPrefix(urlPath, "/") {
+			urlPath = "/" + urlPath // File URLs prefix the Windows drive path with a slash.
+		}
+		fileURL := (&url.URL{Scheme: "file", Path: urlPath}).String()
 		body := "# 标题\r\n\r\n```doc-block\r\nid: file-url\r\nkind: text\r\nmode: reference\r\ntitle: 文件 URL\r\nsrc: " + fileURL + "\r\n---\r\n```\r\n"
 		f := openRealDocBlockReference(t, body, 1180, 780, false)
 		if err := os.WriteFile(target, []byte("URL 目标"), 0600); err != nil {

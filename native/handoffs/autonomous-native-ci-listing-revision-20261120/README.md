@@ -1,0 +1,78 @@
+# Task57: offline raw package-listing consistency revision
+
+**`STATIC_SOURCE_UNEXECUTED` · `NOT_WINDOWS_ACCEPTED` · `CI_DISABLED`**
+
+This ten-file handoff implements the raw-to-normalized-to-expected content comparison proposed in the [released task56 review](../../../.localtools/full-delivery-20261119/task-ci-verifier-v2-independent-review/20261119T231836Z/REPORT.md#L59). It addresses the supplied-raw-content part of R2. Authentic capture, independent source/toolchain completeness, effective environment and chronology remain open. No PowerShell invocation, parser/AST, fixture, Go, test, build, vet, formatting, Windows, CI, network or install operation was performed. All **101 designed controls (8 acceptance, 93 rejection) are UNEXECUTED**. The frozen v2 suite's 26 controls also remain UNEXECUTED.
+
+The [common helper](ci-lib.ps1) is an exact byte copy of frozen v2: 11,514 bytes, SHA-256 `b9349f02c31e4ae8f8d57662c4cdf80da8ddb0a0a7a1ac5ac7686ea46be8e0be`. The [reducer](test-json-reducer.ps1) changes only preflight input reads/limits, raw projection comparison, deferred expected-state construction, final bounded fingerprints and summary limitations. The event loop and EOF reduction are byte-identical to [frozen v2](../autonomous-native-ci-verifier-revision-20261120/test-json-reducer.ps1). The new [listing helper](raw-package-listing.ps1) owns this revision's limits; the copied helper's existing `Pin`, `Json` and `Fingerprint` implementations are unchanged. The public reducer uses the new bounded reader for its seven inputs and final fingerprints.
+
+There is no runner, package verifier, CI configuration or workflow in this revision. The historical runner still resolves its adjacent original sources. Original v1/v2 sources and evidence remain immutable. This source handoff grants no execution, CI activation or product acceptance.
+
+## Public entry and load order
+
+On a separately authorized native Windows x64 PowerShell 7 host, the dependency order is:
+
+```powershell
+. (Join-Path $revision 'ci-lib.ps1')
+. (Join-Path $revision 'raw-package-listing.ps1')
+. (Join-Path $revision 'test-json-reducer.ps1')
+$result = ReduceTestJson $inputs $roots $summaryPath
+```
+
+`$revision` names this directory. The unchanged public signature is `ReduceTestJson(Inputs, Roots, SummaryPath)`. The roots must be these six arguments in this exact order: `./app/`, `./cmd/...`, `./core/...`, `./formats/...`, `./modules/...`, `./ui/...`. The roots are validated before input reads or destination handling. Each of the seven distinct input entries has `path` and lowercase `sha256`: `rawJsonl`, `expectedManifest`, `sourceInventory`, `toolchainIdentity`, `packageListing`, `rawPackageListing`, `runIdentity`. Their schema and binding fields retain the [v1 contract](../autonomous-native-ci-verifier-followup-20261119/README.md). There is no new manifest schema or sidecar engineering manifest.
+
+The [synthetic harness](tests/listing-consistency.tests.ps1) loads those three co-located libraries in that order and invokes only the public reducer for its checks. Its native Windows/x64/PS7 guard precedes library loading and fixture setup. It creates seven pinned synthetic files and a create-only summary destination in a fresh OS-temp directory per control. Synthetic receipts, archive identities and inventory entries attest to no actual source, toolchain or process. The fixed `F:/Task57-Fictitious/LevNote` repository string is inert data; the harness never creates or visits that fictitious checkout. Generated inputs are retained for inspection, with no cleanup/deletion helper.
+
+## Bounded input contract
+
+Every role must be nonempty. File and ancestor checks precede reads. The reader checks file length before allocation or SHA-256, opens for reading with write/delete sharing denied, and checks the opened stream length again. Retained descriptor/raw-listing bytes are read to the exact checked length, with an explicit EOF check. SHA-256 and strict decoding use that same bounded byte buffer. Capture hashing and final rechecks use a 32 KiB buffer, counting bytes against both the original length and role cap. Initial and final length, timestamp and SHA-256 must agree before any success summary is created. These checks retain the trusted, quiescent filesystem assumption; they are not a race-proof sandbox or an attestation mechanism.
+
+| Input role | Maximum serialized bytes | Rationale |
+| --- | ---: | --- |
+| `rawPackageListing` | 32 MiB | Complete concatenated Go package objects, including ignored Go fields. |
+| `packageListing` | 16 MiB | At most 4,096 projected package rows and bounded test filename arrays. |
+| `expectedManifest` | 4 MiB | At most 4,096 compact package identity/classification rows. |
+| `sourceInventory` | 16 MiB | At most 65,536 inventory rows. The [historical metadata sample](../../../.localtools/noteboard-parity-20261119/baseline/manifest.json) is 77,606 bytes/444 path rows; this budget leaves room for schema/absolute-path expansion and larger inventories, without claiming a new live inventory. |
+| `toolchainIdentity` | 64 KiB | Compact pinned archive/executable/inventory identity descriptor; the full toolchain inventory is separately referenced. |
+| `runIdentity` | 64 KiB | Fixed arguments, pins and completion assertions, without embedded logs. |
+| `rawJsonl` | 256 MiB | Retains the frozen capture cap, now checked before initial hashing. |
+
+The raw listing also has a **2 MiB maximum per complete object**, **4,096-object maximum**, **depth 64 maximum** counting the top-level object as depth 1, and **2,048 filenames per test-file field**. The same 4,096-package and 2,048-per-field limits apply to normalized/expected metadata as applicable. Companion JSON parsing retains strict JSON's depth-64 limit. Limits are independent: a descriptor can hit its byte cap before its entry cap. The synthetic entry-cap controls remain below their byte caps. Go fields outside the projection can consume the raw/object budgets. These are explicit review limits, not claims that every valid future checkout fits them.
+
+## Raw bytes and projection
+
+Go's local [listing emitter](../../../.localtools/go1.27.3/src/cmd/go/internal/list/list.go#L470) marshals one indented JSON object and newline at a time. This input is a sequence of objects, not JSONL, an array or a catalog. The [package struct](../../../.localtools/go1.27.3/src/cmd/go/internal/load/pkg.go#L63) uses `omitempty`, including for the two test arrays. The [module struct](../../../.localtools/go1.27.3/src/cmd/go/internal/modinfo/info.go#L16) and [main-module construction](../../../.localtools/go1.27.3/src/cmd/go/internal/modload/build.go#L304) supply the module fields used here. These references were read locally; no Go command was invoked.
+
+The raw reader rejects invalid UTF-8 and a UTF-8 BOM. A linear byte scanner tracks quotes, escaping and a fixed-depth brace/bracket stack. Bytes between or after objects must be JSON whitespace (space, tab, CR or LF); arrays, scalars, junk, mismatched delimiters and truncated final objects fail. After each bounded complete object, strict JSON validates the whole slice and rejects malformed values and duplicate or case-aliased properties recursively, including inside ignored fields. Companion descriptors also require strict UTF-8 without BOM and strict object JSON. Unknown package/module fields are allowed after syntax/property validation and excluded from the projection. Known Go field names cannot be supplied with alternate casing. Ignored fields' semantic values are not a new Go-schema validator.
+
+Each row requires exact-case `ImportPath`, `Dir` and `Module`. Import paths are ordinal identities under the exact `levnote.local/native/` prefix. The suffix determines `RelativeDirectory`; only `app` itself and the exact `cmd`, `core`, `formats`, `modules`, `ui` boundaries and their descendants are allowed. `app/sub`, sibling prefixes such as `corex` and other modules fail. Exact duplicate identities and Windows case aliases fail before row comparison. Raw order is immaterial; comparisons use deterministic ordinal order.
+
+`Module` must be an object with exact-case `Path`, `Main`, `Dir` and `GoMod`. `Path` must be `levnote.local/native` and `Main` must be boolean true. Its directory must be the pinned repository string plus `/native`, its module file must be that directory plus `/go.mod`, and package `Dir` must be that module directory plus the derived relative suffix. Windows slash styles may differ; drive/component casing must agree exactly. A pure lexical function rejects traversal, device/reserved components, aliases and malformed absolute drive paths. Raw path values never reach `Get-Item`, `PlainFile`, `Join-Path`, `Resolve-Path` or other filesystem lookup calls.
+
+`Incomplete`, `DepOnly`, `Goroot`, `Standard` and `BinaryOnly` must be absent or boolean false. `ForTest` must be absent or an empty string. Package `Error`/`DepsErrors` fields are refused on presence, even if null or empty; Go normally omits their empty forms. Module replacement/error fields are unsupported on presence, `Indirect` must be absent/false, and an explicit main-module `Version` must be an empty string. Non-main modules, other module roots and replacement/workspace directory layouts fail clearly. A workspace that emits the same supported main-module shape cannot be identified from these bytes; effective `GOWORK` and module selection remain a real-capture evidence obligation.
+
+`TestGoFiles` and `XTestGoFiles` are derived independently. Absence means an empty array; null, scalar, object or non-string members fail. Filenames must be canonical `_test.go` basenames, unique within/across both arrays including Windows case aliases, and exact members of `native/<RelativeDirectory>/<filename>` in the supplied source inventory. Source inventory membership authenticates no actual file content or build-tag choice. Raw package/directory sets must agree one-to-one with normalized and expected rows. The two filename sets are compared ordinally **separately by field**, and raw-derived `HasTests` must agree with expected classification. Reordering filenames is allowed; moving one between internal and external fields is not. Expected package state is constructed only after all three views and the receipt validate. Destination handling and event decoding follow full preflight, and summary creation follows final fingerprints and EOF validation.
+
+R1 is unchanged: exact first-slash, same-package, live top-level identity linkage and unfinished-slash counting; sibling string prefixes do not establish real parents. Example identities, deduplicated full names, pause/continue, skip reasoning, no-test marker, terminal uniqueness, output retention and unsupported-event rejection retain v2 behavior. JSONL cannot reveal wholly omitted identities or real intermediate parent edges.
+
+## Synthetic controls and fixtures
+
+| Checked-in raw file | Designed expectation, UNEXECUTED |
+| --- | --- |
+| [listing-two-packages.raw.jsonstream](tests/fixtures/listing-two-packages.raw.jsonstream) | Two indented objects: app with two internal and one external test files, and no-test `core/second` with both arrays omitted. Ignored documentation includes escaped quotes, backslashes, braces and brackets. |
+| [listing-truncated.reject.jsonstream](tests/fixtures/listing-truncated.reject.jsonstream) | A complete valid first object followed by a truncated final object; reject before projection comparison. |
+| [listing-case-alias.reject.jsonstream](tests/fixtures/listing-case-alias.reject.jsonstream) | Valid app followed by case-aliased `App`; reject the Windows identity alias before the second row's root check. |
+| [listing-incomplete.reject.jsonstream](tests/fixtures/listing-incomplete.reject.jsonstream) | Reject boolean `Incomplete=true`. Inline controls cover false, null and malformed flags separately. |
+| [listing-outside-roots.reject.jsonstream](tests/fixtures/listing-outside-roots.reject.jsonstream) | Reject a syntactically valid module row outside the six roots. |
+
+The eight positive controls cover the two-package stream, reverse raw ordering, filename set ordering, independently absent internal/external arrays, explicit valid zero/false fields, lexical slash styles and an ignored value at depth 64. Each public success call uses a handwritten 11-line capture: `TestParent/Group` finishes before sibling label `TestParent/Group/Label` starts under a still-live `TestParent`, followed by the exact standard no-test output and skip for `core/second`. Assertions check full identities, line numbers, terminals, counts, package scope, persisted summary status, all seven summary pin identities, and unchanged input fingerprints.
+
+The 93 negative controls include the four rejection fixtures; coherently re-pinned omissions, extras, no-test reclassification, dropped/added filenames and internal/external swaps; accepted-root and outside-root directory changes; raw path/module/flag/type errors; duplicate or mis-cased properties and identities; malformed ignored JSON; null/wrong-type/duplicate/aliased/unlisted filenames; invalid UTF-8, BOM, arrays, trailing junk/scalars, invalid whitespace, delimiter mismatch and truncated escaped strings. The five companion descriptor roles each have bad UTF-8 and BOM cases. Limits use the real constants: seven byte caps, zero raw bytes, object bytes/count, depth 65, each raw/normalized filename field cap, source entry count and both package entry counts. Changed roots are checked through the public entry too.
+
+Every negative control requires its exact expected exception, no summary file, and unchanged fingerprints for all seven generated inputs. All five checked-in fixtures are fingerprinted before and after the suite. Larger boundary inputs are generated only by a future authorized Windows invocation: file-length controls use `SetLength(cap+1)` without a giant allocation; object/array/count controls generate bounded strings/arrays. No limit is weakened, no expected rows are generated by running the production projection, and no private function substitutes for the public reducer. Static design and wiring do not establish that the PowerShell parses or controls pass.
+
+## Evidence and remaining gate
+
+The [task57 evidence run](../../../.localtools/full-delivery-20261119/task-ci-listing-revision/20261119T232457Z/REPORT.md) records actual UTC, initial identities, the review-report assignment/current hash discrepancy, read traces, exact common-file diffs against v2, all ten source snapshots and fresh final identities. The run label is the actual `2026-11-19T23:24:57Z` allocation time. The `20261120` engineering-directory suffix is a task namespace, not a future completion claim.
+
+Independent exact-source review and a separately authorized native Windows x64 PS7 parse/control gate remain necessary. No Go slot was used or requested; task49 owns Go. Real capture acceptance additionally requires independent frozen source/dependency/vendor/build-input inventories, authentic archive and full extracted toolchain verification, actual PS7/runtime/collector identity, witnessed executable/argv/cwd/effective environment, pinned or excluded `GOFLAGS`, persistent `GOENV`, `GOWORK`, toolchain selection, vendor mode, target tags and filters. Preserve original stdout/stderr, stream-drain/exit/timeout/cleanup/job-empty observations, a sealed listing and expected manifest before test launch, and trusted chronology binding the same snapshots to the capture. Supplied booleans and hashes alone cannot establish those facts. This revision establishes content agreement only relative to supplied bounded raw bytes; **R2 is not fully solved**.

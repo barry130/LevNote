@@ -10,7 +10,11 @@ Milkdown、CodeMirror、mind-elixir 功能属于旧 Tauri 实现，不能当作�
 
 ## 当前状态
 
-最新进度、交付待办和未迁移能力统一见[当前状态](STATUS.md)。2026-11-15基点`f2c2ceb`之后的本轮工作区修复已通过3183 PASS、49原SKIP、0 FAIL及vet/build；[最终验收](handoffs/continuation-root-acceptance-20261115.md)记录31项新增回归与独立审阅。[3152项基点记录](handoffs/autonomous-workspace-snapshot-20261115.md)保留。最新已接受可运行包仍为`.29`。以下2026-11-14段落保留当时范围与结果。
+2026-11-19 已继续原生开发，当前源码正在实现、集成与独立审阅中。Markdown 表格确认态草稿和图形交互修复已有定向 Linux 回归记录；嵌套列表、关闭事务、代码折叠、多光标和本地语言服务仍须完成各自验收。完整回归与 Windows 实际输入、随包引擎、关闭及重启恢复尚未完成，不能把局部通过视为新版本接受。最新进度、剩余能力和交付判据见[当前状态](STATUS.md)及[本轮接续记录](handoffs/full-delivery-continuation-20261119.md)。
+
+最新正式接受包仍为 [Windows x64 `.29` ZIP](downloads/LevNote-native-worker-20261110.29-windows-x64.zip)，另有历史 [Flowix `.6` 工作台体验 ZIP](downloads/LevNote-Flowix-preview-20261116.6-windows-x64.zip)。两者均不包含本轮新增源码；下载解压后按包内说明运行。
+
+2026-11-15 的历史工作区修复记录为3183 PASS、49原SKIP、0 FAIL及vet/build；[当时验收](handoffs/continuation-root-acceptance-20261115.md)记录31项新增回归与独立审阅，[3152项基点记录](handoffs/autonomous-workspace-snapshot-20261115.md)保留。以下2026-11-14段落也只描述当时范围与结果。
 
 ## 2026-11-14 源码收敛与交付边界（历史记录）
 

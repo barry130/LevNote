@@ -120,11 +120,26 @@ func TestRecoveryAutosaveWithoutViewUsesQueuedUIAndDoesNotFlush(t *testing.T) {
 	if !composing {
 		t.Fatal("composition fixture did not start")
 	}
+	preeditSource := a.Current().Doc.Buffer.String()
+	preeditSelection := a.Current().Doc.Buffer.Selection()
+	preeditVersion, preeditHistory := a.Current().Doc.Buffer.Version(), a.Current().Doc.Buffer.History()
 	h.now = h.now.Add(autosaveDelay)
 	h.latest(t).fn()
 	h.drain()
 	if got, active := a.Current().Editor.MarkedRange(); !active || got != marked || view.flushes != 0 {
 		t.Fatal("autosave committed live composition")
+	}
+	snapshot = readRecovery(t, a)
+	if len(snapshot.Tabs) != 1 || snapshot.Tabs[0].Draft == nil || *snapshot.Tabs[0].Draft != preeditSource || snapshot.Tabs[0].Selection != preeditSelection || a.persistPending || a.lastPersistError != "" {
+		t.Fatalf("legacy single-point preedit was not captured: %#v error=%q", snapshot, a.lastPersistError)
+	}
+	if a.Current().Doc.Buffer.Version() != preeditVersion || a.Current().Doc.Buffer.History() != preeditHistory || !a.Current().Doc.Buffer.InGroup() {
+		t.Fatal("legacy capture changed composition version/history/group")
+	}
+	reopened := newTestApp(t, a.configDir)
+	reopened.Restore()
+	if len(reopened.Tabs) != 1 || reopened.Current().Doc.Buffer.String() != preeditSource || reopened.Current().Doc.Buffer.Selection() != preeditSelection {
+		t.Fatal("legacy single-point recovery did not restore its captured text and selection")
 	}
 }
 
@@ -292,6 +307,7 @@ func TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry(t *testing.T) {
 			if err := os.Mkdir(path, 0700); err != nil {
 				t.Fatal(err)
 			}
+			issuesBefore := len(a.Issues)
 			h.now = h.now.Add(autosaveDelay)
 			timer := h.latest(t)
 			timer.fn()
@@ -303,8 +319,11 @@ func TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry(t *testing.T) {
 			} else {
 				h.drain()
 			}
-			if a.persistPending || len(a.Issues) != 1 {
-				t.Fatal("failed attempt remained pending or did not report once")
+			if a.persistPending {
+				t.Fatal("failed attempt remained pending")
+			}
+			if len(a.Issues) != issuesBefore+1 || a.lastPersistError == "" || a.Issues[issuesBefore] != a.lastPersistError {
+				t.Fatalf("failed attempt did not report one persistence error: startup issues=%d issues=%q persistence error=%q", issuesBefore, a.Issues, a.lastPersistError)
 			}
 			count := len(h.timers)
 			if err := os.Remove(path); err != nil {
@@ -313,7 +332,7 @@ func TestRecoveryAutosaveFailureWaitsForMutationOrExplicitRetry(t *testing.T) {
 			timer.fn()
 			h.drain()
 			requireNoRecovery(t, a)
-			if len(h.timers) != count || len(a.Issues) != 1 {
+			if len(h.timers) != count || len(a.Issues) != issuesBefore+1 || a.persistPending {
 				t.Fatal("unchanged failed state was retried")
 			}
 			if explicit {

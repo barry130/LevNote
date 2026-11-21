@@ -1321,6 +1321,8 @@ func TestSettingsControlsRemainVisibleAtMinimumWidth(t *testing.T) {
 
 func TestIssueHistoryLimitIsDisclosed(t *testing.T) {
 	a := newTestApp(t, t.TempDir())
+	// Startup may already have reported a platform or configuration issue.
+	wantDropped := a.IssuesDropped + len(a.Issues) + 5
 	for i := 0; i < issueHistoryLimit+5; i++ {
 		a.report(fmt.Errorf("issue-%03d", i))
 	}
@@ -1328,11 +1330,12 @@ func TestIssueHistoryLimitIsDisclosed(t *testing.T) {
 	tester := ui.NewTester(a.View, 1180, 780)
 	if !tester.HasText(fmt.Sprintf(
 		"问题清单只保留本次运行最近 %d 条（当前 %d 条）。另有 %d 条较早记录未保留。",
-		issueHistoryLimit, issueHistoryLimit, 5,
+		issueHistoryLimit, issueHistoryLimit, wantDropped,
 	)) {
 		t.Fatalf("issue-history limit is not disclosed: %#v", tester.Texts())
 	}
-	if len(a.Issues) != issueHistoryLimit || a.IssuesDropped != 5 {
+	if len(a.Issues) != issueHistoryLimit || a.IssuesDropped != wantDropped ||
+		a.Issues[0] != "issue-005" || a.Issues[issueHistoryLimit-1] != fmt.Sprintf("issue-%03d", issueHistoryLimit+4) {
 		t.Fatalf("issue history = %d dropped=%d", len(a.Issues), a.IssuesDropped)
 	}
 }

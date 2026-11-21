@@ -1,0 +1,35 @@
+{
+	"Dir": "F:\\Task57-Fictitious\\LevNote\\native\\app",
+	"ImportPath": "levnote.local/native/app",
+	"Name": "app",
+	"Doc": "Ignored text: { [ \\\"quoted\\\" ] } and escaped slash \\\\ end",
+	"Module": {
+		"Path": "levnote.local/native",
+		"Main": true,
+		"Dir": "F:\\Task57-Fictitious\\LevNote\\native",
+		"GoMod": "F:\\Task57-Fictitious\\LevNote\\native\\go.mod",
+		"GoVersion": "1.27.3"
+	},
+	"TestGoFiles": [
+		"internal_test.go",
+		"ordering_test.go"
+	],
+	"XTestGoFiles": [
+		"external_test.go"
+	]
+}
+{
+	"Dir": "F:\\Task57-Fictitious\\LevNote\\native\\core\\second",
+	"ImportPath": "levnote.local/native/core/second",
+	"Name": "second",
+	"Module": {
+		"Path": "levnote.local/native",
+		"Main": true,
+		"Dir": "F:\\Task57-Fictitious\\LevNote\\native",
+		"GoMod": "F:\\Task57-Fictitious\\LevNote\\native\\go.mod",
+		"GoVersion": "1.27.3"
+	},
+	"GoFiles": [
+		"second.go"
+	]
+}

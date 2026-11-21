@@ -54,6 +54,26 @@ if ($guardedCommand) {
         $path = Join-Path $nativeRoot $file.path
         if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $file.sha256) { throw "$disposalHelp File: $($file.path)" }
     }
+    $nativeInputManifestSHA256 = '176b42f0696c5dd168a4965605401ffecbbe2ebb9914a91a189128b5e0982ced'
+    $nativeInputManifestPath = Join-Path $nativeRoot 'dependency-patches/mygo-v0.8.3-native-input-files.json'
+    $nativeInputHelp = 'MyGo native-input supplement is incomplete, changed, or overlaps the preserved patch inputs.'
+    if (-not (Test-Path -LiteralPath $nativeInputManifestPath -PathType Leaf) -or (Get-Item -LiteralPath $nativeInputManifestPath).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint) -or (Get-FileHash -LiteralPath $nativeInputManifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $nativeInputManifestSHA256) { throw $nativeInputHelp }
+    $nativeInputManifest = [IO.File]::ReadAllText($nativeInputManifestPath) | ConvertFrom-Json
+    $nativeInputExpected = @(
+        'dependency-patches/mygo-v0.8.3-native-input.patch',
+        'vendor/github.com/egoist/mygo/internal/platform/text_input.go',
+        'vendor/github.com/egoist/mygo/internal/windows/surface.go',
+        'vendor/github.com/egoist/mygo/internal/windows/surface_input.go',
+        'vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go',
+        'vendor/github.com/egoist/mygo/ui/text_input_client.go'
+    )
+    if ($nativeInputManifest.schema -ne 1 -or $nativeInputManifest.module -cne 'github.com/egoist/mygo v0.8.3' -or $nativeInputManifest.files.Count -ne $nativeInputExpected.Count) { throw $nativeInputHelp }
+    $nativeInputSeen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($file in $nativeInputManifest.files) {
+        if ($file.path -cnotin $nativeInputExpected -or -not $nativeInputSeen.Add($file.path) -or $file.path -in $patchManifest.files.path -or $file.sha256 -cnotmatch '^[0-9a-f]{64}$') { throw $nativeInputHelp }
+        $member = Join-Path $nativeRoot $file.path
+        if (-not (Test-Path -LiteralPath $member -PathType Leaf) -or (Get-Item -LiteralPath $member).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint) -or (Get-FileHash -LiteralPath $member -Algorithm SHA256).Hash.ToLowerInvariant() -cne $file.sha256) { throw "$nativeInputHelp File: $($file.path)" }
+    }
     $argumentFlags = @($GoArguments) + @(Split-GoFlags $env:GOFLAGS)
     for ($index = 0; $index -lt $argumentFlags.Count; $index++) {
         $flag = $argumentFlags[$index]

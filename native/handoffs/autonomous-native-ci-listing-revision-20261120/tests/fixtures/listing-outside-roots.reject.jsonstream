@@ -1,0 +1,10 @@
+{
+	"Dir": "F:\\Task57-Fictitious\\LevNote\\native\\outside",
+	"ImportPath": "levnote.local/native/outside",
+	"Module": {
+		"Path": "levnote.local/native",
+		"Main": true,
+		"Dir": "F:\\Task57-Fictitious\\LevNote\\native",
+		"GoMod": "F:\\Task57-Fictitious\\LevNote\\native\\go.mod"
+	}
+}

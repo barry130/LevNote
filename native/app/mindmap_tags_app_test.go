@@ -328,12 +328,15 @@ func TestMindmapTagsRealAdapterPublicBarriersAndSeparateFieldUndo(t *testing.T) 
 		return filepath.Join(t.TempDir(), "unexpected.svg"), nil
 	}
 	a.closeDialog = func(*Tab) (closeDecision, error) { dialogs++; return closeDiscard, nil }
+	runner := newControlledExporter()
+	a.exporter = runner
 	if a.Save(tab, false) || a.setMode(tab, "source") || a.setMode(tab, "split") || a.Select(1) || a.CloseTab(0) || a.CanClose() {
 		t.Fatal("pending tag escaped a host barrier")
 	}
 	a.exportCurrent()
 	tester.Frame()
-	if dialogs != 0 || a.Current() != tab || len(a.Tabs) != 2 || tab.Mode != "preview" || tab.View != view || tab.Doc.Buffer != buffer || buffer.String() != before || buffer.Version() != version || buffer.History() != history || buffer.Selection() != selected || !bytes.Equal(mustReadFile(t, path), mindmapTagsDiskFixture()) || !strings.Contains(a.Message, "新标签尚未添加") {
+	noEngineCall(t, runner)
+	if a.exportJob != nil || dialogs != 0 || a.Current() != tab || len(a.Tabs) != 2 || tab.Mode != "preview" || tab.View != view || tab.Doc.Buffer != buffer || buffer.String() != before || buffer.Version() != version || buffer.History() != history || buffer.Selection() != selected || !bytes.Equal(mustReadFile(t, path), mindmapTagsDiskFixture()) || !strings.Contains(a.Message, "新标签尚未添加") {
 		t.Fatal("barrier altered authority/input or opened dialog", a.Message)
 	}
 	requireTagAppInputText(t, tester, 1180, 780, mindmapTagsInput, "待添加🙂")
@@ -457,6 +460,7 @@ func TestMindmapTagsRealAdapterFirstWarningPreservesComposition(t *testing.T) {
 			if warnings := tab.View.Warnings(); len(warnings) != 0 {
 				t.Fatal("fixture must start with no conditional warning row", warnings)
 			}
+			startupIssues := len(a.Issues)
 			openTagsAppPanel(t, tester, 1180, 780)
 			typeTagAppInput(t, tester, 1180, 780, "未确认", true)
 			version, selection, history := tab.Doc.Buffer.Version(), tab.Doc.Buffer.Selection(), tab.Doc.Buffer.History()
@@ -472,8 +476,11 @@ func TestMindmapTagsRealAdapterFirstWarningPreservesComposition(t *testing.T) {
 				t.Fatal("second composition escaped its input")
 			}
 			tester.Type("确认🙂")
-			if !tester.Focused(mindmapTagsInput) || len(tab.View.Warnings()) != 0 || tab.Doc.Buffer.String() != mindmapTagsCleanBody || tab.Doc.Buffer.History() != history || strings.Contains(a.Message, "请先确认正在输入") || len(a.Issues) != 0 {
-				t.Fatal("removing warning lost focus or retained stale guidance", tab.View.Warnings())
+			if !tester.Focused(mindmapTagsInput) || len(tab.View.Warnings()) != 0 || tab.Doc.Buffer.String() != mindmapTagsCleanBody || tab.Doc.Buffer.History() != history || strings.Contains(a.Message, "请先确认正在输入") {
+				t.Fatalf("removing warning lost focus or retained stale guidance: warnings=%v message=%q", tab.View.Warnings(), a.Message)
+			}
+			if len(a.Issues) != startupIssues {
+				t.Fatalf("temporary composition warning changed the issue history: startup=%d issues=%q", startupIssues, a.Issues)
 			}
 			tester.Key(0, ui.KeyF6)
 			if !tester.Focused("添加标签") {

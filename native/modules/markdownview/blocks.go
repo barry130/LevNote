@@ -38,11 +38,11 @@ func (v *View) block(c *ui.Context, b markdown.Block, preview previewSnapshot, r
 func (v *View) listItem(c *ui.Context, b markdown.Block, i int, target taskTarget, preview previewSnapshot, row previewRow) {
 	item := b.Items[i]
 	prefix := "•"
-	if b.Ordered {
-		prefix = fmt.Sprintf("%d.", b.Start+i)
+	if item.Ordered || item.Depth == 0 && b.Ordered {
+		prefix = fmt.Sprintf("%d.", row.ordinal)
 	}
-	ui.Row(c).AlignItems(ui.Start).Gap(10).Children(func() {
-		if item.Task == nil || b.Ordered {
+	ui.Row(c).Padding(0, float32(item.Depth*18)).AlignItems(ui.Start).Gap(10).Children(func() {
+		if item.Task == nil || item.Ordered || item.Depth == 0 && b.Ordered {
 			ui.Text(c, prefix).Width(24)
 		}
 		if item.Task != nil {

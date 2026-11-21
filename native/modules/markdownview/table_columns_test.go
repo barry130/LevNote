@@ -396,22 +396,30 @@ func TestTableColumnsRapidPointerCannotDeleteThroughNewPanel(t *testing.T) {
 	tester := ui.NewTester(v.Draw, 760, 480)
 	tester.Frame()
 	initial := tableCellAccess(t, tester, ui.RoleCell, "数据，第 3 行，第 1 列：同")
-	x, y := initial.Bounds.X+initial.Bounds.W/2, initial.Bounds.Y+initial.Bounds.H/4
-	tester.ClickAt(x, y)
-	tester.ClickAt(x, y)
+	// Start the click sequence at a stable point that remains inside the
+	// overlapping delete-control row after the draft panel is rebuilt.
+	initialX, initialY := initial.Bounds.X+initial.Bounds.W/2, initial.Bounds.Y+4
+	tester.ClickAt(initialX, initialY)
+	tester.ClickAt(initialX, initialY)
 	if v.draft == nil {
 		t.Fatal("initial double click did not open the selected cell")
 	}
+	button := rowButton(t, tester, columnDelete)
 	focusAlignment(t, tester, 0, markdown.TableAlignDefault)
 	tester.Key(0, ui.KeyEnter) // close the initial panel without a source change
 	if v.draft != nil || buffer.String() != rowActionSource || buffer.History().UndoDepth != 0 {
 		t.Fatal("clean no-op did not close the initial panel")
 	}
-	tester.ClickAt(x, y) // no virtual clock advance: continue the opening click sequence
-	if v.draft == nil {
-		t.Fatal("rapid continuation did not reopen the cell")
+	x, y := initialX, initialY
+	if x < button.Bounds.X || x > button.Bounds.X+button.Bounds.W ||
+		y < button.Bounds.Y || y > button.Bounds.Y+button.Bounds.H {
+		t.Fatalf("opening cell point must also overlap the delete control: point=%v,%v cell=%+v button=%+v", x, y, initial.Bounds, button.Bounds)
 	}
-	button := rowButton(t, tester, columnDelete)
+	tester.ClickAt(x, y) // same physical point; no virtual clock advance
+	if v.draft == nil {
+		t.Fatalf("rapid continuation did not reopen the cell: point=%v,%v cell=%+v old-delete=%+v", x, y, initial.Bounds, button.Bounds)
+	}
+	button = rowButton(t, tester, columnDelete)
 	if x < button.Bounds.X || x > button.Bounds.X+button.Bounds.W || y < button.Bounds.Y || y > button.Bounds.Y+button.Bounds.H {
 		t.Fatalf("continued click must physically overlap the column-delete control: point=%v,%v bounds=%+v", x, y, button.Bounds)
 	}

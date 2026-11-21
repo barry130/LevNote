@@ -12,6 +12,9 @@ const sourcePasteIdentityText = "abc\r\ndef\r\n"
 func newSourcePasteIdentityTester(t *testing.T) (*App, *Tab, *ui.Tester) {
 	t.Helper()
 	a := newTestApp(t, t.TempDir())
+	// Clipboard identity tests exercise only issues and status from the new
+	// input transaction. Start that history after unrelated startup reporting.
+	a.Issues, a.IssuesDropped, a.Message = nil, 0, ""
 	a.NewDocument("markdown")
 	tab := a.Current()
 	if tab == nil || tab.Adapter == nil {

@@ -522,6 +522,13 @@ type Settings struct {
 func SettingsPath(root string) string { return filepath.Join(root, "plugins.json") }
 
 func LoadSettings(root string) (Settings, error) {
+	root = filepath.Clean(root)
+	if err := checkPrivateDirectory(root); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return Settings{Disabled: map[string]bool{}}, nil
+		}
+		return Settings{}, err
+	}
 	path := SettingsPath(root)
 	info, err := os.Lstat(path)
 	if err != nil {
@@ -592,13 +599,21 @@ func SaveSettings(root string, settings Settings) error {
 }
 
 func ensurePrivateDirectory(path string) error {
-	info, err := os.Lstat(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		if err := os.MkdirAll(path, 0o700); err != nil {
-			return err
-		}
-		info, err = os.Lstat(path)
+	if path != "" {
+		path = filepath.Clean(path)
 	}
+	err := checkPrivateDirectory(path)
+	if !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	if err := os.MkdirAll(path, 0o700); err != nil {
+		return err
+	}
+	return checkPrivateDirectory(path)
+}
+
+func checkPrivateDirectory(path string) error {
+	info, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
