@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "dependency-patches/mygo-v0.8.3-native-input.patch",
-      "sha256": "53ec1faee7b126ee9d044e6c66ad0034e20a05b7d08d04bee50fcafdfa5666d0"
+      "sha256": "952a25eaf52b1aae8cb25e2210ff1de0f2af32cc95e2901dae5c79efcf8938cf"
     },
     {
       "path": "vendor/github.com/egoist/mygo/internal/platform/text_input.go",
@@ -19,8 +19,12 @@
       "sha256": "45d6fd1ab2c1a8b7b6db0827e83216204cea893e75965dfca314b7ea022fdb09"
     },
     {
+      "path": "vendor/github.com/egoist/mygo/ui/headless.go",
+      "sha256": "909deba8820b13a648527b97e90e598c6c91838de26eacbbce7ee2399c074b07"
+    },
+    {
       "path": "vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go",
-      "sha256": "2add5bd776576a5c0fe10eba863494def4a85878cfa79b5419e02ff4fc236521"
+      "sha256": "a25d3aba4559b6d7d83876d8c119be1122e94c08a82d613a91fcfc937a13de4c"
     },
     {
       "path": "vendor/github.com/egoist/mygo/ui/text_input_client.go",

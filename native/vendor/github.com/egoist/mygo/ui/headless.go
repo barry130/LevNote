@@ -36,7 +36,10 @@ type headless struct {
 	clipboardData transfer.Data
 	cursor        Cursor
 	ime           platform.TextInputState
-	opened        []string
+	// composition is the production transport controller. Its attachment and
+	// cancelled-session state survive no-frame fixture batches and redraws.
+	composition platform.InputComposition
+	opened      []string
 	// escapes counts the Escapes nothing handled.
 	escapes int
 	openErr error
@@ -108,11 +111,25 @@ func (h *headless) afterTimer(at time.Time) {
 		h.afterFrom = h.clock()
 	}
 }
-func (h *headless) framePath() string                          { return "drawn in memory" }
-func (h *headless) requestFrame()                              { h.requested.Store(true) }
-func (h *headless) repaintTimer(at time.Time)                  { h.repaintAt = at }
-func (h *headless) setCursor(c Cursor)                         { h.cursor = c }
-func (h *headless) setTextInput(t platform.TextInputState)     { h.ime = t }
+func (h *headless) framePath() string         { return "drawn in memory" }
+func (h *headless) requestFrame()             { h.requested.Store(true) }
+func (h *headless) repaintTimer(at time.Time) { h.repaintAt = at }
+func (h *headless) setCursor(c Cursor)        { h.cursor = c }
+func (h *headless) setTextInput(t platform.TextInputState) {
+	// No native notification reentry runs here. Match the production scope
+	// boundary, including same-client IME-off and activation changes.
+	previous := h.ime
+	scopeChange := previous.Client != t.Client || previous.Active != t.Active || previous.NoInputMethod != t.NoInputMethod
+	if scopeChange {
+		h.composition.Invalidate()
+		if t.Active && !t.NoInputMethod {
+			h.composition.SetClient(t.Client)
+		} else {
+			h.composition.SetClient(nil)
+		}
+	}
+	h.ime = t
+}
 func (h *headless) updateAccessibility(t *platform.AccessTree) { h.keepAccess(t) }
 func (h *headless) startDrag()                                 {}
 func (h *headless) setDropFormats([]transfer.Format)           {}
@@ -249,9 +266,10 @@ func coreRender(view func(c *context), width, height int, scale float32) *image.
 // double click, typing that undoes in one step, tooltips) does the same
 // however fast the machine runs the test.
 type Tester struct {
-	rt     *engine
-	h      *headless
-	clicks platform.ClickCounter
+	rt      *engine
+	h       *headless
+	clicks  platform.ClickCounter
+	noFrame *TesterTextInput
 	// now is the Tester's time, which only Advance moves, and frameAt
 	// that of the last frame.
 	now     time.Time
@@ -301,6 +319,9 @@ func coreNewTesterWith(view func(c *context), width, height int, o TesterOptions
 
 // settle runs frames until the view asks for no more, or 20 of them.
 func (t *Tester) settle() {
+	if t.refuseNoFrameMutation("settle") {
+		return
+	}
 	t.frameAt = t.Now()
 	for i := 0; i < 20; i++ {
 		t.h.requested.Store(false)
@@ -335,6 +356,9 @@ func (t *Tester) Now() time.Time { return t.now }
 // 200 ms is a quarter of the way after Advance(50 * time.Millisecond),
 // and done after another Advance(150 * time.Millisecond).
 func (t *Tester) Advance(d time.Duration) {
+	if t.refuseNoFrameMutation("Advance") {
+		return
+	}
 	end := t.now.Add(max(d, 0))
 	for {
 		at, ok := t.due()
@@ -406,6 +430,9 @@ func (t *Tester) timerDue(at, armed time.Time) (time.Time, bool) {
 }
 
 func (t *Tester) send(ev platform.SurfaceEvent) {
+	if t.refuseNoFrameMutation("send/Type/Compose") {
+		return
+	}
 	switch ev.Kind {
 	case platform.PointerMove, platform.PointerDown, platform.PointerUp:
 		ev.Pointer, ev.Pressure = platform.PointerKind(t.pointer), float64(t.pressure)
@@ -528,7 +555,13 @@ func (t *Tester) SetDirection(d Direction) {
 }
 
 // Frame renders another frame, as when the view's state changed.
-func (t *Tester) Frame() { t.h.requested.Store(true); t.settle() }
+func (t *Tester) Frame() {
+	if t.refuseNoFrameMutation("Frame") {
+		return
+	}
+	t.h.requested.Store(true)
+	t.settle()
+}
 
 // FramePending reports whether the view still asks for a frame, as one
 // that animates or never settles does after an input or Frame. The
@@ -1007,6 +1040,246 @@ func (t *Tester) Compose(text string, caret int) {
 // "redo" or "delete", or a Format menu's, as "bold" or "alignCenter".
 func (t *Tester) Command(name string) {
 	t.send(platform.SurfaceEvent{Kind: platform.SurfaceCommand, Text: name})
+}
+
+// TesterTextInputCapture is an opaque transport attachment/session handle.
+// It may be retained for For calls in a later batch on the same Tester, but
+// cannot acquire a replacement native client or composition session.
+type TesterTextInputCapture struct {
+	tester  *Tester
+	adapter *textInputAdapter
+	lease   *textInputCancelLease
+	session platform.CompositionSession
+}
+
+// TesterTextInput is usable only inside its TextInputNoFrame callback. The
+// first fixture/invariant error is retained in Err and refuses later steps.
+// A false controller result is an ordinary admission refusal, not a fixture
+// error. No method settles frames or repairs/reinstalls a retired client.
+type TesterTextInput struct {
+	tester  *Tester
+	adapter *textInputAdapter
+	lease   *textInputCancelLease
+	frame   uint64
+	active  bool
+	err     error
+}
+
+// TextInputNoFrame synchronously drives the actual installed native adapter
+// through the production InputComposition stored by the headless surface.
+// Each event validates an unchanged engine frame and installed adapter before
+// and after dispatch. RequestFrame only queues work. The caller can explicitly
+// call Frame after the callback and all assertions have returned.
+//
+// Batches are not reentrant. Callers must use this facade for mutation inside
+// the callback. send, Type, Compose, Frame and Advance reject reentry and latch
+// a fixture error before their dispatch/frame/clock work; other mutating Tester
+// APIs are unsupported inside the callback. On a client/focus change the batch
+// fails closed, does not roll back callback work,
+// and never keeps an old client installed to make a test appear successful.
+func (t *Tester) TextInputNoFrame(callback func(*TesterTextInput)) error {
+	if t == nil || t.rt == nil || t.h == nil || callback == nil {
+		return fmt.Errorf("ui: TextInputNoFrame requires a live Tester and callback")
+	}
+	if t.noFrame != nil {
+		t.noFrame.fail("nested TextInputNoFrame")
+		return t.noFrame.err
+	}
+	adapter, ok := t.h.ime.Client.(*textInputAdapter)
+	if !ok || adapter == nil || !t.h.ime.Active || t.h.ime.NoInputMethod {
+		return fmt.Errorf("ui: TextInputNoFrame requires the actual active installed native adapter")
+	}
+	n := &TesterTextInput{tester: t, adapter: adapter, lease: adapter.cancelLease, frame: t.rt.frame, active: true}
+	t.noFrame = n
+	defer n.close()
+	if !n.check("batch entry") {
+		return n.err
+	}
+	callback(n)
+	n.check("callback return")
+	return n.err
+}
+
+func (n *TesterTextInput) close() {
+	n.active = false
+	if n.tester.noFrame == n {
+		n.tester.noFrame = nil
+	}
+}
+
+func (n *TesterTextInput) fail(phase string) {
+	if n.err == nil {
+		n.err = fmt.Errorf("ui: TextInputNoFrame rejected %s: frame or native attachment changed, batch ended, or forbidden reentry", phase)
+	}
+}
+
+func (t *Tester) refuseNoFrameMutation(phase string) bool {
+	if t.noFrame == nil {
+		return false
+	}
+	t.noFrame.fail(phase)
+	return true
+}
+
+func (n *TesterTextInput) check(phase string) bool {
+	if n == nil {
+		return false
+	}
+	if n.err != nil {
+		return false
+	}
+	t := n.tester
+	if !n.active || t == nil || t.noFrame != n || t.rt.frame != n.frame ||
+		t.h.ime.Client == nil || t.h.ime.Client != n.adapter || !t.h.ime.Active || t.h.ime.NoInputMethod || n.adapter.cancelLease != n.lease {
+		n.fail(phase)
+		return false
+	}
+	client, state := n.adapter.client()
+	if client == nil || state == nil || !t.h.composition.Current(t.h.composition.Capture(), n.adapter) {
+		n.fail(phase)
+		return false
+	}
+	return true
+}
+
+func (n *TesterTextInput) finish(phase string, accepted bool) bool {
+	if !n.check(phase) {
+		return false
+	}
+	return accepted
+}
+
+// Err returns the batch-owned invariant error, without invoking a client.
+func (n *TesterTextInput) Err() error {
+	if n == nil {
+		return fmt.Errorf("ui: nil TesterTextInput")
+	}
+	return n.err
+}
+
+func (n *TesterTextInput) Capture() TesterTextInputCapture {
+	if !n.check("Capture") {
+		return TesterTextInputCapture{}
+	}
+	h := TesterTextInputCapture{tester: n.tester, adapter: n.adapter, lease: n.lease, session: n.tester.h.composition.Capture()}
+	if !n.check("Capture return") {
+		return TesterTextInputCapture{}
+	}
+	return h
+}
+
+func (n *TesterTextInput) owns(h TesterTextInputCapture) bool {
+	return h.tester == n.tester && h.adapter == n.adapter && h.lease == n.lease
+}
+
+// Start dispatches the production Start boundary. Its bool proves only that
+// the returned transport session is current, never ownership of a preexisting
+// application composition target.
+func (n *TesterTextInput) Start() bool {
+	if !n.check("Start entry") {
+		return false
+	}
+	h := n.tester.h.composition.Start(n.adapter)
+	return n.finish("Start return", n.tester.h.composition.Current(h, n.adapter))
+}
+
+// Preedit uses explicit absolute UTF-16 replacement and relative selection.
+// Even an empty value is a flagged preedit, not a synthesized cancellation.
+func (n *TesterTextInput) Preedit(replacement *TextInputRange, value string, selected TextInputRange) bool {
+	if !n.check("Preedit entry") {
+		return false
+	}
+	accepted := n.tester.h.composition.Preedit(n.adapter, replacement, value, selected)
+	return n.finish("Preedit return", accepted)
+}
+
+func (n *TesterTextInput) PreeditFor(h TesterTextInputCapture, replacement *TextInputRange, value string, selected TextInputRange) bool {
+	if !n.check("PreeditFor entry") {
+		return false
+	}
+	if !n.owns(h) {
+		return n.finish("PreeditFor stale attachment", false)
+	}
+	accepted := n.tester.h.composition.PreeditFor(h.session, n.adapter, replacement, value, selected)
+	return n.finish("PreeditFor return", accepted)
+}
+
+func (n *TesterTextInput) Reset() bool {
+	if !n.check("Reset entry") {
+		return false
+	}
+	n.tester.h.composition.Reset()
+	return n.finish("Reset return", true)
+}
+
+func (n *TesterTextInput) Cancel() bool {
+	if !n.check("Cancel entry") {
+		return false
+	}
+	accepted := n.tester.h.composition.Cancel(n.adapter)
+	return n.finish("Cancel return", accepted)
+}
+
+func (n *TesterTextInput) CancelFor(h TesterTextInputCapture) bool {
+	if !n.check("CancelFor entry") {
+		return false
+	}
+	if !n.owns(h) {
+		return n.finish("CancelFor stale attachment", false)
+	}
+	accepted := n.tester.h.composition.CancelFor(h.session, n.adapter)
+	return n.finish("CancelFor return", accepted)
+}
+
+func (n *TesterTextInput) Result(replacement *TextInputRange, value string) bool {
+	if !n.check("Result entry") {
+		return false
+	}
+	accepted := n.tester.h.composition.Replace(n.adapter, replacement, value)
+	return n.finish("Result return", accepted)
+}
+
+func (n *TesterTextInput) ResultFor(h TesterTextInputCapture, replacement *TextInputRange, value string) bool {
+	if !n.check("ResultFor entry") {
+		return false
+	}
+	if !n.owns(h) {
+		return n.finish("ResultFor stale attachment", false)
+	}
+	accepted := n.tester.h.composition.ReplaceFor(h.session, n.adapter, replacement, value)
+	return n.finish("ResultFor return", accepted)
+}
+
+func (n *TesterTextInput) End() bool {
+	if !n.check("End entry") {
+		return false
+	}
+	accepted := n.tester.h.composition.End(n.adapter)
+	return n.finish("End return", accepted)
+}
+
+func (n *TesterTextInput) EndFor(h TesterTextInputCapture) bool {
+	if !n.check("EndFor entry") {
+		return false
+	}
+	if !n.owns(h) {
+		return n.finish("EndFor stale attachment", false)
+	}
+	accepted := n.tester.h.composition.EndFor(h.session, n.adapter)
+	return n.finish("EndFor return", accepted)
+}
+
+// Text is ordinary WM_CHAR-shaped input. It intentionally bypasses cancelled
+// IME-result isolation, while still going through the real production event
+// dispatcher and the currently focused installed adapter. Its bool reports
+// dispatch with unchanged fixture ownership, not application edit acceptance:
+// engine.event does not return editEvent's bool for ordinary TextInput.
+func (n *TesterTextInput) Text(value string) bool {
+	if !n.check("Text entry") {
+		return false
+	}
+	n.tester.rt.event(platform.SurfaceEvent{Kind: platform.TextInput, Text: value})
+	return n.finish("Text return", true)
 }
 
 // TextCaret returns where input methods compose, and whether one would:

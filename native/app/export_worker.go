@@ -97,8 +97,18 @@ func (a *App) startEngineExport(t *Tab) {
 		return
 	}
 	name, generation := t.Name, a.exportGeneration
-	descriptor, err := a.exportDescriptor(capability)
+	descriptor, err := lookupExportDescriptor(capability)
 	if err != nil {
+		a.report(err)
+		return
+	}
+	// Refuse already-oversized source before platform admission. This keeps a
+	// source/view safety error authoritative even when the packaged engine is
+	// unavailable on this OS, without weakening platform checks for valid input.
+	if a.refuseOversizeEngineExport(buffer, descriptor) {
+		return
+	}
+	if _, err := a.exportDescriptor(capability); err != nil {
 		a.report(err)
 		return
 	}
@@ -119,15 +129,7 @@ func (a *App) startEngineExport(t *Tab) {
 		a.report(errors.New("还有未完成的编辑事务，请完成后再导出"))
 		return
 	}
-	if int64(buffer.LenBytes()) > descriptor.SourceMaxBytes {
-		name := "Markdown 源码"
-		switch descriptor.Engine {
-		case enginecatalog.MindmapSVG:
-			name = "思维导图源码"
-		case enginecatalog.DrawioSVG:
-			name = "图纸源码"
-		}
-		a.report(fmt.Errorf("%s超过 %d MiB 导出上限", name, descriptor.SourceMaxBytes>>20))
+	if a.refuseOversizeEngineExport(buffer, descriptor) {
 		return
 	}
 	version := buffer.Version()
@@ -554,13 +556,36 @@ func (a *App) matchEnginePackage(id enginecatalog.EngineID, format string) (engi
 	return enginecatalog.Match(id, format, goos, goarch)
 }
 
-func (a *App) exportDescriptor(capability editor.ExportEngine) (enginecatalog.Descriptor, error) {
+func lookupExportDescriptor(capability editor.ExportEngine) (enginecatalog.Descriptor, error) {
 	descriptor, ok := enginecatalog.Lookup(enginecatalog.EngineID(capability.ID))
 	if !ok || descriptor.Format != capability.Format {
 		return enginecatalog.Descriptor{}, errors.New("导出引擎与格式声明不匹配")
+	}
+	return descriptor, nil
+}
+
+func (a *App) exportDescriptor(capability editor.ExportEngine) (enginecatalog.Descriptor, error) {
+	descriptor, err := lookupExportDescriptor(capability)
+	if err != nil {
+		return enginecatalog.Descriptor{}, err
 	}
 	if _, ok := a.matchEnginePackage(descriptor.Engine, capability.Format); !ok {
 		return enginecatalog.Descriptor{}, errors.New("当前平台不支持此导出程序包")
 	}
 	return descriptor, nil
+}
+
+func (a *App) refuseOversizeEngineExport(buffer *text.Buffer, descriptor enginecatalog.Descriptor) bool {
+	if buffer == nil || int64(buffer.LenBytes()) <= descriptor.SourceMaxBytes {
+		return false
+	}
+	name := "Markdown 源码"
+	switch descriptor.Engine {
+	case enginecatalog.MindmapSVG:
+		name = "思维导图源码"
+	case enginecatalog.DrawioSVG:
+		name = "图纸源码"
+	}
+	a.report(fmt.Errorf("%s超过 %d MiB 导出上限", name, descriptor.SourceMaxBytes>>20))
+	return true
 }

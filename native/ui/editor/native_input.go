@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -67,7 +68,12 @@ type inputStamp struct {
 }
 
 func (e *Editor) inputStamp() inputStamp {
-	owner := e.observeInputOwner()
+	return e.inputStampForOwner(e.observeInputOwner())
+}
+
+// inputStampForOwner only reads state; optional cancellation queries must not
+// observe attachments or acquire an existing programmatic/foreign owner.
+func (e *Editor) inputStampForOwner(owner inputOwner) inputStamp {
 	s := inputStamp{owner: owner, token: e.compositionToken, compositionGen: e.compositionGeneration}
 	if b := owner.buffer; b != nil {
 		s.version, s.selectionGen = b.Version(), b.SelectionGeneration()
@@ -100,9 +106,145 @@ func (t clipboardTarget) matches(e *Editor) bool {
 type nativeInputClient struct {
 	editor *Editor
 	owner  inputOwner
+	// Native preedit binds this receipt. An admitted Editor selection change
+	// can migrate it to the new selection generation for the same token.
+	compositionReceipt inputStamp
 }
 
 var _ ui.TextInputClient = (*nativeInputClient)(nil)
+var _ ui.TextInputCompositionCanceler = (*nativeInputClient)(nil)
+
+// Unlike current, this check is observational, including on stale attachments.
+func (c *nativeInputClient) cancelAttachmentCurrent() bool {
+	e := c.editor
+	return e.nativeClient == c && c.owner == e.inputOwner && c.owner.buffer != nil &&
+		c.owner.buffer == e.Buffer && c.owner.readOnly == e.ReadOnly &&
+		c.owner.viewEpoch == e.viewGeneration && !c.owner.readOnly
+}
+
+func (c *nativeInputClient) CompositionCancelState() (ui.CompositionCancelStamp, ui.CompositionCancelAvailability) {
+	e := c.editor
+	stamp := ui.CompositionCancelStamp{Generation: e.compositionGeneration, HasTarget: e.compositionBuffer != nil}
+	if !c.cancelAttachmentCurrent() {
+		return stamp, ui.CancelUnavailable
+	}
+	if stamp.HasTarget {
+		receipt := c.compositionReceipt
+		if receipt != e.compositionStamp || receipt != e.inputStampForOwner(c.owner) || e.compositionBuffer != c.owner.buffer {
+			return stamp, ui.CancelUnavailable
+		}
+		if !e.composing {
+			// A native first refusal can retain an owner without opening a Core
+			// group. Its exact caller receipt permits the transport to continue
+			// the same session, but never gives Cancel a token to roll back.
+			if !c.isTokenlessRefusal(receipt) {
+				return stamp, ui.CancelUnavailable
+			}
+			return stamp, ui.CancelReady
+		}
+		if receipt.token == (text.CompositionToken{}) || !receipt.owner.buffer.OwnsComposition(receipt.token) {
+			return stamp, ui.CancelUnavailable
+		}
+	} else if c.owner.buffer.InGroup() {
+		return stamp, ui.CancelUnavailable
+	}
+	return stamp, ui.CancelReady
+}
+
+// Called at native group creation, before range/content refusal or notification.
+// An observational getter or a later call cannot claim an uncaptured token.
+func (c *nativeInputClient) captureComposition() {
+	if c != nil && c.cancelAttachmentCurrent() {
+		c.compositionReceipt = c.editor.compositionStamp
+	}
+}
+
+// Bind the first budget refusal produced by this exact native caller, before
+// publishing the error. The receipt admits continuation without a Core token.
+func (c *nativeInputClient) captureTokenlessRefusal() {
+	if !c.cancelAttachmentCurrent() {
+		return
+	}
+	e := c.editor
+	stamp := e.compositionStamp
+	if stamp == e.inputStampForOwner(c.owner) && c.isTokenlessRefusal(stamp) {
+		c.compositionReceipt = stamp
+	}
+}
+
+func (c *nativeInputClient) isTokenlessRefusal(stamp inputStamp) bool {
+	e := c.editor
+	return e.compositionBuffer == c.owner.buffer && !e.composing && !e.compositionMulti &&
+		errors.Is(e.compositionError, text.ErrSizeLimit) && stamp.token == (text.CompositionToken{}) && !stamp.group
+}
+
+func (c *nativeInputClient) refreshComposition() {
+	if c == nil || !c.cancelAttachmentCurrent() {
+		return
+	}
+	e := c.editor
+	if c.compositionReceipt.token == e.compositionToken && c.compositionReceipt.compositionGen == e.compositionGeneration {
+		c.compositionReceipt = e.compositionStamp
+	}
+}
+
+// A selection-changing Editor command may transfer a receipt only after its
+// old native stamp was proven current and the same owned Core token survives.
+func (c *nativeInputClient) refreshCompositionSelection(before, after inputStamp) {
+	if c == nil || !c.cancelAttachmentCurrent() {
+		return
+	}
+	e := c.editor
+	migrated := before
+	migrated.selectionGen = after.selectionGen
+	migrated.primary = after.primary
+	if c.compositionReceipt != before || before.owner != c.owner || before.token == (text.CompositionToken{}) ||
+		after != migrated || after != e.compositionStamp || after != e.inputStampForOwner(c.owner) ||
+		e.compositionBuffer != c.owner.buffer || !e.composing || e.compositionMulti ||
+		!c.owner.buffer.OwnsComposition(before.token) {
+		return
+	}
+	c.compositionReceipt = after
+}
+
+func (c *nativeInputClient) CancelComposition(expected ui.CompositionCancelStamp) (ui.CompositionCancelStamp, bool) {
+	before, availability := c.CompositionCancelState()
+	if availability != ui.CancelReady || before != expected {
+		return before, false
+	}
+	if !before.HasTarget {
+		// The transport, which owns START/session provenance, may cancel idle.
+		return before, true
+	}
+	if c.compositionReceipt.token == (text.CompositionToken{}) {
+		// A tokenless refusal is retryable input state, but it is not a
+		// composition group and therefore has no rollback authority.
+		return before, false
+	}
+	e := c.editor
+	owner, token := c.compositionReceipt.owner.buffer, c.compositionReceipt.token
+	version, marked := owner.Version(), e.compositionMarked
+	a := e.beginInputAction()
+	if err := owner.CancelCompositionGroup(token); err != nil {
+		return before, false
+	}
+	e.clearComposition()
+	a.reason, a.retired = InputOwnCancel, true
+	if owner.Version() != version {
+		a.recovery = InputRecoveryRollback
+	}
+	if marked || owner.Version() != version {
+		a.preparedChange()
+	} else {
+		// A markless first refusal retires through the terminal-only channel.
+		e.services.Invalidate()
+	}
+	// Capture before the last callback. A successor must invalidate this result
+	// at toolkit revalidation; never reload it or clear state after finish.
+	after := ui.CompositionCancelStamp{Generation: e.compositionGeneration}
+	a.finish()
+	return after, true
+}
 
 func (e *Editor) nativeTextClient() *nativeInputClient {
 	owner := e.observeInputOwner()
@@ -161,7 +303,7 @@ func (c *nativeInputClient) ReplaceText(r *ui.TextInputRange, value string) {
 
 func (c *nativeInputClient) SetMarkedText(r *ui.TextInputRange, value string, selected ui.TextInputRange) {
 	if c.canWrite() {
-		c.editor.setMarkedText(r, value, selected, true)
+		c.editor.setMarkedText(r, value, selected, c)
 	}
 }
 
@@ -243,7 +385,14 @@ func (e *Editor) compositionOwnerIssue(checkRevision bool) error {
 	return nil
 }
 
-func (e *Editor) beginComposition(multi bool) error {
+func (e *Editor) beginComposition(multi bool, caller *nativeInputClient) error {
+	// A tracked tokenless refusal already advanced the transport generation.
+	// Its exact caller may acquire the first Core token in the same session.
+	resumingRefusal := false
+	if !multi && caller != nil && caller.isTokenlessRefusal(caller.compositionReceipt) {
+		stamp, availability := caller.CompositionCancelState()
+		resumingRefusal = stamp.HasTarget && availability == ui.CancelReady
+	}
 	var token text.CompositionToken
 	var err error
 	if multi {
@@ -258,7 +407,9 @@ func (e *Editor) beginComposition(multi bool) error {
 	e.compositionBuffer, e.compositionToken = e.Buffer, token
 	e.compositionPrimary = e.Buffer.Selection()
 	e.compositionTargetAdmitted = false
-	e.compositionGeneration++
+	if !resumingRefusal {
+		e.advanceCompositionGeneration()
+	}
 	e.compositionStamp = e.inputStamp()
 	e.compositionChangeStamp = e.Buffer.ChangeStamp()
 	if multi {
@@ -269,12 +420,27 @@ func (e *Editor) beginComposition(multi bool) error {
 			e.folds.pointer = nil
 		}
 	}
+	caller.captureComposition()
 	return nil
+}
+
+// Generation values are never reused by an installed attachment. Retiring the
+// client before rollover lets the next View install a distinct native adapter.
+func (e *Editor) advanceCompositionGeneration() {
+	if e.compositionGeneration == ^uint64(0) {
+		e.nativeClient = nil
+		e.compositionGeneration = 0
+		return
+	}
+	e.compositionGeneration++
 }
 
 func (e *Editor) clearComposition() {
 	if e.compositionBuffer != nil {
-		e.compositionGeneration++
+		if c := e.nativeClient; c != nil && c.compositionReceipt.token == e.compositionToken && c.compositionReceipt.compositionGen == e.compositionGeneration {
+			c.compositionReceipt = inputStamp{}
+		}
+		e.advanceCompositionGeneration()
 	}
 	e.composing, e.compositionMulti, e.compositionMarked = false, false, false
 	e.marked = ui.TextInputRange{}

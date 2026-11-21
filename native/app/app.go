@@ -136,6 +136,7 @@ type App struct {
 	findReplacementHandle                           ui.Handle
 	findFocus                                       findFocusTarget
 	findFocusGeneration                             uint64
+	findFocusIntentEpoch                            uint64 // survives one-shot focus resolution and clearing
 	findFocusTab                                    *Tab
 	findFocusDoc                                    *document.Document
 	findFocusEditor                                 *editor.Editor
@@ -1067,10 +1068,12 @@ func (a *App) Save(t *Tab, as bool) bool {
 func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string, forceLanguageRetirement bool) {
 	savedName := filepath.Base(t.Doc.Path)
 	owner := a.sourceLanguage.owner
-	// Check the language seal before name and readonly reconciliation can
-	// overwrite evidence of a changed owner. The disk baseline is independent.
-	if forceLanguageRetirement || owner != nil && owner.tab == t &&
-		(t.Name != savedName || t.Editor.ReadOnly != t.Doc.ReadOnly || a.sourceLanguageOwnerValid(owner, false) != nil) {
+	binding := a.sourceLanguage.shortcut
+	// Check the language seals before changing the presentation metadata.
+	metadataChanged := t.Name != savedName || t.Editor.ReadOnly != t.Doc.ReadOnly
+	bindingChanged := binding != nil && binding.tab == t && (metadataChanged || !a.sourceLanguageShortcutCurrent(binding))
+	ownerChanged := owner != nil && owner.tab == t && (metadataChanged || a.sourceLanguageOwnerValid(owner, false) != nil)
+	if forceLanguageRetirement || bindingChanged || ownerChanged {
 		a.retireSourceLanguage(t)
 	}
 	t.Name = savedName

@@ -137,7 +137,7 @@ func (v *View) outlineSource() *outlineSource {
 }
 
 func (v *View) NavigateOutlineItem(id string) error {
-	if err := v.Flush(); err != nil {
+	if err := v.flushDraftAction(); err != nil {
 		return err
 	}
 	source := v.outlineSource()
@@ -150,13 +150,19 @@ func (v *View) NavigateOutlineItem(id string) error {
 	}
 	// Only after successful flush and identity resolution may the old editor
 	// finish. A stale click/conflict keeps the independent draft recoverable.
-	v.clearDraft()
+	buffer, version := source.buffer, source.version
+	if !v.clearDraft() {
+		return errDraftSuperseded
+	}
+	if buffer.Version() != version {
+		return editor.ErrOutlineStale
+	}
 	v.refresh()
 	for i, row := range v.rows {
 		if row.kind == markdown.BlockHeading && row.span.Start() == item.Offset {
 			v.list.ScrollTo(i, ui.Start)
 			v.outlineCurrent = item.ID
-			v.outlineCaret = v.host.Buffer.Selection().Head
+			v.outlineCaret = buffer.Selection().Head
 			return nil
 		}
 	}

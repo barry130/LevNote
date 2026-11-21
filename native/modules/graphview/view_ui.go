@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/formats/mindmap"
+	"levnote.local/native/ui/editor"
 )
 
 func (v *view) drawToolbar(c *ui.Context) {
@@ -148,13 +149,67 @@ func (v *view) drawDrawioToolbar(c *ui.Context, readOnly bool) {
 	}
 }
 
-func (v *view) drawWarnings(c *ui.Context) {
-	theme := c.Theme()
-	text := v.warnings[0]
-	if len(v.warnings) > 1 {
-		text = fmt.Sprintf("%s（另有 %d 条兼容性提示）", text, len(v.warnings)-1)
+// Warning inspection must not settle native input or write a staged draft.
+// Unlike field search, it accepts ordinary noncomposing staged field/tag text.
+func (v *view) warningDetailsInputError() error {
+	inputs := []*editor.Editor{v.search.query, v.search.replacement}
+	if v.draft != nil {
+		inputs = append(inputs, v.draft.input)
 	}
-	ui.Text(c, text).FontSize(11).TextColor(theme.Warning).Padding(5, 14).Background(theme.SurfaceHover.Alpha(0.35))
+	if v.tagDraft != nil {
+		inputs = append(inputs, v.tagDraft.input)
+	}
+	for _, input := range inputs {
+		if input != nil {
+			if err := input.InputActionError(); err != nil {
+				return err
+			}
+		}
+	}
+	if v.CompositionActive() {
+		return fmt.Errorf("当前输入尚未完成")
+	}
+	return nil
+}
+
+func (v *view) drawWarnings(c *ui.Context, warnings []string) {
+	theme := c.Theme()
+	detail := strings.Join(warnings, "\n")
+	// The row is compact, but the group and Details control retain the full
+	// report. Do not copy potentially large warning bodies into a second string.
+	summary := fmt.Sprintf("提示 %d 项：%s", len(warnings), warnings[0])
+	if err := v.warningDetailsInputError(); err != nil {
+		guidance := "请先完成或取消当前输入，再查看详情"
+		if v.tagError == errTagConfirm || v.draftError == errTagConfirm {
+			guidance = errTagConfirm.Error() + "；" + guidance
+		}
+		summary = guidance + "；" + warnings[0]
+		detail += "\n" + guidance + "：" + err.Error()
+	}
+	ui.Row(c.Key("graph-warnings")).Height(28).Shrink(0).Padding(2, 14).Gap(6).
+		Role(ui.RoleGroup).Label("图形视图提示").Description(detail).
+		AlignItems(ui.Center).Background(theme.SurfaceHover.Alpha(0.35)).Children(func() {
+		ui.Text(c, summary).
+			Grow(1).MinWidth(0).SingleLine().Ellipsis("…").FontSize(11).TextColor(theme.Warning).
+			Description(detail).Tooltip(detail)
+		// KeepFocus protects pointer-down; admission also protects the modal's
+		// forced focus change. Do not Flush, report into draft errors or focus.
+		if ui.Button(c, "详情").Label("查看图形提示详情").Height(24).Shrink(0).KeepFocus().
+			Description(detail).Clicked() && v.warningDetailsInputError() == nil {
+			v.warningDetails = true
+		}
+	})
+	ui.Modal(c.Key("graph-warning-details"), &v.warningDetails, func() {
+		ui.Text(c, "图形视图提示详情").Bold()
+		ui.Scroll(c).Width(460).MaxWidthPercent(100).Height(220).MinHeight(0).Gap(8).Children(func() {
+			for _, warning := range warnings {
+				ui.Text(c, warning).FontSize(12).Selectable()
+			}
+		})
+		if ui.Button(c, "关闭详情").Clicked() {
+			v.warningDetails = false
+		}
+	})
 }
 
 func (v *view) drawInspector(c *ui.Context) {
@@ -209,7 +264,10 @@ func (v *view) drawInspector(c *ui.Context) {
 			if v.draft != nil {
 				v.draft.input.ReadOnly = readOnly && !v.pendingDraft()
 				height := float32(76)
-				if v.draft.input.Buffer.LenUTF16() > 512 {
+				_, windowHeight := c.Size()
+				if windowHeight <= 480 && v.draft.input.Buffer.LineCount() <= 2 && v.draft.input.Buffer.LenUTF16() <= 512 {
+					height = 52
+				} else if v.draft.input.Buffer.LenUTF16() > 512 {
 					height = 150
 				}
 				fieldBox := ui.Column(c).Key("graph-label").Height(height).FillWidth().Border(1, theme.Border)

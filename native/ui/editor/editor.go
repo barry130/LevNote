@@ -87,6 +87,10 @@ type Editor struct {
 	// UI-thread mutations that can invalidate a detached source navigation.
 	geometryGeneration   uint64
 	navigationGeneration uint64
+	sourceActionBinding  SourceActionBinding
+	sourceActionHandler  func(SourceAction)
+	// The last input-element build that registered the language chords.
+	sourceActionShortcutBinding SourceActionBinding
 
 	terminalObservedBuffer                                        *text.Buffer
 	terminalObservedReadonly                                      bool
@@ -233,6 +237,43 @@ func (e *Editor) viewInputAction(a *inputAction, c *ui.Context) {
 		}
 	} else {
 		e.blinkStart = time.Time{}
+	}
+	// MyGo routes before View using the previous element registrations. Save
+	// that lease before recording this build's registrations. A rebuild can
+	// update the lease again because consumed keys are never replayed.
+	deliveredBinding := e.sourceActionShortcutBinding
+	e.sourceActionShortcutBinding = SourceActionBinding{}
+	if e.sourceActionHandler != nil {
+		// Register every exact key on the actual native input element. Capture
+		// repeat immediately: the next Shortcut call may replace that flag.
+		complete := box.Shortcut(ui.Ctrl, ui.KeySpace)
+		completeRepeated := complete && c.ShortcutRepeated()
+		references := box.Shortcut(ui.Shift, ui.KeyF12)
+		referencesRepeated := references && c.ShortcutRepeated()
+		rename := box.Shortcut(0, ui.KeyF2)
+		renameRepeated := rename && c.ShortcutRepeated()
+		e.sourceActionShortcutBinding = e.sourceActionBinding
+		action, repeated := SourceAction(0), false
+		switch {
+		case complete:
+			action, repeated = SourceActionComplete, completeRepeated
+		case references:
+			action, repeated = SourceActionReferences, referencesRepeated
+		case rename:
+			action, repeated = SourceActionRename, renameRepeated
+		}
+		if action != 0 {
+			// Finish the frame's local work before entering Host code. A prior
+			// frame error/change already owns its callback boundary and key.
+			hasCompletion := a.hasCompletion()
+			a.finish()
+			// The router can deliver to a retained focused ID on window blur.
+			// The element's live focus decides admission after consumption.
+			if !hasCompletion && box.Focused() {
+				e.dispatchSourceAction(deliveredBinding, action, repeated)
+			}
+			return
+		}
 	}
 }
 
@@ -415,7 +456,7 @@ func (e *Editor) retainCompositionError(err error) error {
 	if errors.Is(err, text.ErrSizeLimit) {
 		if e.compositionBuffer == nil {
 			e.compositionBuffer = e.Buffer
-			e.compositionGeneration++
+			e.advanceCompositionGeneration()
 			e.compositionStamp = e.inputStamp()
 			e.compositionChangeStamp = e.Buffer.ChangeStamp()
 		}
@@ -558,16 +599,16 @@ func (e *Editor) replaceInputAction(a *inputAction, r *ui.TextInputRange, value 
 func (e *Editor) SetMarkedText(r *ui.TextInputRange, value string, selected ui.TextInputRange) {
 	a := e.beginInputAction()
 	if !a.rejectedMulti() {
-		e.markedInputAction(a, r, value, selected, false)
+		e.markedInputAction(a, r, value, selected, false, nil)
 	}
 	a.finish()
 }
-func (e *Editor) setMarkedText(r *ui.TextInputRange, value string, selected ui.TextInputRange, native bool) {
+func (e *Editor) setMarkedText(r *ui.TextInputRange, value string, selected ui.TextInputRange, caller *nativeInputClient) {
 	a := e.beginInputAction()
-	e.markedInputAction(a, r, value, selected, native)
+	e.markedInputAction(a, r, value, selected, true, caller)
 	a.finish()
 }
-func (e *Editor) markedInputAction(a *inputAction, r *ui.TextInputRange, value string, selected ui.TextInputRange, native bool) {
+func (e *Editor) markedInputAction(a *inputAction, r *ui.TextInputRange, value string, selected ui.TextInputRange, native bool, caller *nativeInputClient) {
 	if err := e.compositionOwnerIssue(native); err != nil {
 		a.fail(err)
 		return
@@ -585,7 +626,7 @@ func (e *Editor) markedInputAction(a *inputAction, r *ui.TextInputRange, value s
 				a.fail(text.ErrComposition)
 				return
 			}
-			if err := e.beginComposition(true); err != nil {
+			if err := e.beginComposition(true, caller); err != nil {
 				a.fail(err)
 				return
 			}
@@ -606,12 +647,17 @@ func (e *Editor) markedInputAction(a *inputAction, r *ui.TextInputRange, value s
 		rr = e.replacement(r)
 	}
 	if err := e.Buffer.CheckReplaceUTF16(rr.Start, rr.End, value); err != nil {
-		a.fail(e.retainCompositionError(err))
+		firstRefusal := e.compositionBuffer == nil
+		refusal := e.retainCompositionError(err)
+		if firstRefusal && caller != nil && errors.Is(refusal, text.ErrSizeLimit) {
+			caller.captureTokenlessRefusal()
+		}
+		a.fail(refusal)
 		return
 	}
 	started := !e.composing
 	if started {
-		if err := e.beginComposition(false); err != nil {
+		if err := e.beginComposition(false, caller); err != nil {
 			a.fail(err)
 			return
 		}
@@ -635,6 +681,7 @@ func (e *Editor) markedInputAction(a *inputAction, r *ui.TextInputRange, value s
 	selectedRange := e.normalized(ui.TextInputRange{Start: e.marked.Start + max(0, min(selected.Start, length)), End: e.marked.Start + max(0, min(selected.End, length))})
 	err := e.Buffer.SetSelection(selectedRange.Start, selectedRange.End)
 	e.compositionStamp = e.inputStamp()
+	caller.refreshComposition()
 	a.reason = InputPreedit
 	if version != e.Buffer.Version() {
 		a.recovery = InputRecoveryProvisional
@@ -971,10 +1018,20 @@ func (e *Editor) commandInputAction(a *inputAction, command string) bool {
 	selection := e.Buffer.Selection()
 	switch command {
 	case "selectAll":
+		client := e.nativeClient
+		var beforeReceipt inputStamp
+		if client != nil && e.composing && !e.compositionMulti {
+			if stamp, availability := client.CompositionCancelState(); stamp.HasTarget && availability == ui.CancelReady {
+				beforeReceipt = client.compositionReceipt
+			}
+		}
 		if err := e.Buffer.SetSelection(0, e.Buffer.LenUTF16()); err != nil {
 			a.fail(err)
 		} else if e.composing {
 			e.compositionStamp = e.inputStamp()
+			if beforeReceipt.token != (text.CompositionToken{}) {
+				client.refreshCompositionSelection(beforeReceipt, e.compositionStamp)
+			}
 		}
 		e.prepareInputSelection()
 		return true
@@ -1150,6 +1207,12 @@ func (e *Editor) deleteInputAction(a *inputAction, dir int) {
 }
 
 func (e *Editor) HandleInput(ev ui.InputEvent) bool {
+	// The installed native client reaches this same path. A claimed element
+	// shortcut bypasses raw input, so one key can dispatch through only one.
+	if action, recognized := sourceActionKey(ev); recognized && e.sourceActionHandler != nil {
+		e.dispatchSourceAction(e.sourceActionBinding, action, ev.Repeat)
+		return true
+	}
 	a := e.beginInputAction()
 	handled := e.handleInputAction(a, ev)
 	a.finish()
@@ -1162,7 +1225,7 @@ func (e *Editor) handleInputAction(a *inputAction, ev ui.InputEvent) bool {
 		return true
 	case ui.InputCompose:
 		length := ui.UTF16Len(ev.Text)
-		e.markedInputAction(a, nil, ev.Text, ui.TextInputRange{Start: length, End: length}, true)
+		e.markedInputAction(a, nil, ev.Text, ui.TextInputRange{Start: length, End: length}, true, nil)
 		return true
 	case ui.InputCommand:
 		return e.commandInputAction(a, ev.Text)

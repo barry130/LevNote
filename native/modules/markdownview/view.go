@@ -64,6 +64,7 @@ type View struct {
 	linkGestureBuilt               bool
 	linkPointerContinuation        bool
 	referenceActivation            referenceTarget
+	referenceClickRefusal          *referenceClickRefusal
 	referencePointerUpBuffer       *text.Buffer
 	referencePointerUpRowID        uint64
 	referenceGestureBuiltRowID     uint64
@@ -74,7 +75,7 @@ type View struct {
 	tableCellActivation            tableCellTarget
 	tableCellGestureBuilt          bool
 	tableActionPress               tableActionGesture
-	tableActionEpoch               uint64
+	tableActionEpoch               uint64 // also advances on draft clear/replacement
 	tableActionReleased            uint64
 	tableActionError               error
 	tableActionErrorKind           tableActionKind
@@ -85,6 +86,7 @@ type View struct {
 	tableWindowWidth               float32
 	tableWindowHeight              float32
 	tableWindowKnown               bool
+	tablePaneCompact               bool
 	hasLinks                       bool
 	hasTables                      bool
 	outline                        *outlineSource
@@ -93,6 +95,7 @@ type View struct {
 }
 
 var errDraftConflict = errors.New("正在编辑的块已在源码中改变或无法定位；草稿仍保留，可打开未同步副本")
+var errDraftSuperseded = errors.New("草稿状态已在回调中改变，请确认当前草稿后重试")
 var errDraftReadOnly = errors.New("文档当前只读，未打开块编辑器；当前草稿仍保留")
 var errTableReadOnly = errors.New("文档当前只读，未打开表格源码；当前草稿仍保留")
 
@@ -117,8 +120,16 @@ func (v *View) refresh() {
 		// Reconcile external undo/source edits even when no local key arrives.
 		// A clean stale editor yields to source, a dirty one remains recoverable.
 		if v.editBuffer != v.host.Buffer || v.editVersion != v.host.Buffer.Version() {
-			if mapped, err := v.rebaseDraft(); err != nil {
+			owner := v.draftOwner()
+			mapped, err := v.rebaseDraft()
+			if !v.ownsFlushedDraft(owner) {
+				return
+			}
+			if err != nil {
 				v.setDraftError(err)
+				if !v.ownsDraft(owner) {
+					return
+				}
 			} else if mapped && !v.pendingDraft() {
 				// A clean independent field must not freeze unrelated source
 				// changes (for example undoing a task toggle). The parse below
@@ -167,6 +178,7 @@ func (v *View) refresh() {
 }
 
 func (v *View) Release() {
+	referenceRefusal := v.referenceClickRefusal
 	v.inlineActionPress = inlineActionGesture{}
 	v.inlineActionDraft, v.inlineActionError = nil, nil
 	v.historyReleased++
@@ -180,11 +192,14 @@ func (v *View) Release() {
 	v.tableActionPointerContinuation = false
 	v.tableActionError = nil
 	v.tableActionHandle.CancelFocus()
-	if err := v.Flush(); err != nil {
-		v.setDraftError(err)
-		v.draft.ReleaseView()
-	} else {
-		v.clearDraft()
+	owner := v.draftOwner()
+	err := v.Flush()
+	if err != nil {
+		if !v.ownsDraft(owner) {
+			return
+		}
+	} else if !v.ownsFlushedDraft(owner) {
+		return
 	}
 	v.doc = markdown.Document{}
 	v.previewError = nil
@@ -199,14 +214,31 @@ func (v *View) Release() {
 	v.tableCellActivation, v.tableCellGestureBuilt = tableCellTarget{}, false
 	v.tableViewport, v.tableViewportKnown = 0, false
 	v.tableWindowWidth, v.tableWindowHeight, v.tableWindowKnown = 0, 0, false
+	v.tablePaneCompact = false
 	v.hasTables = false
 	// Navigation may synchronously release us during a List row callback.
 	// Swap ownership; the active immutable build keeps its old state pointer
 	// until MyGo finishes that pass, rather than zeroing it underneath MyGo.
 	v.resetPreviewList()
+	// An ownership-changing Flush can return above with the old list/button
+	// identities alive. Keep their refused release until Clicked consumes it.
+	// Full cleanup retires only its inherited receipt, never a replacement
+	// installed by callback reentry.
+	if v.referenceClickRefusal == referenceRefusal {
+		v.referenceClickRefusal = nil
+	}
 	if v.outline != nil {
 		v.outline.Release()
 		v.outline = nil
+	}
+	if err == nil {
+		v.clearDraft()
+	} else if owner.draft != nil {
+		// A failed Flush keeps its original draft attached for recovery.
+		// Preview and focus cleanup must precede any release error callback.
+		for _, releaseErr := range releaseDraftView(owner.draft) {
+			v.reportDraftInputError(owner.draft, releaseErr)
+		}
 	}
 }
 
@@ -286,7 +318,13 @@ func (v *View) Export(format string) ([]byte, error) {
 func (v *View) Draw(c *ui.Context) {
 	history := v.historyTarget()
 	heldInlineGesture := v.linkActivation.buffer != nil
+	referenceRefusal := v.referenceClickRefusal
 	defer func() {
+		// Retire only the receipt this build inherited, never a replacement
+		// installed by a terminal callback while this old build unwinds.
+		if referenceRefusal != nil && v.referenceClickRefusal == referenceRefusal {
+			v.referenceClickRefusal = nil
+		}
 		if v.linkPointerUp || v.linkActivation.buffer != nil && !v.linkGestureBuilt {
 			v.linkActivation = linkTarget{}
 		}
@@ -332,24 +370,54 @@ func (v *View) Draw(c *ui.Context) {
 	}
 	v.linkModifiers = c.Modifiers()
 	v.refresh()
-	ui.Column(c).Grow(1).MinHeight(0).Clip().Gap(6).ObserveInput(func(event ui.InputEvent) {
+	// Use the committed pane, which excludes the app toolbar, status row
+	// and any format warning. Keep the compact layout through warning changes.
+	compactCell := v.cellEdit != nil && v.tablePaneCompact
+	gap, hintPadding := float32(6), float32(4)
+	if compactCell {
+		gap, hintPadding = 2, 0
+	}
+	pane := ui.Column(c).Grow(1).MinHeight(0).Clip().Gap(gap).ObserveInput(func(event ui.InputEvent) {
 		v.observeInlineReferenceInput(event)
 		v.observeTableActionInput(event)
-	}).
-		HandleInput(v.handleTableActionNavigation).Children(func() {
+	}).HandleInput(v.handleTableActionNavigation)
+	if v.hasTables || v.cellEdit != nil {
+		pane.Draw(func(_ *ui.Painter, r ui.Rect) {
+			if compact := r.H > 0 && r.H <= 360; compact != v.tablePaneCompact {
+				v.tablePaneCompact = compact
+				c.Invalidate()
+			}
+		})
+	}
+	pane.Children(func() {
 		hint := "双击内容编辑 · Ctrl+Enter 完成"
 		if v.host.ReadOnly {
 			hint = "只读预览"
 		}
-		ui.Text(c, hint).Shrink(0).Padding(4, 18).FontSize(11).TextColor(c.Theme().TextMuted)
+		ui.Text(c, hint).Shrink(0).Padding(hintPadding, 18).FontSize(11).TextColor(c.Theme().TextMuted)
 		if v.hasLinks {
-			ui.Text(c, "链接 / 图片引用：Ctrl/Cmd+点击 · Tab 后 Enter").Shrink(0).Padding(0, 18).FontSize(11).TextColor(c.Theme().TextMuted)
+			linkHint := "链接 / 图片引用：Ctrl/Cmd+点击 · Tab 后 Enter"
+			label := ui.Text(c, linkHint).Shrink(0).Padding(0, 18).FontSize(11).TextColor(c.Theme().TextMuted)
+			if compactCell {
+				label.SingleLine().Description(linkHint).Tooltip(linkHint)
+			}
 		}
 		if v.host.Buffer == nil {
 			ui.Text(c, "没有可用的文档缓冲区").TextColor(c.Theme().Warning)
 			return
 		}
-		v.drawHistoryControls(c, history)
+		addParagraphClicked := false
+		if compactCell {
+			ui.Row(c.Key("compact-table-toolbar")).Padding(0, 6).Gap(4).AlignItems(ui.Center).Shrink(0).Children(func() {
+				v.drawHistoryControls(c, history)
+				c.Resolve(v.historyControls).Padding(0).MinWidth(0).Grow(1)
+				if !v.host.ReadOnly && !v.doc.Partial {
+					addParagraphClicked = ui.Button(c, "添加段落").Height(26).Padding(0, 6).FontSize(11).Shrink(0).Clicked()
+				}
+			})
+		} else {
+			v.drawHistoryControls(c, history)
+		}
 		if v.historyError != nil {
 			ui.Text(c, v.historyError.Error()).MaxLines(2).Ellipsis("…").
 				Tooltip(v.historyError.Error()).FontSize(11).TextColor(c.Theme().Warning).Shrink(0)
@@ -358,10 +426,14 @@ func (v *View) Draw(c *ui.Context) {
 			ui.Text(c, v.tableActionError.Error()).Label("表格操作问题").MaxLines(2).Ellipsis("…").
 				Tooltip(v.tableActionError.Error()).FontSize(11).TextColor(c.Theme().Warning).Shrink(0)
 		}
-		// A draft has its own stable position outside the recycled preview
-		// rows. Scrolling cannot hide its IME client or move it to another block.
+		// A draft stays outside the recycled preview rows. Preview scrolling
+		// cannot hide its IME client or move it to another block.
 		if v.draft != nil {
-			ui.Box(c.Key("active-draft")).Shrink(0).Padding(0, 10).Children(func() { v.drawDraft(c) })
+			panel := ui.Box(c.Key("active-draft")).Shrink(0).Padding(0, 10)
+			if compactCell {
+				panel.Shrink(1).MinHeight(0)
+			}
+			panel.Children(func() { v.drawDraft(c, compactCell) })
 		}
 		if v.doc.Partial {
 			message := partialSourceGuidance
@@ -384,6 +456,11 @@ func (v *View) Draw(c *ui.Context) {
 		preview := previewSnapshot{v.doc, v.rows, v.docBuffer, v.version}
 		list := ui.List(c.Key("preview-list"), v.list, len(preview.rows)).Grow(1).MinHeight(0).Clip().TrackScroll(&v.scroll).Padding(8, 18).Gap(6).
 			ItemKey(func(i int) any { return preview.rows[i].id }).Rows(func(row ui.ListRow) { v.drawPreviewRow(row.Context, preview, row.Index) })
+		if compactCell {
+			// Give the draft its natural height first. The virtualized preview
+			// receives the rest instead of competing using all its rows' heights.
+			list.Basis(0)
+		}
 		list.ObserveInput(func(event ui.InputEvent) { v.historyCommand(history, event) })
 		list.Draw(func(_ *ui.Painter, r ui.Rect) {
 			if !v.hasTables {
@@ -405,7 +482,10 @@ func (v *View) Draw(c *ui.Context) {
 		history.list.Handle.OnShortcut(c, ui.Cmd, ui.KeyZ, func() { v.changeHistory(history, false) })
 		history.list.Handle.OnShortcut(c, ui.Cmd, ui.KeyY, func() { v.changeHistory(history, true) })
 		history.list.Handle.OnShortcut(c, ui.Cmd|ui.Shift, ui.KeyZ, func() { v.changeHistory(history, true) })
-		if !v.host.ReadOnly && ui.Button(c, "添加段落").Height(28).Shrink(0).Margin(0, 18).Clicked() {
+		if !compactCell && !v.host.ReadOnly {
+			addParagraphClicked = ui.Button(c, "添加段落").Height(28).Shrink(0).Margin(0, 18).Clicked()
+		}
+		if addParagraphClicked {
 			v.addParagraph()
 		}
 	})
@@ -449,40 +529,65 @@ func (v *View) Draw(c *ui.Context) {
 	}
 }
 
-func (v *View) drawDraft(c *ui.Context) {
+func (v *View) drawDraft(c *ui.Context, compact bool) {
+	owner := v.draftOwner()
+	draft := owner.draft
+	// The old panel's callbacks must not consume controls for a new editor
+	// mounted synchronously during this build.
 	editorHeight := v.editPanelHeight
 	if editorHeight <= 0 {
-		editorHeight = max(48, min(80, float32(v.draft.Buffer.LineCount())*22+24))
+		editorHeight = max(48, min(80, float32(draft.Buffer.LineCount())*22+24))
 	}
-	ui.Column(c.Key("markdown-draft")).Border(1, c.Theme().Accent).Radius(5).Padding(8).Gap(6).Children(func() {
+	var panel ui.Element
+	if compact {
+		// A short pane still shows a full-height field and full-size actions.
+		// If further chrome or a segmented field takes space, native focus
+		// traversal and wheel scrolling can reveal controls within this panel.
+		panel = ui.Scroll(c.Key("markdown-draft")).Grow(1).MinHeight(0).Padding(4, 8).Gap(2)
+	} else {
+		panel = ui.Column(c.Key("markdown-draft")).Padding(8).Gap(6)
+	}
+	panel.Border(1, c.Theme().Accent).Radius(5).Children(func() {
 		if v.cellEdit != nil {
 			ui.Text(c, v.tableAlignmentPanelTitle(v.cellEdit)).FontSize(11).Bold().TextColor(c.Theme().TextMuted).
 				MaxLines(1).Ellipsis("…").Tooltip(v.cellEdit.label)
 		}
-		v.draft.ReadOnly = v.host.ReadOnly && !v.pendingDraft()
+		draft.ReadOnly = v.host.ReadOnly && !v.pendingDraft()
+		revealActions := false
 		draftBox := ui.Box(c).Height(editorHeight)
-		v.bindInlineDraftKeys(c, draftBox, v.draft)
-		if v.draft == nil {
+		v.bindInlineDraftKeys(c, draftBox, draft)
+		if !v.ownsDraft(owner) {
 			return
 		}
 		if v.cellEdit != nil && !v.host.ReadOnly && draftBox.Shortcut(0, ui.KeyF6) {
 			// A local focus escape leaves Tab's text-indent behavior intact in
 			// the shared editor. MyGo unmarks on blur, so a live composition
 			// keeps focus until the user confirms it through the normal seam.
-			if _, composing := v.draft.MarkedRange(); !composing {
+			if _, composing := draft.MarkedRange(); !composing {
 				v.tableActionHandle.Focus()
+				revealActions = compact
 			}
 		}
 		draftBox.Children(func() {
-			v.draft.View(c)
-			if v.cellEdit != nil {
-				v.observeCellDraftConfirmation(v.draft)
+			draft.View(c)
+			if v.ownsDraft(owner) && v.cellEdit != nil {
+				v.observeCellDraftConfirmation(draft)
 			}
 		})
+		if !v.ownsDraft(owner) {
+			return
+		}
 		if v.cellEdit != nil {
-			ui.Text(c, tableCellStagedNotice).FontSize(11).TextColor(c.Theme().TextMuted).
-				Tooltip(tableCellSessionHint)
-			if v.draftError != nil || v.tableActionError != nil {
+			warning := v.draftError != nil || v.tableActionError != nil
+			if !compact || !warning {
+				tip := tableCellSessionHint
+				if compact {
+					tip = tableCellStagedNotice + "\n" + tableCellSessionHint
+				}
+				ui.Text(c, tableCellStagedNotice).FontSize(11).TextColor(c.Theme().TextMuted).
+					SingleLine().Description(tableCellSessionHint).Tooltip(tip)
+			}
+			if warning {
 				message, detail := "单元格未写回；草稿仍保留。", ""
 				if v.draftError != nil {
 					detail = v.draftError.Error()
@@ -494,7 +599,15 @@ func (v *View) drawDraft(c *ui.Context) {
 					}
 					detail += v.tableActionError.Error()
 				}
-				ui.Text(c, message).Label("单元格操作问题").MaxLines(2).Ellipsis("…").Tooltip(detail).FontSize(11).TextColor(c.Theme().Warning)
+				label := ui.Text(c, message).Label("单元格操作问题").FontSize(11).TextColor(c.Theme().Warning)
+				if compact {
+					// The warning already says the draft was kept. Give the
+					// single status row both the full warning and staged guidance.
+					detail = message + "\n" + detail + "\n" + tableCellStagedNotice + "\n" + tableCellSessionHint
+					label.SingleLine().Description(detail).Tooltip(detail)
+				} else {
+					label.MaxLines(2).Ellipsis("…").Tooltip(detail)
+				}
 			}
 		} else if v.draftError != nil {
 			message := "块草稿尚未写回：" + v.draftError.Error()
@@ -512,7 +625,7 @@ func (v *View) drawDraft(c *ui.Context) {
 		ui.Row(c).Wrap().Gap(4).Children(func() {
 			inline := v.inlineDraftEligible()
 			v.drawInlineActions(c)
-			if v.draft == nil {
+			if !v.ownsDraft(owner) {
 				return
 			}
 			finishFace, discardFace, recoverFace := "完成编辑", "放弃草稿", "打开未同步副本"
@@ -525,14 +638,25 @@ func (v *View) drawDraft(c *ui.Context) {
 			if ui.PrimaryButton(c, finishFace).Label("完成编辑").Height(26).Clicked() || c.Shortcut(ui.Cmd, ui.KeyEnter) || c.Shortcut(0, ui.KeyEscape) {
 				v.commit()
 			}
+			if !v.ownsDraft(owner) {
+				return
+			}
 			if v.draftError != nil && ui.Button(c, recoverFace).Label("打开未同步副本").Height(26).Clicked() {
 				_ = v.RecoverDraft()
+			}
+			if !v.ownsDraft(owner) {
+				return
 			}
 			if (v.draftError != nil || v.cellEdit != nil) && ui.Button(c, discardFace).Label("放弃草稿").Height(26).Clicked() {
 				v.DiscardDraft()
 			}
 		})
-		v.drawTableActions(c)
+		if v.ownsDraft(owner) {
+			v.drawTableActions(c, compact)
+			if revealActions && v.ownsDraft(owner) {
+				c.Resolve(v.tableActionHandle).ScrollIntoView()
+			}
+		}
 	})
 }
 

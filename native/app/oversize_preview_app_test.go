@@ -1,14 +1,18 @@
 package app
 
 import (
+	"context"
 	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/core/document"
+	"levnote.local/native/core/engineipc"
+	"levnote.local/native/core/engineruntime"
 	"levnote.local/native/formats/drawio"
 	"levnote.local/native/formats/markdown"
 	"levnote.local/native/formats/mindmap"
@@ -32,6 +36,15 @@ type oversizeAdapterCase struct {
 func oversizedFixture(base string, limit int) string {
 	return base + strings.Repeat(" ", limit+1-len(base))
 }
+
+type oversizeNeverRunExporter struct{ called chan struct{} }
+
+func (r *oversizeNeverRunExporter) Export(context.Context, engineipc.EngineID, engineruntime.Source) (engineruntime.Result, error) {
+	r.called <- struct{}{}
+	return engineruntime.Result{}, nil
+}
+
+func (*oversizeNeverRunExporter) Close() error { return nil }
 
 func TestOversizeRichViewsSupportSourceToRichModeLifecycle(t *testing.T) {
 	cases := []oversizeAdapterCase{
@@ -103,9 +116,23 @@ func TestOversizeRichViewsSupportSourceToRichModeLifecycle(t *testing.T) {
 				}
 
 				a.Message = ""
+				worker := &oversizeNeverRunExporter{called: make(chan struct{}, 1)}
+				a.exporter = worker
+				dialogs := 0
+				outputPath := filepath.Join(t.TempDir(), "oversize-output.svg")
+				a.exportDialog = func(mygo.SaveDialogOptions) (string, error) {
+					dialogs++
+					return outputPath, nil
+				}
 				a.exportCurrent()
 				if !strings.Contains(a.Message, "预览上限") && !(tab.Adapter.ExportEngine != nil && strings.Contains(a.Message, "导出上限")) {
 					t.Fatalf("oversize export did not stop on the view error before publication: %q", a.Message)
+				}
+				if a.exportJob != nil || len(worker.called) != 0 || dialogs != 0 {
+					t.Fatalf("oversize export reached worker or picker: job=%v workerCalls=%d dialogs=%d", a.exportJob, len(worker.called), dialogs)
+				}
+				if _, err := os.Stat(outputPath); !os.IsNotExist(err) {
+					t.Fatalf("oversize export published output: stat err=%v", err)
 				}
 
 				if err := buffer.ReplaceUTF16(0, buffer.LenUTF16(), tc.small); err != nil {

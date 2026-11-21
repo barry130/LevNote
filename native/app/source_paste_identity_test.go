@@ -8,6 +8,15 @@ import (
 )
 
 const sourcePasteIdentityText = "abc\r\ndef\r\n"
+const sourcePasteIdentityStaleClipboardMessage = "文档、选区或输入状态已改变，已停止剪贴板操作"
+
+func requireSourcePasteIdentityFocusedAttachment(t *testing.T, tester *ui.Tester, readOnly bool) {
+	t.Helper()
+	active, noInputMethod := tester.TextInputActive()
+	if !tester.Focused("文档编辑区") || active == readOnly || noInputMethod {
+		t.Fatal("source attachment did not install the expected focused input route", readOnly, active, noInputMethod)
+	}
+}
 
 func newSourcePasteIdentityTester(t *testing.T) (*App, *Tab, *ui.Tester) {
 	t.Helper()
@@ -63,7 +72,7 @@ func TestBuiltinSourcePasteIdentitySelectionChangeKeepsHostNavigation(t *testing
 	if tab.Editor.Buffer != buffer || buffer.Selection() != hostSelection || buffer.Version() != hostVersion || buffer.History() != hostHistory {
 		t.Fatal("paste changed or rolled back the host's navigation state")
 	}
-	if a.Message != "剪贴板已读取；文档或选区已改变，未粘贴内容" || len(a.Issues) != 1 || a.Issues[0] != a.Message {
+	if a.Message != sourcePasteIdentityStaleClipboardMessage || len(a.Issues) != 1 || a.Issues[0] != a.Message {
 		t.Fatal("stale paste did not report its visible failure", a.Message, a.Issues)
 	}
 }
@@ -98,8 +107,25 @@ func TestBuiltinSourcePasteIdentityBufferChangeKeepsBothDocuments(t *testing.T) 
 			t.Fatal("paste modified either document despite stale buffer identity")
 		}
 	}
-	if a.Message != "剪贴板已读取；文档或选区已改变，未粘贴内容" || len(a.Issues) != 1 {
-		t.Fatal("buffer identity refusal was silent", a.Message, a.Issues)
+	// Replacing the attachment retires the captured error handler as well as
+	// the paste target. The old action has no authority to report on its tail.
+	if a.Message != "" || len(a.Issues) != 0 {
+		t.Fatal("retired buffer callback reported into the replacement owner", a.Message, a.Issues)
+	}
+	requireSourcePasteIdentityFocusedAttachment(t, tester, false)
+	tab.Editor.Paste = func() (string, error) { calls++; return "P", nil }
+	tester.Command("paste")
+	if calls != 2 || original.String() != sourcePasteIdentityText || original.Selection() != (text.Range{Anchor: 1, Head: 1}) || original.Version() != version || original.History() != history ||
+		other.String() != "aPbc\r\ndef\r\n" || other.Selection() != (text.Range{Anchor: 2, Head: 2}) || other.History().UndoDepth != 1 || other.History().RedoDepth != 0 || a.Message != "" || len(a.Issues) != 0 {
+		t.Fatal("replacement attachment did not recover an isolated ordinary paste", calls, original.String(), other.String(), other.History())
+	}
+	tester.Command("undo")
+	if other.String() != sourcePasteIdentityText || other.Selection() != (text.Range{Anchor: 1, Head: 1}) || other.History().UndoDepth != 0 || other.History().RedoDepth != 1 || original.Version() != version || original.History() != history {
+		t.Fatal("replacement paste undo changed either document's original ownership")
+	}
+	tester.Command("redo")
+	if other.String() != "aPbc\r\ndef\r\n" || other.Selection() != (text.Range{Anchor: 2, Head: 2}) || other.History().UndoDepth != 1 || other.History().RedoDepth != 0 || original.String() != sourcePasteIdentityText || original.Version() != version || original.History() != history {
+		t.Fatal("replacement paste redo did not retain isolated history")
 	}
 }
 
@@ -124,7 +150,7 @@ func TestBuiltinSourcePasteIdentityVersionChangeKeepsHostEditAndHistory(t *testi
 	if buffer.String() != "aHbc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.Version() != hostVersion || buffer.History() != hostHistory {
 		t.Fatal("stale paste overwrote, added to or rolled back the host edit", buffer.String(), buffer.Selection(), buffer.History())
 	}
-	if a.Message != "剪贴板已读取；文档或选区已改变，未粘贴内容" || len(a.Issues) != 1 {
+	if a.Message != sourcePasteIdentityStaleClipboardMessage || len(a.Issues) != 1 || a.Issues[0] != a.Message {
 		t.Fatal("version identity refusal was silent", a.Message)
 	}
 	tester.Command("undo")
@@ -141,25 +167,78 @@ func TestBuiltinSourcePasteIdentityReleasedViewKeepsSourceUntilRecovery(t *testi
 	a, tab, tester := newSourcePasteIdentityTester(t)
 	buffer := tab.Doc.Buffer
 	version, history := buffer.Version(), buffer.History()
+	requireSourcePasteIdentityFocusedAttachment(t, tester, false)
+	captureNative := func() ui.TesterTextInputCapture {
+		t.Helper()
+		var capture ui.TesterTextInputCapture
+		if err := tester.TextInputNoFrame(func(input *ui.TesterTextInput) { capture = input.Capture() }); err != nil {
+			t.Fatal(err)
+		}
+		return capture
+	}
+	originalNative := captureNative()
+	originalRoute := a.sourceLanguage.shortcut
+	if !a.sourceLanguageShortcutCurrent(originalRoute) {
+		t.Fatal("fixture did not establish the live App source route")
+	}
 	calls := 0
 	tab.Editor.Paste = func() (string, error) {
 		calls++
+		if !tester.Focused("文档编辑区") || captureNative() != originalNative || !a.sourceLanguageShortcutCurrent(originalRoute) {
+			t.Fatal("native paste did not start on the captured source attachment")
+		}
 		tab.Editor.ReleaseView()
+		// ReleaseView invalidates the Editor attachment immediately. MyGo's
+		// installed client and focused element ID still describe the last frame.
+		if tab.Editor.SourceActionBindingCurrent(originalRoute.lease) || captureNative() != originalNative {
+			t.Fatal("release did not retire the source seal before the native frame changed")
+		}
 		return "P", nil
 	}
 	tester.Command("paste")
-	if calls != 1 || tab.Editor.Buffer != buffer || buffer.String() != "abc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.Version() != version || buffer.History() != history {
+	if calls != 1 || tab.Editor.Buffer != buffer || buffer.String() != sourcePasteIdentityText || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.Version() != version || buffer.History() != history {
 		t.Fatal("view release did not preserve unchanged source identity")
 	}
-	if a.Message != "剪贴板已读取；文档或选区已改变，未粘贴内容" || len(a.Issues) != 1 {
-		t.Fatal("released-view refusal was silent", a.Message)
+	if a.Message != "" || len(a.Issues) != 0 || tab.Editor.SourceActionBindingCurrent(originalRoute.lease) {
+		t.Fatal("released callback reported or regained its source seal", a.Message, a.Issues)
 	}
-	tab.Editor.Paste = func() (string, error) { return "P", nil }
+	// Command settles frames and the App still shows the same source route.
+	// If the surface kept focus, its focused native client must be the one
+	// installed by the fresh App frame. A matching label proves no identity.
+	if tester.Focused("文档编辑区") {
+		route := a.sourceLanguage.shortcut
+		if captureNative() == originalNative || route == originalRoute || !a.sourceLanguageShortcutCurrent(route) {
+			t.Fatal("the settled frame focused a source route without a new native attachment")
+		}
+	}
+	tab.Editor.Paste = func() (string, error) { calls++; return "P", nil }
 	tab.Editor.Reveal(1, 1)
 	tester.Frame()
+	requireSourcePasteIdentityFocusedAttachment(t, tester, false)
+	if route := a.sourceLanguage.shortcut; route == originalRoute || !a.sourceLanguageShortcutCurrent(route) {
+		t.Fatal("explicit recovery did not establish a new live App source route")
+	}
+	if err := tester.TextInputNoFrame(func(input *ui.TesterTextInput) {
+		if input.Capture() == originalNative || input.ResultFor(originalNative, nil, "stale") {
+			t.Fatal("explicit recovery accepted a delivery from the retired native attachment")
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if buffer.String() != sourcePasteIdentityText || buffer.Version() != version || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.History() != history || a.Message != "" || len(a.Issues) != 0 {
+		t.Fatal("retired native delivery mutated or reported into the recovery attachment")
+	}
 	tester.Command("paste")
-	if buffer.String() != "aPbc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 2, Head: 2}) || buffer.History().UndoDepth != 1 || len(a.Issues) != 1 {
+	if calls != 2 || buffer.String() != "aPbc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 2, Head: 2}) || buffer.History().UndoDepth != 1 || buffer.History().RedoDepth != 0 || a.Message != "" || len(a.Issues) != 0 {
 		t.Fatal("new live view did not recover ordinary paste", buffer.String(), buffer.Selection())
+	}
+	tester.Command("undo")
+	if buffer.String() != sourcePasteIdentityText || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.History().UndoDepth != 0 || buffer.History().RedoDepth != 1 {
+		t.Fatal("released-view recovery undo lost original source or selection")
+	}
+	tester.Command("redo")
+	if buffer.String() != "aPbc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 2, Head: 2}) || buffer.History().UndoDepth != 1 || buffer.History().RedoDepth != 0 {
+		t.Fatal("released-view recovery redo lost the sole accepted paste")
 	}
 }
 
@@ -226,29 +305,44 @@ func TestBuiltinSourcePasteIdentityReadOnlyEntryCallbackAndRecovery(t *testing.T
 			calls := 0
 			tab.Editor.Paste = func() (string, error) {
 				calls++
-				tab.Doc.ReadOnly, tab.Editor.ReadOnly = true, true
+				tab.Doc.ReadOnly = true
+				tab.Editor.SetReadOnly(true)
 				return "P", nil
 			}
-			tab.Doc.ReadOnly, tab.Editor.ReadOnly = true, true
+			tab.Doc.ReadOnly = true
+			tab.Editor.SetReadOnly(true)
+			tester.Frame()
+			requireSourcePasteIdentityFocusedAttachment(t, tester, true)
 			tester.Command(command)
 			if calls != 0 || buffer.String() != "abc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.Version() != version || buffer.History() != history || len(a.Issues) != 0 {
 				t.Fatal("initial readonly paste read the clipboard or mutated the source")
 			}
-			tab.Doc.ReadOnly, tab.Editor.ReadOnly = false, false
+			tab.Doc.ReadOnly = false
+			tab.Editor.SetReadOnly(false)
+			// The readonly frame retired the writable native client. Render the
+			// new attachment before asking its focused handler to paste.
+			tester.Frame()
+			requireSourcePasteIdentityFocusedAttachment(t, tester, false)
 			tester.Command(command)
 			if calls != 1 || !tab.Doc.ReadOnly || !tab.Editor.ReadOnly || buffer.String() != "abc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.Version() != version || buffer.History() != history {
 				t.Fatal("paste mutated readonly callback-owned state")
 			}
-			if a.Message != "剪贴板已读取；文档或选区已改变，未粘贴内容" || len(a.Issues) != 1 {
-				t.Fatal("readonly transition did not report the interrupted paste", a.Message)
+			// A final readonly attachment revokes the old callback's report
+			// authority; the never-bound same-attachment ABA exception does not apply.
+			if a.Message != "" || len(a.Issues) != 0 {
+				t.Fatal("retired paste callback reported into the readonly attachment", a.Message, a.Issues)
 			}
-			tab.Doc.ReadOnly, tab.Editor.ReadOnly = false, false
+			requireSourcePasteIdentityFocusedAttachment(t, tester, true)
+			tab.Doc.ReadOnly = false
+			tab.Editor.SetReadOnly(false)
 			tab.Editor.Paste = func() (string, error) {
 				calls++
 				return "P", nil
 			}
+			tester.Frame()
+			requireSourcePasteIdentityFocusedAttachment(t, tester, false)
 			tester.Command(command)
-			if calls != 2 || buffer.String() != "aPbc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 2, Head: 2}) || buffer.History().UndoDepth != 1 || len(a.Issues) != 1 {
+			if calls != 2 || buffer.String() != "aPbc\r\ndef\r\n" || buffer.Selection() != (text.Range{Anchor: 2, Head: 2}) || buffer.History().UndoDepth != 1 || buffer.History().RedoDepth != 0 || a.Message != "" || len(a.Issues) != 0 {
 				t.Fatal("readonly recovery blocked ordinary paste", buffer.String(), buffer.Selection())
 			}
 		})

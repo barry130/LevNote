@@ -14,6 +14,81 @@ import (
 
 const maxLanguageSourceBytes = 2 << 20
 
+// SourceAction is a host-owned language intent from the actual source input.
+// Other project Editors remain unbound unless their host explicitly opts in.
+type SourceAction uint8
+
+const (
+	SourceActionComplete SourceAction = iota + 1
+	SourceActionReferences
+	SourceActionRename
+)
+
+// SourceActionBinding is an opaque registration and attachment lease. It does
+// not capture source text, selections, input readiness or host authorization.
+type SourceActionBinding struct {
+	editor       *Editor
+	owner        inputOwner
+	registration *sourceActionRegistration
+}
+
+type sourceActionRegistration struct{ marker byte }
+
+// SetSourceActionHandler replaces the UI-thread registration without invoking
+// any callback. nil revokes it. Hosts retain the returned lease in their closure
+// and rebind only on actual lifecycle transitions. The lease recorded by View
+// for registered shortcuts stays tied to the element build that registered them.
+func (e *Editor) SetSourceActionHandler(handler func(SourceAction)) SourceActionBinding {
+	if e == nil {
+		return SourceActionBinding{}
+	}
+	owner := e.observeInputOwner()
+	e.sourceActionBinding = SourceActionBinding{editor: e, owner: owner, registration: &sourceActionRegistration{marker: 1}}
+	e.sourceActionHandler = handler
+	return e.sourceActionBinding
+}
+
+// SourceActionBindingCurrent is a pure identity check. Setter-observed buffer
+// and readonly ABA and ReleaseView invalidate the lease; ordinary frames, text
+// edits, selection movement and retained input do not. It never observes owners,
+// probes input, invokes callbacks or materializes a source snapshot.
+func (e *Editor) SourceActionBindingCurrent(binding SourceActionBinding) bool {
+	return e != nil && binding.editor == e && binding.registration != nil && binding.owner.buffer != nil &&
+		e.sourceActionHandler != nil && binding == e.sourceActionBinding && binding.owner == e.inputOwner &&
+		e.Buffer == binding.owner.buffer && e.ReadOnly == binding.owner.readOnly && e.viewGeneration == binding.owner.viewEpoch
+}
+
+func sourceActionKey(ev ui.InputEvent) (SourceAction, bool) {
+	if ev.Kind != ui.InputKeyDown {
+		return 0, false
+	}
+	switch {
+	case ev.Mods == ui.Ctrl && ev.Key == ui.KeySpace:
+		return SourceActionComplete, true
+	case ev.Mods == ui.Shift && ev.Key == ui.KeyF12:
+		return SourceActionReferences, true
+	case ev.Mods == 0 && ev.Key == ui.KeyF2:
+		return SourceActionRename, true
+	}
+	return 0, false
+}
+
+// dispatchSourceAction owns a recognized bound key even when stale, repeated
+// or refused. Both callbacks are final: no old-action writes follow reentry.
+func (e *Editor) dispatchSourceAction(binding SourceActionBinding, action SourceAction, repeated bool) {
+	if repeated || !e.SourceActionBindingCurrent(binding) {
+		return
+	}
+	if err := e.InputActionError(); err != nil {
+		if report := e.OnError; report != nil {
+			report(err)
+		}
+		return
+	}
+	handler := e.sourceActionHandler
+	handler(action)
+}
+
 var (
 	errSourceSnapshotBudget = errors.New("source snapshot exceeds its positive byte budget or the 2 MiB hard limit")
 	errSourceTargetStale    = errors.New("source target is stale or belongs to another editor")

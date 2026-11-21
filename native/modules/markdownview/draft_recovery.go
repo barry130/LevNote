@@ -94,9 +94,11 @@ func (v *View) observeCellDraftConfirmation(draft *editor.Editor) {
 	}
 }
 
-func (v *View) clearCellDraftRecovery() {
+// resetCellDraftRecovery detaches the snapshot without calling out. The
+// caller publishes the clear once the old editor and its focus are retired.
+func (v *View) resetCellDraftRecovery() func(editor.View) {
 	if v.recoveryDraft == nil {
-		return
+		return nil
 	}
 	v.recoveryDraft = nil
 	v.recoveryComposing = false
@@ -109,7 +111,5 @@ func (v *View) clearCellDraftRecovery() {
 	v.recoveryMarked = ui.TextInputRange{}
 	v.recoveryMarkedActive = false
 	v.recoveryOverflow = false
-	if v.host.DraftRecoveryChanged != nil {
-		v.host.DraftRecoveryChanged(v)
-	}
+	return v.host.DraftRecoveryChanged
 }

@@ -158,11 +158,14 @@ func (v *View) tableRow(c *ui.Context, b markdown.Block, preview previewSnapshot
 	}
 	tableRow := b.Table.Rows[row.tableRow]
 
+	grid := tableRowUsableForGrid(v, columns)
 	ui.Column(c).Gap(6).Children(func() {
 		if row.tableRow == 0 {
-			v.tableHeaderControls(c, b, preview, row)
+			// Stacked records already repeat each column's name. Keep their
+			// header compact so the first data record fits beside app chrome.
+			v.tableHeaderControls(c, b, preview, row, !grid)
 		}
-		if tableRowUsableForGrid(v, columns) {
+		if grid {
 			v.drawTableGrid(c, preview, row, tableRow, columns)
 		} else {
 			v.drawStackedTableRow(c, preview, row, tableRow, columns)
@@ -170,24 +173,34 @@ func (v *View) tableRow(c *ui.Context, b markdown.Block, preview previewSnapshot
 	})
 }
 
-func (v *View) tableHeaderControls(c *ui.Context, b markdown.Block, preview previewSnapshot, row previewRow) {
+func (v *View) tableHeaderControls(c *ui.Context, b markdown.Block, preview previewSnapshot, row previewRow, compact bool) {
 	ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 		if v.host.ReadOnly {
 			ui.Text(c, tableReadonlyLabel).FontSize(11).TextColor(c.Theme().TextMuted)
 		} else {
-			v.tableEditButton(c, preview, row, b)
+			v.tableEditButton(c, preview, row, b, compact)
 		}
-		ui.Text(c, "表格").FontSize(11).TextColor(c.Theme().TextMuted)
+		label := "表格"
+		if compact {
+			label = "表格原文"
+		}
+		ui.Text(c, label).FontSize(11).TextColor(c.Theme().TextMuted).
+			Description(tableLiteralHint).Tooltip(tableLiteralHint)
 	})
-	ui.Text(c, tableLiteralHint).FontSize(11).TextColor(c.Theme().TextMuted).
-		MaxLines(2).Ellipsis("…").Tooltip(boundedTableText(tableLiteralHint, tableTooltipBytes))
-	if v.host.ReadOnly {
+	if !compact {
+		ui.Text(c, tableLiteralHint).FontSize(11).TextColor(c.Theme().TextMuted).
+			MaxLines(2).Ellipsis("…").Tooltip(tableLiteralHint)
+	}
+	if v.host.ReadOnly && !compact {
 		ui.Text(c, tableReadonlyHint).FontSize(11).TextColor(c.Theme().TextMuted).
 			MaxLines(2).Ellipsis("…").Tooltip(boundedTableText(tableReadonlyHint, tableTooltipBytes))
+	} else if v.host.ReadOnly {
+		ui.Text(c, tableReadonlyHint).FontSize(11).SingleLine().Tooltip(tableReadonlyHint).
+			TextColor(c.Theme().TextMuted)
 	}
 }
 
-func (v *View) tableEditButton(c *ui.Context, preview previewSnapshot, row previewRow, b markdown.Block) {
+func (v *View) tableEditButton(c *ui.Context, preview previewSnapshot, row previewRow, b markdown.Block, compact bool) {
 	target, ok := tableEditTargetOf(preview, row, b, false)
 	ownsGesture := v.tableEditActivation.buffer == target.buffer &&
 		v.tableEditActivation.rowID == target.rowID
@@ -208,6 +221,9 @@ func (v *View) tableEditButton(c *ui.Context, preview previewSnapshot, row previ
 	}
 	button := ui.Button(c, tableEditButtonLabel).Label(tableEditButtonLabel).
 		Tooltip("打开完整表格源码；保留原始字节。").Disabled(reason != "")
+	if compact {
+		button.Height(28).Tooltip("打开完整表格源码；保留原始字节。" + tableLiteralHint)
+	}
 	if reason == "" {
 		button.HandleInput(func(event ui.InputEvent) bool {
 			if (event.Kind == ui.InputPointerDown && event.Button == 0 && event.Mods == 0) ||
@@ -328,7 +344,7 @@ func (v *View) drawStackedTableRow(c *ui.Context, preview previewSnapshot, row p
 			rowLabel = "表头 · 第 1 行"
 		}
 		ui.Text(c, rowLabel).FontSize(11).Bold().TextColor(c.Theme().TextMuted).
-			Padding(5, 7).MaxLines(1).Ellipsis("…")
+			Padding(3, 7).MaxLines(1).Ellipsis("…")
 		for index, cell := range tableRow.Cells {
 			index, cell := index, cell
 			value, ok := tableCellLiteral(preview, cell)
@@ -338,11 +354,11 @@ func (v *View) drawStackedTableRow(c *ui.Context, preview previewSnapshot, row p
 				tip = boundedTableText(value, tableTooltipBytes)
 			}
 			ui.Grid(c).ColumnTracks(ui.Fixed(76), ui.Fr(1)).Gap(0).Children(func() {
-				ui.Box(c).Padding(5, 7).BorderEndWidth(1).BorderColor(c.Theme().Border).Children(func() {
+				ui.Box(c).Padding(3, 7).BorderEndWidth(1).BorderColor(c.Theme().Border).Children(func() {
 					ui.Text(c, label).FontSize(11).TextColor(c.Theme().TextMuted).
 						MaxLines(2).Ellipsis("…").Tooltip(tableColumnTooltip(preview, row, index))
 				})
-				valueBox := ui.Box(c).Padding(5, 7).Selectable()
+				valueBox := ui.Box(c).Padding(3, 7).Selectable()
 				if target, actionOK := tableCellTargetOf(preview, row, preview.doc.Blocks[row.block], index); actionOK {
 					v.noteTableCellBuilt(target)
 					role := ui.RoleCell

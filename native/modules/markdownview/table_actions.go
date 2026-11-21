@@ -345,7 +345,7 @@ func (v *View) bindTableAction(c *ui.Context, button ui.Element, action tableAct
 	}
 }
 
-func (v *View) drawTableActions(c *ui.Context) {
+func (v *View) drawTableActions(c *ui.Context, compact bool) {
 	edit, draft := v.cellEdit, v.draft
 	if edit == nil || draft == nil {
 		return
@@ -357,7 +357,25 @@ func (v *View) drawTableActions(c *ui.Context) {
 	if _, composing := draft.MarkedRange(); composing {
 		hint = tableActionComposingHint
 	}
-	ui.Text(c, hint).Height(30).FontSize(11).MaxLines(2).Tooltip(hint).TextColor(c.Theme().TextMuted)
+	face := hint
+	if compact {
+		switch hint {
+		case tableActionHint:
+			face = "F6 表格操作 · 先写回，可分开撤销"
+		case tableActionComposingHint:
+			face = "请先确认输入法组合，再按 F6"
+		default:
+			face = "F6 表格操作 · 表头不能删除"
+		}
+	}
+	label := ui.Text(c, face).Height(30).FontSize(11).MaxLines(2).Description(hint).Tooltip(hint).TextColor(c.Theme().TextMuted)
+	if compact {
+		// Keep one slot across native blur/confirmation so a held button
+		// still occupies the same point when MyGo delivers pointer-up.
+		label.Height(18).SingleLine()
+	} else if v.tableViewportKnown && !tableRowUsableForGrid(v, edit.target.columns) {
+		label.Height(20).SingleLine()
+	}
 	v.drawTableRowButtons(c, edit, draft)
 	v.drawTableColumnButtons(c, edit, draft)
 	v.drawTableAlignmentButtons(c, edit, draft)

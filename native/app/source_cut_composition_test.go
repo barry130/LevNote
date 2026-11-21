@@ -377,7 +377,12 @@ func TestBuiltinSourceCutCompositionReadOnlyCutRemainsCopyOnly(t *testing.T) {
 	a, tab, tester := newSourcePasteIdentityTester(t)
 	buffer := tab.Doc.Buffer
 	tab.Editor.Reveal(1, 2)
-	tab.Editor.ReadOnly = true
+	tab.Doc.ReadOnly = true
+	tab.Editor.SetReadOnly(true)
+	// Install the readonly attachment before sending its menu command. The
+	// previous native client must consume events after its owner is retired.
+	tester.Frame()
+	requireSourcePasteIdentityFocusedAttachment(t, tester, true)
 	version, history := buffer.Version(), buffer.History()
 	writes := 0
 	tab.Editor.Copy = func(value string) error {
@@ -388,7 +393,8 @@ func TestBuiltinSourceCutCompositionReadOnlyCutRemainsCopyOnly(t *testing.T) {
 		return nil
 	}
 	tester.Command("cut")
-	if writes != 1 || buffer.String() != "abc\r\ndef\r\n" || buffer.Version() != version || buffer.History() != history || buffer.Selection() != (text.Range{Anchor: 1, Head: 2}) || a.Message != "" || len(a.Issues) != 0 {
+	if writes != 1 || !tab.Doc.ReadOnly || !tab.Editor.ReadOnly || buffer.String() != "abc\r\ndef\r\n" || buffer.Version() != version || buffer.History() != history || buffer.Selection() != (text.Range{Anchor: 1, Head: 2}) || a.Message != "" || len(a.Issues) != 0 {
 		t.Fatal("readonly cut lost copy-only semantics", writes, buffer.String(), a.Message)
 	}
+	requireSourcePasteIdentityFocusedAttachment(t, tester, true)
 }

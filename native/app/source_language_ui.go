@@ -32,6 +32,8 @@ type sourceLanguageAction struct {
 	rowID        string
 	request      uint64
 	presentation uint64
+	renameDialog *sourceRenameDialog
+	renameEpoch  uint64
 }
 
 func sourceLanguageByteOffset(source string, offset int, selectedRange bool) (int, error) {
@@ -112,6 +114,10 @@ func sourceLanguageOperation(operation code.ServiceOperation) string {
 		return "引用"
 	case code.ServiceInfo:
 		return "信息"
+	case code.ServiceCompletion:
+		return "源码补全"
+	case code.ServiceRename:
+		return "本文件符号重命名"
 	default:
 		return string(operation)
 	}
@@ -142,11 +148,13 @@ func (a *App) openSourceLanguagePresentation() error {
 
 func (a *App) closeSourceLanguagePresentation() {
 	s := &a.sourceLanguage
+	a.releaseSourceRename()
 	s.presentation++
 	s.visible = false
 	s.presentationTab, s.presentationDoc, s.presentationInput, s.presentationBuffer = nil, nil, nil, nil
 	s.presentationRoute, s.presentationMode = 0, ""
 	s.action = nil
+	s.completionFocus = false
 	s.rows, s.cachedPositions = nil, nil
 	s.rowsReady = false
 	s.rowRequest, s.rowPresentation = 0, 0
@@ -200,6 +208,7 @@ func (a *App) retireStaleSourceLanguageDisplay(owner *sourceLanguageOwner, reque
 func (a *App) beginSourceLanguageFrame() {
 	s := &a.sourceLanguage
 	s.listLifetime.begin(&s.list)
+	a.checkSourceRenameFrame()
 	if s.visible && (a.ShowPlugins || !a.sourceLanguagePresentationCurrent()) {
 		a.retireSourceLanguage(s.presentationTab)
 		return
@@ -275,6 +284,12 @@ func sourceLanguageRowID(kind string, index, start, end int) string {
 
 func (a *App) sourceLanguageRows() []sourceLanguageRow {
 	s := &a.sourceLanguage
+	if s.rename != nil {
+		return a.sourceRenameRows()
+	}
+	if s.intent.completion != nil {
+		return a.sourceCompletionRows()
+	}
 	if s.rowsReady && s.rowRequest == s.request && s.rowPresentation == s.presentation {
 		return s.rows
 	}
@@ -342,7 +357,10 @@ func (a *App) sourceLanguageActionCurrent(action sourceLanguageAction) bool {
 	if !a.sourceLanguagePresentationCurrent() || action.presentation != s.presentation || action.request != s.request {
 		return false
 	}
-	if action.kind != "navigate" {
+	if action.renameDialog != nil {
+		return s.rename == action.renameDialog && action.renameEpoch == s.rename.epoch
+	}
+	if action.kind != "navigate" && action.kind != "complete" {
 		return true
 	}
 	// This predicate also runs inside checked Editor callbacks; inspect only
@@ -359,6 +377,10 @@ func (a *App) sourceLanguageActionCurrent(action sourceLanguageAction) bool {
 }
 
 func (a *App) queueSourceLanguageAction(kind, rowID string) {
+	if strings.HasPrefix(kind, "rename-") {
+		a.queueSourceRenameAction(kind)
+		return
+	}
 	if err := a.sourceLanguageInputError(); err != nil {
 		if a.sourceLanguagePresentationCurrent() {
 			a.sourceLanguage.message = err.Error()
@@ -369,6 +391,10 @@ func (a *App) queueSourceLanguageAction(kind, rowID string) {
 		return
 	}
 	s := &a.sourceLanguage
+	if s.intent.completion != nil && (a.commandPalette.composing || a.openDocuments.composing || a.findCompositionActive() || a.GoToLineComposing || a.Current() != nil && a.Current().Editor != nil && a.sourceCompositionActive(a.Current())) {
+		s.message = "请先完成或取消当前输入法组合，再操作源码补全"
+		return
+	}
 	s.action = &sourceLanguageAction{kind: kind, rowID: rowID, request: s.request, presentation: s.presentation}
 }
 
@@ -376,6 +402,10 @@ func (a *App) processSourceLanguageActions() {
 	s := &a.sourceLanguage
 	action := s.action
 	if action == nil {
+		return
+	}
+	if action.renameDialog != nil {
+		a.processSourceRenameAction(action)
 		return
 	}
 	if !a.sourceLanguageActionCurrent(*action) {
@@ -394,6 +424,11 @@ func (a *App) processSourceLanguageActions() {
 	if !a.sourceLanguageActionCurrent(*action) {
 		return
 	}
+	if s.intent.completion != nil && (a.commandPalette.composing || a.openDocuments.composing || a.findCompositionActive() || a.GoToLineComposing || a.Current() != nil && a.Current().Editor != nil && a.sourceCompositionActive(a.Current())) {
+		s.action = nil
+		s.message = "请先完成或取消当前输入法组合，再操作源码补全"
+		return
+	}
 	s.action = nil
 	switch action.kind {
 	case "close":
@@ -403,6 +438,14 @@ func (a *App) processSourceLanguageActions() {
 		a.runSourceLanguageCancel()
 	case "reanalyze":
 		intent := s.intent
+		if intent.completion != nil {
+			// A read-style reanalysis must not silently rebind an editing
+			// descriptor to a new caret or selection after ABA.
+			if err := a.sourceLanguageOwnerValid(s.owner, true); err != nil {
+				a.failSourceLanguage(sourceLanguageStale, "completion-reanalyze-stale", err)
+				return
+			}
+		}
 		if intent.operation == "" {
 			s.message = "没有可重新分析的语言请求"
 			return
@@ -413,6 +456,11 @@ func (a *App) processSourceLanguageActions() {
 		}
 	case "navigate":
 		a.navigateSourceLanguageRow(*action)
+	case "complete":
+		a.confirmSourceCompletion(*action)
+	case "completion-cancel":
+		a.cancelSourceLanguage()
+		a.closeSourceLanguagePresentation()
 	}
 }
 
@@ -542,8 +590,30 @@ func (a *App) sourceLanguagePanel(c *ui.Context) {
 	if !s.visible || !a.sourceLanguagePresentationCurrent() || a.ShowPlugins {
 		return
 	}
+	if s.rename != nil {
+		a.sourceRenamePanel(c)
+		return
+	}
 	rows := a.sourceLanguageRows()
 	inputError := a.sourceLanguageInputError()
+	if s.intent.completion != nil {
+		if inputError == nil && (a.commandPalette.composing || a.openDocuments.composing || a.findCompositionActive() || a.GoToLineComposing || a.Current() != nil && a.Current().Editor != nil && a.sourceCompositionActive(a.Current())) {
+			inputError = errors.New("请先完成或取消当前输入法组合")
+		}
+		// Completion has its own compact controls in the same owned panel;
+		// generic navigation/reanalysis never consumes an editing candidate.
+		ui.Column(c.Key(fmt.Sprintf("language-completion-%d", s.presentation))).MaxHeight(206).Shrink(0).
+			Padding(6, 10).Gap(4).Background(c.Theme().Surface).Border(1, c.Theme().Border).Children(func() {
+			ui.Text(c, "语言服务结果").Bold().FontSize(12)
+			status := a.sourceLanguageReadinessMessage()
+			ui.Text(c, status).Label("语言服务状态").FontSize(11).SingleLine().Tooltip(status)
+			if s.message != "" {
+				ui.Text(c, sourceLanguageBoundText(s.message)).FontSize(11).MaxLines(2)
+			}
+			a.sourceCompletionPanel(c, rows, inputError)
+		})
+		return
+	}
 	profile := s.presentationTab.sourceLanguageProfile
 	capability := "严格 JSON · RFC 8259；不是 JSONC"
 	if profile == code.StructureGo {

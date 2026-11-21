@@ -190,15 +190,15 @@ func (v *View) noteTableCellBuilt(target tableCellTarget) {
 func (v *View) tableCellInput(preview previewSnapshot, target tableCellTarget) func(ui.InputEvent) bool {
 	return func(event ui.InputEvent) bool {
 		if event.Kind == ui.InputKeyDown && event.Mods == 0 && event.Key == ui.KeyEnter && !event.Repeat {
+			v.tableCellActivation = tableCellTarget{}
 			captured, ok := captureTableCellTarget(preview, target)
 			if !ok {
 				v.report(errTableCellStale)
 				return true
 			}
-			v.tableCellActivation = tableCellTarget{}
-			if err := v.activateTableCell(captured); err != nil {
-				v.report(err)
-			}
+			var report draftActionReport
+			err := v.activateTableCellAction(captured, &report)
+			report.finish(v, err)
 			return true
 		}
 		if event.Kind == ui.InputPointerDown && event.Button == 0 && event.Mods == 0 && event.Clicks >= 2 {
@@ -227,19 +227,23 @@ func (v *View) tableCellInput(preview previewSnapshot, target tableCellTarget) f
 			}
 			return true
 		}
-		if err := v.activateTableCell(captured); err != nil {
-			v.report(err)
-		}
+		var report draftActionReport
+		err := v.activateTableCellAction(captured, &report)
+		report.finish(v, err)
 		return true
 	}
 }
 
 func (v *View) activateTableCell(target tableCellTarget) error {
+	return v.activateTableCellAction(target, nil)
+}
+
+func (v *View) activateTableCellAction(target tableCellTarget, report *draftActionReport) error {
 	if target.buffer == nil || target.tableSource == "" {
 		return errTableCellStale
 	}
 	hadDraft := v.draft != nil
-	if err := v.Flush(); err != nil {
+	if err := report.flush(v); err != nil {
 		return err
 	}
 	if v.host.ReadOnly {
@@ -352,12 +356,21 @@ func (v *View) openTableCellDraft(context tableCellContext, target tableCellTarg
 	if buffer == nil || buffer != target.buffer || v.host.ReadOnly || context.doc.Partial {
 		return errTableCellStale
 	}
-	v.clearDraft()
+	version := buffer.Version()
+	if !v.clearDraft() {
+		return errDraftSuperseded
+	}
+	if v.host.ReadOnly {
+		return errTableCellReadOnly
+	}
+	if buffer.Version() != version || buffer.InGroup() {
+		return errTableCellStale
+	}
 	v.tableActionError = nil
 	v.setPreview(context.doc)
-	v.version, v.docBuffer, v.loaded = buffer.Version(), buffer, true
+	v.version, v.docBuffer, v.loaded = version, buffer, true
 	v.editing = context.index
-	v.editVersion, v.editBuffer = buffer.Version(), buffer
+	v.editVersion, v.editBuffer = version, buffer
 	v.editSpan, v.editGuard = context.cellSpan, context.tableSpan
 	v.editBase = strings.Clone(target.cellSource)
 	v.editPanelHeight = tableCellEditorHeight
@@ -371,7 +384,7 @@ func (v *View) openTableCellDraft(context tableCellContext, target tableCellTarg
 	draft.MinHeight = 48
 	draft.LineNumbers = false
 	draft.Label = v.cellEdit.label
-	draft.OnError = v.setDraftError
+	draft.OnError = func(err error) { v.reportDraftInputError(draft, err) }
 	draft.OnChange = func() {
 		if v.draft != draft {
 			return
@@ -401,28 +414,34 @@ func (v *View) previewTableRow(block, tableRow int) previewRow {
 	return previewRow{tableRow: tableRow}
 }
 
-func (v *View) syncCellDraft() error {
+func (v *View) syncCellDraft() (draftFlushReceipt, error) {
+	var receipt draftFlushReceipt
 	if v.draft == nil || v.cellEdit == nil {
-		return nil
+		return receipt, nil
 	}
 	plan, err := v.prepareTableCellDraft()
 	if err != nil {
 		v.setDraftError(err)
-		return err
+		return receipt, err
 	}
-	if !plan.changed {
-		v.finishTableCellDraft()
-		return nil
+	if plan.changed {
+		if err := v.host.Buffer.ReplaceUTF16(plan.cellSpan.Start(), plan.cellSpan.End(), plan.value); err != nil {
+			v.setDraftError(err)
+			return receipt, err
+		}
+		receipt.cellCommitted = true
 	}
-	if err := v.host.Buffer.ReplaceUTF16(plan.cellSpan.Start(), plan.cellSpan.End(), plan.value); err != nil {
-		v.setDraftError(err)
-		return err
+	changed := v.host.Changed
+	cleared := v.finishTableCellDraft()
+	if receipt.cellCommitted && changed != nil {
+		changed()
 	}
-	v.finishTableCellDraft()
-	if v.host.Changed != nil {
-		v.host.Changed()
+	if !cleared {
+		err := receipt.supersededError()
+		v.report(err)
+		return receipt, err
 	}
-	return nil
+	return receipt, nil
 }
 
 // The preparation shared by normal Flush and a row action owns only bounded
@@ -579,8 +598,8 @@ func tableCellTranslatedEnd(point int, field markdown.SourceRange, delta int, ow
 	return point
 }
 
-func (v *View) finishTableCellDraft() {
-	v.clearDraft()
+func (v *View) finishTableCellDraft() bool {
 	v.list.HoldPlace()
 	v.loaded = false
+	return v.clearDraft()
 }

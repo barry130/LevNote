@@ -48,6 +48,8 @@ var workbenchCommands = []workbenchCommand{
 	{"language.definition", "语言：转到本文件定义", "language definition Go", "", languageGoCommandAvailable, func(a *App) { a.runSourceLanguageCommand("definition") }},
 	{"language.references", "语言：查找本文件引用", "language references Go", "", languageGoCommandAvailable, func(a *App) { a.runSourceLanguageCommand("references") }},
 	{"language.info", "语言：查看符号信息", "language info declaration documentation Go", "", languageGoCommandAvailable, func(a *App) { a.runSourceLanguageCommand("info") }},
+	{"language.complete", "语言：源码补全", "language completion vocabulary Go JSON", "", languageCompletionCommandAvailable, func(a *App) { a.runSourceCompletionCommand() }},
+	{"language.rename", "语言：重命名本文件符号", "language rename local binding Go", "", languageRenameCommandAvailable, func(a *App) { a.runSourceRenameCommand() }},
 	{"language.cancel", "语言：取消当前分析", "language cancel", "", languageCancelCommandAvailable, func(a *App) { a.runSourceLanguageCancel() }},
 
 	{"view.source", "视图：源码", "source code", "", commandHasView, func(a *App) { a.ShowPlugins = false; a.setMode(a.Current(), "source") }},

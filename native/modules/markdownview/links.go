@@ -233,7 +233,9 @@ func (v *View) inlineLink(c *ui.Context, label, alt string, target linkTarget, u
 			captured.syntax.Start()-captured.enclosing.Start() != target.syntax.Start()-target.enclosing.Start() {
 			v.report(errLinkStale)
 		} else {
-			v.report(v.activateLink(captured))
+			var report draftActionReport
+			err := v.activateLinkAction(captured, &report)
+			report.finish(v, err)
 		}
 	}
 	if unavailable != "" {
@@ -259,10 +261,14 @@ func (v *View) observeInlineReferenceInput(event ui.InputEvent) {
 }
 
 func (v *View) activateLink(target linkTarget) error {
+	return v.activateLinkAction(target, nil)
+}
+
+func (v *View) activateLinkAction(target linkTarget, report *draftActionReport) error {
 	if target.buffer == nil || target.released != v.linkReleased || !isInlineReference(target.inlineKind) {
 		return errLinkStale
 	}
-	if err := v.Flush(); err != nil {
+	if err := report.flush(v); err != nil {
 		return err
 	}
 	buffer := v.host.Buffer

@@ -91,7 +91,7 @@ func TestGrowthAppSourceReportsRefusedPaste(t *testing.T) {
 
 func TestGrowthAppSourceCompositionBlocksLifecycleUntilRetryOrCancel(t *testing.T) {
 	for _, started := range []bool{false, true} {
-		for _, finish := range []string{"retry", "cancel"} {
+		for _, finish := range []string{"retry", "cancel", "released-retry"} {
 			t.Run(map[bool]string{false: "first", true: "ongoing"}[started]+"/"+finish, func(t *testing.T) {
 				root := t.TempDir()
 				path := filepath.Join(root, "composition.txt")
@@ -138,7 +138,11 @@ func TestGrowthAppSourceCompositionBlocksLifecycleUntilRetryOrCancel(t *testing.
 				tester.SetFocused(false)
 				tester.SetFocused(true)
 				input.UnmarkText()
-				input.ReleaseView()
+				if finish != "retry" {
+					// Release retires the attachment even when its refused draft is
+					// retained. Only the same attachment may retry that draft.
+					input.ReleaseView()
+				}
 				tester.Frame()
 				check()
 				if err := tester.Click("文档编辑区"); err != nil {
@@ -146,14 +150,28 @@ func TestGrowthAppSourceCompositionBlocksLifecycleUntilRetryOrCancel(t *testing.
 				}
 				tester.Key(0, ui.KeyLeft)
 				check()
-				want := "a"
-				if finish == "retry" {
+				want, undoDepth := "a", 0
+				if finish == "retry" || finish == "released-retry" {
 					tester.Compose("你", 1)
-					want = "a你"
+					if finish == "released-retry" {
+						// A fresh native client cannot adopt the released client's
+						// retained composition. Keep every refusal invariant first.
+						check()
+						if a.Save(origin, false) {
+							t.Fatal("released composition was adopted by the new attachment")
+						}
+						check()
+						tester.Key(0, ui.KeyEscape)
+						if input.Flush() != nil || buffer.InGroup() || buffer.String() != "a" || buffer.Selection() != (text.Range{Anchor: 1, Head: 1}) || buffer.History() != history || string(mustReadFile(t, path)) != "a" || doc.Dirty() {
+							t.Fatal("released-owner cancellation lost its original baseline", a.Message)
+						}
+						tester.Compose("你", 1)
+					}
+					want, undoDepth = "a你", 1
 				} else {
 					tester.Key(0, ui.KeyEscape)
 				}
-				if !a.Save(origin, false) || buffer.String() != want || buffer.InGroup() || string(mustReadFile(t, path)) != want || doc.Dirty() {
+				if !a.Save(origin, false) || buffer.String() != want || buffer.InGroup() || string(mustReadFile(t, path)) != want || doc.Dirty() || buffer.History().UndoDepth != undoDepth || buffer.History().RedoDepth != 0 {
 					t.Fatal("resolved input could not save", a.Message)
 				}
 				if !a.Select(1) || a.Current() != other || !a.Select(0) || !a.CloseTab(0) || a.Current() != other || closeCalls != 0 {

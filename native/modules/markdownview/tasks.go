@@ -73,12 +73,18 @@ func (v *View) taskCheckbox(c *ui.Context, item markdown.ListItem, target taskTa
 			target = v.taskActivation
 		}
 		v.taskActivation = taskTarget{}
-		v.report(v.toggleTask(target))
+		var report draftActionReport
+		err := v.toggleTaskAction(target, &report)
+		report.finish(v, err)
 	}
 }
 
 func (v *View) toggleTask(target taskTarget) error {
-	if err := v.Flush(); err != nil {
+	return v.toggleTaskAction(target, nil)
+}
+
+func (v *View) toggleTaskAction(target taskTarget, report *draftActionReport) error {
+	if err := report.flush(v); err != nil {
 		return err
 	}
 	buffer := v.host.Buffer

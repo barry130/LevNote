@@ -30,6 +30,14 @@ type referenceTarget struct {
 	src               string
 }
 
+// referenceClickRefusal belongs to one refused pointer release. MyGo can still
+// queue its click; only that row may consume this receipt, in the next build.
+// It holds no error/message and expires even when no matching button is built.
+type referenceClickRefusal struct {
+	buffer *text.Buffer
+	rowID  uint64
+}
+
 func boundedReferenceCopy(value string, limit int) string {
 	if len(value) <= limit {
 		return strings.Clone(value)
@@ -122,6 +130,9 @@ func (v *View) referenceButton(c *ui.Context, preview previewSnapshot, row previ
 	button := ui.Button(c, "打开引用").Label("打开引用").Tooltip(tip).Disabled(reason != "")
 	if reason == "" {
 		button.HandleInput(func(event ui.InputEvent) bool {
+			if event.Kind == ui.InputPointerDown || event.Kind == ui.InputKeyDown {
+				v.referenceClickRefusal = nil // a fresh invocation cannot inherit an old release
+			}
 			if event.Kind == ui.InputPointerDown && event.Button == 0 && event.Mods == 0 ||
 				event.Kind == ui.InputKeyDown && event.Mods == 0 && (event.Key == ui.KeyEnter || event.Key == ui.KeySpace) {
 				v.referenceActivation = target
@@ -139,7 +150,11 @@ func (v *View) referenceButton(c *ui.Context, preview previewSnapshot, row previ
 				if _, _, ok := v.referenceMapped(captured); !ok {
 					v.referenceActivation = referenceTarget{}
 					v.referencePointerUpBuffer, v.referencePointerUpRowID = nil, 0
+					if !event.Canceled {
+						v.referenceClickRefusal = &referenceClickRefusal{captured.buffer, captured.rowID}
+					}
 					v.report(errReferenceStale)
+					return false // terminal: Report may replace the view or gesture
 				} else if event.Canceled {
 					// A canceled press commits nothing, including when the
 					// pressed row was rebuilt after an unrelated edit.
@@ -158,6 +173,11 @@ func (v *View) referenceButton(c *ui.Context, preview previewSnapshot, row previ
 	clicked := button.Clicked()
 	pendingOwnsGesture := v.referencePointerUpBuffer == target.buffer && v.referencePointerUpRowID == target.rowID
 	if clicked {
+		if refused := v.referenceClickRefusal; refused != nil &&
+			refused.buffer == target.buffer && refused.rowID == target.rowID {
+			v.referenceClickRefusal = nil
+			return // the matching release already reported before MyGo queued this click
+		}
 		captured := v.referenceActivation
 		v.referenceActivation = referenceTarget{}
 		v.referencePointerUpBuffer, v.referencePointerUpRowID = nil, 0
@@ -165,10 +185,9 @@ func (v *View) referenceButton(c *ui.Context, preview previewSnapshot, row previ
 			v.report(errReferenceStale)
 			return
 		}
-		err := v.activateReference(captured)
-		if err != nil {
-			v.report(err)
-		}
+		var report draftActionReport
+		err := v.activateReferenceAction(captured, &report)
+		report.finish(v, err)
 	} else if pendingOwnsGesture {
 		// A valid pointer-up that produced no click, as a release outside the
 		// control, is an ordinary canceled gesture. An earlier reference row
@@ -195,13 +214,17 @@ func referenceTargetOf(preview previewSnapshot, row previewRow, b markdown.Block
 }
 
 func (v *View) activateReference(target referenceTarget) error {
+	return v.activateReferenceAction(target, nil)
+}
+
+func (v *View) activateReferenceAction(target referenceTarget, report *draftActionReport) error {
 	if target.buffer == nil {
 		return errReferenceStale
 	}
 	if len(target.src) > maxReferenceTargetBytes {
 		return errors.New(referenceTooLong)
 	}
-	if err := v.Flush(); err != nil {
+	if err := report.flush(v); err != nil {
 		return err
 	}
 	buffer := v.host.Buffer

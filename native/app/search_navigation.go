@@ -206,6 +206,9 @@ func (a *App) requestFindFocusAt(generation uint64, target findFocusTarget, t *T
 		!a.findTargetCurrent(t, doc, input, buffer) {
 		return
 	}
+	// A valid repeated request may keep the same Find generation; record the
+	// intent even when its one-shot target is consumed before completion builds.
+	a.findFocusIntentEpoch++
 	input.CancelFocus()
 	a.findFocus = target
 	a.findFocusGeneration = generation

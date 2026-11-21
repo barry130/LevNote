@@ -85,19 +85,20 @@ type view struct {
 	kind documentKind
 	host editor.Host
 
-	lastSynced             uint64
-	syncedBuffer           *text.Buffer
-	syncFailed             bool
-	syncError              error
-	mind                   *mindmap.Document
-	diagram                *drawio.Document
-	layout                 mindmap.LayoutResult
-	warnings               []string
-	selectedID             string
-	drawSelection          drawioSelection
-	alignPress             drawioAlignmentPress
-	alignInfo              drawioAlignmentInfo
-	drawCloneHistory       []drawioCloneHistory
+	lastSynced       uint64
+	syncedBuffer     *text.Buffer
+	syncFailed       bool
+	syncError        error
+	mind             *mindmap.Document
+	diagram          *drawio.Document
+	layout           mindmap.LayoutResult
+	warnings         []string
+	warningDetails   bool
+	selectedID       string
+	drawSelection    drawioSelection
+	alignPress       drawioAlignmentPress
+	alignInfo        drawioAlignmentInfo
+	drawCloneHistory []drawioCloneHistory
 
 	drawGesture            drawioPointerGesture
 	field                  nodeField
@@ -232,10 +233,12 @@ func (v *view) Draw(c *ui.Context) {
 		}).HandleInput(v.graphInspectorScrollInput).Children(func() {
 		v.drawToolbar(c)
 		v.drawFieldSearch(c)
-		if len(v.warnings) > 0 {
-			v.drawWarnings(c)
+		if warnings := v.Warnings(); len(warnings) > 0 {
+			v.drawWarnings(c, warnings)
 		}
-		ui.Row(c).Grow(1).MinHeight(0).Clip().AlignItems(ui.Stretch).Children(func() {
+		// Warning/search rows are conditional siblings. Keep the canvas and
+		// inspector scroll/editor ancestry stable when those rows come and go.
+		ui.Row(c.Key("graph-content")).Grow(1).MinHeight(0).Clip().AlignItems(ui.Stretch).Children(func() {
 			canvas := ui.Box(c).
 				Key("graph-canvas").
 				Grow(1).
@@ -310,6 +313,7 @@ func (v *view) Release() {
 	v.layout = mindmap.LayoutResult{}
 	v.clearRenderCache()
 	v.warnings = nil
+	v.warningDetails = false
 	v.canvasHandle.CancelFocus()
 	v.lastSynced = ^uint64(0)
 	v.syncedBuffer = nil
@@ -319,6 +323,11 @@ func (v *view) Release() {
 		v.outline = nil
 	}
 }
+
+// WarningsInline is a presentation promise: Draw passes the complete Warnings
+// report (including draft/tag/style failures) to its visible warning indicator,
+// accessible description and keyboard-operable full-text details dialog.
+func (v *view) WarningsInline() bool { return true }
 
 func (v *view) Warnings() []string {
 	v.ensureSynced(nil)

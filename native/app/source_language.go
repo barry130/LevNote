@@ -21,8 +21,9 @@ const (
 	sourceLanguageFieldBytes = 16 << 10
 )
 
-// Intent contains bounded scalars only, never source text. ByteOffset is fixed
-// at admission; a queued read must not silently follow a later caret.
+// Intent contains bounded request fields, never a whole source snapshot.
+// ByteOffset and editing descriptors are fixed at admission; a queued request
+// must not silently follow a later caret.
 type sourceLanguageIntent struct {
 	operation        code.ServiceOperation
 	byteOffset       int
@@ -32,6 +33,10 @@ type sourceLanguageIntent struct {
 	hasSelectedRange bool
 	prefix, newName  string
 	limits           code.ServiceLimits
+	// Editing intents retain bounded fields and the original full selection
+	// identity. Ordinary B1 read intents deliberately leave this nil.
+	completion *sourceCompletionIntent
+	rename     *sourceRenameRequest
 }
 
 type sourceLanguageOwner struct {
@@ -57,7 +62,33 @@ type sourceLanguagePending struct {
 
 // Everything here except the synchronized task is UI-owned. No worker reads
 // this state, including during cancellation and shutdown.
+type sourceLanguageFocusStamp struct {
+	findGeneration, findFocusGeneration, goToLineGeneration uint64
+	findFocusIntentEpoch                                    uint64
+	findFocus                                               findFocusTarget
+}
+
+// sourceLanguageShortcut holds no source snapshot or request target. The Editor
+// owns its attachment seal; this Host seal owns the actual main presentation.
+// Keep this record stable across ordinary frames and caret/text changes.
+type sourceLanguageShortcut struct {
+	generation, session, route uint64
+	tab                        *Tab
+	doc                        *document.Document
+	input                      *editor.Editor
+	buffer                     *text.Buffer
+	manager                    *plugins.Manager
+	profile                    code.StructureProfile
+	mode, path, name           string
+	encoding                   document.Encoding
+	bom, docReadOnly, readOnly bool
+	handler                    func(editor.SourceAction)
+	lease                      editor.SourceActionBinding
+}
+
 type sourceLanguageState struct {
+	shortcutSequence                            uint64
+	shortcut                                    *sourceLanguageShortcut
 	session, activation, request, routeSequence uint64
 	owner                                       *sourceLanguageOwner
 	pending                                     *sourceLanguagePending
@@ -85,6 +116,8 @@ type sourceLanguageState struct {
 	rowRequest         uint64
 	rowPresentation    uint64
 	action             *sourceLanguageAction
+	completionFocus    bool // consumed only after the public List Handle is built
+	rename             *sourceRenameDialog
 	cachedPositions    map[string]sourceLanguagePosition
 }
 
@@ -97,14 +130,99 @@ func (a *App) configureSourceLanguage(t *Tab) {
 	}
 }
 
+// revokeSourceLanguageShortcut runs even when there has never been a request.
+// Detach before any release/callback can reenter and install a successor.
+func (a *App) revokeSourceLanguageShortcut(t *Tab) {
+	s := &a.sourceLanguage
+	binding := s.shortcut
+	if binding == nil || t != nil && binding.tab != t {
+		return
+	}
+	s.shortcut = nil
+	s.shortcutSequence++
+	// Only clear the handler we installed. An expired lease cannot detach a
+	// replacement handler on the same Editor.
+	if binding.input.SourceActionBindingCurrent(binding.lease) {
+		binding.input.SetSourceActionHandler(nil)
+	}
+}
+
+func (a *App) sourceLanguageShortcutCurrent(binding *sourceLanguageShortcut) bool {
+	if binding == nil || a.sourceLanguage.shortcut != binding ||
+		a.sourceLanguage.shortcutSequence != binding.generation || a.sourceLanguage.session != binding.session ||
+		a.shuttingDown.Load() || a.restoring || a.ShowPlugins {
+		return false
+	}
+	t := binding.tab
+	return t != nil && a.Current() == t && a.tabIsOpen(t) && t.textCapable() &&
+		t.Doc == binding.doc && t.Editor == binding.input && t.Doc.Buffer == binding.buffer &&
+		t.Editor.Buffer == binding.buffer && a.pluginManager == binding.manager &&
+		t.sourceLanguageRoute == binding.route && t.sourceLanguageProfile == binding.profile &&
+		t.Mode == binding.mode && (t.Mode == "source" || t.Mode == "split") && !t.ByteInspector &&
+		t.Doc.Path == binding.path && t.Name == binding.name && t.Doc.Encoding == binding.encoding &&
+		t.Doc.BOM == binding.bom && t.Doc.ReadOnly == binding.docReadOnly && t.Editor.ReadOnly == binding.readOnly &&
+		binding.input.SourceActionBindingCurrent(binding.lease)
+}
+
+// bindSourceLanguageShortcut is called only immediately before drawing the real
+// main source or split-left Editor. Project, find, rename and preview fields
+// never pass through this boundary. It performs no source materialization.
+func (a *App) bindSourceLanguageShortcut(t *Tab) {
+	s := &a.sourceLanguage
+	if t == nil || a.Current() != t || !a.tabIsOpen(t) || !t.textCapable() || t.Editor == nil ||
+		t.Doc.Buffer == nil || t.Editor.Buffer != t.Doc.Buffer || t.ByteInspector ||
+		(t.Mode != "source" && t.Mode != "split") || a.shuttingDown.Load() || a.restoring || a.ShowPlugins {
+		a.revokeSourceLanguageShortcut(nil)
+		return
+	}
+	if a.sourceLanguageShortcutCurrent(s.shortcut) {
+		return
+	}
+	a.revokeSourceLanguageShortcut(nil)
+	s.shortcutSequence++
+	binding := &sourceLanguageShortcut{generation: s.shortcutSequence, session: s.session,
+		tab: t, doc: t.Doc, input: t.Editor, buffer: t.Doc.Buffer, manager: a.pluginManager,
+		route: t.sourceLanguageRoute, profile: t.sourceLanguageProfile, mode: t.Mode,
+		path: t.Doc.Path, name: t.Name, encoding: t.Doc.Encoding, bom: t.Doc.BOM,
+		docReadOnly: t.Doc.ReadOnly, readOnly: t.Editor.ReadOnly}
+	binding.handler = func(action editor.SourceAction) {
+		if !a.sourceLanguageShortcutCurrent(binding) {
+			return // A retained old callback cannot retire or message a successor.
+		}
+		if a.modalDepth > 0 || a.ShowSettings || a.commandPalette.open || a.openDocuments.open {
+			a.report(errors.New("当前面板或对话框暂不接受源码语言快捷键"))
+			return
+		}
+		// Editor performed pure input admission before invoking us. Keep the
+		// explicit command's own live checks and its exact one-slot queue path.
+		// Each call is terminal: no stale Host writes after callback reentry.
+		switch action {
+		case editor.SourceActionComplete:
+			a.runSourceCompletionCommand()
+			return
+		case editor.SourceActionReferences:
+			a.runSourceLanguageCommand("references")
+			return
+		case editor.SourceActionRename:
+			a.runSourceRenameCommand()
+			return
+		}
+	}
+	s.shortcut = binding
+	binding.lease = t.Editor.SetSourceActionHandler(binding.handler)
+}
+
 func (a *App) retireSourceLanguage(t *Tab) {
+	a.revokeSourceLanguageShortcut(t)
 	s := &a.sourceLanguage
 	if t != nil && (s.owner == nil || s.owner.tab != t) && (s.pending == nil || s.pending.owner.tab != t) && s.presentationTab != t {
 		return
 	}
+	a.releaseSourceRename()
 	s.activation++
 	s.request++
 	s.owner, s.pending = nil, nil
+	s.completionFocus = false
 	s.result = code.ServiceResult{}
 	s.failure = nil
 	s.intent = sourceLanguageIntent{}
@@ -133,6 +251,11 @@ func (a *App) cancelSourceLanguage() {
 // sourceLanguageInputError is deliberately input-only. Route, readonly and
 // byte-budget checks remain at their own later admission boundaries.
 func (a *App) sourceLanguageInputError() error {
+	if d := a.sourceLanguage.rename; d != nil && d.field != nil {
+		if err := d.field.InputActionError(); err != nil {
+			return fmt.Errorf("请先完成或取消名称输入：%w", err)
+		}
+	}
 	t := a.Current()
 	if t == nil || !t.textCapable() || t.Editor == nil {
 		return nil
@@ -165,6 +288,16 @@ func languageCancelCommandAvailable(a *App) bool {
 	}
 	s := &a.sourceLanguage
 	return s.task != nil || s.pending != nil || s.owner != nil
+}
+
+func (a *App) sourceLanguageFocusStamp() sourceLanguageFocusStamp {
+	return sourceLanguageFocusStamp{
+		findGeneration:       a.findGeneration,
+		findFocusGeneration:  a.findFocusGeneration,
+		findFocusIntentEpoch: a.findFocusIntentEpoch,
+		goToLineGeneration:   a.goToLineGeneration,
+		findFocus:            a.findFocus,
+	}
 }
 
 func (a *App) sourceLanguageDispatcher() func(func()) {
@@ -258,6 +391,15 @@ func (a *App) admitSourceLanguageRequest(intent sourceLanguageIntent, launch fun
 	if err := a.sourceLanguageInputError(); err != nil {
 		return err
 	}
+	if intent.rename != nil {
+		return a.admitSourceRename(intent.rename, launch)
+	}
+	if a.sourceLanguage.rename != nil {
+		if err := a.sourceRenameInputError(); err != nil {
+			return err
+		}
+		a.releaseSourceRename()
+	}
 	dispatch := a.sourceLanguageDispatcher()
 	if dispatch == nil {
 		return a.failSourceLanguage(sourceLanguageHostError, "ui-dispatch-unavailable", errors.New("当前宿主没有可用的 UI 排队调度器"))
@@ -282,6 +424,15 @@ func (a *App) admitSourceLanguageRequest(intent sourceLanguageIntent, launch fun
 		a.sourceLanguage.result = code.ServiceResult{Status: code.ServiceLimit, Reason: "resource-limit", Resource: code.StructureBytes, Limit: maxBytes}
 		return err
 	}
+	if intent.completion != nil {
+		if err := sourceCompletionSelectionValid(t, intent.completion); err != nil {
+			return err
+		}
+		intent.completion.focusStamp = a.sourceLanguageFocusStamp()
+		copy := *intent.completion
+		copy.oldText = strings.Clone(copy.oldText)
+		intent.completion = &copy
+	}
 	// Own small caller strings without retaining an arbitrarily large parent.
 	intent.operation = canonicalSourceLanguageOperation(intent.operation)
 	intent.prefix, intent.newName = strings.Clone(intent.prefix), strings.Clone(intent.newName)
@@ -291,7 +442,7 @@ func (a *App) admitSourceLanguageRequest(intent sourceLanguageIntent, launch fun
 		// Reuse the already admitted read target; never materialize a second
 		// source while the physical slot is occupied. Changed source/attachment
 		// is explicitly stale and requires a fresh request after retirement.
-		if err := a.sourceLanguageOwnerValid(s.owner, false); err != nil {
+		if err := a.sourceLanguageOwnerValid(s.owner, intent.completion != nil); err != nil {
 			return a.failSourceLanguage(sourceLanguageStale, "pending-target-changed", err)
 		}
 		owner := *s.owner
@@ -304,6 +455,7 @@ func (a *App) admitSourceLanguageRequest(intent sourceLanguageIntent, launch fun
 			intent.byteOffset = 0
 		}
 		s.pending = &sourceLanguagePending{owner: &owner, intent: intent, dispatch: dispatch}
+		s.completionFocus = false
 		s.intent = intent
 		s.analysisVersion = owner.version
 		s.result, s.failure = code.ServiceResult{}, nil
@@ -335,10 +487,18 @@ func (a *App) admitSourceLanguageRequest(intent sourceLanguageIntent, launch fun
 }
 
 func (a *App) launchSourceLanguage(owner *sourceLanguageOwner, intent sourceLanguageIntent, source string, dispatch func(func())) {
+	if intent.completion != nil {
+		// Prove local token/range facts against this one admitted materialization.
+		// Proof failure is not a syntax diagnostic: always run the real service.
+		copy := *intent.completion
+		copy.proven, copy.proofFailure = proveSourceCompletion(source, owner.profile, &copy)
+		intent.completion = &copy
+	}
 	s := &a.sourceLanguage
 	task := newSourceLanguageTask(owner.request, code.ServiceRequest{Source: source, Profile: owner.profile,
 		Operation: intent.operation, ByteOffset: intent.byteOffset, Prefix: intent.prefix, NewName: intent.newName, Limits: intent.limits})
 	s.owner, s.pending, s.task = owner, nil, task
+	s.completionFocus = false
 	s.intent, s.analysisVersion = intent, owner.version
 	s.result, s.failure, s.message = code.ServiceResult{}, nil, ""
 	s.status, s.reason = sourceLanguageRunning, ""
@@ -371,7 +531,14 @@ func (a *App) completeSourceLanguage(id uint64) {
 	}
 	if pending := s.pending; pending != nil {
 		s.pending = nil
-		if err := a.sourceLanguageOwnerValid(pending.owner, false); err != nil {
+		if pending.intent.rename != nil {
+			// Rename refusal retires only the obsolete preview. A live name or
+			// source native input must keep its field and cancellation route.
+			if err := a.sourceRenameRequestValid(pending.intent.rename); err != nil {
+				a.rejectSourceRename(pending.intent.rename, err)
+				return
+			}
+		} else if err := a.sourceLanguageOwnerValid(pending.owner, pending.intent.completion != nil); err != nil {
 			a.failSourceLanguage(sourceLanguageStale, "pending-target-changed", err)
 			return
 		}
@@ -385,6 +552,15 @@ func (a *App) completeSourceLanguage(id uint64) {
 		intent := pending.intent
 		if intent.hasUTF16Offset {
 			intent.byteOffset, err = sourceLanguageByteOffset(snapshot.Source, intent.utf16Offset, intent.hasSelectedRange)
+			if intent.rename != nil {
+				if err == nil && intent.byteOffset != intent.rename.dialog.byteOffset {
+					err = errors.New("重命名原始字节位置已变化")
+				}
+				if err != nil {
+					a.rejectSourceRename(intent.rename, err)
+					return
+				}
+			}
 			if err != nil {
 				a.retireSourceLanguage(nil)
 				s.status, s.reason = string(code.ServiceInvalid), "invalid-offset"
@@ -395,10 +571,14 @@ func (a *App) completeSourceLanguage(id uint64) {
 		a.launchSourceLanguage(pending.owner, intent, snapshot.Source, pending.dispatch)
 		return
 	}
+	if s.intent.rename != nil {
+		a.completeSourceRename(id, out.result, out.err)
+		return
+	}
 	if s.owner == nil || s.owner.request != id {
 		return
 	}
-	if err := a.sourceLanguageOwnerValid(s.owner, false); err != nil {
+	if err := a.sourceLanguageOwnerValid(s.owner, s.intent.completion != nil); err != nil {
 		a.failSourceLanguage(sourceLanguageStale, "completion-target-changed", err)
 		return
 	}
@@ -415,7 +595,18 @@ func (a *App) completeSourceLanguage(id uint64) {
 		// Failed results contain only status/reason/resource, no usable target.
 		s.owner = nil
 	}
+	if s.intent.completion != nil {
+		if out.result.Status != code.ServiceComplete {
+			s.intent.completion = nil
+		} else if err := validateSourceCompletionResult(s.owner, s.intent.completion, out.result); err != nil {
+			a.failSourceLanguage(sourceLanguageHostError, "completion-not-applicable", err)
+			return
+		}
+	}
 	a.invalidateSourceLanguageRows()
+	if s.intent.completion != nil && len(s.result.Completion) > 0 && a.sourceLanguageInputError() == nil && !a.commandPalette.composing && !a.openDocuments.composing && !a.findCompositionActive() && !a.GoToLineComposing && !a.sourceCompositionActive(a.Current()) && a.sourceLanguageFocusStamp() == s.intent.completion.focusStamp {
+		s.completionFocus = true
+	}
 }
 
 func validateSourceLanguageResult(result code.ServiceResult) error {

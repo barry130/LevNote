@@ -13,6 +13,9 @@ import (
 func (a *App) View(c *ui.Context) {
 	a.beginAppListFrame()
 	a.beginSourceLanguageFrame()
+	if binding := a.sourceLanguage.shortcut; binding != nil && !a.sourceLanguageShortcutCurrent(binding) {
+		a.revokeSourceLanguageShortcut(nil)
+	}
 	a.deliverBinary()
 	a.expireFindCache()
 	a.deliverPackageWork()
@@ -67,6 +70,8 @@ func (a *App) View(c *ui.Context) {
 				}
 				a.packageProgress(c)
 				if a.ShowPlugins {
+					// The palette or activity bar may have opened this panel in this frame.
+					a.revokeSourceLanguageShortcut(nil)
 					a.clearFindTransient()
 					a.pluginPanel(c)
 					return
@@ -626,6 +631,7 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 					Background(c.Theme().Surface).Border(1, c.Theme().Border).Radius(4)
 			})
 		}
+		a.bindSourceLanguageShortcut(t)
 		t.Editor.View(c.Key(t.ID))
 		return
 	}
@@ -681,6 +687,7 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 		}
 	})
 	if t.Mode == "source" {
+		a.bindSourceLanguageShortcut(t)
 		t.Editor.View(c.Key(t.ID))
 		return
 	}
@@ -689,21 +696,40 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 	}
 	warnings := t.View.Warnings()
 	t.ViewWarnings = append(t.ViewWarnings[:0], warnings...)
-	if len(warnings) > 0 {
-		ui.Row(c.Key("format-warnings")).Padding(7, 18).Gap(8).Children(func() {
+	inlineWarnings := false
+	if reporter, ok := t.View.(interface{ WarningsInline() bool }); ok {
+		inlineWarnings = reporter.WarningsInline()
+	}
+	if len(warnings) > 0 && !inlineWarnings {
+		_, windowHeight := c.Size()
+		compact := windowHeight < 600
+		row := ui.Row(c.Key("format-warnings")).Padding(7, 18).Gap(8)
+		if compact {
+			// Leave a predictable height for the editor even if a warning arrives mid-draft.
+			row.Height(28).Shrink(0).Padding(2, 18).AlignItems(ui.Center)
+		}
+		row.Children(func() {
 			message := warnings[0]
+			detail := strings.Join(warnings, "\n")
 			if len(warnings) > 1 {
 				message += fmt.Sprintf("（另有 %d 项）", len(warnings)-1)
 			}
-			ui.Text(c, message).FontSize(11).TextColor(c.Theme().Warning).Grow(1)
-			if len(warnings) > 1 && ui.Button(c, "查看详情").Height(24).Clicked() {
+			label := ui.Text(c, message).FontSize(11).TextColor(c.Theme().Warning).Grow(1).
+				Description(detail).Tooltip(detail)
+			if compact {
+				label.MinWidth(0).SingleLine()
+			}
+			if ui.Button(c, "查看详情").Height(24).Shrink(0).Description(detail).Clicked() {
 				a.ShowIssues = true
 			}
 		})
 	}
 	if t.Mode == "split" {
 		ui.Row(c.Key("document-split")).Grow(1).AlignItems(ui.Stretch).Children(func() {
-			ui.Column(c).WidthPercent(50).Children(func() { t.Editor.View(c.Key(t.ID)) })
+			ui.Column(c).WidthPercent(50).Children(func() {
+				a.bindSourceLanguageShortcut(t)
+				t.Editor.View(c.Key(t.ID))
+			})
 			ui.Column(c).Grow(1).Border(1, c.Theme().Border).Children(func() { t.View.Draw(c.Key(t.ID)) })
 		})
 	} else {

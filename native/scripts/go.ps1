@@ -54,7 +54,7 @@ if ($guardedCommand) {
         $path = Join-Path $nativeRoot $file.path
         if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $file.sha256) { throw "$disposalHelp File: $($file.path)" }
     }
-    $nativeInputManifestSHA256 = '176b42f0696c5dd168a4965605401ffecbbe2ebb9914a91a189128b5e0982ced'
+    $nativeInputManifestSHA256 = '12553bf8918bf9a56a2c8384e324633145eceb41685a0c982666d59b80327fe5'
     $nativeInputManifestPath = Join-Path $nativeRoot 'dependency-patches/mygo-v0.8.3-native-input-files.json'
     $nativeInputHelp = 'MyGo native-input supplement is incomplete, changed, or overlaps the preserved patch inputs.'
     if (-not (Test-Path -LiteralPath $nativeInputManifestPath -PathType Leaf) -or (Get-Item -LiteralPath $nativeInputManifestPath).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint) -or (Get-FileHash -LiteralPath $nativeInputManifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $nativeInputManifestSHA256) { throw $nativeInputHelp }
@@ -64,6 +64,7 @@ if ($guardedCommand) {
         'vendor/github.com/egoist/mygo/internal/platform/text_input.go',
         'vendor/github.com/egoist/mygo/internal/windows/surface.go',
         'vendor/github.com/egoist/mygo/internal/windows/surface_input.go',
+        'vendor/github.com/egoist/mygo/ui/headless.go',
         'vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go',
         'vendor/github.com/egoist/mygo/ui/text_input_client.go'
     )

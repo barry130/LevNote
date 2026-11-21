@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 $nativeRoot = Split-Path $PSScriptRoot -Parent
 $goWrapper = Join-Path $nativeRoot 'scripts\go.ps1'
 $patches = @('mygo-v0.8.3-no-startup-cleanup.patch', 'mygo-v0.8.3-bitmap-dispose.patch', 'mygo-v0.8.3-native-input.patch')
-$nativeInputManifestSHA256 = '176b42f0696c5dd168a4965605401ffecbbe2ebb9914a91a189128b5e0982ced'
+$nativeInputManifestSHA256 = '12553bf8918bf9a56a2c8384e324633145eceb41685a0c982666d59b80327fe5'
 $repoRoot = (& git -C $nativeRoot rev-parse --show-toplevel).Trim()
 if ($LASTEXITCODE -ne 0 -or -not $repoRoot) { throw 'Unable to resolve the reviewed scratch checkout.' }
 $repoRoot = [IO.Path]::GetFullPath($repoRoot)
@@ -29,6 +29,7 @@ $expected = @(
     'vendor/github.com/egoist/mygo/internal/platform/text_input.go',
     'vendor/github.com/egoist/mygo/internal/windows/surface.go',
     'vendor/github.com/egoist/mygo/internal/windows/surface_input.go',
+    'vendor/github.com/egoist/mygo/ui/headless.go',
     'vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go',
     'vendor/github.com/egoist/mygo/ui/text_input_client.go'
 )

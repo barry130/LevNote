@@ -64,7 +64,8 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +func cancelState(client TextInputClient) (CompositionCancelStamp, CompositionCancelAvailability) {
 +	if optional, ok := client.(TextInputCompositionCanceler); ok {
 +		return optional.CompositionCancelState()
-+	}
+ 	}
+-	client.UnmarkText()
 +	return CompositionCancelStamp{}, CancelLegacy
 +}
 +
@@ -76,8 +77,12 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +	c.revision = 0
 +	c.stamp = CompositionCancelStamp{}
 +	c.tracked, c.idle, c.cancelled = false, false, false
-+}
-+
+ }
+ 
+-// Cancel discards the marked text, for an input method that gives its
+-// composition up without emptying it first. The rest of the document,
+-// the selection included, stays as it is.
+-func (c *InputComposition) Cancel(client TextInputClient) {
 +// SetClient requires stable pointer clients, as the native text contract does.
 +func (c *InputComposition) SetClient(client TextInputClient) {
 +	if c.attachment != nil && c.client == client {
@@ -147,7 +152,10 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +		return h
 +	}
 +	c.session = &compositionSession{1}
-+	c.pending = nil
+ 	c.pending = nil
+-	if _, ok := client.MarkedRange(); ok {
+-		client.SetMarkedText(nil, "", TextRange{})
+-		client.UnmarkText()
 +	c.stamp, c.tracked, c.idle, c.cancelled = stamp, false, !stamp.HasTarget, false
 +	return c.Capture()
 +}
@@ -189,7 +197,7 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +	wasTracked := c.tracked
 +	if before.HasTarget && !wasTracked {
 +		return false // START/query cannot acquire someone else's existing owner
-+	}
+ 	}
 +	pending := c.pending
 +	client.SetMarkedText(r, value, selected)
 +	if !c.unchanged(h, client, revision) {
@@ -215,7 +223,10 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +	}
 +	c.stamp, c.tracked = after, after.HasTarget
 +	return true
-+}
+ }
+-func (c *InputComposition) Replace(client TextInputClient, r *TextRange, text string) {
+-	if r == nil && c.pending != nil {
+-		r = c.pending
 +
 +// CanReplace is checked before a backend consumes its reconversion span. A
 +// different ready application stamp retires only old cancellation isolation and
@@ -229,7 +240,7 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +	stamp, availability := cancelState(client)
 +	if c.attachment != nil && !c.unchanged(h, client, revision) {
 +		return false
-+	}
+ 	}
 +	if availability == CancelLegacy {
 +		return true
 +	}
@@ -306,7 +317,8 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +	}
 +	// The application and every callback finished. Only now clear the old span
 +	// and install suppression. No application callback follows these writes.
-+	c.pending = nil
+ 	c.pending = nil
+-	client.ReplaceText(r, text)
 +	c.stamp, c.cancelled, c.tracked, c.idle = after, true, false, false
 +	return true
 +}
@@ -360,26 +372,8 @@ diff --git a/vendor/github.com/egoist/mygo/internal/platform/text_input.go b/ven
 +	proposed := pending
 +	if marked {
 +		proposed = &mark
- 	}
- 	client.UnmarkText()
--}
--
--// Cancel discards the marked text, for an input method that gives its
--// composition up without emptying it first. The rest of the document,
--// the selection included, stays as it is.
--func (c *InputComposition) Cancel(client TextInputClient) {
--	c.pending = nil
--	if _, ok := client.MarkedRange(); ok {
--		client.SetMarkedText(nil, "", TextRange{})
--		client.UnmarkText()
--	}
--}
--func (c *InputComposition) Replace(client TextInputClient, r *TextRange, text string) {
--	if r == nil && c.pending != nil {
--		r = c.pending
--	}
--	c.pending = nil
--	client.ReplaceText(r, text)
++	}
++	client.UnmarkText()
 +	if !c.unchanged(h, client, revision) {
 +		return false
 +	}
@@ -496,12 +490,11 @@ diff --git a/vendor/github.com/egoist/mygo/internal/windows/surface.go b/vendor/
  			procImmReleaseContext.Call(s.hwnd, himc)
  		}
 -		s.reconvert = nil
--	}
--	s.input = t
 +		if s.inputRequest != request || s.w.closed {
 +			return
 +		}
-+	}
+ 	}
+-	s.input = t
  	if active != s.ime {
  		s.ime = active
  		if active {
@@ -517,12 +510,11 @@ diff --git a/vendor/github.com/egoist/mygo/internal/windows/surface.go b/vendor/
 +			}
  			procImmAssociateContextEx.Call(s.hwnd, 0, 0)
  		}
--	}
--	s.caret = caret
 +		if s.inputRequest != request || s.w.closed {
 +			return
 +		}
-+	}
+ 	}
+-	s.caret = caret
 +	s.input, s.caret = t, t.Caret
 +	if scopeChange {
 +		if active {
@@ -602,11 +594,11 @@ diff --git a/vendor/github.com/egoist/mygo/internal/windows/surface.go b/vendor/
 +					return 0, true
 +				}
  			}
-+		}
+ 		}
 +		if epoch != s.inputEpoch || s.inputTransition || s.w.closed {
 +			procImmReleaseContext.Call(hwnd, himc)
 +			return 0, true
- 		}
++		}
  		if lp&gcsCompStr != 0 {
  			text := imeString(himc, gcsCompStr)
  			pos, _, _ := procImmGetCompositionStrW.Call(himc, gcsCursorPos, 0, 0)
@@ -643,18 +635,17 @@ diff --git a/vendor/github.com/egoist/mygo/internal/windows/surface.go b/vendor/
 +		}
  		return 0, true
  	case wmImeEndComp:
+-		s.reconvert = nil
+-		if c := s.input.Client; c != nil {
+-			s.clientComposition.End(c)
 +		if s.inputTransition {
 +			return 0, true
 +		}
 +		if client := s.input.Client; client != nil {
 +			s.endNativeComposition(client)
-+			return 0, true
-+		}
- 		s.reconvert = nil
--		if c := s.input.Client; c != nil {
--			s.clientComposition.End(c)
--			return 0, true
--		}
+ 			return 0, true
+ 		}
++		s.reconvert = nil
  		s.send(platform.SurfaceEvent{Kind: platform.TextComposition})
  		return 0, true
  	case wmImeChar:
@@ -696,17 +687,30 @@ diff --git a/vendor/github.com/egoist/mygo/internal/windows/surface_input.go b/v
 -func (s *surface) composed(ev platform.SurfaceEvent) {
 -	if r := s.reconvert; r != nil {
 -		ev.Replace, ev.From, ev.To = true, r[0], r[1]
+-		s.reconvert = nil
 +func (s *surface) composed(ev platform.SurfaceEvent) bool {
 +	if s.inputTransition {
 +		return false
-+	}
+ 	}
+-	if c := s.input.Client; c != nil {
+-		var r *platform.TextRange
+-		if ev.Replace {
+-			rangeWanted := platform.TextRange{Start: ev.From, End: ev.To}
+-			r = &rangeWanted
+-		}
+-		if ev.Kind == platform.TextInput {
+-			s.clientComposition.Replace(c, r, ev.Text)
+-		} else {
+-			s.clientComposition.Reset()
+-			caret := platform.UTF16Len(string([]rune(ev.Text)[:min(ev.Caret, len([]rune(ev.Text)))]))
+-			c.SetMarkedText(r, ev.Text, platform.TextRange{Start: caret, End: caret})
 +	epoch, client, reconvert := s.inputEpoch, s.input.Client, s.reconvert
 +	if client == nil {
 +		// Preserve the no-custom-client SurfaceEvent route and consumption time.
 +		if reconvert != nil {
 +			ev.Replace, ev.From, ev.To = true, reconvert[0], reconvert[1]
 +			s.reconvert = nil
-+		}
+ 		}
 +		s.send(ev)
 +		return epoch == s.inputEpoch && !s.inputTransition && !s.w.closed
 +	}
@@ -748,24 +752,8 @@ diff --git a/vendor/github.com/egoist/mygo/internal/windows/surface_input.go b/v
 +		return false
 +	}
 +	if s.reconvert == reconvert {
- 		s.reconvert = nil
- 	}
--	if c := s.input.Client; c != nil {
--		var r *platform.TextRange
--		if ev.Replace {
--			rangeWanted := platform.TextRange{Start: ev.From, End: ev.To}
--			r = &rangeWanted
--		}
--		if ev.Kind == platform.TextInput {
--			s.clientComposition.Replace(c, r, ev.Text)
--		} else {
--			s.clientComposition.Reset()
--			caret := platform.UTF16Len(string([]rune(ev.Text)[:min(ev.Caret, len([]rune(ev.Text)))]))
--			c.SetMarkedText(r, ev.Text, platform.TextRange{Start: caret, End: caret})
--		}
--		return
--	}
--	s.send(ev)
++		s.reconvert = nil
++	}
 +	return true
 +}
 +
@@ -811,18 +799,372 @@ diff --git a/vendor/github.com/egoist/mygo/internal/windows/surface_input.go b/v
 +		return
 +	}
 +	if availability != platform.CancelReady || !s.clientComposition.EndFor(session, client) {
-+		return
-+	}
+ 		return
+ 	}
+-	s.send(ev)
 +	if epoch == s.inputEpoch && s.input.Client == client && !s.inputTransition && s.clientComposition.Current(session, client) && s.reconvert == reconvert {
 +		s.reconvert = nil
 +	}
  }
  
  // unitOffset returns the UTF-16 offset of rune i of s.
+diff --git a/vendor/github.com/egoist/mygo/ui/headless.go b/vendor/github.com/egoist/mygo/ui/headless.go
+--- a/vendor/github.com/egoist/mygo/ui/headless.go
++++ b/vendor/github.com/egoist/mygo/ui/headless.go
+@@ -36,7 +36,10 @@
+ 	clipboardData transfer.Data
+ 	cursor        Cursor
+ 	ime           platform.TextInputState
+-	opened        []string
++	// composition is the production transport controller. Its attachment and
++	// cancelled-session state survive no-frame fixture batches and redraws.
++	composition platform.InputComposition
++	opened      []string
+ 	// escapes counts the Escapes nothing handled.
+ 	escapes int
+ 	openErr error
+@@ -108,11 +111,25 @@
+ 		h.afterFrom = h.clock()
+ 	}
+ }
+-func (h *headless) framePath() string                          { return "drawn in memory" }
+-func (h *headless) requestFrame()                              { h.requested.Store(true) }
+-func (h *headless) repaintTimer(at time.Time)                  { h.repaintAt = at }
+-func (h *headless) setCursor(c Cursor)                         { h.cursor = c }
+-func (h *headless) setTextInput(t platform.TextInputState)     { h.ime = t }
++func (h *headless) framePath() string         { return "drawn in memory" }
++func (h *headless) requestFrame()             { h.requested.Store(true) }
++func (h *headless) repaintTimer(at time.Time) { h.repaintAt = at }
++func (h *headless) setCursor(c Cursor)        { h.cursor = c }
++func (h *headless) setTextInput(t platform.TextInputState) {
++	// No native notification reentry runs here. Match the production scope
++	// boundary, including same-client IME-off and activation changes.
++	previous := h.ime
++	scopeChange := previous.Client != t.Client || previous.Active != t.Active || previous.NoInputMethod != t.NoInputMethod
++	if scopeChange {
++		h.composition.Invalidate()
++		if t.Active && !t.NoInputMethod {
++			h.composition.SetClient(t.Client)
++		} else {
++			h.composition.SetClient(nil)
++		}
++	}
++	h.ime = t
++}
+ func (h *headless) updateAccessibility(t *platform.AccessTree) { h.keepAccess(t) }
+ func (h *headless) startDrag()                                 {}
+ func (h *headless) setDropFormats([]transfer.Format)           {}
+@@ -249,9 +266,10 @@
+ // double click, typing that undoes in one step, tooltips) does the same
+ // however fast the machine runs the test.
+ type Tester struct {
+-	rt     *engine
+-	h      *headless
+-	clicks platform.ClickCounter
++	rt      *engine
++	h       *headless
++	clicks  platform.ClickCounter
++	noFrame *TesterTextInput
+ 	// now is the Tester's time, which only Advance moves, and frameAt
+ 	// that of the last frame.
+ 	now     time.Time
+@@ -301,6 +319,9 @@
+ 
+ // settle runs frames until the view asks for no more, or 20 of them.
+ func (t *Tester) settle() {
++	if t.refuseNoFrameMutation("settle") {
++		return
++	}
+ 	t.frameAt = t.Now()
+ 	for i := 0; i < 20; i++ {
+ 		t.h.requested.Store(false)
+@@ -335,6 +356,9 @@
+ // 200 ms is a quarter of the way after Advance(50 * time.Millisecond),
+ // and done after another Advance(150 * time.Millisecond).
+ func (t *Tester) Advance(d time.Duration) {
++	if t.refuseNoFrameMutation("Advance") {
++		return
++	}
+ 	end := t.now.Add(max(d, 0))
+ 	for {
+ 		at, ok := t.due()
+@@ -406,6 +430,9 @@
+ }
+ 
+ func (t *Tester) send(ev platform.SurfaceEvent) {
++	if t.refuseNoFrameMutation("send/Type/Compose") {
++		return
++	}
+ 	switch ev.Kind {
+ 	case platform.PointerMove, platform.PointerDown, platform.PointerUp:
+ 		ev.Pointer, ev.Pressure = platform.PointerKind(t.pointer), float64(t.pressure)
+@@ -528,7 +555,13 @@
+ }
+ 
+ // Frame renders another frame, as when the view's state changed.
+-func (t *Tester) Frame() { t.h.requested.Store(true); t.settle() }
++func (t *Tester) Frame() {
++	if t.refuseNoFrameMutation("Frame") {
++		return
++	}
++	t.h.requested.Store(true)
++	t.settle()
++}
+ 
+ // FramePending reports whether the view still asks for a frame, as one
+ // that animates or never settles does after an input or Frame. The
+@@ -1009,6 +1042,246 @@
+ 	t.send(platform.SurfaceEvent{Kind: platform.SurfaceCommand, Text: name})
+ }
+ 
++// TesterTextInputCapture is an opaque transport attachment/session handle.
++// It may be retained for For calls in a later batch on the same Tester, but
++// cannot acquire a replacement native client or composition session.
++type TesterTextInputCapture struct {
++	tester  *Tester
++	adapter *textInputAdapter
++	lease   *textInputCancelLease
++	session platform.CompositionSession
++}
++
++// TesterTextInput is usable only inside its TextInputNoFrame callback. The
++// first fixture/invariant error is retained in Err and refuses later steps.
++// A false controller result is an ordinary admission refusal, not a fixture
++// error. No method settles frames or repairs/reinstalls a retired client.
++type TesterTextInput struct {
++	tester  *Tester
++	adapter *textInputAdapter
++	lease   *textInputCancelLease
++	frame   uint64
++	active  bool
++	err     error
++}
++
++// TextInputNoFrame synchronously drives the actual installed native adapter
++// through the production InputComposition stored by the headless surface.
++// Each event validates an unchanged engine frame and installed adapter before
++// and after dispatch. RequestFrame only queues work. The caller can explicitly
++// call Frame after the callback and all assertions have returned.
++//
++// Batches are not reentrant. Callers must use this facade for mutation inside
++// the callback. send, Type, Compose, Frame and Advance reject reentry and latch
++// a fixture error before their dispatch/frame/clock work; other mutating Tester
++// APIs are unsupported inside the callback. On a client/focus change the batch
++// fails closed, does not roll back callback work,
++// and never keeps an old client installed to make a test appear successful.
++func (t *Tester) TextInputNoFrame(callback func(*TesterTextInput)) error {
++	if t == nil || t.rt == nil || t.h == nil || callback == nil {
++		return fmt.Errorf("ui: TextInputNoFrame requires a live Tester and callback")
++	}
++	if t.noFrame != nil {
++		t.noFrame.fail("nested TextInputNoFrame")
++		return t.noFrame.err
++	}
++	adapter, ok := t.h.ime.Client.(*textInputAdapter)
++	if !ok || adapter == nil || !t.h.ime.Active || t.h.ime.NoInputMethod {
++		return fmt.Errorf("ui: TextInputNoFrame requires the actual active installed native adapter")
++	}
++	n := &TesterTextInput{tester: t, adapter: adapter, lease: adapter.cancelLease, frame: t.rt.frame, active: true}
++	t.noFrame = n
++	defer n.close()
++	if !n.check("batch entry") {
++		return n.err
++	}
++	callback(n)
++	n.check("callback return")
++	return n.err
++}
++
++func (n *TesterTextInput) close() {
++	n.active = false
++	if n.tester.noFrame == n {
++		n.tester.noFrame = nil
++	}
++}
++
++func (n *TesterTextInput) fail(phase string) {
++	if n.err == nil {
++		n.err = fmt.Errorf("ui: TextInputNoFrame rejected %s: frame or native attachment changed, batch ended, or forbidden reentry", phase)
++	}
++}
++
++func (t *Tester) refuseNoFrameMutation(phase string) bool {
++	if t.noFrame == nil {
++		return false
++	}
++	t.noFrame.fail(phase)
++	return true
++}
++
++func (n *TesterTextInput) check(phase string) bool {
++	if n == nil {
++		return false
++	}
++	if n.err != nil {
++		return false
++	}
++	t := n.tester
++	if !n.active || t == nil || t.noFrame != n || t.rt.frame != n.frame ||
++		t.h.ime.Client == nil || t.h.ime.Client != n.adapter || !t.h.ime.Active || t.h.ime.NoInputMethod || n.adapter.cancelLease != n.lease {
++		n.fail(phase)
++		return false
++	}
++	client, state := n.adapter.client()
++	if client == nil || state == nil || !t.h.composition.Current(t.h.composition.Capture(), n.adapter) {
++		n.fail(phase)
++		return false
++	}
++	return true
++}
++
++func (n *TesterTextInput) finish(phase string, accepted bool) bool {
++	if !n.check(phase) {
++		return false
++	}
++	return accepted
++}
++
++// Err returns the batch-owned invariant error, without invoking a client.
++func (n *TesterTextInput) Err() error {
++	if n == nil {
++		return fmt.Errorf("ui: nil TesterTextInput")
++	}
++	return n.err
++}
++
++func (n *TesterTextInput) Capture() TesterTextInputCapture {
++	if !n.check("Capture") {
++		return TesterTextInputCapture{}
++	}
++	h := TesterTextInputCapture{tester: n.tester, adapter: n.adapter, lease: n.lease, session: n.tester.h.composition.Capture()}
++	if !n.check("Capture return") {
++		return TesterTextInputCapture{}
++	}
++	return h
++}
++
++func (n *TesterTextInput) owns(h TesterTextInputCapture) bool {
++	return h.tester == n.tester && h.adapter == n.adapter && h.lease == n.lease
++}
++
++// Start dispatches the production Start boundary. Its bool proves only that
++// the returned transport session is current, never ownership of a preexisting
++// application composition target.
++func (n *TesterTextInput) Start() bool {
++	if !n.check("Start entry") {
++		return false
++	}
++	h := n.tester.h.composition.Start(n.adapter)
++	return n.finish("Start return", n.tester.h.composition.Current(h, n.adapter))
++}
++
++// Preedit uses explicit absolute UTF-16 replacement and relative selection.
++// Even an empty value is a flagged preedit, not a synthesized cancellation.
++func (n *TesterTextInput) Preedit(replacement *TextInputRange, value string, selected TextInputRange) bool {
++	if !n.check("Preedit entry") {
++		return false
++	}
++	accepted := n.tester.h.composition.Preedit(n.adapter, replacement, value, selected)
++	return n.finish("Preedit return", accepted)
++}
++
++func (n *TesterTextInput) PreeditFor(h TesterTextInputCapture, replacement *TextInputRange, value string, selected TextInputRange) bool {
++	if !n.check("PreeditFor entry") {
++		return false
++	}
++	if !n.owns(h) {
++		return n.finish("PreeditFor stale attachment", false)
++	}
++	accepted := n.tester.h.composition.PreeditFor(h.session, n.adapter, replacement, value, selected)
++	return n.finish("PreeditFor return", accepted)
++}
++
++func (n *TesterTextInput) Reset() bool {
++	if !n.check("Reset entry") {
++		return false
++	}
++	n.tester.h.composition.Reset()
++	return n.finish("Reset return", true)
++}
++
++func (n *TesterTextInput) Cancel() bool {
++	if !n.check("Cancel entry") {
++		return false
++	}
++	accepted := n.tester.h.composition.Cancel(n.adapter)
++	return n.finish("Cancel return", accepted)
++}
++
++func (n *TesterTextInput) CancelFor(h TesterTextInputCapture) bool {
++	if !n.check("CancelFor entry") {
++		return false
++	}
++	if !n.owns(h) {
++		return n.finish("CancelFor stale attachment", false)
++	}
++	accepted := n.tester.h.composition.CancelFor(h.session, n.adapter)
++	return n.finish("CancelFor return", accepted)
++}
++
++func (n *TesterTextInput) Result(replacement *TextInputRange, value string) bool {
++	if !n.check("Result entry") {
++		return false
++	}
++	accepted := n.tester.h.composition.Replace(n.adapter, replacement, value)
++	return n.finish("Result return", accepted)
++}
++
++func (n *TesterTextInput) ResultFor(h TesterTextInputCapture, replacement *TextInputRange, value string) bool {
++	if !n.check("ResultFor entry") {
++		return false
++	}
++	if !n.owns(h) {
++		return n.finish("ResultFor stale attachment", false)
++	}
++	accepted := n.tester.h.composition.ReplaceFor(h.session, n.adapter, replacement, value)
++	return n.finish("ResultFor return", accepted)
++}
++
++func (n *TesterTextInput) End() bool {
++	if !n.check("End entry") {
++		return false
++	}
++	accepted := n.tester.h.composition.End(n.adapter)
++	return n.finish("End return", accepted)
++}
++
++func (n *TesterTextInput) EndFor(h TesterTextInputCapture) bool {
++	if !n.check("EndFor entry") {
++		return false
++	}
++	if !n.owns(h) {
++		return n.finish("EndFor stale attachment", false)
++	}
++	accepted := n.tester.h.composition.EndFor(h.session, n.adapter)
++	return n.finish("EndFor return", accepted)
++}
++
++// Text is ordinary WM_CHAR-shaped input. It intentionally bypasses cancelled
++// IME-result isolation, while still going through the real production event
++// dispatcher and the currently focused installed adapter. Its bool reports
++// dispatch with unchanged fixture ownership, not application edit acceptance:
++// engine.event does not return editEvent's bool for ordinary TextInput.
++func (n *TesterTextInput) Text(value string) bool {
++	if !n.check("Text entry") {
++		return false
++	}
++	n.tester.rt.event(platform.SurfaceEvent{Kind: platform.TextInput, Text: value})
++	return n.finish("Text return", true)
++}
++
+ // TextCaret returns where input methods compose, and whether one would:
+ // the caret of the focused text input, or of an element's TextCaret, and
+ // not while it turned them off (InputMethod).
 diff --git a/vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go b/vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go
+new file mode 100644
 --- /dev/null
 +++ b/vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go
-@@ -0,0 +1,1079 @@
+@@ -0,0 +1,1938 @@
 +package ui
 +
 +import (
@@ -1902,14 +2244,872 @@ diff --git a/vendor/github.com/egoist/mygo/ui/text_input_cancel_test.go b/vendor
 +		}
 +	}
 +}
++
++// A1.2 observes the same application fake used by A1.1, but it is bound only
++// through the real public View. No direct or replacement platform adapter is made.
++type noFrameObservedOptional struct {
++	*cancelOptional
++	preeditReplacement *TextInputRange
++	preeditSelected    TextInputRange
++}
++
++func (c *noFrameObservedOptional) SetMarkedText(r *TextInputRange, value string, selected TextInputRange) {
++	c.preeditReplacement = nil
++	if r != nil {
++		copyRange := *r
++		c.preeditReplacement = &copyRange
++	}
++	c.preeditSelected = selected
++	c.cancelText.SetMarkedText(r, value, selected)
++}
++
++type noFrameCancelFixture struct {
++	base           *cancelText
++	optional       *cancelOptional
++	observed       *noFrameObservedOptional
++	current        TextInputClient
++	tester         *Tester
++	adapter        *textInputAdapter
++	builds         int
++	ordinaryEvents []string
++}
++
++func (f *noFrameCancelFixture) observeInput(ev InputEvent) {
++	if ev.Kind == InputText {
++		f.ordinaryEvents = append(f.ordinaryEvents, ev.Text)
++	}
++}
++
++func newNoFrameCancelFixture(t *testing.T) *noFrameCancelFixture {
++	t.Helper()
++	f := &noFrameCancelFixture{base: &cancelText{text: "original"}}
++	f.optional = &cancelOptional{cancelText: f.base}
++	f.base.owner = f.optional
++	f.observed = &noFrameObservedOptional{cancelOptional: f.optional}
++	f.current = f.observed
++	f.tester = NewTester(func(c *Context) {
++		f.builds++
++		Box(c).MinWidth(160).MinHeight(60).Label("no-frame target").Focusable().HandleTextInput(f.current).ObserveInput(f.observeInput)
++	}, 280, 170)
++	if err := f.tester.Click("no-frame target"); err != nil {
++		t.Fatal(err)
++	}
++	adapter, ok := f.tester.h.ime.Client.(*textInputAdapter)
++	if !ok || adapter == nil {
++		t.Fatal("actual installed native adapter missing")
++	}
++	client, _ := adapter.client()
++	if client != f.current {
++		t.Fatal("actual adapter does not contain the View-installed client")
++	}
++	f.adapter = adapter
++	return f
++}
++
++func noFrameRequireIdentity(t *testing.T, f *noFrameCancelFixture, frame uint64, builds int) {
++	t.Helper()
++	if f.tester.rt.frame != frame || f.builds != builds || f.tester.h.ime.Client == nil || f.tester.h.ime.Client != f.adapter {
++		t.Fatalf("native step drew/rebound/retired input: frame=%d/%d builds=%d/%d client=%T", f.tester.rt.frame, frame, f.builds, builds, f.tester.h.ime.Client)
++	}
++	client, _ := f.adapter.client()
++	if client != f.observed {
++		t.Fatal("the actual installed native application client changed")
++	}
++}
++
++func TestLevNoteNativeCancelNoFrame(t *testing.T) {
++	t.Run("legacy-send-shape-really-runs-intermediate-frames", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		frame, builds := f.tester.rt.frame, f.builds
++		f.tester.Compose("old", 2)
++		middleFrame, middleBuilds := f.tester.rt.frame, f.builds
++		if middleFrame <= frame || middleBuilds <= builds || f.base.text != "old" || !f.base.marked {
++			t.Fatal("old Compose/send path did not actually settle a frame")
++		}
++		f.tester.Type("ordinary final")
++		if f.tester.rt.frame <= middleFrame || f.builds <= middleBuilds || f.base.text != "ordinary final" || f.base.marked || !reflect.DeepEqual(f.base.trace, []string{"preedit", "replace"}) {
++			t.Fatal("old Type/send path did not draw between the native-looking events", f.base.trace)
++		}
++	})
++
++	for _, marked := range []bool{false, true} {
++		for _, order := range []string{"replace-end", "end-replace"} {
++			name := "markless"
++			if marked {
++				name = "marked"
++			}
++			t.Run("real-adapted-legacy-"+name+"-"+order, func(t *testing.T) {
++				e := makeCancelEndpoint(t, true, false)
++				e.base.marked, e.base.mark = marked, TextInputRange{Start: 2, End: 4}
++				frame, installed := e.tester.rt.frame, e.tester.h.ime.Client
++				check := func() {
++					t.Helper()
++					if e.tester.rt.frame != frame || e.tester.h.ime.Client != installed {
++						t.Fatal("legacy facade drew or replaced actual adapter")
++					}
++					adapter := installed.(*textInputAdapter)
++					if current, _ := adapter.client(); current != e.base {
++						t.Fatal("legacy application client retired")
++					}
++				}
++				if err := e.tester.TextInputNoFrame(func(input *TesterTextInput) {
++					if !input.Start() {
++						t.Fatal("legacy Start")
++					}
++					check()
++					if !input.Cancel() {
++						t.Fatal("legacy Cancel")
++					}
++					check()
++					want := []string{}
++					if marked {
++						want = append(want, "preedit", "unmark")
++					}
++					if order == "replace-end" {
++						if !input.Result(nil, "ordinary") {
++							t.Fatal("legacy result")
++						}
++						check()
++						if !input.End() {
++							t.Fatal("legacy End")
++						}
++						check()
++						want = append(want, "replace", "unmark")
++					} else {
++						if !input.End() {
++							t.Fatal("legacy End")
++						}
++						check()
++						if !input.Result(nil, "ordinary") {
++							t.Fatal("legacy result")
++						}
++						check()
++						want = append(want, "unmark", "replace")
++					}
++					if !reflect.DeepEqual(e.base.trace, want) || e.base.text != "ordinary" || e.base.marked {
++						t.Fatal("complete adapted legacy trace changed", e.base.trace, want)
++					}
++				}); err != nil {
++					t.Fatal(err)
++				}
++				check()
++			})
++		}
++	}
++
++	t.Run("real-installed-adapter-cancel-order-and-persistent-second-batch", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		frame, builds := f.tester.rt.frame, f.builds
++		var old TesterTextInputCapture
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if !input.Start() {
++				t.Fatal("legal idle Start")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			old = input.Capture()
++			noFrameRequireIdentity(t, f, frame, builds)
++			r := TextInputRange{Start: 1, End: 3}
++			selected := TextInputRange{Start: 1, End: 3}
++			if !input.Preedit(&r, "拼🙂", selected) || f.base.text != "拼🙂" || !f.base.marked || f.base.mark != (TextInputRange{Start: 3, End: 6}) || f.observed.preeditReplacement == nil || *f.observed.preeditReplacement != r || f.observed.preeditSelected != selected {
++				t.Fatal("actual controller/adapter lost explicit UTF-16 preedit", f.base.text, f.base.mark)
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if !input.Cancel() || f.optional.cancels != 1 || f.base.text != "original" || f.base.marked || !reflect.DeepEqual(f.base.trace, []string{"preedit", "cancel"}) {
++				t.Fatal("real optional cancellation fell back or failed", f.base.trace)
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if !input.Reset() {
++				t.Fatal("soft Reset")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if input.Result(nil, "late-before-End") || f.base.text != "original" || len(f.base.trace) != 2 {
++				t.Fatal("late result escaped cancellation")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if input.End() || f.base.marked || len(f.base.trace) != 2 {
++				t.Fatal("cancelled End synthesized Unmark")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if input.Result(nil, "late-after-End") || len(f.base.trace) != 2 {
++				t.Fatal("late result after End escaped")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if input.Err() != nil {
++				t.Fatal(input.Err())
++			}
++		}); err != nil {
++			t.Fatal(err)
++		}
++		// No Frame between callbacks: the same host-owned production controller
++		// must still quarantine the canceled session, not a freshly reset fixture.
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if input.ResultFor(old, nil, "late-other-batch") || f.base.text != "original" || len(f.base.trace) != 2 {
++				t.Fatal("batch recreation lost cancelled-session isolation")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if !input.Text("ordinary character") || f.base.text != "ordinary character" || f.base.marked || !reflect.DeepEqual(f.base.trace, []string{"preedit", "cancel", "replace"}) {
++				t.Fatal("ordinary Text did not reach the production event/adapter route", f.base.trace)
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if !f.tester.FramePending() {
++				t.Fatal("native mutation requested no deferred frame")
++			}
++		}); err != nil {
++			t.Fatal(err)
++		}
++		noFrameRequireIdentity(t, f, frame, builds)
++		f.tester.Frame() // deliberately outside both callbacks and their assertions
++		if f.tester.rt.frame <= frame || f.builds <= builds {
++			t.Fatal("explicit outside Frame did not consume queued redraw")
++		}
++	})
++
++	for _, value := range []string{"", "new🙂"} {
++		name := "empty"
++		if value != "" {
++			name = "nonempty"
++		}
++		t.Run("flagged-preedit-and-new-Start-"+name, func(t *testing.T) {
++			f := newNoFrameCancelFixture(t)
++			frame, builds := f.tester.rt.frame, f.builds
++			if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++				if !input.Start() || !input.Preedit(nil, "old", TextInputRange{}) || !input.Cancel() {
++					t.Fatal("initial cancellation")
++				}
++				old := input.Capture()
++				if !input.Preedit(nil, value, TextInputRange{End: UTF16Len(value)}) || f.base.text != value || !f.base.marked {
++					t.Fatal("flagged preedit without START did not open its own normal result route")
++				}
++				noFrameRequireIdentity(t, f, frame, builds)
++				if input.CancelFor(old) || input.ResultFor(old, nil, "old captured result") || input.EndFor(old) || input.PreeditFor(old, nil, "old preedit", TextInputRange{}) || f.base.text != value {
++					t.Fatal("old captured session acquired a replacement composition")
++				}
++				noFrameRequireIdentity(t, f, frame, builds)
++				if !input.Result(nil, "normal final") || f.base.text != "normal final" || f.base.marked {
++					t.Fatal("normal result did not complete restarted preedit")
++				}
++				noFrameRequireIdentity(t, f, frame, builds)
++				if !input.Start() || !input.Preedit(nil, "second", TextInputRange{}) || !input.Cancel() {
++					t.Fatal("second cancel")
++				}
++				if !input.Start() || !input.Result(nil, "new START result") || f.base.text != "new START result" || f.base.marked {
++					t.Fatal("new START could not admit a normal result-only event")
++				}
++				noFrameRequireIdentity(t, f, frame, builds)
++				if !reflect.DeepEqual(f.base.trace, []string{"preedit", "cancel", "preedit", "replace", "preedit", "cancel", "replace"}) {
++					t.Fatal("unexpected fallback/native trace", f.base.trace)
++				}
++			}); err != nil {
++				t.Fatal(err)
++			}
++		})
++	}
++
++	t.Run("first-refused-markless-preedit-can-cancel-without-frame", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		f.base.rejectPreedit = true
++		frame, builds := f.tester.rt.frame, f.builds
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if !input.Start() || !input.Preedit(nil, "rejected🙂", TextInputRange{}) || !f.optional.stamp.HasTarget || f.base.marked || f.base.text != "original" {
++				t.Fatal("real first-refusal ownership acquisition missing")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if !input.Cancel() || f.optional.stamp.HasTarget || f.base.marked || f.optional.cancels != 1 || !reflect.DeepEqual(f.base.trace, []string{"preedit", "cancel"}) {
++				t.Fatal("markless retained target did not use optional cancellation", f.base.trace)
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			if input.Result(nil, "late") || !input.Text("usable") || f.base.text != "usable" || !reflect.DeepEqual(f.base.trace, []string{"preedit", "cancel", "replace"}) {
++				t.Fatal("cancel isolation or ordinary continuation failed")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++		}); err != nil {
++			t.Fatal(err)
++		}
++	})
++
++	t.Run("legal-idle-session-without-preexisting-target", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		frame, builds := f.tester.rt.frame, f.builds
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if f.optional.stamp.HasTarget || !input.Start() || !input.Cancel() || f.base.text != "original" || f.base.marked || f.optional.cancels != 1 || !reflect.DeepEqual(f.base.trace, []string{"cancel"}) {
++				t.Fatal("proven idle session cancellation changed text/mark or used fallback")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++		}); err != nil {
++			t.Fatal(err)
++		}
++	})
++
++	t.Run("refused-optional-does-not-clear-target-or-fallback", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		frame, builds := f.tester.rt.frame, f.builds
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if !input.Start() || !input.Preedit(nil, "owned", TextInputRange{}) {
++				t.Fatal("preedit")
++			}
++			f.optional.refuseCancel = true
++			if input.Cancel() || f.optional.cancels != 0 || !f.base.marked || f.base.text != "owned" || !reflect.DeepEqual(f.base.trace, []string{"preedit"}) {
++				t.Fatal("refusal cleared ownership or used legacy mutation")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++			f.optional.refuseCancel = false
++			if !input.Result(nil, "valid final") || f.base.text != "valid final" || f.base.marked {
++				t.Fatal("refused cancellation stole the real final continuation")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++		}); err != nil {
++			t.Fatal(err)
++		}
++	})
++
++	t.Run("ordinary-Text-really-visits-engine-input-observer", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		observed := 0
++		f.base.onReplace = func() { observed++ }
++		frame, builds := f.tester.rt.frame, f.builds
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if !input.Text("event text") || observed != 1 || f.base.text != "event text" || !reflect.DeepEqual(f.base.trace, []string{"replace"}) || !reflect.DeepEqual(f.ordinaryEvents, []string{"event text"}) {
++				t.Fatal("ordinary production event did not reach actual adapter exactly once")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++		}); err != nil {
++			t.Fatal(err)
++		}
++	})
++
++	t.Run("callback-focus-reentry-fails-batch-without-restoring-old-client", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		frame := f.tester.rt.frame
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if !input.Start() || !input.Preedit(nil, "owned", TextInputRange{}) {
++				t.Fatal("preedit")
++			}
++			f.optional.onCancel = func() {
++				f.optional.onCancel = nil
++				f.tester.rt.event(platform.SurfaceEvent{Kind: platform.SurfaceBlur})
++			}
++			if input.Cancel() || input.Err() == nil {
++				t.Fatal("synchronous focus reentry did not invalidate the current facade")
++			}
++			if input.Text("old tail") || f.base.text != "original" || f.base.marked || f.optional.cancels != 1 {
++				t.Fatal("old tail crossed callback focus loss or rollback was lost")
++			}
++		}); err == nil {
++			t.Fatal("failed callback scope reported a successful batch")
++		}
++		if f.tester.rt.frame != frame {
++			t.Fatal("callback focus reentry forced an intermediate frame")
++		}
++		if current, _ := f.adapter.client(); current != nil {
++			t.Fatal("fixture kept an old client live to hide focus retirement")
++		}
++		f.tester.SetFocused(true) // normal real focus change, explicitly outside batch
++	})
++
++	t.Run("outside-client-switch-retires-captured-handles", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		var old TesterTextInputCapture
++		var retired *TesterTextInput
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			retired = input
++			if !input.Start() || !input.Preedit(nil, "first", TextInputRange{}) {
++				t.Fatal("preedit")
++			}
++			old = input.Capture()
++		}); err != nil {
++			t.Fatal(err)
++		}
++		otherBase := &cancelText{text: "successor"}
++		other := &cancelOptional{cancelText: otherBase}
++		otherBase.owner = other
++		f.current = other
++		f.tester.Frame() // the actual View changes HandleTextInput's client pointer
++		adapter, ok := f.tester.h.ime.Client.(*textInputAdapter)
++		if !ok || adapter == nil || adapter == f.adapter {
++			t.Fatal("actual external client switch did not replace native adapter")
++		}
++		beforeOld, beforeNew := f.base.text, otherBase.text
++		if retired.Result(nil, "retired facade") || f.base.text != beforeOld || otherBase.text != beforeNew {
++			t.Fatal("callback-scoped facade remained writable")
++		}
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			frame := f.tester.rt.frame
++			if input.CancelFor(old) || input.ResultFor(old, nil, "stale result") || input.EndFor(old) || input.PreeditFor(old, nil, "stale preedit", TextInputRange{}) || otherBase.text != beforeNew {
++				t.Fatal("old attachment handle touched replacement client")
++			}
++			if !input.Text("fresh") || otherBase.text != "fresh" || f.base.text != beforeOld || f.tester.rt.frame != frame || f.tester.h.ime.Client != adapter {
++				t.Fatal("current actual adapter did not retain ordinary input")
++			}
++		}); err != nil {
++			t.Fatal(err)
++		}
++	})
++
++	for _, operation := range []string{"Frame", "Advance", "Type", "Compose", "nested"} {
++		t.Run("forbidden-reentrant-"+operation, func(t *testing.T) {
++			f := newNoFrameCancelFixture(t)
++			frame, builds, now := f.tester.rt.frame, f.builds, f.tester.Now()
++			if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++				switch operation {
++				case "Frame":
++					f.tester.Frame()
++				case "Advance":
++					f.tester.Advance(1)
++				case "Type":
++					f.tester.Type("forbidden")
++				case "Compose":
++					f.tester.Compose("forbidden", 1)
++				case "nested":
++					if f.tester.TextInputNoFrame(func(*TesterTextInput) { t.Fatal("nested callback ran") }) == nil {
++						t.Fatal("nested batch accepted")
++					}
++				}
++				if input.Err() == nil || input.Text("tail") || f.base.text != "original" || len(f.base.trace) != 0 {
++					t.Fatal("forbidden mutation did work before reporting batch ownership error")
++				}
++			}); err == nil {
++				t.Fatal("forbidden batch mutation was hidden")
++			}
++			if f.tester.rt.frame != frame || f.builds != builds || !f.tester.Now().Equal(now) {
++				t.Fatal("forbidden batch mutation advanced a frame or clock")
++			}
++		})
++	}
++
++	t.Run("missing-installed-adapter-refuses-before-callback", func(t *testing.T) {
++		tester := NewTester(func(c *Context) { Button(c, "no native target") }, 220, 120)
++		frame := tester.rt.frame
++		if err := tester.TextInputNoFrame(func(*TesterTextInput) { t.Fatal("unbound callback ran") }); err == nil {
++			t.Fatal("missing installed client accepted")
++		}
++		if tester.rt.frame != frame {
++			t.Fatal("missing-client probe drew a frame")
++		}
++	})
++}
++
++// These private headless/installed-adapter contract tests call setTextInput
++// directly. They do not exercise Windows notifications, backend events or
++// physical input; the application owner is distinct from transport scope.
++func noFrameRequireDetachedComposition(t *testing.T, f *noFrameCancelFixture) {
++	t.Helper()
++	controller := &f.tester.h.composition
++	if !controller.Current(controller.Capture(), nil) {
++		t.Fatal("inactive/no-IME scope kept a composition client installed")
++	}
++	if err := f.tester.TextInputNoFrame(func(*TesterTextInput) {
++		t.Fatal("disabled input scope entered a no-frame callback")
++	}); err == nil {
++		t.Fatal("inactive/no-IME scope admitted a no-frame batch")
++	}
++}
++
++func noFrameRequireStaleEndsPreserveSuccessor(t *testing.T, f *noFrameCancelFixture, old TesterTextInputCapture) {
++	t.Helper()
++	frame, builds := f.tester.rt.frame, f.builds
++	if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++		// A scope transition only retires transport authority. The application
++		// finishes any retained previous owner through its ordinary input path.
++		if !input.Text("settled previous application owner") || f.base.marked || f.optional.stamp.HasTarget {
++			t.Fatal("previous application owner did not settle through ordinary input")
++		}
++		if !input.Start() || !input.Preedit(nil, "successor scope", TextInputRange{}) || !input.End() {
++			t.Fatal("successor scope did not retain its own pending span")
++		}
++		current := input.Capture()
++		pending, span := cancelPendingState(&f.tester.h.composition)
++		if !pending || !f.tester.h.composition.Current(current.session, f.adapter) || current.session == old.session {
++			t.Fatal("successor did not acquire a distinct current session")
++		}
++		stamp, text, mark, marked, cancels := f.optional.stamp, f.base.text, f.base.mark, f.base.marked, f.optional.cancels
++		trace := append([]string(nil), f.base.trace...)
++		wrongSession := current
++		wrongSession.session = old.session
++		for _, tc := range []struct {
++			name   string
++			handle TesterTextInputCapture
++		}{
++			{"late old EndFor", old},
++			{"duplicate old EndFor", old},
++			{"wrong owner EndFor", TesterTextInputCapture{}},
++			{"wrong session EndFor", wrongSession},
++		} {
++			if input.EndFor(tc.handle) {
++				t.Fatal(tc.name, "was accepted")
++			}
++			pendingNow, spanNow := cancelPendingState(&f.tester.h.composition)
++			if input.Err() != nil || input.Capture().session != current.session || !f.tester.h.composition.Current(current.session, f.adapter) || !pendingNow || spanNow != span || f.optional.stamp != stamp || f.base.text != text || f.base.mark != mark || f.base.marked != marked || f.optional.cancels != cancels || !reflect.DeepEqual(f.base.trace, trace) {
++				t.Fatal(tc.name, "changed the successor session, pending span or application state")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++		}
++		if !input.Result(nil, "successor final") || f.base.text != "successor final" || f.base.marked || f.base.lastReplacement == nil || *f.base.lastReplacement != span {
++			t.Fatal("successor result lost its own pending replacement span")
++		}
++		noFrameRequireIdentity(t, f, frame, builds)
++	}); err != nil {
++		t.Fatal(err)
++	}
++	noFrameRequireIdentity(t, f, frame, builds)
++}
++
++func TestLevNoteNativeCancelNoFrameSameClientNoInputMethodScopeFlip(t *testing.T) {
++	t.Run("pending-End-span", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		var old TesterTextInputCapture
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if !input.Start() || !input.Preedit(nil, "previous scope", TextInputRange{}) || !input.End() {
++				t.Fatal("pending-span fixture")
++			}
++			old = input.Capture()
++		}); err != nil {
++			t.Fatal(err)
++		}
++		pending, oldRange := cancelPendingState(&f.tester.h.composition)
++		if !pending || !f.tester.h.composition.Current(old.session, f.adapter) {
++			t.Fatal("fixture did not retain the old scoped session and End span")
++		}
++		beforeTrace := append([]string(nil), f.base.trace...)
++
++		state := f.tester.h.ime
++		if state.Client != f.adapter || !state.Active || state.NoInputMethod {
++			t.Fatal("fixture did not start with the active installed client")
++		}
++		state.NoInputMethod = true
++		f.tester.h.setTextInput(state)
++		if f.tester.h.ime.Client != f.adapter || !f.tester.h.ime.Active || !f.tester.h.ime.NoInputMethod || f.tester.h.composition.Current(old.session, f.adapter) {
++			t.Fatal("same-client no-IME transition did not retire the old scope")
++		}
++		noFrameRequireDetachedComposition(t, f)
++		if pending, _ := cancelPendingState(&f.tester.h.composition); pending {
++			t.Fatal("no-IME scope transition retained the old End span")
++		}
++		if f.tester.h.composition.ReplaceFor(old.session, f.adapter, nil, "late while disabled") || f.base.text != "previous scope" || !reflect.DeepEqual(f.base.trace, beforeTrace) {
++			t.Fatal("old result crossed the no-IME scope boundary")
++		}
++
++		state = f.tester.h.ime
++		state.NoInputMethod = false
++		f.tester.h.setTextInput(state)
++		if f.tester.h.ime.Client != f.adapter || f.tester.h.ime.NoInputMethod || f.tester.h.composition.Current(old.session, f.adapter) {
++			t.Fatal("restoring input methods revived the old scope")
++		}
++		if pending, _ := cancelPendingState(&f.tester.h.composition); pending {
++			t.Fatal("restoring input methods resurrected the old End span")
++		}
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if input.ResultFor(old, nil, "late after scope restore") || f.base.text != "previous scope" || !reflect.DeepEqual(f.base.trace, beforeTrace) {
++				t.Fatal("old captured result survived the restored same-client scope")
++			}
++		}); err != nil {
++			t.Fatal(err)
++		}
++		if oldRange == (TextInputRange{}) {
++			t.Fatal("fixture did not capture a meaningful pending span")
++		}
++		noFrameRequireStaleEndsPreserveSuccessor(t, f, old)
++	})
++
++	t.Run("cancelled-session", func(t *testing.T) {
++		f := newNoFrameCancelFixture(t)
++		var old TesterTextInputCapture
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if !input.Start() || !input.Preedit(nil, "cancelled scope", TextInputRange{}) || !input.Cancel() {
++				t.Fatal("cancelled-session fixture")
++			}
++			old = input.Capture()
++		}); err != nil {
++			t.Fatal(err)
++		}
++		if !f.tester.h.composition.SuppressesResult(f.adapter) || f.base.text != "original" {
++			t.Fatal("fixture did not establish cancelled-session isolation")
++		}
++		state := f.tester.h.ime
++		state.NoInputMethod = true
++		f.tester.h.setTextInput(state)
++		if f.tester.h.ime.Client != f.adapter || !f.tester.h.ime.Active || !f.tester.h.ime.NoInputMethod || f.tester.h.composition.Current(old.session, f.adapter) || f.tester.h.composition.SuppressesResult(f.adapter) {
++			t.Fatal("no-IME scope transition retained the cancelled session")
++		}
++		noFrameRequireDetachedComposition(t, f)
++		state = f.tester.h.ime
++		state.NoInputMethod = false
++		f.tester.h.setTextInput(state)
++		if f.tester.h.composition.Current(old.session, f.adapter) || f.tester.h.composition.SuppressesResult(f.adapter) {
++			t.Fatal("restoring input methods revived cancelled-session isolation")
++		}
++		if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++			if input.ResultFor(old, nil, "late cancelled result") || f.base.text != "original" {
++				t.Fatal("old cancelled result crossed the restored scope")
++			}
++			if !input.Start() || !input.Result(nil, "new scope result") || f.base.text != "new scope result" {
++				t.Fatal("new scope could not start after old cancellation was retired")
++			}
++		}); err != nil {
++			t.Fatal(err)
++		}
++		noFrameRequireStaleEndsPreserveSuccessor(t, f, old)
++	})
++}
++
++func TestLevNoteNativeCancelNoFrameSameClientActiveScopeFlip(t *testing.T) {
++	f := newNoFrameCancelFixture(t)
++	frame, builds := f.tester.rt.frame, f.builds
++	var old TesterTextInputCapture
++	if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++		if !input.Start() || !input.Preedit(nil, "active scope", TextInputRange{}) || !input.End() {
++			t.Fatal("active-only pending-span fixture")
++		}
++		old = input.Capture()
++	}); err != nil {
++		t.Fatal(err)
++	}
++	pending, span := cancelPendingState(&f.tester.h.composition)
++	if !pending || !f.tester.h.composition.Current(old.session, f.adapter) {
++		t.Fatal("active-only fixture has no current session or pending span")
++	}
++	trace := append([]string(nil), f.base.trace...)
++	state := f.tester.h.ime
++	state.Caret.X++
++	f.tester.h.setTextInput(state)
++	pendingNow, spanNow := cancelPendingState(&f.tester.h.composition)
++	if !f.tester.h.composition.Current(old.session, f.adapter) || !pendingNow || spanNow != span {
++		t.Fatal("caret-only update retired the unchanged input scope")
++	}
++	state.Active = false // Client and NoInputMethod deliberately stay unchanged.
++	f.tester.h.setTextInput(state)
++	if f.tester.h.ime.Client != f.adapter || f.tester.h.ime.Active || f.tester.h.ime.NoInputMethod || f.tester.h.composition.Current(old.session, f.adapter) {
++		t.Fatal("Active-only transition did not retire the same-client scope")
++	}
++	noFrameRequireDetachedComposition(t, f)
++	if pending, _ := cancelPendingState(&f.tester.h.composition); pending {
++		t.Fatal("inactive scope retained the old End span")
++	}
++	if f.tester.h.composition.EndFor(old.session, f.adapter) || !reflect.DeepEqual(f.base.trace, trace) {
++		t.Fatal("old End reached the application while its scope was inactive")
++	}
++	state.Active = true
++	f.tester.h.setTextInput(state)
++	controller := &f.tester.h.composition
++	if !controller.Current(controller.Capture(), f.adapter) || controller.Current(old.session, f.adapter) {
++		t.Fatal("restored active scope did not install only a fresh attachment")
++	}
++	if pending, _ := cancelPendingState(controller); pending {
++		t.Fatal("restoring active scope resurrected the old End span")
++	}
++	if !reflect.DeepEqual(f.base.trace, trace) {
++		t.Fatal("headless scope changes synthesized an application cancel or unmark")
++	}
++	noFrameRequireIdentity(t, f, frame, builds)
++	noFrameRequireStaleEndsPreserveSuccessor(t, f, old)
++}
++
++// These transitions are delivered at the headless host boundary. Both adapters
++// come from the same View, and every composition uses the host's controller.
++func TestLevNoteNativeCancelNoFrameChangedClientDisabledScope(t *testing.T) {
++	for _, tc := range []struct {
++		name                                      string
++		active, noIME, alreadyDisabled, cancelled bool
++	}{
++		{name: "changed-client-arrives-inactive"},
++		{name: "changed-client-arrives-no-IME", active: true, noIME: true, cancelled: true},
++		{name: "client-switch-while-already-disabled", active: true, noIME: true, alreadyDisabled: true},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			f := &noFrameCancelFixture{base: &cancelText{text: "original", settleEnd: true}}
++			f.optional = &cancelOptional{cancelText: f.base}
++			f.base.owner = f.optional
++			f.observed = &noFrameObservedOptional{cancelOptional: f.optional}
++			nextBase := &cancelText{text: "next original", settleEnd: true}
++			next := &cancelOptional{cancelText: nextBase}
++			nextBase.owner = next
++			var nextHandle Handle
++			f.tester = NewTester(func(c *Context) {
++				f.builds++
++				Column(c).Children(func() {
++					Box(c).MinWidth(160).MinHeight(60).Label("old input").HandleTextInput(f.observed)
++					Box(c).MinWidth(160).MinHeight(60).Label("next input").HandleTextInput(next).Bind(&nextHandle)
++				})
++			}, 280, 170)
++			if err := f.tester.Click("old input"); err != nil {
++				t.Fatal(err)
++			}
++			rt, host := f.tester.rt, f.tester.h
++			controller := &host.composition
++			initial := host.ime
++			f.adapter, _ = initial.Client.(*textInputAdapter)
++			binding := nextHandle.binding(rt, false)
++			if binding == nil || f.adapter == nil || !initial.Active || initial.NoInputMethod {
++				t.Fatal("fixture lacks the two View bindings or the active old scope")
++			}
++			nextState := rt.states[binding.id]
++			if nextState == nil || nextState.textClient != next || nextState.textAdapter == nil || nextState.textAdapter == f.adapter {
++				t.Fatal("fixture lacks a distinct View-installed successor adapter")
++			}
++			nextAdapter := nextState.textAdapter
++			frame, builds := rt.frame, f.builds
++			requireNoFrame := func() {
++				t.Helper()
++				if rt.frame != frame || f.builds != builds {
++					t.Fatalf("transition drew or rebuilt: frame=%d/%d builds=%d/%d", rt.frame, frame, f.builds, builds)
++				}
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++
++			var old TesterTextInputCapture
++			var closed *TesterTextInput
++			if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++				closed = input
++				if !input.Start() || !input.Preedit(nil, "previous composition", TextInputRange{}) {
++					t.Fatal("old application preedit did not establish a composition")
++				}
++				if tc.cancelled {
++					if !input.Cancel() || f.optional.cancels != 1 || f.base.text != "original" || f.base.marked {
++						t.Fatal("old application cancellation did not roll back")
++					}
++				} else if !input.End() || f.base.marked || f.optional.stamp.HasTarget {
++					t.Fatal("old End did not settle the application owner and retain a transport span")
++				}
++				old = input.Capture()
++			}); err != nil {
++				t.Fatal(err)
++			}
++			pending, oldSpan := cancelPendingState(controller)
++			if !controller.Current(old.session, f.adapter) || pending != !tc.cancelled ||
++				(pending && oldSpan != (TextInputRange{Start: 3, End: 3 + UTF16Len("previous composition")})) ||
++				controller.SuppressesResult(f.adapter) != tc.cancelled {
++				t.Fatal("fixture lacks the expected old pending span or cancelled session")
++			}
++
++			oldQueries, nextQueries := 0, 0
++			f.optional.onQuery = func() { oldQueries++ }
++			f.base.onMark = f.optional.onQuery
++			next.onQuery = func() { nextQueries++ }
++			nextBase.onMark = next.onQuery
++			withoutClientCalls := func(step string, run func()) {
++				t.Helper()
++				beforeOld, beforeNext := oldQueries, nextQueries
++				oldTrace, nextTrace := len(f.base.trace), len(nextBase.trace)
++				run()
++				if oldQueries != beforeOld || nextQueries != beforeNext || len(f.base.trace) != oldTrace || len(nextBase.trace) != nextTrace {
++					t.Fatal(step, "reached an old or successor application client")
++				}
++				requireNoFrame()
++			}
++			caretOnly := host.ime
++			caretOnly.Caret.X++
++			withoutClientCalls("caret-only update", func() { host.setTextInput(caretOnly) })
++			afterPending, afterSpan := cancelPendingState(controller)
++			if host.ime != caretOnly || !controller.Current(old.session, f.adapter) || afterPending != pending || afterSpan != oldSpan ||
++				controller.SuppressesResult(f.adapter) != tc.cancelled {
++				t.Fatal("caret-only update changed the old composition authority")
++			}
++			noFrameRequireIdentity(t, f, frame, builds)
++
++			disable := func(want platform.TextInputState) {
++				t.Helper()
++				before := controller.Capture()
++				withoutClientCalls("disabled scope delivery", func() { host.setTextInput(want) })
++				if host.ime != want || controller.Capture() == before ||
++					controller.Current(old.session, f.adapter) || controller.Current(old.session, nextAdapter) {
++					t.Fatal("disabled delivery did not retire the old transport attachment")
++				}
++				withoutClientCalls("disabled no-frame entry", func() { noFrameRequireDetachedComposition(t, f) })
++				if retained, _ := cancelPendingState(controller); retained || reflect.ValueOf(controller).Elem().FieldByName("cancelled").Bool() || controller.SuppressesResult(f.adapter) {
++					t.Fatal("disabled scope retained the old pending or cancelled state")
++				}
++			}
++			disabled := caretOnly
++			disabled.Active, disabled.NoInputMethod = tc.active, tc.noIME
++			if tc.alreadyDisabled {
++				disable(disabled)
++			}
++			disabled.Client = nextAdapter
++			disable(disabled)
++
++			staleTransport := func() {
++				t.Helper()
++				withoutClientCalls("old transport against both adapters", func() {
++					for _, adapter := range []*textInputAdapter{f.adapter, nextAdapter} {
++						if controller.PreeditFor(old.session, adapter, nil, "stale preedit", TextInputRange{}) ||
++							controller.CancelFor(old.session, adapter) || controller.ReplaceFor(old.session, adapter, nil, "stale result") ||
++							controller.EndFor(old.session, adapter) {
++							t.Fatal("old capture crossed the disabled client boundary")
++						}
++					}
++				})
++			}
++			// Probe once with the old application endpoint still live, then with
++			// the successor live. focusOn queues work without publishing a scope.
++			if client, _ := f.adapter.client(); client != f.observed {
++				t.Fatal("old endpoint was unavailable during the stale transport probe")
++			}
++			staleTransport()
++			rt.focusOn(nextState)
++			if client, _ := nextAdapter.client(); client != next || host.ime != disabled {
++				t.Fatal("successor focus did not preserve the delivered disabled state")
++			}
++			staleTransport()
++			withoutClientCalls("closed no-frame facade", func() {
++				if closed.ResultFor(old, nil, "closed scope result") || closed.Err() == nil {
++					t.Fatal("closed facade retained authority")
++				}
++			})
++
++			// Let the engine publish enabled scope for its newly focused control.
++			detached := controller.Capture()
++			rt.updateTextInput()
++			restored := controller.Capture()
++			if host.ime.Client != nextAdapter || !host.ime.Active || host.ime.NoInputMethod || restored == detached ||
++				!controller.Current(restored, nextAdapter) || controller.Current(old.session, nextAdapter) {
++				t.Fatal("enabled restoration did not grant a fresh successor attachment")
++			}
++			if retained, _ := cancelPendingState(controller); retained || reflect.ValueOf(controller).Elem().FieldByName("cancelled").Bool() || controller.SuppressesResult(nextAdapter) {
++				t.Fatal("enabled restoration revived the previous pending or cancelled state")
++			}
++			oldTrace, oldText, beforeOldQueries := len(f.base.trace), f.base.text, oldQueries
++			if err := f.tester.TextInputNoFrame(func(input *TesterTextInput) {
++				withoutClientCalls("old capture in restored facade", func() {
++					if input.PreeditFor(old, nil, "stale preedit", TextInputRange{}) || input.CancelFor(old) ||
++						input.ResultFor(old, nil, "stale result") || input.EndFor(old) || input.Err() != nil {
++						t.Fatal("old capture was usable in the restored facade")
++					}
++				})
++				// A result before START exposes any stale span or suppression that
++				// START could otherwise clear before the test saw it.
++				if !input.Result(nil, "fresh standalone result") || nextBase.text != "fresh standalone result" || nextBase.lastReplacement != nil {
++					t.Fatal("successor did not commit a result without the old span or suppression")
++				}
++				if !input.Start() || !input.Preedit(nil, "next mark", TextInputRange{}) || !input.End() {
++					t.Fatal("successor could not establish its own pending End span")
++				}
++				fresh := input.Capture()
++				p, span := cancelPendingState(controller)
++				if fresh.session == old.session || !controller.Current(fresh.session, nextAdapter) || !p ||
++					span != (TextInputRange{Start: 3, End: 3 + UTF16Len("next mark")}) {
++					t.Fatal("successor did not acquire a distinct session and pending range")
++				}
++				if !input.ResultFor(fresh, nil, "successor commit") || nextBase.text != "successor commit" ||
++					nextBase.marked || nextBase.lastReplacement == nil || *nextBase.lastReplacement != span ||
++					!reflect.DeepEqual(nextBase.trace, []string{"replace", "preedit", "unmark", "replace"}) {
++					t.Fatal("fresh authority did not apply the successor's own range exactly once")
++				}
++			}); err != nil {
++				t.Fatal(err)
++			}
++			if len(f.base.trace) != oldTrace || f.base.text != oldText || oldQueries != beforeOldQueries {
++				t.Fatal("restored no-frame input reached the retired application client")
++			}
++			requireNoFrame()
++		})
++	}
++}
 diff --git a/vendor/github.com/egoist/mygo/ui/text_input_client.go b/vendor/github.com/egoist/mygo/ui/text_input_client.go
 --- a/vendor/github.com/egoist/mygo/ui/text_input_client.go
 +++ b/vendor/github.com/egoist/mygo/ui/text_input_client.go
-@@ -15,6 +15,19 @@
- // methods. Reversed places its caret at Range.Start. An editor can keep
+@@ -16,6 +16,19 @@
  // additional cursors or discontiguous ranges in its own state.
  type TextInputSelection = platform.TextSelection
-+
+ 
 +type CompositionCancelStamp = platform.CompositionCancelStamp
 +type CompositionCancelAvailability = platform.CompositionCancelAvailability
 +
@@ -1922,9 +3122,10 @@ diff --git a/vendor/github.com/egoist/mygo/ui/text_input_client.go b/vendor/gith
 +// TextInputCompositionCanceler is an optional application-owned cancellation
 +// contract. HasTarget includes retained refused input without a live mark/token.
 +type TextInputCompositionCanceler = platform.TextInputCompositionCanceler
- 
++
  // Point is a position in DIPs relative to an element or text layout.
  type Point struct{ X, Y float32 }
+ 
 @@ -79,9 +92,13 @@
  
  // textInputAdapter is stable for an element's lifetime. A stale native
@@ -2014,8 +3215,6 @@ diff --git a/vendor/github.com/egoist/mygo/ui/text_input_client.go b/vendor/gith
 -	if c, _ := a.client(); c != nil {
 -		r, ok := c.MarkedRange()
 -		return platform.NormalizeTextRange(r), ok
--	}
--	return platform.TextRange{}, false
 +	client, state := a.client()
 +	if client == nil {
 +		return platform.TextRange{}, false
@@ -2039,7 +3238,8 @@ diff --git a/vendor/github.com/egoist/mygo/ui/text_input_client.go b/vendor/gith
 +		if availability != CancelReady || after != before || !a.cancelCurrent(client, state, lease) {
 +			return platform.TextRange{}, false
 +		}
-+	}
+ 	}
+-	return platform.TextRange{}, false
 +	return platform.NormalizeTextRange(r), marked
  }
  func (a *textInputAdapter) changed() { a.rt.requestFrame(); a.rt.updateTextInput() }
