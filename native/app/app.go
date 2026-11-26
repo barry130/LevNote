@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -72,6 +73,10 @@ type Tab struct {
 	// The disclosure latch belongs to this tab's actual text buffer, not its ID.
 	historyNoticeBuffer *text.Buffer
 	seenTruncated       bool
+	inputBinding        *sourceInputBinding
+	inputEpoch          uint64
+	formatHostEpoch     uint64
+	formatHostActive    bool
 }
 type Entry struct {
 	Path, Name string
@@ -115,6 +120,7 @@ type App struct {
 	commandPalette                                  commandPaletteState
 	sourceLanguage                                  sourceLanguageState
 	sourceLanguageHooks                             *sourceLanguageHooks
+	sourceAutoHooks                                 *sourceAutoHooks
 	Tabs                                            []*Tab
 	Active                                          int
 	revealedTabID                                   int
@@ -217,6 +223,253 @@ type App struct {
 	binarySnapshotTab                               *Tab
 	binaryDecode                                    func(context.Context, io.ReaderAt, int64) (editor.ImageResult, error)
 	restoring                                       bool
+	flushRefusalTokens                              [7]*flushRefusalToken
+}
+
+const (
+	flushRefusalAdd           = 0
+	flushRefusalBinaryOpen    = 1
+	flushRefusalOpenDocuments = 2
+	flushRefusalOutline       = 3
+	flushRefusalWorkspace     = 4
+	flushRefusalExport        = 5
+	flushRefusalReplace       = 6
+)
+
+type flushRefusalLifecycle struct {
+	shuttingDown  bool
+	restoring     bool
+	configDir     string
+	sourceSession uint64
+}
+
+type flushRefusalToken struct{ marker byte }
+type flushRefusalScope struct {
+	token      *flushRefusalToken
+	terminated bool
+}
+
+type flushLoss uint32
+
+const (
+	flushLossLifecycle flushLoss = 1 << iota
+	flushLossSession
+	flushLossConfig
+	flushLossActivity
+	flushLossSlot
+	flushLossTabIdentity
+	flushLossDocIdentity
+	flushLossEditorIdentity
+	flushLossBuffer
+	flushLossMetadata
+	flushLossReadOnly
+	flushLossRoute
+	flushLossFactory
+	flushLossAdapter
+	flushLossView
+	flushLossOpaqueLease
+	flushLossEpoch
+	flushLossFormatHost
+	flushLossBinaryFullToken
+	flushLossActivation
+	flushLossRestoreState
+)
+
+type flushKind uint8
+
+const (
+	flushCommitted flushKind = iota
+	flushSeamErrorReported
+	flushAuthorityLost
+)
+
+type flushResult struct {
+	kind flushKind
+	loss flushLoss
+}
+
+func (a *App) beginFlushRefusal(family int) *flushRefusalScope {
+	token := &flushRefusalToken{marker: 1}
+	a.flushRefusalTokens[family] = token
+	return &flushRefusalScope{token: token}
+}
+
+func (a *App) currentFlushRefusal(family int, scope *flushRefusalScope) bool {
+	return scope != nil && !scope.terminated && scope.token != nil && a.flushRefusalTokens[family] == scope.token
+}
+
+func (a *App) claimFlushRefusal(family int, scope *flushRefusalScope) bool {
+	if !a.currentFlushRefusal(family, scope) {
+		return false
+	}
+	scope.terminated = true
+	return true
+}
+
+func (a *App) captureFlushRefusalLifecycle() flushRefusalLifecycle {
+	return flushRefusalLifecycle{
+		shuttingDown:  a.shuttingDown.Load(),
+		restoring:     a.restoring,
+		configDir:     a.configDir,
+		sourceSession: a.sourceLanguage.session,
+	}
+}
+
+func (a *App) currentFlushRefusalLifecycle(family int, scope *flushRefusalScope, captured flushRefusalLifecycle) bool {
+	if captured.shuttingDown || !a.currentFlushRefusal(family, scope) || a.shuttingDown.Load() ||
+		a.restoring != captured.restoring || a.configDir != captured.configDir ||
+		a.sourceLanguage.session != captured.sourceSession {
+		return false
+	}
+	return true
+}
+
+type reopenObservation struct {
+	receipt *reopenReceipt
+	entryID uint64
+	origin  *Tab
+}
+
+func newReopenObservation(receipt *reopenReceipt, origin *Tab) *reopenObservation {
+	if receipt == nil {
+		return nil
+	}
+	return &reopenObservation{receipt: receipt, entryID: receipt.entryID, origin: origin}
+}
+
+func (a *App) observeReopenRefusal(observation *reopenObservation) error {
+	if observation == nil {
+		return nil
+	}
+	receipt := observation.receipt
+	if receipt == nil {
+		return nil
+	}
+	if a.reopening != receipt || receipt.outcome.Load() != reopenPending || a.closedFileIndex(observation.entryID) < 0 {
+		return errors.New("最近关闭记录已变化；本次重新打开已取消，请重新选择")
+	}
+	if err := a.reopenBarrier(); err != nil {
+		return err
+	}
+	if a.Current() != observation.origin {
+		return errors.New("同步输入期间当前标签已变化；未重新打开文件")
+	}
+	return nil
+}
+
+type workspaceSearchObservation struct {
+	index  int
+	id     int
+	root   string
+	result search.FileMatch
+	origin *Tab
+}
+
+type addAttachmentObservation struct {
+	document  *document.Document
+	inspector bool
+	buffer    *text.Buffer
+}
+
+type pluginRouteObservation struct {
+	id, name, adapterID string
+	route               plugins.NativeRoute
+	origin              *Tab
+	manager             *plugins.Manager
+	owner               *document.Document
+	buffer              *text.Buffer
+	input               *editor.Editor
+	view                editor.View
+	factoryGeneration   uint64
+}
+
+type addRequestObservation struct {
+	document   *document.Document
+	inspector  bool
+	workspace  *workspaceSearchObservation
+	attachment *addAttachmentObservation
+	reopen     *reopenObservation
+	route      *pluginRouteObservation
+}
+
+func (a *App) observeAddRefusal(observation *addRequestObservation) error {
+	if err := a.admitNewTab(); err != nil {
+		return err
+	}
+	if observation == nil {
+		return errors.New("打开新标签前原文档或格式已变化；未收纳，请重新打开")
+	}
+	if observation.route != nil {
+		if err := a.observePluginRouteRefusal(observation.route); err != nil {
+			return err
+		}
+	}
+	if observation.workspace != nil {
+		if err := a.observeWorkspaceAttachmentRefusal(observation.workspace, observation.attachment); err != nil {
+			return err
+		}
+	}
+	if err := a.observeReopenRefusal(observation.reopen); err != nil {
+		return err
+	}
+	return errors.New("打开新标签前原文档或格式已变化；未收纳，请重新打开")
+}
+
+func (a *App) observeWorkspaceAttachmentRefusal(workspace *workspaceSearchObservation, attachment *addAttachmentObservation) error {
+	if workspace == nil {
+		return nil
+	}
+	if a.shuttingDown.Load() || !a.ShowWorkspaceSearch || a.ShowPlugins ||
+		a.searchID != workspace.id || a.searchRoot != workspace.root || a.Root != workspace.root ||
+		workspace.index < 0 || workspace.index >= len(a.SearchResults) ||
+		a.SearchResults[workspace.index] != workspace.result {
+		return fmt.Errorf("工作区搜索结果已变化；未跳转")
+	}
+	if a.Current() != workspace.origin {
+		return fmt.Errorf("工作区搜索目标已变化；未跳转")
+	}
+	if attachment == nil || attachment.document == nil || attachment.inspector || attachment.buffer == nil ||
+		attachment.document.Buffer != attachment.buffer ||
+		!workspace.result.MatchesBufferWithoutSnapshot(attachment.buffer) {
+		return fmt.Errorf("工作区搜索结果对应的内容已变化；请重新搜索，未跳转")
+	}
+	return nil
+}
+
+func (a *App) observePluginRouteRefusal(route *pluginRouteObservation) error {
+	if route == nil {
+		return nil
+	}
+	if a.Current() != route.origin || a.pluginManager != route.manager || (route.origin != nil &&
+		(route.origin.Doc != route.owner || route.owner != nil && route.owner.Buffer != route.buffer ||
+			route.origin.Editor != route.input || route.origin.View != route.view ||
+			route.origin.OutlineFactoryGeneration != route.factoryGeneration)) {
+		return errors.New("当前文档或格式配置已变化，请重新新建")
+	}
+	if a.pluginManager == nil {
+		return errors.New("格式配置管理器不可用")
+	}
+	manifest, err := a.pluginManager.Manifest(route.id)
+	if err != nil || !manifest.Declarative || !manifest.Enabled || !manifest.Active || len(manifest.Extensions) == 0 {
+		return errors.New("格式配置未启用或无法载入，请先检查插件列表")
+	}
+	syntax, ok := a.pluginManager.Syntax(route.id)
+	if !ok || syntax.Schema != 3 {
+		return errors.New("此配置没有内置格式模板")
+	}
+	adapter, ok := a.nativeRouteAdapter(syntax.NativeRoute)
+	if !ok || adapter.Template == nil {
+		return errors.New("配置指定的原生格式模板不可用")
+	}
+	name := "未命名" + manifest.Extensions[0]
+	match, err := a.pluginManager.Match(name)
+	if err != nil || match.ID != route.id {
+		return fmt.Errorf("首个扩展名 %s 已被其它格式占用；请调整扩展名或启用状态后重试", manifest.Extensions[0])
+	}
+	if name != route.name || syntax.NativeRoute != route.route || adapter.ID != route.adapterID {
+		return errors.New("格式配置已变化，请重新新建")
+	}
+	return nil
 }
 
 type searchRowKey struct {
@@ -428,7 +681,9 @@ func (a *App) selectChecked(index int, beforeSelect func() error) bool {
 			}
 		}
 		a.invalidateTabExport(old, "切换标签，已取消导出")
-		a.releasePresentation(old)
+		if !a.releasePresentation(old) {
+			return false
+		}
 	} else if beforeSelect != nil {
 		if err := beforeSelect(); err != nil {
 			a.report(err)
@@ -475,41 +730,68 @@ func (a *App) admitNewTab() error {
 }
 
 func (a *App) addDocument(d *document.Document, name, warning string, byteInspector, canReinterpret bool) *Tab {
-	return a.addDocumentChecked(d, name, warning, byteInspector, canReinterpret, nil)
+	return a.addDocumentChecked(d, name, warning, byteInspector, canReinterpret, nil, nil)
 }
 
 // beforeAdd is used only by route-aware creation to revalidate after Flush,
 // while the originating presentation is still alive on a refusal.
-func (a *App) addDocumentChecked(d *document.Document, name, warning string, byteInspector, canReinterpret bool, beforeAdd func() error) *Tab {
+func (a *App) addDocumentChecked(d *document.Document, name, warning string, byteInspector, canReinterpret bool, beforeAdd func() error, observation *addRequestObservation) *Tab {
+	scope := a.beginFlushRefusal(flushRefusalAdd)
+	lifecycle := a.captureFlushRefusalLifecycle()
 	if err := a.admitNewTab(); err != nil {
-		a.report(err)
+		if a.currentFlushRefusalLifecycle(flushRefusalAdd, scope, lifecycle) && a.claimFlushRefusal(flushRefusalAdd, scope) {
+			a.report(err)
+		}
 		return nil
 	}
 	old := a.Current()
 	if old != nil {
-		if !a.flushTab(old, "打开新标签") {
+		result := a.flushTabResult(old, "打开新标签")
+		if result.kind == flushSeamErrorReported {
+			return nil
+		}
+		if result.kind == flushAuthorityLost {
+			if !a.currentFlushRefusalLifecycle(flushRefusalAdd, scope, lifecycle) {
+				return nil
+			}
+			reason := a.observeAddRefusal(observation)
+			if reason == nil {
+				reason = errors.New("打开新标签前原文档或格式已变化；未收纳，请重新打开")
+			}
+			if !a.claimFlushRefusal(flushRefusalAdd, scope) {
+				return nil
+			}
+			a.report(reason)
 			return nil
 		}
 		if beforeAdd != nil {
 			if err := beforeAdd(); err != nil {
-				a.report(err)
+				if a.currentFlushRefusalLifecycle(flushRefusalAdd, scope, lifecycle) && a.claimFlushRefusal(flushRefusalAdd, scope) {
+					a.report(err)
+				}
 				return nil
 			}
 		}
 	} else if beforeAdd != nil {
 		if err := beforeAdd(); err != nil {
-			a.report(err)
+			if a.currentFlushRefusalLifecycle(flushRefusalAdd, scope, lifecycle) && a.claimFlushRefusal(flushRefusalAdd, scope) {
+				a.report(err)
+			}
 			return nil
 		}
 	}
 	// Flush can synchronously create another tab through a rich-view callback.
 	if err := a.admitNewTab(); err != nil {
-		a.report(err)
+		if a.currentFlushRefusalLifecycle(flushRefusalAdd, scope, lifecycle) && a.claimFlushRefusal(flushRefusalAdd, scope) {
+			a.report(err)
+		}
 		return nil
 	}
 	if old != nil {
 		a.invalidateTabExport(old, "打开新标签，已取消导出")
-		a.releasePresentation(old)
+		if !a.releasePresentation(old) {
+			return nil
+		}
 	}
 	t := a.appendTab(d, name, warning, byteInspector, canReinterpret)
 	a.Active = len(a.Tabs) - 1
@@ -527,8 +809,6 @@ func (a *App) appendTab(d *document.Document, name, warning string, byteInspecto
 	ed.FontSize = a.FontSize
 	ed.SoftWrap = a.SoftWrap
 	ed.LineNumbers = a.LineNumbers
-	ed.OnError = a.report
-	ed.OnChange = a.noteEdit
 	if a.Window != nil {
 		ed.Copy = func(s string) error { return mygo.Clipboard.Write(transfer.TextData(s)) }
 		ed.Paste = func() (string, error) {
@@ -540,8 +820,11 @@ func (a *App) appendTab(d *document.Document, name, warning string, byteInspecto
 		ID: a.nextID, Name: name, Doc: d, Editor: ed, Mode: "source",
 		Warning: warning, ByteInspector: byteInspector, CanReinterpret: canReinterpret,
 	}
-	a.configureTab(t)
+	if !a.configureTab(t) {
+		return nil
+	}
 	a.Tabs = append(a.Tabs, t)
+	a.bindSourceInput(t)
 	return t
 }
 func (a *App) NewDocument(kind string) {
@@ -589,7 +872,13 @@ func (a *App) NewFromPlugin(id string) bool {
 		}
 		input, view = origin.Editor, origin.View
 	}
-	tab := a.addDocumentChecked(document.New(adapter.Template()), name, "", false, false, func() error {
+	newDocument := document.New(adapter.Template())
+	routeObservation := &pluginRouteObservation{
+		id: id, name: name, adapterID: adapter.ID, route: route,
+		origin: origin, manager: manager, owner: owner, buffer: buffer,
+		input: input, view: view, factoryGeneration: generation,
+	}
+	tab := a.addDocumentChecked(newDocument, name, "", false, false, func() error {
 		if a.Current() != origin || a.pluginManager != manager || (origin != nil &&
 			(origin.Doc != owner || owner != nil && owner.Buffer != buffer || origin.Editor != input || origin.View != view || origin.OutlineFactoryGeneration != generation)) {
 			return errors.New("当前文档或格式配置已变化，请重新新建")
@@ -602,7 +891,7 @@ func (a *App) NewFromPlugin(id string) bool {
 			return errors.New("格式配置已变化，请重新新建")
 		}
 		return nil
-	})
+	}, &addRequestObservation{document: newDocument, route: routeObservation})
 	if tab == nil {
 		return false
 	}
@@ -655,15 +944,24 @@ func (a *App) recoverDraft(title, content string) error {
 		name += ".txt"
 	}
 	if old := a.Current(); old != nil {
-		a.retireSourceLanguage(old)
+		if !a.retireSourceLanguage(old) {
+			return errSourceLanguageSuperseded
+		}
 		a.invalidateTabExport(old, "恢复草稿，已取消导出")
 		// Recovery can activate a new tab without the ordinary selection path.
 		// A readonly scene must be reactivatable when the user returns to it.
 		if old.isBinary() {
-			a.releasePresentation(old)
+			if !a.releasePresentation(old) {
+				return errSourceLanguageSuperseded
+			}
 		}
 		if old.Doc != nil && old.Doc.ReadOnly && old.Adapter != nil && old.Adapter.SceneEngine != nil && old.View != nil {
+			old.formatHostActive = false
+			current := a.sourceLanguageContinuation()
 			old.View.Release()
+			if !current() {
+				return errSourceLanguageSuperseded
+			}
 		}
 	}
 	t := a.appendTab(document.New(content), "恢复-"+name,
@@ -686,7 +984,9 @@ func (a *App) reopenWithEncoding(t *Tab, encoding document.Encoding) bool {
 		return false
 	}
 	a.invalidateTabExport(t, "重新解读文档，已取消导出")
-	a.disposePresentation(t)
+	if !a.disposePresentation(t) {
+		return false
+	}
 	t.Doc = d
 	a.invalidateDiskChecks()
 	t.Editor.SetBuffer(d.Buffer)
@@ -695,7 +995,9 @@ func (a *App) reopenWithEncoding(t *Tab, encoding document.Encoding) bool {
 	t.CanReinterpret = false
 	t.Warning = fmt.Sprintf("已按明确选择的 %s 编码打开。", encoding)
 	t.Mode = "source"
-	a.configureTab(t)
+	if !a.configureTab(t) {
+		return false
+	}
 	a.startWatch(d.Path, false)
 	a.markPersistPending()
 	a.Message = fmt.Sprintf("已按 %s 重新打开 %s", encoding, t.Name)
@@ -799,6 +1101,30 @@ func (a *App) openRequests(requests []openRequest) <-chan struct{} {
 				if a.selectRequestedDuplicate(path, request) {
 					return
 				}
+				capturedReopen := newReopenObservation(request.reopen, a.Current())
+				var observation *addRequestObservation
+				if request.search != nil {
+					searchTarget := request.search
+					observation = &addRequestObservation{
+						document:  d,
+						inspector: inspector,
+						workspace: &workspaceSearchObservation{
+							index:  searchTarget.index,
+							id:     searchTarget.id,
+							root:   searchTarget.root,
+							result: searchTarget.result,
+							origin: searchTarget.origin,
+						},
+						attachment: &addAttachmentObservation{
+							document:  d,
+							inspector: inspector,
+							buffer:    d.Buffer,
+						},
+						reopen: capturedReopen,
+					}
+				} else if request.reopen != nil {
+					observation = &addRequestObservation{reopen: capturedReopen}
+				}
 				beforeAdd := a.workspaceSearchAdoptionCheck(request.search, d, inspector, a.reopenAdoptionCheck(request.reopen))
 				if request.search != nil && beforeAdd != nil {
 					if err := beforeAdd(); err != nil {
@@ -809,7 +1135,7 @@ func (a *App) openRequests(requests []openRequest) <-chan struct{} {
 				if issueDetail != "" {
 					a.report(errors.New(issueDetail))
 				}
-				if t := a.addDocumentChecked(d, filepath.Base(path), warning, inspector, canReinterpret, beforeAdd); t != nil {
+				if t := a.addDocumentChecked(d, filepath.Base(path), warning, inspector, canReinterpret, beforeAdd, observation); t != nil {
 					a.acknowledgeReopen(request.reopen)
 					if request.search != nil {
 						request.search.origin = t
@@ -894,8 +1220,11 @@ func (a *App) revealSource(t *Tab, reveal revealTarget) bool {
 		a.report(errors.New("搜索结果位置已失效；文件已打开，但未跳转"))
 		return false
 	}
-	a.releasePresentation(t)
+	if !a.releasePresentation(t) {
+		return false
+	}
 	t.Mode = "source"
+	a.bindSourceInput(t)
 	t.Editor.Reveal(reveal.Start, reveal.End)
 	a.markPersistPending()
 	return true
@@ -1045,7 +1374,9 @@ func (a *App) Save(t *Tab, as bool) bool {
 				// The flush/ownership barriers above succeeded. Rebind only the
 				// presentation metadata; the original saved/disk baseline and
 				// current source-buffer draft remain owned by the document.
-				a.reconcileSavedMetadata(t, oldPath, oldMode, true)
+				if !a.reconcileSavedMetadata(t, oldPath, oldMode, true) {
+					return false
+				}
 				a.markPersistPending()
 				state = "文档路径/新建/只读元数据已采用目标，保存基线未确认"
 			}
@@ -1056,7 +1387,9 @@ func (a *App) Save(t *Tab, as bool) bool {
 		return false
 	}
 	t.Conflict = false
-	a.reconcileSavedMetadata(t, oldPath, oldMode, destination != "")
+	if !a.reconcileSavedMetadata(t, oldPath, oldMode, destination != "") {
+		return false
+	}
 	a.Message = "已保存 " + t.Name
 	a.Persist()
 	return true
@@ -1065,7 +1398,15 @@ func (a *App) Save(t *Tab, as bool) bool {
 // reconcileSavedMetadata also serves SaveAs failures after target adoption.
 // It is not a success transition: it never clears conflict, marks the document
 // clean, persists a clean receipt, or reports completion.
-func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string, forceLanguageRetirement bool) {
+func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string, forceLanguageRetirement bool) bool {
+	doc, input, buffer, view, adapter := t.Doc, t.Editor, t.Doc.Buffer, t.View, t.Adapter
+	path, name, mode, epoch := doc.Path, t.Name, t.Mode, t.inputEpoch
+	stamp, active, generation := buffer.ChangeStamp(), a.Current(), t.OutlineFactoryGeneration
+	current := func() bool {
+		return a.tabIsOpen(t) && t.Doc == doc && t.Editor == input && doc.Buffer == buffer && input.Buffer == buffer &&
+			t.View == view && t.Adapter == adapter && doc.Path == path && t.Name == name && t.Mode == mode &&
+			t.inputEpoch == epoch && buffer.ChangeStamp() == stamp && a.Current() == active && t.OutlineFactoryGeneration == generation
+	}
 	savedName := filepath.Base(t.Doc.Path)
 	owner := a.sourceLanguage.owner
 	binding := a.sourceLanguage.shortcut
@@ -1073,11 +1414,25 @@ func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string, forceLangu
 	metadataChanged := t.Name != savedName || t.Editor.ReadOnly != t.Doc.ReadOnly
 	bindingChanged := binding != nil && binding.tab == t && (metadataChanged || !a.sourceLanguageShortcutCurrent(binding))
 	ownerChanged := owner != nil && owner.tab == t && (metadataChanged || a.sourceLanguageOwnerValid(owner, false) != nil)
-	if forceLanguageRetirement || bindingChanged || ownerChanged {
-		a.retireSourceLanguage(t)
+	inputBinding := t.inputBinding
+	inputChanged := inputBinding != nil && inputBinding.tab == t &&
+		(forceLanguageRetirement || metadataChanged || !a.sourceInputCurrent(inputBinding))
+	if forceLanguageRetirement || bindingChanged || ownerChanged || inputChanged {
+		if !a.retireSourceLanguage(t) {
+			return false
+		}
+		if !current() || a.sourceLanguage.owner != nil && a.sourceLanguage.owner.tab == t {
+			return false
+		}
+	}
+	if inputChanged {
+		a.revokeSourceInput(t)
 	}
 	t.Name = savedName
 	t.Editor.SetReadOnly(t.Doc.ReadOnly)
+	if inputChanged && strings.EqualFold(oldPath, t.Doc.Path) {
+		a.bindSourceInput(t)
+	}
 	a.invalidateDiskChecks()
 	if !strings.EqualFold(oldPath, t.Doc.Path) {
 		a.invalidateTabExport(t, "文档路径或格式已变化，已取消导出")
@@ -1085,9 +1440,13 @@ func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string, forceLangu
 			cancel()
 			delete(a.watches, oldPath)
 		}
-		a.disposePresentation(t)
+		if !a.disposePresentation(t) {
+			return false
+		}
 		t.Adapter = nil
-		a.configureTab(t)
+		if !a.configureTab(t) {
+			return false
+		}
 		if (oldMode == "preview" || oldMode == "split") && t.Adapter != nil {
 			t.Mode = oldMode
 		} else {
@@ -1095,6 +1454,8 @@ func (a *App) reconcileSavedMetadata(t *Tab, oldPath, oldMode string, forceLangu
 		}
 		a.startWatch(t.Doc.Path, false)
 	}
+	a.bindSourceInput(t)
+	return true
 }
 
 func (a *App) chooseSavePath(t *Tab) (string, error) {
@@ -1193,35 +1554,332 @@ func (a *App) chooseCloseAction(t *Tab) (closeDecision, error) {
 		return closeCancel, nil
 	}
 }
-func (a *App) releasePresentation(t *Tab) {
-	a.releaseTabPresentation(t, false)
+
+type editorTerminalSeal struct {
+	editor           *editor.Editor
+	buffer           reflect.Value
+	readOnly         reflect.Value
+	viewGeneration   reflect.Value
+	observedBuffer   reflect.Value
+	observedReadonly reflect.Value
+	observedView     reflect.Value
+	bufferEpoch      reflect.Value
+	readonlyEpoch    reflect.Value
+	viewEpoch        reflect.Value
+	registration     reflect.Value
 }
 
-func (a *App) releaseTabPresentation(t *Tab, keepBinarySnapshot bool) {
-	if t == nil {
-		return
+func editorTerminalSealFromValue(input *editor.Editor, value reflect.Value) (editorTerminalSeal, bool) {
+	field := func(name string, kind reflect.Kind) (reflect.Value, bool) {
+		field := value.FieldByName(name)
+		return field, field.IsValid() && field.Kind() == kind
 	}
-	a.retireSourceLanguage(t)
+	seal := editorTerminalSeal{editor: input}
+	var ok bool
+	if seal.buffer, ok = field("Buffer", reflect.Pointer); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.readOnly, ok = field("ReadOnly", reflect.Bool); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.viewGeneration, ok = field("viewGeneration", reflect.Uint64); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.observedBuffer, ok = field("terminalObservedBuffer", reflect.Pointer); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.observedReadonly, ok = field("terminalObservedReadonly", reflect.Bool); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.observedView, ok = field("terminalObservedView", reflect.Uint64); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.bufferEpoch, ok = field("terminalBufferEpoch", reflect.Pointer); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.readonlyEpoch, ok = field("terminalReadonlyEpoch", reflect.Pointer); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.viewEpoch, ok = field("terminalViewEpoch", reflect.Pointer); !ok {
+		return editorTerminalSeal{}, false
+	}
+	if seal.registration, ok = field("terminalRegistration", reflect.Pointer); !ok {
+		return editorTerminalSeal{}, false
+	}
+	return seal, true
+}
+
+func captureEditorTerminalSeal(input *editor.Editor) (editorTerminalSeal, bool) {
+	if input == nil {
+		return editorTerminalSeal{}, false
+	}
+	readOnly := input.ReadOnly
+	input.SetReadOnly(readOnly)
+	return editorTerminalSealFromValue(input, reflect.ValueOf(*input))
+}
+
+func (seal editorTerminalSeal) current(input *editor.Editor) bool {
+	if input == nil || input != seal.editor {
+		return false
+	}
+	current, ok := editorTerminalSealFromValue(input, reflect.ValueOf(*input))
+	if !ok {
+		return false
+	}
+	return seal.buffer.Equal(current.buffer) && seal.readOnly.Equal(current.readOnly) &&
+		seal.viewGeneration.Equal(current.viewGeneration) && seal.observedBuffer.Equal(current.observedBuffer) &&
+		seal.observedReadonly.Equal(current.observedReadonly) && seal.observedView.Equal(current.observedView) &&
+		seal.bufferEpoch.Equal(current.bufferEpoch) && seal.readonlyEpoch.Equal(current.readonlyEpoch) &&
+		seal.viewEpoch.Equal(current.viewEpoch) && seal.registration.Equal(current.registration)
+}
+
+func (seal editorTerminalSeal) equalExceptBuffer(current editorTerminalSeal) bool {
+	return seal.readOnly.Equal(current.readOnly) && seal.viewGeneration.Equal(current.viewGeneration) &&
+		seal.observedReadonly.Equal(current.observedReadonly) && seal.observedView.Equal(current.observedView) &&
+		seal.readonlyEpoch.Equal(current.readonlyEpoch) && seal.viewEpoch.Equal(current.viewEpoch) &&
+		seal.registration.Equal(current.registration)
+}
+
+func (seal editorTerminalSeal) replaceBuffer(input *editor.Editor, buffer *text.Buffer) (editorTerminalSeal, bool) {
+	if input == nil || buffer == nil || input != seal.editor || input.Buffer != buffer {
+		return editorTerminalSeal{}, false
+	}
+	current, ok := editorTerminalSealFromValue(input, reflect.ValueOf(*input))
+	if !ok || !seal.equalExceptBuffer(current) || seal.buffer.Equal(current.buffer) ||
+		!current.buffer.Equal(reflect.ValueOf(buffer)) || !current.observedBuffer.Equal(reflect.ValueOf(buffer)) ||
+		current.bufferEpoch.IsNil() || current.bufferEpoch.Equal(seal.bufferEpoch) {
+		return editorTerminalSeal{}, false
+	}
+	return current, true
+}
+
+func (seal editorTerminalSeal) equalExceptRegistration(current editorTerminalSeal) bool {
+	return seal.buffer.Equal(current.buffer) && seal.readOnly.Equal(current.readOnly) &&
+		seal.viewGeneration.Equal(current.viewGeneration) && seal.observedBuffer.Equal(current.observedBuffer) &&
+		seal.observedReadonly.Equal(current.observedReadonly) && seal.observedView.Equal(current.observedView) &&
+		seal.bufferEpoch.Equal(current.bufferEpoch) && seal.readonlyEpoch.Equal(current.readonlyEpoch) &&
+		seal.viewEpoch.Equal(current.viewEpoch)
+}
+
+func (seal editorTerminalSeal) replaceRegistration(input *editor.Editor) (editorTerminalSeal, bool) {
+	if input == nil || input != seal.editor {
+		return editorTerminalSeal{}, false
+	}
+	current, ok := editorTerminalSealFromValue(input, reflect.ValueOf(*input))
+	if !ok || !seal.equalExceptRegistration(current) || seal.registration.Equal(current.registration) ||
+		current.registration.IsNil() {
+		return editorTerminalSeal{}, false
+	}
+	return current, true
+}
+
+func (seal editorTerminalSeal) retireView(input *editor.Editor) (editorTerminalSeal, bool) {
+	if input == nil || input != seal.editor {
+		return editorTerminalSeal{}, false
+	}
+	current, ok := editorTerminalSealFromValue(input, reflect.ValueOf(*input))
+	if !ok || !seal.equalExceptView(current) {
+		return editorTerminalSeal{}, false
+	}
+	view := seal.viewGeneration.Uint() + 1
+	if current.viewGeneration.Uint() != view || current.observedView.Uint() != view ||
+		current.viewEpoch.IsNil() || current.viewEpoch.Equal(seal.viewEpoch) {
+		return editorTerminalSeal{}, false
+	}
+	return current, true
+}
+
+func (seal editorTerminalSeal) equalExceptView(current editorTerminalSeal) bool {
+	return seal.buffer.Equal(current.buffer) && seal.readOnly.Equal(current.readOnly) &&
+		seal.observedBuffer.Equal(current.observedBuffer) && seal.observedReadonly.Equal(current.observedReadonly) &&
+		seal.bufferEpoch.Equal(current.bufferEpoch) && seal.readonlyEpoch.Equal(current.readonlyEpoch) &&
+		seal.registration.Equal(current.registration)
+}
+
+func (a *App) releasePresentation(t *Tab) bool {
+	return a.releaseTabPresentation(t, false)
+}
+
+func (a *App) releaseTabPresentation(t *Tab, keepBinarySnapshot bool) bool {
+	if t == nil {
+		return true
+	}
+	doc0, input0, view0, adapter0 := t.Doc, t.Editor, t.View, t.Adapter
+	binary0 := t.Binary
+	var binaryToken0 document.BinaryToken
+	if binary0 != nil {
+		binaryToken0 = binary0.Token()
+	}
+	binaryPath0, binaryKind0, binarySize0, binaryGeneration0 := t.BinaryPath, t.BinaryKind, t.BinarySize, t.BinaryGeneration
+	active, activeIndex, route, mode, generation := a.Current(), a.Active, t.sourceLanguageRoute, t.Mode, t.OutlineFactoryGeneration
+	manager, profile, name, inspector := a.pluginManager, t.sourceLanguageProfile, t.Name, t.ByteInspector
+	sourceSession, formatHostEpoch0 := a.sourceLanguage.session, t.formatHostEpoch
+	configDir0, tabID0 := a.configDir, t.ID
+	restoring0, shuttingDown0 := a.restoring, a.shuttingDown.Load()
+	var docBuffer0, inputBuffer0 *text.Buffer
+	var path string
+	var encoding document.Encoding
+	var bom, docReadOnly, readOnly bool
+	if doc0 != nil {
+		docBuffer0, path, encoding, bom, docReadOnly = doc0.Buffer, doc0.Path, doc0.Encoding, doc0.BOM, doc0.ReadOnly
+	}
+	if input0 != nil {
+		inputBuffer0, readOnly = input0.Buffer, input0.ReadOnly
+	}
+	t.formatHostActive = false // revoke format callbacks before any release seam
+	a.revokeSourceInput(t)     // no terminal observer during the release continuation
+	epoch := t.inputEpoch
+	expectedInputBuffer, expectedGeneration, expectedEpoch := inputBuffer0, binaryGeneration0, epoch
+	expectedBinding := (*sourceInputBinding)(nil)
+	terminalSeal, terminalSealed := captureEditorTerminalSeal(input0)
+	current := func() bool {
+		if a.shuttingDown.Load() != shuttingDown0 || a.restoring != restoring0 || !a.tabIsOpen(t) ||
+			t.ID != tabID0 || a.configDir != configDir0 || a.Active != activeIndex ||
+			t.Doc != doc0 || t.Editor != input0 || t.View != view0 || t.Adapter != adapter0 ||
+			t.inputEpoch != expectedEpoch || t.sourceLanguageRoute != route || t.Mode != mode ||
+			t.OutlineFactoryGeneration != generation || a.Current() != active || a.pluginManager != manager ||
+			a.sourceLanguage.session != sourceSession ||
+			t.sourceLanguageProfile != profile || t.Name != name || t.ByteInspector != inspector ||
+			t.formatHostEpoch != formatHostEpoch0 || t.formatHostActive {
+			return false
+		}
+		if doc0 != nil && (doc0.Buffer != docBuffer0 || doc0.Path != path || doc0.Encoding != encoding ||
+			doc0.BOM != bom || doc0.ReadOnly != docReadOnly) {
+			return false
+		}
+		if input0 != nil && (input0.Buffer != expectedInputBuffer || input0.ReadOnly != readOnly) {
+			return false
+		}
+		if (input0 != nil && !terminalSealed) || t.inputBinding != expectedBinding ||
+			(input0 != nil && !terminalSeal.current(input0)) {
+			return false
+		}
+		if t.Binary != binary0 || t.BinaryPath != binaryPath0 || t.BinaryKind != binaryKind0 ||
+			t.BinarySize != binarySize0 || t.BinaryGeneration != expectedGeneration {
+			return false
+		}
+		if binary0 != nil && !binary0.SameBaseline(binaryToken0) {
+			return false
+		}
+		return true
+	}
+	if !a.retireSourceLanguage(t) || !current() {
+		return false
+	}
 	a.cancelPreview(t)
+	if !current() {
+		return false
+	}
 	if keepBinarySnapshot && t.isBinary() {
 		t.BinaryGeneration++
 		a.cancelBinaryPreview(t)
+		expectedGeneration = binaryGeneration0 + 1
 	} else {
 		a.deactivateBinary(t)
+		if t.isBinary() {
+			expectedGeneration = binaryGeneration0 + 1
+			if binary0 != nil {
+				expectedInputBuffer = input0.Buffer
+				if expectedInputBuffer == nil || expectedInputBuffer == inputBuffer0 || expectedInputBuffer.LenBytes() != 0 {
+					return false
+				}
+				nextTerminalSeal, replaced := terminalSeal.replaceBuffer(input0, expectedInputBuffer)
+				if !replaced {
+					return false
+				}
+				terminalSeal = nextTerminalSeal
+			}
+		}
+	}
+	if !current() {
+		return false
 	}
 	a.releaseOutline()
-	t.Editor.UnmarkText()
-	t.Editor.ReleaseView()
-	if t.View != nil {
-		t.View.Release()
+	if !current() {
+		return false
 	}
+	var releaseErr error
+	if input0 != nil {
+		originalOnError := input0.OnError
+		collecting := true
+		input0.OnError = func(err error) {
+			if collecting {
+				if releaseErr == nil {
+					releaseErr = err
+				}
+				return
+			}
+			if originalOnError != nil {
+				originalOnError(err)
+			}
+		}
+		input0.ReleaseView()
+		collecting = false
+		nextTerminalSeal, retired := terminalSeal.retireView(input0)
+		if !retired {
+			return false
+		}
+		terminalSeal = nextTerminalSeal
+		if !current() {
+			return false
+		}
+		input0.OnError = originalOnError
+	}
+	// Reprime this still-live Editor for recovery, including inactive tabs.
+	if doc0 != nil && (!current() || t.inputBinding != nil || t.inputEpoch != expectedEpoch) {
+		return false
+	}
+	a.bindSourceInput(t)
+	b := expectedBinding
+	if doc0 != nil {
+		bR := t.inputBinding
+		expectedEpoch = epoch + 1
+		if bR == nil || bR.epoch != expectedEpoch || !a.sourceInputConsumerCurrent(bR) {
+			return false
+		}
+		nextTerminalSeal, replaced := terminalSeal.replaceRegistration(input0)
+		if !replaced {
+			return false
+		}
+		terminalSeal = nextTerminalSeal
+		expectedBinding = bR
+		b = bR
+		if !current() {
+			return false
+		}
+	} else if b != nil {
+		return false
+	}
+	if releaseErr != nil {
+		a.report(releaseErr)
+		return false
+	}
+	if view0 != nil {
+		view0.Release()
+	}
+	if !current() {
+		return false
+	}
+	if doc0 != nil && !a.sourceInputConsumerCurrent(b) {
+		return false
+	}
+	if doc0 == nil && t.inputBinding != nil {
+		return false
+	}
+	return true
 }
-func (a *App) disposePresentation(t *Tab) {
+func (a *App) disposePresentation(t *Tab) bool {
 	if t == nil {
-		return
+		return true
 	}
-	a.releasePresentation(t)
+	view := t.View
+	if !a.releasePresentation(t) || t.View != view {
+		return false
+	}
+	t.formatHostEpoch++
 	t.View = nil
+	a.bindSourceInput(t)
+	return true
 }
 func (a *App) removeTab(index int) {
 	if index < 0 || index >= len(a.Tabs) {
@@ -1231,7 +1889,10 @@ func (a *App) removeTab(index int) {
 	a.invalidateFindCache()
 	t := a.Tabs[index]
 	a.invalidateTabExport(t, "标签已关闭，已取消导出")
-	a.disposePresentation(t)
+	if !a.disposePresentation(t) {
+		return
+	}
+	a.revokeSourceInput(t)
 	a.cancelBinaryForClose(t)
 	if cancel := a.watches[t.path()]; cancel != nil {
 		cancel()
@@ -1405,12 +2066,16 @@ func (a *App) reloadOwnerCheck(t *Tab) func() bool {
 func (a *App) finishTextReload(t *Tab, message string) {
 	a.invalidateTabExport(t, "文档已重新载入，已取消导出")
 	a.invalidateDiskChecks()
-	a.disposePresentation(t)
+	if !a.disposePresentation(t) {
+		return
+	}
 	t.Editor.SetBuffer(t.Doc.Buffer)
 	t.Editor.SetReadOnly(t.Doc.ReadOnly)
 	t.Conflict = false
 	t.Mode = "source"
-	a.configureTab(t)
+	if !a.configureTab(t) {
+		return
+	}
 	if err := a.persistTabs(a.Tabs, a.Active, "已采用磁盘版本；恢复快照更新失败，旧恢复快照仍保留"); err != nil {
 		a.persistPending = false
 		a.reportPersistFailure(err)
@@ -1422,19 +2087,269 @@ func (a *App) finishTextReload(t *Tab, message string) {
 }
 
 func (a *App) flushTab(t *Tab, action string) bool {
+	return a.flushTabResult(t, action).kind == flushCommitted
+}
+
+func (a *App) flushTabResult(t *Tab, action string) flushResult {
 	if t == nil {
-		return true
+		return flushResult{kind: flushCommitted}
 	}
-	if err := t.Editor.Flush(); err != nil {
+	target := t
+	id := target.ID
+	b0, doc0, input0, view0, adapter0 := target.inputBinding, target.Doc, target.Editor, target.View, target.Adapter
+	active, activeIndex, activation, sourceSession := a.Current(), a.Active, a.sourceLanguage.activation, a.sourceLanguage.session
+	generation, epoch := target.OutlineFactoryGeneration, target.inputEpoch
+	manager, route, profile := a.pluginManager, target.sourceLanguageRoute, target.sourceLanguageProfile
+	mode, name, inspector := target.Mode, target.Name, target.ByteInspector
+	restoring0, shuttingDown0 := a.restoring, a.shuttingDown.Load()
+	formatHostEpoch0, formatHostActive0 := target.formatHostEpoch, target.formatHostActive
+	configDir0 := a.configDir
+	isBinaryTarget := target.isBinary()
+	var terminalSeal editorTerminalSeal
+	var terminalSealed bool
+	var docBuffer0, editorBuffer0 *text.Buffer
+	var binary0 *document.BinaryFile
+	var binaryToken0 document.BinaryToken
+	var binaryPath0 string
+	var binaryKind0 document.BinaryKind
+	var binarySize0 int64
+	var binaryGeneration0 uint64
+	var b *sourceInputBinding
+	if input0 != nil {
+		if doc0 != nil {
+			docBuffer0, editorBuffer0 = doc0.Buffer, input0.Buffer
+		} else {
+			editorBuffer0 = input0.Buffer
+			binary0 = target.Binary
+			if binary0 != nil {
+				binaryToken0 = binary0.Token()
+			}
+			binaryPath0, binaryKind0, binarySize0, binaryGeneration0 = target.BinaryPath, target.BinaryKind, target.BinarySize, target.BinaryGeneration
+		}
+	}
+	loss := func() flushLoss {
+		var loss flushLoss
+		if input0 == nil {
+			return flushLossEditorIdentity
+		}
+		if a.shuttingDown.Load() {
+			loss |= flushLossLifecycle
+		}
+		if a.restoring != restoring0 {
+			loss |= flushLossRestoreState
+		}
+		if !a.tabIsOpen(target) {
+			loss |= flushLossSlot
+		}
+		if target.ID != id {
+			loss |= flushLossTabIdentity
+		}
+		if a.Current() != active || a.Active != activeIndex {
+			loss |= flushLossActivity
+		}
+		if a.sourceLanguage.activation != activation {
+			loss |= flushLossActivation
+		}
+		if a.sourceLanguage.session != sourceSession {
+			loss |= flushLossSession
+		}
+		if a.pluginManager != manager || a.configDir != configDir0 {
+			loss |= flushLossConfig
+		}
+		if target.sourceLanguageRoute != route || target.sourceLanguageProfile != profile {
+			loss |= flushLossRoute
+		}
+		if target.Mode != mode || target.Name != name || target.ByteInspector != inspector {
+			loss |= flushLossMetadata
+		}
+		if target.OutlineFactoryGeneration != generation {
+			loss |= flushLossFactory
+		}
+		if target.formatHostEpoch != formatHostEpoch0 || target.formatHostActive != formatHostActive0 {
+			loss |= flushLossFormatHost
+		}
+		if target.View != view0 {
+			loss |= flushLossView
+		}
+		if target.Adapter != adapter0 {
+			loss |= flushLossAdapter
+		}
+		if target.Editor != input0 {
+			loss |= flushLossEditorIdentity
+		}
+		if doc0 != nil {
+			binding := b
+			if binding == nil {
+				binding = b0
+			}
+			if target.Doc != doc0 {
+				loss |= flushLossDocIdentity
+			}
+			if doc0.Buffer != docBuffer0 || input0.Buffer != editorBuffer0 {
+				loss |= flushLossBuffer
+			}
+			if binding != nil {
+				if target.inputBinding != binding || binding.tab != target || binding.doc != doc0 ||
+					binding.input != input0 || binding.buffer != docBuffer0 || !input0.InputBindingCurrent(binding.lease) {
+					loss |= flushLossOpaqueLease
+				}
+				if target.inputEpoch != binding.epoch {
+					loss |= flushLossEpoch
+				}
+				if binding.manager != manager {
+					loss |= flushLossConfig
+				}
+				if binding.route != route || binding.profile != profile {
+					loss |= flushLossRoute
+				}
+				if binding.mode != mode || binding.inspector != inspector {
+					loss |= flushLossMetadata
+				}
+				if binding.viewGeneration != generation {
+					loss |= flushLossFactory
+				}
+				if binding.view != view0 {
+					loss |= flushLossView
+				}
+				if binding.adapter != adapter0 {
+					loss |= flushLossAdapter
+				}
+				if target.Doc == doc0 {
+					if binding.path != doc0.Path || binding.name != name || binding.encoding != doc0.Encoding || binding.bom != doc0.BOM {
+						loss |= flushLossMetadata
+					}
+					if binding.docReadOnly != doc0.ReadOnly || binding.readOnly != input0.ReadOnly {
+						loss |= flushLossReadOnly
+					}
+				}
+			}
+		} else {
+			if target.Doc != doc0 {
+				loss |= flushLossDocIdentity
+			}
+			if target.Doc == nil && !target.isBinary() {
+				loss |= flushLossDocIdentity
+			}
+			if target.inputBinding != nil {
+				loss |= flushLossOpaqueLease
+			}
+			if target.inputEpoch != epoch {
+				loss |= flushLossEpoch
+			}
+			if target.Binary != binary0 {
+				loss |= flushLossDocIdentity
+			}
+			if binary0 != nil && !binary0.SameBaseline(binaryToken0) {
+				loss |= flushLossBinaryFullToken
+			}
+			if target.BinaryPath != binaryPath0 || target.BinaryKind != binaryKind0 || target.BinarySize != binarySize0 || target.BinaryGeneration != binaryGeneration0 {
+				loss |= flushLossMetadata
+			}
+			if !input0.ReadOnly {
+				loss |= flushLossReadOnly
+			}
+			if input0.Buffer != editorBuffer0 {
+				loss |= flushLossBuffer
+			}
+			if terminalSealed && !terminalSeal.current(input0) {
+				loss |= flushLossEditorIdentity
+			}
+		}
+		return loss
+	}
+	if shuttingDown0 || !a.tabIsOpen(target) || input0 == nil {
+		return flushResult{kind: flushAuthorityLost, loss: loss()}
+	}
+	if doc0 != nil {
+		if docBuffer0 == nil || editorBuffer0 == nil || docBuffer0 != editorBuffer0 {
+			return flushResult{kind: flushAuthorityLost, loss: flushLossBuffer}
+		}
+	} else {
+		var loss flushLoss
+		if !isBinaryTarget {
+			loss |= flushLossDocIdentity
+		}
+		if !input0.ReadOnly {
+			loss |= flushLossReadOnly
+		}
+		if loss != 0 {
+			return flushResult{kind: flushAuthorityLost, loss: loss}
+		}
+		editorBuffer0 = input0.Buffer
+		if editorBuffer0 == nil {
+			return flushResult{kind: flushAuthorityLost, loss: flushLossBuffer}
+		}
+		if b0 != nil {
+			return flushResult{kind: flushAuthorityLost, loss: flushLossOpaqueLease}
+		}
+		terminalSealed = false
+		terminalSeal, terminalSealed = captureEditorTerminalSeal(input0)
+		if !terminalSealed {
+			return flushResult{kind: flushAuthorityLost, loss: flushLossEditorIdentity}
+		}
+	}
+	a.bindSourceInput(target)
+	if doc0 != nil {
+		switch target.inputEpoch {
+		case epoch:
+			b = target.inputBinding
+			if b == nil || b != b0 {
+				return flushResult{kind: flushAuthorityLost, loss: flushLossOpaqueLease}
+			}
+		case epoch + 1:
+			b = target.inputBinding
+			if b == nil || b.epoch != epoch+1 {
+				return flushResult{kind: flushAuthorityLost, loss: flushLossEpoch}
+			}
+		default:
+			return flushResult{kind: flushAuthorityLost, loss: flushLossEpoch}
+		}
+	} else {
+		if target.inputEpoch != epoch || target.inputBinding != nil {
+			return flushResult{kind: flushAuthorityLost, loss: flushLossEpoch | flushLossOpaqueLease}
+		}
+	}
+	current := func() bool {
+		if a.shuttingDown.Load() || a.restoring != restoring0 || !a.tabIsOpen(target) || target.ID != id ||
+			a.Current() != active || a.Active != activeIndex || a.sourceLanguage.activation != activation || a.sourceLanguage.session != sourceSession ||
+			a.pluginManager != manager || a.configDir != configDir0 ||
+			target.sourceLanguageRoute != route || target.sourceLanguageProfile != profile ||
+			target.Mode != mode || target.Name != name || target.ByteInspector != inspector ||
+			target.OutlineFactoryGeneration != generation ||
+			target.formatHostEpoch != formatHostEpoch0 || target.formatHostActive != formatHostActive0 ||
+			target.View != view0 || target.Adapter != adapter0 || target.Editor != input0 {
+			return false
+		}
+		if doc0 != nil {
+			return target.Doc == doc0 && doc0.Buffer == docBuffer0 && input0.Buffer == editorBuffer0 && a.sourceInputConsumerCurrent(b)
+		}
+		return target.Doc == nil && target.isBinary() && target.inputBinding == nil && target.inputEpoch == epoch &&
+			target.Binary == binary0 && (binary0 == nil || binary0.SameBaseline(binaryToken0)) &&
+			target.BinaryPath == binaryPath0 && target.BinaryKind == binaryKind0 &&
+			target.BinarySize == binarySize0 && target.BinaryGeneration == binaryGeneration0 &&
+			input0.ReadOnly && input0.Buffer == editorBuffer0 && terminalSeal.current(input0)
+	}
+	if !current() {
+		return flushResult{kind: flushAuthorityLost, loss: loss()}
+	}
+	err := input0.Flush()
+	if !current() {
+		return flushResult{kind: flushAuthorityLost, loss: loss()}
+	} // never report through a callback's successor
+	if err != nil {
 		a.report(fmt.Errorf("%s前未能完成文本输入：%w", action, err))
-		return false
+		return flushResult{kind: flushSeamErrorReported}
 	}
-	if t.View == nil {
-		return true
+	if view0 == nil {
+		return flushResult{kind: flushCommitted}
 	}
-	if err := editor.FlushView(t.View); err != nil {
+	err = editor.FlushView(view0)
+	if !current() {
+		return flushResult{kind: flushAuthorityLost, loss: loss()}
+	}
+	if err != nil {
 		a.report(fmt.Errorf("%s前未能同步格式编辑：%w", action, err))
-		return false
+		return flushResult{kind: flushSeamErrorReported}
 	}
-	return true
+	return flushResult{kind: flushCommitted}
 }

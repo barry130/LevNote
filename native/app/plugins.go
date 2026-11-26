@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/core/document"
 	"levnote.local/native/core/plugins"
+	"levnote.local/native/core/text"
 	"levnote.local/native/formats/code"
 	"levnote.local/native/modules"
 	"levnote.local/native/ui/editor"
@@ -41,11 +43,190 @@ func (a *App) adapterByID(id string) (editor.Adapter, bool) {
 	return editor.Adapter{}, false
 }
 
-func (a *App) configureTab(t *Tab) {
-	if t == nil {
-		return
+type configureControlSnapshot struct {
+	tab                                     *Tab
+	id                                      int
+	doc                                     *document.Document
+	input                                   *editor.Editor
+	docBuffer, inputBuffer                  *text.Buffer
+	view                                    editor.View
+	adapter                                 *editor.Adapter
+	manager                                 *plugins.Manager
+	match                                   plugins.Match
+	activeIndex                             int
+	current                                 *Tab
+	configDir                               string
+	name, originalPath                      string
+	docPath                                 string
+	docEncoding                             document.Encoding
+	docBOM                                  bool
+	docReadOnly, inputReadOnly, inspector   bool
+	docIsNew                                bool
+	inputBinding                            *sourceInputBinding
+	inputEpoch, route                       uint64
+	profile                                 code.StructureProfile
+	outlineFactory                          func(editor.Host) editor.OutlineSource
+	outlineGeneration, hostEpoch            uint64
+	docStamp, inputStamp                    text.ChangeStamp
+	docVersion, inputVersion                uint64
+	docSelectionGen, inputSelectionGen      uint64
+	docSelection, inputSelection            text.Range
+	docHistory, inputHistory                text.HistoryStatus
+	docGrouped, inputGrouped                bool
+	terminalSeal                            editorTerminalSeal
+	sourceSession, sourceActivation         uint64
+	sourceRequest, sourcePresentation       uint64
+	sourceAutoSequence, sourceAutoCancel    uint64
+	sourceOwner                             *sourceLanguageOwner
+	sourcePending                           *sourceLanguagePending
+	sourcePresentationTab                   *Tab
+	sourceAutoDesired                      *sourceAutoDescriptor
+	sourceIntentAutomatic                   *sourceAutoDescriptor
+}
+
+func (a *App) configureControlSnapshot(t *Tab) (configureControlSnapshot, bool) {
+	if t == nil || t.isBinary() || !t.textCapable() || !a.tabIsOpen(t) ||
+		a.shuttingDown.Load() || a.restoring || t.Doc == nil || t.Editor == nil ||
+		t.Doc.Buffer == nil || t.Editor.Buffer == nil || t.Doc.Buffer == t.Editor.Buffer ||
+		!t.Editor.ReadOnly || t.Editor.InputActionError() != nil || t.Adapter == nil ||
+		t.MatchedPlugin.ID == "" || a.pluginManager == nil {
+		return configureControlSnapshot{}, false
 	}
-	a.retireSourceLanguage(t)
+	path := t.Doc.Path
+	if path == "" {
+		path = t.Name
+	}
+	match, err := a.pluginManager.Match(path)
+	if err != nil || match.ID != "code" || match.Manifest.ID != "code" || !match.Manifest.Builtin ||
+		!match.Manifest.Enabled || !match.Manifest.Active {
+		return configureControlSnapshot{}, false
+	}
+	oldManifest, err := a.pluginManager.Manifest(t.MatchedPlugin.ID)
+	if err != nil || oldManifest.ID != t.MatchedPlugin.ID || oldManifest.Enabled || oldManifest.Active {
+		return configureControlSnapshot{}, false
+	}
+	s := &a.sourceLanguage
+	if s.task != nil || s.rename != nil || s.owner != nil && s.owner.tab == t ||
+		s.pending != nil && s.pending.owner.tab == t || s.presentationTab == t ||
+		s.auto.desired != nil && s.auto.desired.binding.tab == t ||
+		s.intent.automatic != nil && s.intent.automatic.binding.tab == t {
+		return configureControlSnapshot{}, false
+	}
+	terminalSeal, sealValid := captureEditorTerminalSeal(t.Editor)
+	if !sealValid {
+		return configureControlSnapshot{}, false
+	}
+	docBuffer, inputBuffer := t.Doc.Buffer, t.Editor.Buffer
+	snapshot := configureControlSnapshot{
+		tab: t, id: t.ID, doc: t.Doc, input: t.Editor, docBuffer: docBuffer, inputBuffer: inputBuffer,
+		view: t.View, adapter: t.Adapter, manager: a.pluginManager, match: match,
+		activeIndex: a.Active, current: a.Current(), configDir: a.configDir,
+		name: t.Name, originalPath: t.OriginalPath, docPath: t.Doc.Path, docEncoding: t.Doc.Encoding,
+		docBOM: t.Doc.BOM, docReadOnly: t.Doc.ReadOnly, inputReadOnly: t.Editor.ReadOnly,
+		inspector: t.ByteInspector, docIsNew: t.Doc.IsNew, inputBinding: t.inputBinding, inputEpoch: t.inputEpoch,
+		route: t.sourceLanguageRoute, profile: t.sourceLanguageProfile, outlineFactory: t.OutlineFactory,
+		outlineGeneration: t.OutlineFactoryGeneration, hostEpoch: t.formatHostEpoch,
+		docStamp: docBuffer.ChangeStamp(), inputStamp: inputBuffer.ChangeStamp(),
+		docVersion: docBuffer.Version(), inputVersion: inputBuffer.Version(),
+		docSelectionGen: docBuffer.SelectionGeneration(), inputSelectionGen: inputBuffer.SelectionGeneration(),
+		docSelection: docBuffer.Selection(), inputSelection: inputBuffer.Selection(),
+		docHistory: docBuffer.History(), inputHistory: inputBuffer.History(),
+		docGrouped: docBuffer.InGroup(), inputGrouped: inputBuffer.InGroup(),
+		terminalSeal: terminalSeal,
+		sourceSession: s.session, sourceActivation: s.activation, sourceRequest: s.request,
+		sourcePresentation: s.presentation, sourceAutoSequence: s.auto.sequence, sourceAutoCancel: s.auto.cancel,
+		sourceOwner: s.owner, sourcePending: s.pending, sourcePresentationTab: s.presentationTab,
+		sourceAutoDesired: s.auto.desired, sourceIntentAutomatic: s.intent.automatic,
+	}
+	return snapshot, true
+}
+
+func (seal editorTerminalSeal) currentExceptRegistration(input *editor.Editor) bool {
+	if input == nil || input != seal.editor {
+		return false
+	}
+	current, ok := editorTerminalSealFromValue(input, reflect.ValueOf(*input))
+	return ok && seal.equalExceptRegistration(current)
+}
+
+func (snapshot configureControlSnapshot) currentAfterCleanup(a *App) bool {
+	t, s := snapshot.tab, &a.sourceLanguage
+	return t == snapshot.tab && a.tabIsOpen(t) && !a.shuttingDown.Load() && !a.restoring &&
+		t.ID == snapshot.id && t.Doc == snapshot.doc && t.Editor == snapshot.input && t.View == snapshot.view &&
+		t.Doc.Buffer == snapshot.docBuffer && t.Editor.Buffer == snapshot.inputBuffer &&
+		snapshot.docBuffer.ChangeStamp() == snapshot.docStamp && snapshot.inputBuffer.ChangeStamp() == snapshot.inputStamp &&
+		snapshot.docBuffer.Version() == snapshot.docVersion && snapshot.inputBuffer.Version() == snapshot.inputVersion &&
+		snapshot.docBuffer.SelectionGeneration() == snapshot.docSelectionGen &&
+		snapshot.inputBuffer.SelectionGeneration() == snapshot.inputSelectionGen &&
+		snapshot.docBuffer.Selection() == snapshot.docSelection && snapshot.inputBuffer.Selection() == snapshot.inputSelection &&
+		snapshot.docBuffer.History() == snapshot.docHistory && snapshot.inputBuffer.History() == snapshot.inputHistory &&
+		snapshot.docBuffer.InGroup() == snapshot.docGrouped && snapshot.inputBuffer.InGroup() == snapshot.inputGrouped &&
+		t.Name == snapshot.name && t.OriginalPath == snapshot.originalPath && t.Doc.Path == snapshot.docPath &&
+		t.Doc.Encoding == snapshot.docEncoding && t.Doc.BOM == snapshot.docBOM && t.Doc.ReadOnly == snapshot.docReadOnly &&
+		t.Doc.IsNew == snapshot.docIsNew && t.Editor.ReadOnly == snapshot.inputReadOnly && t.ByteInspector == snapshot.inspector &&
+		t.Adapter == nil && t.OutlineFactory == nil && t.Mode == "source" && t.MatchedPlugin.ID == snapshot.match.ID &&
+		t.MatchedPlugin.Builtin == snapshot.match.Manifest.Builtin && t.inputBinding == nil &&
+		t.inputEpoch == snapshot.inputEpoch+1 && t.sourceLanguageRoute == a.sourceLanguage.routeSequence &&
+		t.sourceLanguageProfile == "" && t.OutlineFactoryGeneration == a.outlineFactorySequence &&
+		t.formatHostEpoch == snapshot.hostEpoch+1 && !t.formatHostActive && t.Editor.Highlight == nil &&
+		a.Active == snapshot.activeIndex && a.Current() == snapshot.current && a.configDir == snapshot.configDir &&
+		a.pluginManager == snapshot.manager && snapshot.terminalSeal.currentExceptRegistration(snapshot.input) &&
+		s.session == snapshot.sourceSession && s.activation == snapshot.sourceActivation &&
+		s.request == snapshot.sourceRequest && s.presentation == snapshot.sourcePresentation &&
+		s.auto.sequence == snapshot.sourceAutoSequence && s.auto.cancel == snapshot.sourceAutoCancel &&
+		s.task == nil && s.rename == nil && s.owner == snapshot.sourceOwner && s.pending == snapshot.sourcePending &&
+		s.presentationTab == snapshot.sourcePresentationTab && s.auto.desired == snapshot.sourceAutoDesired &&
+		s.intent.automatic == snapshot.sourceIntentAutomatic
+}
+
+func (a *App) applyConfigureControlCleanup(snapshot configureControlSnapshot) bool {
+	t := snapshot.tab
+	a.revokeSourceLanguageShortcut(t)
+	a.revokeSourceInput(t)
+	t.formatHostEpoch++
+	t.formatHostActive = false
+	a.sourceLanguage.routeSequence++
+	t.sourceLanguageRoute = a.sourceLanguage.routeSequence
+	t.sourceLanguageProfile = ""
+	t.Adapter = nil
+	t.OutlineFactory = nil
+	a.outlineFactorySequence++
+	t.OutlineFactoryGeneration = a.outlineFactorySequence
+	t.Editor.Highlight = nil
+	t.MatchedPlugin = snapshot.match.Manifest
+	t.Mode = "source"
+	t.SyntaxNotice = ""
+	warning := "原格式插件已停用；文档缓冲区与输入缓冲区不一致。已撤下格式视图并保留两份内容，仅只读查看；请先保留草稿，再重新打开文档。"
+	t.FormatWarning = warning
+	t.SourceCapabilityBadge = "只读"
+	t.SourceCapabilityDetail = warning
+	return snapshot.currentAfterCleanup(a)
+}
+
+func (a *App) configureTab(t *Tab) bool {
+	if t == nil {
+		return true
+	}
+	if !t.isBinary() && t.textCapable() && t.Doc != nil && t.Editor != nil &&
+		t.Doc.Buffer != nil && t.Editor.Buffer != nil && t.Doc.Buffer != t.Editor.Buffer {
+		sourceRequest, sourceActivation := a.sourceLanguage.request, a.sourceLanguage.activation
+		sourcePresentation := a.sourceLanguage.presentation
+		snapshot, ok := a.configureControlSnapshot(t)
+		if !ok {
+			if a.tabIsOpen(t) && !a.shuttingDown.Load() && !a.restoring &&
+				a.sourceLanguage.request == sourceRequest && a.sourceLanguage.activation == sourceActivation &&
+				a.sourceLanguage.presentation == sourcePresentation {
+				a.report(errors.New("文档与输入附件不一致；未重配置，请先保留草稿并重新打开"))
+			}
+			return false
+		}
+		return a.applyConfigureControlCleanup(snapshot)
+	}
+	if !a.retireSourceLanguage(t) {
+		return false
+	}
+	t.formatHostEpoch++
+	t.formatHostActive = false
 	a.sourceLanguage.routeSequence++
 	t.sourceLanguageRoute = a.sourceLanguage.routeSequence
 	t.sourceLanguageProfile = ""
@@ -65,11 +246,11 @@ func (a *App) configureTab(t *Tab) {
 	t.Editor.Highlight = nil
 	if t.isBinary() {
 		a.configureBinary(t)
-		return
+		return true
 	}
 	if t.ByteInspector {
 		t.Mode = "source"
-		return
+		return true
 	}
 	path := t.Doc.Path
 	if path == "" {
@@ -137,23 +318,24 @@ func (a *App) configureTab(t *Tab) {
 	}
 	if t.Adapter != nil {
 		t.Mode = "preview"
-		return
+		return true
 	}
 	if match.Manifest.Builtin {
 		if match.ID == "image" {
 			t.Mode = "source"
 			t.FormatWarning = "此标签保留文本草稿；图片扩展名不会把现有文本改成二进制图片。"
-			return
+			return true
 		}
 		if adapter, ok := a.adapterByID(match.ID); ok {
 			t.Adapter = &adapter
 			t.Mode = "preview"
-			return
+			return true
 		}
 	}
 	t.Mode = "source"
 	a.installConfiguredSourceFolding(t)
 	a.configureSourceLanguage(t)
+	return true
 }
 
 func sourceFallbackText(t *Tab) string {
@@ -276,12 +458,16 @@ func (a *App) finishSetPluginEnabled(id string, enabled bool, err error) {
 		var publication *document.StatePublicationError
 		published := errors.As(err, &publication) && publication.Committed
 		if published || errors.Is(err, plugins.ErrEnabledNotLoaded) {
-			a.reconfigureTabs()
+			if !a.reconfigureTabs() {
+				return
+			}
 		}
 		a.report(fmt.Errorf("格式插件 %s：%w", id, err))
 		return
 	}
-	a.reconfigureTabs()
+	if !a.reconfigureTabs() {
+		return
+	}
 	state := "已停用"
 	if enabled {
 		state = "已启用"
@@ -319,7 +505,9 @@ func (a *App) installPlugin() {
 		a.report(fmt.Errorf("安装格式插件：%w", err))
 		return
 	}
-	a.reconfigureTabs()
+	if !a.reconfigureTabs() {
+		return
+	}
 	a.Message = "已安装格式插件 " + filepath.Base(paths[0])
 }
 
@@ -339,25 +527,37 @@ func (a *App) refreshPlugins() {
 	a.reconfigureTabs()
 }
 
-func (a *App) reconfigureTabs() {
+func (a *App) reconfigureTabs() bool {
 	for _, t := range a.Tabs {
 		if t.isBinary() && t == a.Current() {
-			a.releaseTabPresentation(t, true)
+			if !a.releaseTabPresentation(t, true) {
+				return false
+			}
 			t.View = nil
 		} else {
-			a.disposePresentation(t)
+			if !a.disposePresentation(t) {
+				return false
+			}
 		}
 		oldMode := t.Mode
 		t.Mode = "source"
-		a.configureTab(t)
+		if !a.configureTab(t) {
+			return false
+		}
 		if t.Adapter != nil && oldMode != "" {
 			t.Mode = oldMode
 		}
+		a.bindSourceInput(t)
 	}
+	current := a.sourceLanguageContinuation()
 	a.markPersistPending()
+	if !current() {
+		return false
+	}
 	if current := a.Current(); current != nil {
 		current.Editor.Focus()
 	}
+	return true
 }
 
 func (a *App) flushAllViews(action string) bool {

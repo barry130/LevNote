@@ -10,6 +10,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/core/document"
 	"levnote.local/native/core/search"
+	"levnote.local/native/ui/editor"
 )
 
 func (a *App) startWatch(path string, recursive bool) {
@@ -244,13 +245,21 @@ func (a *App) workspaceResults(c *ui.Context) {
 }
 
 func (a *App) activateSearchResult(i int) {
+	scope := a.beginFlushRefusal(flushRefusalWorkspace)
+	lifecycle := a.captureFlushRefusalLifecycle()
 	if i < 0 || i >= len(a.SearchResults) {
 		return
 	}
 	a.SearchSelected = i
 	result := a.SearchResults[i]
+	resultCurrent := func() bool {
+		return a.currentFlushRefusalLifecycle(flushRefusalWorkspace, scope, lifecycle) &&
+			!a.shuttingDown.Load()
+	}
 	if !result.HasSnapshot() {
-		a.report(fmt.Errorf("工作区搜索结果缺少内容快照；请重新搜索，未跳转"))
+		if resultCurrent() && a.claimFlushRefusal(flushRefusalWorkspace, scope) {
+			a.report(fmt.Errorf("工作区搜索结果缺少内容快照；请重新搜索，未跳转"))
+		}
 		return
 	}
 	path := canonical(result.Path)
@@ -259,12 +268,28 @@ func (a *App) activateSearchResult(i int) {
 			continue
 		}
 		if !t.textCapable() {
-			a.Message = "工作区搜索目标已变化；未跳转"
+			if resultCurrent() && a.claimFlushRefusal(flushRefusalWorkspace, scope) {
+				a.Message = "工作区搜索目标已变化；未跳转"
+			}
 			return
 		}
-		doc, input, buffer := t.Doc, t.Editor, t.Doc.Buffer
-		capturedPath, version := doc.Path, buffer.Version()
+		doc, input := t.Doc, t.Editor
+		buffer := doc.Buffer
+		docBuffer, editorBuffer := buffer, input.Buffer
+		capturedPath, version := doc.Path, docBuffer.Version()
 		id, root, origin := a.searchID, a.searchRoot, a.Current()
+		tabID, target := t.ID, t
+		capturedBinding, capturedInputEpoch, capturedRoute, capturedProfile := t.inputBinding, t.inputEpoch, t.sourceLanguageRoute, t.sourceLanguageProfile
+		capturedAdapter, capturedView, capturedFactoryGeneration := t.Adapter, t.View, t.OutlineFactoryGeneration
+		capturedBindingEpoch := uint64(0)
+		capturedLease := editor.InputBinding{}
+		if capturedBinding != nil {
+			capturedBindingEpoch, capturedLease = capturedBinding.epoch, capturedBinding.lease
+		}
+		requestCurrent := func() bool {
+			return a.currentFlushRefusalLifecycle(flushRefusalWorkspace, scope, lifecycle) &&
+				!a.shuttingDown.Load()
+		}
 		check := func() error {
 			if a.shuttingDown.Load() || !a.ShowWorkspaceSearch || a.ShowPlugins || a.searchID != id ||
 				a.searchRoot != root || a.Root != root || i >= len(a.SearchResults) ||
@@ -289,16 +314,69 @@ func (a *App) activateSearchResult(i int) {
 			return nil
 		}
 		if err := check(); err != nil {
-			a.report(err)
+			if resultCurrent() && a.claimFlushRefusal(flushRefusalWorkspace, scope) {
+				a.report(err)
+			}
 			return
 		}
-		if !a.flushTab(t, "工作区搜索定位") {
+		lostCheck := func() error {
+			if a.shuttingDown.Load() || !a.ShowWorkspaceSearch || a.ShowPlugins || a.searchID != id ||
+				a.searchRoot != root || a.Root != root || i < 0 || i >= len(a.SearchResults) ||
+				a.SearchResults[i] != result {
+				return fmt.Errorf("工作区搜索结果已变化；未跳转")
+			}
+			if a.Current() != origin || index < 0 || index >= len(a.Tabs) || a.Tabs[index] != target ||
+				target.ID != tabID || target.Doc != doc || target.Editor != input ||
+				doc.Buffer != docBuffer || input.Buffer != editorBuffer || doc.Path != capturedPath {
+				return fmt.Errorf("工作区搜索目标已变化；未跳转")
+			}
+			if capturedBinding == nil {
+				if target.inputBinding != nil || target.inputEpoch != capturedInputEpoch {
+					return fmt.Errorf("工作区搜索目标已变化；未跳转")
+				}
+			} else if target.inputBinding != capturedBinding || capturedBinding.epoch != capturedBindingEpoch ||
+				target.inputEpoch != capturedInputEpoch || !input.InputBindingCurrent(capturedLease) {
+				return fmt.Errorf("工作区搜索目标已变化；未跳转")
+			}
+			if target.sourceLanguageRoute != capturedRoute || target.sourceLanguageProfile != capturedProfile ||
+				target.Adapter != capturedAdapter || target.View != capturedView ||
+				target.OutlineFactoryGeneration != capturedFactoryGeneration {
+				return fmt.Errorf("工作区搜索目标已变化；未跳转")
+			}
+			probe := *doc
+			if probe.Dirty() {
+				return fmt.Errorf("工作区结果来自磁盘；文档已有未保存修改，未跳转")
+			}
+			if !result.MatchesBufferWithoutSnapshot(docBuffer) {
+				return fmt.Errorf("工作区搜索结果对应的内容已变化；请重新搜索，未跳转")
+			}
+			if docBuffer.Version() != version {
+				return fmt.Errorf("同步输入期间文档已变化；工作区结果未跳转")
+			}
+			return fmt.Errorf("工作区搜索目标已变化；未跳转")
+		}
+		flushResult := a.flushTabResult(t, "工作区搜索定位")
+		switch flushResult.kind {
+		case flushSeamErrorReported:
+			return
+		case flushAuthorityLost:
+			if !requestCurrent() {
+				return
+			}
+			reason := lostCheck()
+			if !a.claimFlushRefusal(flushRefusalWorkspace, scope) {
+				return
+			}
+			a.report(reason)
 			return
 		}
 		if err := check(); err != nil {
-			a.report(err)
+			if requestCurrent() && a.claimFlushRefusal(flushRefusalWorkspace, scope) {
+				a.report(err)
+			}
 			return
 		}
+		a.claimFlushRefusal(flushRefusalWorkspace, scope)
 		// Switching may flush another tab. Recheck before Select releases it,
 		// and reveal synchronously without OpenAt's second target flush.
 		if !a.selectChecked(index, check) {

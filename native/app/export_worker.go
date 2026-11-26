@@ -88,31 +88,72 @@ func (j *exportJob) clear() {
 }
 
 func (a *App) startEngineExport(t *Tab) {
+	scope := a.beginFlushRefusal(flushRefusalExport)
+	lifecycle := a.captureFlushRefusalLifecycle()
+	exportJob0, generation0 := a.exportJob, a.exportGeneration
+	requestCurrent := func() bool {
+		return a.currentFlushRefusalLifecycle(flushRefusalExport, scope, lifecycle) &&
+			a.exportJob == exportJob0 && a.exportGeneration == generation0
+	}
 	if a.shuttingDown.Load() || t == nil || t != a.Current() || t.Doc == nil || t.Doc.Buffer == nil || t.Adapter == nil || t.Adapter.ExportEngine == nil {
 		return
 	}
 	capability, adapter, doc, buffer, input := *t.Adapter.ExportEngine, t.Adapter, t.Doc, t.Doc.Buffer, t.Editor
 	mode, view := t.Mode, t.View
-	if a.refuseUnpreparedViewExport(t, capability) {
+	if reason := unpreparedViewExportReason(t, capability); reason != nil {
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalExport, scope) {
+			a.report(reason)
+		}
 		return
 	}
 	name, generation := t.Name, a.exportGeneration
 	descriptor, err := lookupExportDescriptor(capability)
 	if err != nil {
-		a.report(err)
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalExport, scope) {
+			a.report(err)
+		}
 		return
 	}
 	// Refuse already-oversized source before platform admission. This keeps a
 	// source/view safety error authoritative even when the packaged engine is
 	// unavailable on this OS, without weakening platform checks for valid input.
-	if a.refuseOversizeEngineExport(buffer, descriptor) {
+	if reason := oversizeEngineExportReason(buffer, descriptor); reason != nil {
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalExport, scope) {
+			a.report(reason)
+		}
 		return
 	}
 	if _, err := a.exportDescriptor(capability); err != nil {
-		a.report(err)
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalExport, scope) {
+			a.report(err)
+		}
 		return
 	}
-	if !a.flushTab(t, "导出") {
+	flushResult := a.flushTabResult(t, "导出")
+	switch flushResult.kind {
+	case flushSeamErrorReported:
+		return
+	case flushAuthorityLost:
+		if !requestCurrent() {
+			return
+		}
+		originalTarget := !a.shuttingDown.Load() && a.Current() == t &&
+			t.Doc == doc && t.Doc.Buffer == buffer && t.Editor == input &&
+			t.Adapter == adapter && t.Adapter.ExportEngine != nil &&
+			*t.Adapter.ExportEngine == capability && t.Name == name &&
+			t.Mode == mode && t.View == view
+		reason := errors.New("导出前文档或格式已变化，请重新导出")
+		if originalTarget {
+			if viewReason := unpreparedViewExportReason(t, capability); viewReason != nil {
+				reason = viewReason
+			} else if oversizeReason := oversizeEngineExportReason(buffer, descriptor); oversizeReason != nil {
+				reason = oversizeReason
+			}
+		}
+		if !a.claimFlushRefusal(flushRefusalExport, scope) {
+			return
+		}
+		a.report(reason)
 		return
 	}
 	// Flush may synchronously report, recover a draft or invoke a host callback.
@@ -122,9 +163,12 @@ func (a *App) startEngineExport(t *Tab) {
 		t.Doc != doc || t.Doc.Buffer != buffer || t.Editor != input || t.Adapter != adapter || t.Name != name ||
 		t.Mode != mode || t.View != view ||
 		t.Adapter.ExportEngine == nil || *t.Adapter.ExportEngine != capability {
-		a.report(errors.New("导出前文档或格式已变化，请重新导出"))
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalExport, scope) {
+			a.report(errors.New("导出前文档或格式已变化，请重新导出"))
+		}
 		return
 	}
+	a.claimFlushRefusal(flushRefusalExport, scope)
 	if buffer.InGroup() {
 		a.report(errors.New("还有未完成的编辑事务，请完成后再导出"))
 		return
@@ -223,26 +267,30 @@ func exportViewTokenMatches(view editor.View, token editor.ExportToken) bool {
 }
 
 func (a *App) refuseUnpreparedViewExport(t *Tab, capability editor.ExportEngine) bool {
-	if !capability.RequiresView {
-		return false
-	}
-	if t == nil || !exportViewModeValid(t.Mode) {
-		a.report(errors.New("图纸导出需要阅读或分屏视图；请切换到阅读或分屏并选择页面"))
-		return true
-	}
-	if t.View == nil {
-		a.report(errors.New("图纸视图尚未准备好；请等待阅读或分屏视图显示后选择页面"))
-		return true
-	}
-	if _, ok := t.View.(editor.ExportRequestPreparer); !ok {
-		a.report(errors.New("当前图纸视图不支持页面级导出"))
-		return true
-	}
-	if _, ok := t.View.(editor.ExportRequestTokenProvider); !ok {
-		a.report(errors.New("当前图纸视图无法验证导出页面"))
+	if reason := unpreparedViewExportReason(t, capability); reason != nil {
+		a.report(reason)
 		return true
 	}
 	return false
+}
+
+func unpreparedViewExportReason(t *Tab, capability editor.ExportEngine) error {
+	if !capability.RequiresView {
+		return nil
+	}
+	if t == nil || !exportViewModeValid(t.Mode) {
+		return errors.New("图纸导出需要阅读或分屏视图；请切换到阅读或分屏并选择页面")
+	}
+	if t.View == nil {
+		return errors.New("图纸视图尚未准备好；请等待阅读或分屏视图显示后选择页面")
+	}
+	if _, ok := t.View.(editor.ExportRequestPreparer); !ok {
+		return errors.New("当前图纸视图不支持页面级导出")
+	}
+	if _, ok := t.View.(editor.ExportRequestTokenProvider); !ok {
+		return errors.New("当前图纸视图无法验证导出页面")
+	}
+	return nil
 }
 
 func (a *App) recheckExport(j *exportJob) bool {
@@ -576,8 +624,16 @@ func (a *App) exportDescriptor(capability editor.ExportEngine) (enginecatalog.De
 }
 
 func (a *App) refuseOversizeEngineExport(buffer *text.Buffer, descriptor enginecatalog.Descriptor) bool {
+	if reason := oversizeEngineExportReason(buffer, descriptor); reason != nil {
+		a.report(reason)
+		return true
+	}
+	return false
+}
+
+func oversizeEngineExportReason(buffer *text.Buffer, descriptor enginecatalog.Descriptor) error {
 	if buffer == nil || int64(buffer.LenBytes()) <= descriptor.SourceMaxBytes {
-		return false
+		return nil
 	}
 	name := "Markdown 源码"
 	switch descriptor.Engine {
@@ -586,6 +642,5 @@ func (a *App) refuseOversizeEngineExport(buffer *text.Buffer, descriptor enginec
 	case enginecatalog.DrawioSVG:
 		name = "图纸源码"
 	}
-	a.report(fmt.Errorf("%s超过 %d MiB 导出上限", name, descriptor.SourceMaxBytes>>20))
-	return true
+	return fmt.Errorf("%s超过 %d MiB 导出上限", name, descriptor.SourceMaxBytes>>20)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/core/document"
+	"levnote.local/native/core/text"
 )
 
 func (a *App) View(c *ui.Context) {
@@ -620,6 +621,61 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 		a.binaryDocumentView(c, t)
 		return
 	}
+	observer0 := t.Editor.OnChange
+	hostTerminalSeal, hostSealValid := captureEditorTerminalSeal(t.Editor)
+	mountTabID, mountDoc, mountInput := t.ID, t.Doc, t.Editor
+	mountDocBuffer, mountInputBuffer, mountAdapter := mountDoc.Buffer, mountInput.Buffer, t.Adapter
+	mountManager, mountRoute, mountGeneration, mountHostEpoch := a.pluginManager, t.sourceLanguageRoute, t.OutlineFactoryGeneration, t.formatHostEpoch
+	mountPath, mountName, mountEncoding, mountBOM := mountDoc.Path, t.Name, mountDoc.Encoding, mountDoc.BOM
+	mountDocReadOnly, mountInputReadOnly, mountInspector := mountDoc.ReadOnly, mountInput.ReadOnly, t.ByteInspector
+	mountProfile, mountConfigDir := t.sourceLanguageProfile, a.configDir
+	mountSourceSession, mountSourceActivation := a.sourceLanguage.session, a.sourceLanguage.activation
+	mountActiveIndex, mountCurrentTab := a.Active, a.Current()
+	mountMode, mountInputBinding, mountInputEpoch := t.Mode, t.inputBinding, t.inputEpoch
+	mountModeTarget := ""
+	mountPhaseBinding := t.inputBinding
+	mountStampValid := mountDocBuffer != nil && mountDocBuffer == mountInputBuffer
+	var mountStamp text.ChangeStamp
+	var mountVersion uint64
+	var mountSelection text.Range
+	var mountSelectionGeneration uint64
+	if mountStampValid {
+		mountStamp, mountVersion, mountSelection = mountDocBuffer.ChangeStamp(), mountDocBuffer.Version(), mountDocBuffer.Selection()
+		mountSelectionGeneration = mountDocBuffer.SelectionGeneration()
+	}
+	mountTerminalSeal, mountSealValid := hostTerminalSeal, hostSealValid
+	mountPhaseCurrent := func(builderEntered bool) bool {
+		if mountModeTarget == "" {
+			return (mountMode == "preview" || mountMode == "split") && t.formatHostActive == builderEntered &&
+				t.Mode == mountMode && t.inputBinding == mountInputBinding &&
+				t.inputEpoch == mountInputEpoch && mountTerminalSeal.current(mountInput)
+		}
+		return mountMode == "source" && (mountModeTarget == "preview" || mountModeTarget == "split") &&
+			t.Mode == mountModeTarget && t.inputBinding != nil && t.inputBinding != mountInputBinding &&
+			t.inputEpoch == mountInputEpoch+3 && a.sourceInputConsumerCurrent(t.inputBinding) &&
+			t.formatHostActive == builderEntered && mountTerminalSeal.currentHostAttachment(mountInput)
+	}
+	mountEntryCurrent := func(builderEntered bool) bool {
+		return !a.shuttingDown.Load() && !a.restoring && a.tabIsOpen(t) &&
+			t.ID == mountTabID && t.Doc == mountDoc && t.Editor == mountInput && t.View == nil &&
+			mountDoc.Buffer == mountDocBuffer && mountInput.Buffer == mountInputBuffer && t.Adapter == mountAdapter &&
+			a.pluginManager == mountManager && t.sourceLanguageRoute == mountRoute && t.OutlineFactoryGeneration == mountGeneration &&
+			t.formatHostEpoch == mountHostEpoch && mountDoc.Path == mountPath && t.Name == mountName &&
+			mountDoc.Encoding == mountEncoding && mountDoc.BOM == mountBOM && mountDoc.ReadOnly == mountDocReadOnly &&
+			mountInput.ReadOnly == mountInputReadOnly && t.ByteInspector == mountInspector && t.sourceLanguageProfile == mountProfile &&
+			a.configDir == mountConfigDir && a.sourceLanguage.session == mountSourceSession &&
+			a.sourceLanguage.activation == mountSourceActivation && a.Active == mountActiveIndex && a.Current() == mountCurrentTab &&
+			mountAdapter != nil && mountAdapter.Create != nil && mountStampValid && mountSealValid && mountPhaseCurrent(builderEntered) &&
+			mountDocBuffer.ChangeStamp() == mountStamp && mountDocBuffer.Version() == mountVersion &&
+			mountDocBuffer.Selection() == mountSelection && mountDocBuffer.SelectionGeneration() == mountSelectionGeneration
+	}
+	// Observe attachment changes only; this does not poll stamps or readiness.
+	if t.Mode == "source" {
+		t.formatHostActive = false
+		a.bindSourceInput(t)
+	} else if t.Adapter == nil || t.View != nil {
+		a.bindSourceInput(t)
+	}
 	if t.Adapter == nil {
 		if t.MatchedPlugin.ID != "" && (t.MatchedPlugin.Declarative || t.Editor.Highlight != nil) {
 			label := t.MatchedPlugin.Name + " · " + t.MatchedPlugin.ID
@@ -655,7 +711,12 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 						currentModeClicked = true
 						return
 					}
-					a.setMode(t, mode.id)
+					if a.setMode(t, mode.id) {
+						if mountModeTarget == "" {
+							mountModeTarget = mode.id
+								mountPhaseBinding = t.inputBinding
+						}
+					}
 				}
 			}
 		})
@@ -692,7 +753,55 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 		return
 	}
 	if t.View == nil {
-		t.View = t.Adapter.Create(a.editorHost(t))
+		if mountDocBuffer == nil || mountInputBuffer == nil || mountDocBuffer != mountInputBuffer {
+			return
+		}
+		if !mountEntryCurrent(false) {
+			return
+		}
+		factoryTerminalSeal, factorySealValid := captureEditorTerminalSeal(mountInput)
+		if !factorySealValid || !factoryTerminalSeal.current(mountInput) {
+			return
+		}
+		host, attachCreatedView := a.editorHostForMount(t, observer0, hostTerminalSeal, hostSealValid)
+		createdView := mountAdapter.Create(host)
+		if createdView == nil || !mountEntryCurrent(true) || !factoryTerminalSeal.current(mountInput) {
+			return
+		}
+		t.View = createdView
+		if !attachCreatedView(createdView) {
+			return
+		}
+		a.bindSourceInput(t)
+		bindingAfter := t.inputBinding
+		expectedMountMode := mountMode
+		expectedBindEpoch := mountInputEpoch + 1
+		if mountModeTarget != "" {
+			expectedMountMode = mountModeTarget
+			expectedBindEpoch = mountInputEpoch + 4
+		}
+		bindTerminalSeal, bindingSealed := factoryTerminalSeal.replaceRegistration(mountInput)
+		mountEntryAfterBindCurrent := func() bool {
+			return !a.shuttingDown.Load() && !a.restoring && a.tabIsOpen(t) &&
+				t.ID == mountTabID && t.Doc == mountDoc && t.Editor == mountInput && t.View == createdView &&
+				mountDoc.Buffer == mountDocBuffer && mountInput.Buffer == mountInputBuffer && t.Adapter == mountAdapter &&
+				a.pluginManager == mountManager && t.sourceLanguageRoute == mountRoute && t.OutlineFactoryGeneration == mountGeneration &&
+				t.formatHostEpoch == mountHostEpoch && t.formatHostActive && mountDoc.Path == mountPath && t.Name == mountName &&
+				mountDoc.Encoding == mountEncoding && mountDoc.BOM == mountBOM && mountDoc.ReadOnly == mountDocReadOnly &&
+				mountInput.ReadOnly == mountInputReadOnly && t.ByteInspector == mountInspector && t.sourceLanguageProfile == mountProfile &&
+				a.configDir == mountConfigDir && a.sourceLanguage.session == mountSourceSession &&
+				a.sourceLanguage.activation == mountSourceActivation && a.Active == mountActiveIndex && a.Current() == mountCurrentTab &&
+				t.Mode == expectedMountMode && t.inputBinding == bindingAfter && t.inputEpoch == expectedBindEpoch &&
+				mountStampValid && mountDocBuffer.ChangeStamp() == mountStamp &&
+				mountDocBuffer.Version() == mountVersion && mountDocBuffer.Selection() == mountSelection &&
+				mountDocBuffer.SelectionGeneration() == mountSelectionGeneration
+		}
+		if !bindingSealed || bindingAfter == nil || bindingAfter == mountPhaseBinding ||
+			!a.sourceInputConsumerCurrent(bindingAfter) || !bindTerminalSeal.current(mountInput) ||
+			bindingAfter.stamp != mountDocBuffer.ChangeStamp() ||
+			!mountEntryAfterBindCurrent() {
+			return
+		}
 	}
 	warnings := t.View.Warnings()
 	t.ViewWarnings = append(t.ViewWarnings[:0], warnings...)
@@ -724,6 +833,9 @@ func (a *App) documentView(c *ui.Context, t *Tab) {
 			}
 		})
 	}
+	// The retained format view may reactivate after Release. This authorizes
+	// its same factory Host only; route/dispose epochs never reactivate.
+	t.formatHostActive = true
 	if t.Mode == "split" {
 		ui.Row(c.Key("document-split")).Grow(1).AlignItems(ui.Stretch).Children(func() {
 			ui.Column(c).WidthPercent(50).Children(func() {
@@ -755,8 +867,11 @@ func (a *App) setMode(t *Tab, mode string) bool {
 	if !a.flushTab(t, "切换格式视图") {
 		return false
 	}
-	a.releaseTabPresentation(t, t.isBinary() && t == a.Current())
+	if !a.releaseTabPresentation(t, t.isBinary() && t == a.Current()) {
+		return false
+	}
 	t.Mode = mode
+	a.bindSourceInput(t)
 	a.markPersistPending()
 	return true
 }

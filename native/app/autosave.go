@@ -11,17 +11,15 @@ type autosaveTimer interface {
 	Stop() bool
 }
 
-// Only the timer slot is shared with Shutdown. Document and UI state remains
-// owned by the main thread; the timer goroutine only posts a captured callback.
+// Only the timer slot is shared with Shutdown. No external seam runs under mu.
 type autosaveState struct {
 	mu      sync.Mutex
 	timer   autosaveTimer
 	request uint64
 	due     time.Time
+	armed   bool
 }
 
-// Tests opt into a fake timer and a queued dispatcher together. uiDispatch is
-// deliberately not used: existing headless callers can execute it inline.
 type autosaveHooks struct {
 	now       func() time.Time
 	afterFunc func(time.Duration, func()) autosaveTimer
@@ -49,47 +47,75 @@ func (a *App) markPersistPending() {
 }
 
 func (a *App) scheduleAutosave() {
+	// Modal completion already resumes recovery here. Also resume a preserved
+	// automatic descriptor at its original due; this never invents an edit.
+	recovery := a.prepareAutosave()
+	desired := a.sourceLanguage.auto.desired
+	automatic := a.prepareSourceAuto()
+	if recovery != nil {
+		recovery()
+	}
+	if a.sourceLanguage.auto.desired == desired && automatic != nil {
+		automatic()
+	}
+}
+
+// Reserve the generation before either Host timer seam can reenter. Input
+// delivery prepares both clocks before running either returned effect.
+func (a *App) prepareAutosave() func() {
 	if a.shuttingDown.Load() || !a.persistPending {
-		return
+		return nil
 	}
 	if a.restoring || a.modalDepth > 0 {
-		a.cancelAutosave()
-		return
+		return a.prepareCancelAutosave()
 	}
 	var dispatch func(func())
-	afterFunc := func(delay time.Duration, fn func()) autosaveTimer {
-		return time.AfterFunc(delay, fn)
-	}
+	afterFunc := func(delay time.Duration, fn func()) autosaveTimer { return time.AfterFunc(delay, fn) }
 	if hooks := a.autosaveHooks; hooks != nil {
 		if hooks.afterFunc == nil || hooks.dispatch == nil {
-			return
+			return nil
 		}
 		afterFunc, dispatch = hooks.afterFunc, hooks.dispatch
 	} else if window := a.Window; window != nil {
 		dispatch = window.Update
 	} else {
-		// No real timer may call App.update's synchronous headless fallback.
-		return
+		return nil
 	}
 	due := a.lastEdit.Add(autosaveDelay)
 	delay := max(time.Duration(0), due.Sub(a.autosaveNow()))
 	s := &a.autosave
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if a.shuttingDown.Load() || s.timer != nil && s.due.Equal(due) {
-		return
+	if a.shuttingDown.Load() || s.armed && s.timer != nil && s.due.Equal(due) {
+		s.mu.Unlock()
+		return nil
 	}
-	if s.timer != nil {
-		s.timer.Stop()
-	}
+	old := s.timer
+	s.timer = nil
 	s.request++
 	request := s.request
-	s.due = due
-	s.timer = afterFunc(delay, func() {
-		// Do not inspect App here, even to choose its dispatcher. Window.Update
-		// queues this callback on the main thread independently of painting.
-		dispatch(func() { a.deliverAutosave(request) })
-	})
+	s.due, s.armed = due, true
+	s.mu.Unlock()
+	return func() {
+		if old != nil {
+			old.Stop()
+		}
+		s.mu.Lock()
+		current := s.request == request && s.armed && !a.shuttingDown.Load()
+		s.mu.Unlock()
+		if !current {
+			return
+		}
+		timer := afterFunc(delay, func() { dispatch(func() { a.deliverAutosave(request) }) })
+		s.mu.Lock()
+		current = s.request == request && s.armed && !a.shuttingDown.Load()
+		if current {
+			s.timer = timer
+		}
+		s.mu.Unlock()
+		if !current && timer != nil {
+			timer.Stop()
+		}
+	}
 }
 
 func (a *App) deliverAutosave(request uint64) {
@@ -98,12 +124,11 @@ func (a *App) deliverAutosave(request uint64) {
 	}
 	s := &a.autosave
 	s.mu.Lock()
-	if s.request != request || s.timer == nil {
+	if s.request != request || !s.armed {
 		s.mu.Unlock()
 		return
 	}
-	s.timer = nil
-	s.due = time.Time{}
+	s.timer, s.armed, s.due = nil, false, time.Time{}
 	s.mu.Unlock()
 	if a.shuttingDown.Load() || !a.persistPending || a.restoring || a.modalDepth > 0 {
 		return
@@ -115,14 +140,18 @@ func (a *App) deliverAutosave(request uint64) {
 	_ = a.persistAutomatic()
 }
 
-func (a *App) cancelAutosave() {
+func (a *App) prepareCancelAutosave() func() {
 	s := &a.autosave
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.request++
-	if s.timer != nil {
-		s.timer.Stop()
-		s.timer = nil
+	old := s.timer
+	s.timer, s.armed, s.due = nil, false, time.Time{}
+	s.mu.Unlock()
+	return func() {
+		if old != nil {
+			old.Stop()
+		}
 	}
-	s.due = time.Time{}
 }
+
+func (a *App) cancelAutosave() { a.prepareCancelAutosave()() }

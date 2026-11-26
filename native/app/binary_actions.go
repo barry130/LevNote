@@ -177,6 +177,18 @@ func (a *App) reloadBinary(t *Tab) {
 }
 
 func (a *App) completeBinaryExplicit(j *binaryJob, out binaryOutput) {
+	var scope *flushRefusalScope
+	var lifecycle flushRefusalLifecycle
+	var capturedReopen *reopenObservation
+	if j.op == "open" {
+		scope = a.beginFlushRefusal(flushRefusalBinaryOpen)
+		lifecycle = a.captureFlushRefusalLifecycle()
+		capturedReopen = newReopenObservation(j.reopen, a.Current())
+	}
+	claimOpen := func() bool {
+		return scope != nil && a.currentFlushRefusalLifecycle(flushRefusalBinaryOpen, scope, lifecycle) &&
+			a.binaryJob == nil && a.claimFlushRefusal(flushRefusalBinaryOpen, scope)
+	}
 	a.binaryJob = nil
 	defer func() {
 		if j.tab != nil {
@@ -192,7 +204,14 @@ func (a *App) completeBinaryExplicit(j *binaryJob, out binaryOutput) {
 		return
 	}
 	if out.err != nil {
-		a.report(fmt.Errorf("图片读取失败：%w", out.err))
+		if j.op == "open" {
+			if !claimOpen() {
+				return
+			}
+			a.report(fmt.Errorf("图片读取失败：%w", out.err))
+		} else {
+			a.report(fmt.Errorf("图片读取失败：%w", out.err))
+		}
 		return
 	}
 	if j.op == "reload" {
@@ -214,7 +233,9 @@ func (a *App) completeBinaryExplicit(j *binaryJob, out binaryOutput) {
 		return
 	}
 	if err := a.checkReopen(j.reopen); err != nil {
-		a.report(err)
+		if claimOpen() {
+			a.report(err)
+		}
 		return
 	}
 	path := ""
@@ -226,7 +247,13 @@ func (a *App) completeBinaryExplicit(j *binaryJob, out binaryOutput) {
 	for index, existing := range a.Tabs {
 		if sameNativeFilePath(canonical(existing.path()), canonical(path)) {
 			if j.reopen != nil {
+				if !claimOpen() {
+					return
+				}
 				a.selectOpenDuplicate(canonical(path), openRequest{reopen: j.reopen})
+				return
+			}
+			if !claimOpen() {
 				return
 			}
 			if a.Select(index) {
@@ -236,28 +263,63 @@ func (a *App) completeBinaryExplicit(j *binaryJob, out binaryOutput) {
 		}
 	}
 	if err := a.admitNewTab(); err != nil {
-		out.err = fmt.Errorf("打开 %s：%w", j.name, err)
-		a.report(out.err)
+		wrapped := fmt.Errorf("打开 %s：%w", j.name, err)
+		if claimOpen() {
+			out.err = wrapped
+			a.report(out.err)
+		}
 		return
 	}
 	check := a.reopenAdoptionCheck(j.reopen)
 	if old := a.Current(); old != nil {
-		if !a.flushTab(old, "打开图片") {
+		result := a.flushTabResult(old, "打开图片")
+		switch result.kind {
+		case flushSeamErrorReported:
+			return
+		case flushAuthorityLost:
+			if !a.currentFlushRefusalLifecycle(flushRefusalBinaryOpen, scope, lifecycle) || a.binaryJob != nil {
+				return
+			}
+			capacityReason := a.admitNewTab()
+			reason := capacityReason
+			if reason == nil {
+				reason = a.observeReopenRefusal(capturedReopen)
+			}
+			if reason == nil {
+				reason = errors.New("打开图片前原文档或格式已变化；未收纳，请重新打开")
+			}
+			if !a.claimFlushRefusal(flushRefusalBinaryOpen, scope) {
+				return
+			}
+			if capacityReason != nil {
+				out.err = fmt.Errorf("打开 %s：%w", j.name, capacityReason)
+				reason = out.err
+			}
+			a.report(reason)
 			return
 		}
 		if check != nil {
 			if err := check(); err != nil {
-				a.report(err)
+				if claimOpen() {
+					a.report(err)
+				}
 				return
 			}
 		}
 		if err := a.admitNewTab(); err != nil {
-			out.err = fmt.Errorf("打开 %s：%w", j.name, err)
-			a.report(out.err)
+			if claimOpen() {
+				out.err = fmt.Errorf("打开 %s：%w", j.name, err)
+				a.report(out.err)
+			}
+			return
+		}
+		if !claimOpen() {
 			return
 		}
 		a.invalidateTabExport(old, "打开图片，已取消导出")
 		a.releasePresentation(old)
+	} else if !claimOpen() {
+		return
 	}
 	t := a.appendBinary(out, j.name, j.notice)
 	a.Active = len(a.Tabs) - 1

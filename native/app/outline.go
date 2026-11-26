@@ -329,18 +329,32 @@ func (a *App) activateOutlineAnchor(t *Tab, anchor, action string) bool {
 }
 
 func (a *App) activateOutlineTarget(t *Tab, id string, anchor bool, action string) bool {
+	scope := a.beginFlushRefusal(flushRefusalOutline)
+	lifecycle := a.captureFlushRefusalLifecycle()
+	capturedAction, capturedAnchor, capturedShowOutline := action, anchor, a.ShowOutline
+	requestCurrent := func() bool {
+		return a.currentFlushRefusalLifecycle(flushRefusalOutline, scope, lifecycle) &&
+			(capturedAnchor || a.ShowOutline == capturedShowOutline)
+	}
 	if id == "" {
-		a.report(editor.ErrOutlineStale)
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalOutline, scope) {
+			a.report(editor.ErrOutlineStale)
+		}
 		return false
 	}
 	if t != a.Current() {
-		a.report(errors.New("大纲所属标签已不再活动，未执行跳转。"))
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalOutline, scope) {
+			a.report(errors.New("大纲所属标签已不再活动，未执行跳转。"))
+		}
 		return false
 	}
 	if t.Doc == nil || t.Doc.Buffer == nil {
-		a.report(fmt.Errorf("%s：%w：文档缓冲区不可用", action, editor.ErrOutlineUnsupported))
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalOutline, scope) {
+			a.report(fmt.Errorf("%s：%w：文档缓冲区不可用", action, editor.ErrOutlineUnsupported))
+		}
 		return false
 	}
+	capturedDoc, capturedView := t.Doc, t.View
 	capturedTabID := t.ID
 	capturedAdapter := t.Adapter
 	capturedFactoryGeneration := t.OutlineFactoryGeneration
@@ -349,17 +363,59 @@ func (a *App) activateOutlineTarget(t *Tab, id string, anchor bool, action strin
 	capturedBuffer := t.Doc.Buffer
 	source, sourceErr := a.outlineSourceFor(t)
 	if sourceErr != nil {
-		a.report(fmt.Errorf("%s：%w", action, sourceErr))
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalOutline, scope) {
+			a.report(fmt.Errorf("%s：%w", action, sourceErr))
+		}
 		return false
 	}
 	capturedController := a.outlineGeneration
-	if !a.flushTab(t, action) {
+	targetMatches := func() bool {
+		return t != nil && t == a.Current() && t.ID == capturedTabID &&
+			t.Doc == capturedDoc && t.View == capturedView &&
+			t.Doc != nil && t.Doc.Path == capturedPath && t.Doc.Buffer == capturedBuffer &&
+			t.Mode == capturedMode && t.Adapter == capturedAdapter &&
+			t.OutlineFactoryGeneration == capturedFactoryGeneration
+	}
+	controllerMatches := func() bool {
+		return a.OutlineSource == source && a.OutlineTabID == capturedTabID &&
+			a.OutlineBuffer == capturedBuffer &&
+			a.OutlineFactoryGeneration == capturedFactoryGeneration &&
+			a.outlineGeneration == capturedController
+	}
+	result := a.flushTabResult(t, action)
+	if result.kind == flushSeamErrorReported {
 		return false
 	}
-	if !a.outlineNavigationContextMatches(t, capturedTabID, capturedAdapter, capturedFactoryGeneration, capturedPath, capturedMode, capturedBuffer, capturedController) {
-		a.report(fmt.Errorf("%s：%w：活动文档已变化", action, editor.ErrOutlineStale))
+	if result.kind == flushAuthorityLost {
+		if !requestCurrent() {
+			return false
+		}
+		targetCurrent := targetMatches()
+		controllerCurrent := targetCurrent && controllerMatches()
+		reason := fmt.Errorf("%s：%w：活动文档已变化", capturedAction, editor.ErrOutlineStale)
+		if !targetCurrent || !controllerCurrent {
+			reason = fmt.Errorf("%s：%w：活动文档已变化", capturedAction, editor.ErrOutlineStale)
+		}
+		if !a.claimFlushRefusal(flushRefusalOutline, scope) {
+			return false
+		}
+		a.report(reason)
 		return false
 	}
+	if !requestCurrent() {
+		return false
+	}
+	targetCurrent := targetMatches()
+	contextMatches := targetCurrent && controllerMatches() &&
+		a.outlineNavigationContextMatches(t, capturedTabID, capturedAdapter, capturedFactoryGeneration, capturedPath, capturedMode, capturedBuffer, capturedController)
+	if !contextMatches {
+		if !a.claimFlushRefusal(flushRefusalOutline, scope) {
+			return false
+		}
+		a.report(fmt.Errorf("%s：%w：活动文档已变化", capturedAction, editor.ErrOutlineStale))
+		return false
+	}
+	a.claimFlushRefusal(flushRefusalOutline, scope)
 	// Flush is a lifecycle boundary. Use the controller that remains current
 	// after it rather than the one observed before the fallible operation.
 	source = a.OutlineSource

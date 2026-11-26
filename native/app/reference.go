@@ -5,8 +5,10 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 
+	"levnote.local/native/core/text"
 	"levnote.local/native/ui/editor"
 )
 
@@ -174,20 +176,50 @@ func resolveFileURL(reference string) referenceResolution {
 	return referenceResolution{kind: referenceLocal, path: filepath.Clean(decoded)}
 }
 
-func (a *App) editorHost(t *Tab) editor.Host {
-	if t.isBinary() {
-		return editor.Host{ReadOnly: true, Path: t.path(), Report: a.report,
-			BeginImage: func(owner editor.View, request editor.ImageRequest, complete func(editor.ImageResult, error)) (func(), error) {
-				return a.beginImage(t, owner, request, complete)
-			},
-			ShowSource: func(owner editor.View) bool {
-				return t == a.Current() && a.tabIsOpen(t) && t.View == owner && a.setMode(t, "source")
-			},
-		}
+func (a *App) editorHostForMount(t *Tab, observer0 func(), terminalSeal editorTerminalSeal, sealValid bool) (editor.Host, func(editor.View) bool) {
+	doc, input, buffer := t.Doc, t.Editor, t.Doc.Buffer
+	manager, route, adapter, generation, profile := a.pluginManager, t.sourceLanguageRoute, t.Adapter, t.OutlineFactoryGeneration, t.sourceLanguageProfile
+	tabID, hostEpoch := t.ID, t.formatHostEpoch
+	path, name, encoding, bom := doc.Path, t.Name, doc.Encoding, doc.BOM
+	docReadOnly, readOnly, inspector := doc.ReadOnly, input.ReadOnly, t.ByteInspector
+	baseline := buffer.ChangeStamp()
+	if t.View == nil {
+		t.formatHostActive = true
+	}
+	owner := t.View
+	attached := false
+	handled := false
+	var handledStamp text.ChangeStamp
+
+	current := func(binding *sourceInputBinding) bool {
+		return owner != nil && t.View == owner && a.tabIsOpen(t) && !a.shuttingDown.Load() && !a.restoring &&
+			t.formatHostActive && t.formatHostEpoch == hostEpoch && t.ID == tabID && t.Doc == doc && t.Editor == input &&
+			doc.Buffer == buffer && input.Buffer == buffer && a.pluginManager == manager && t.sourceLanguageRoute == route &&
+			t.sourceLanguageProfile == profile && t.Adapter == adapter && t.OutlineFactoryGeneration == generation && doc.Path == path && t.Name == name &&
+			doc.Encoding == encoding && doc.BOM == bom && doc.ReadOnly == docReadOnly && input.ReadOnly == readOnly &&
+			t.ByteInspector == inspector && sealValid && terminalSeal.currentHostAttachment(input) &&
+			(t.Mode == "preview" || t.Mode == "split") && a.sourceInputConsumerCurrent(binding)
 	}
 	host := editor.Host{
-		Buffer: t.Doc.Buffer, ReadOnly: t.Doc.ReadOnly, Path: t.Doc.Path,
-		Changed: t.Editor.OnChange, Report: a.report,
+		Buffer: buffer, ReadOnly: doc.ReadOnly, Path: doc.Path,
+		Changed: func() {
+			binding := t.inputBinding
+			live := buffer.ChangeStamp()
+			if !current(binding) || live.BaselineID != baseline.BaselineID || binding.stamp == live ||
+				handled && handledStamp == live {
+				return
+			}
+			event := binding.event
+			handled, handledStamp = true, live
+			if !a.consumeSourceChange(binding, nil) || !current(binding) ||
+				binding.event != event+1 || binding.stamp != live || !binding.input.InputBindingCurrent(binding.lease) {
+				return
+			}
+			if observer0 != nil {
+				observer0()
+			}
+		},
+		Report: a.report,
 		OpenReference: func(path string) { a.openReference(t, path) },
 		RecoverDraft: func(title, content string) error {
 			return a.recoverDraft(title, content)
@@ -205,12 +237,45 @@ func (a *App) editorHost(t *Tab) editor.Host {
 			return t == a.Current() && a.tabIsOpen(t) && t.View == owner && a.setMode(t, "source")
 		},
 	}
-	if t.Adapter != nil && t.Adapter.SceneEngine != nil {
-		capability := *t.Adapter.SceneEngine
+	if adapter != nil && adapter.SceneEngine != nil {
+		capability := *adapter.SceneEngine
 		host.SceneEngine = &capability
 	}
-	return host
+	attach := func(view editor.View) bool {
+		if attached || view == nil || t.View != view || t.Doc != doc || t.Editor != input ||
+			doc.Buffer != buffer || input.Buffer != buffer || t.Adapter != adapter {
+			return false
+		}
+		owner, attached = view, true
+		return true
+	}
+	return host, attach
 }
+
+func (a *App) editorHost(t *Tab) editor.Host {
+	if t.isBinary() {
+		return editor.Host{ReadOnly: true, Path: t.path(), Report: a.report,
+			BeginImage: func(owner editor.View, request editor.ImageRequest, complete func(editor.ImageResult, error)) (func(), error) {
+				return a.beginImage(t, owner, request, complete)
+			},
+			ShowSource: func(owner editor.View) bool {
+				return t == a.Current() && a.tabIsOpen(t) && t.View == owner && a.setMode(t, "source")
+			},
+		}
+	}
+		terminalSeal, sealValid := captureEditorTerminalSeal(t.Editor)
+		host, _ := a.editorHostForMount(t, t.Editor.OnChange, terminalSeal, sealValid)
+		return host
+	}
+	func (seal editorTerminalSeal) currentHostAttachment(input *editor.Editor) bool {
+		if input == nil || input != seal.editor {
+			return false
+		}
+		current, ok := editorTerminalSealFromValue(input, reflect.ValueOf(*input))
+		return ok && seal.buffer.Equal(current.buffer) && seal.readOnly.Equal(current.readOnly) &&
+			seal.observedBuffer.Equal(current.observedBuffer) && seal.observedReadonly.Equal(current.observedReadonly) &&
+			seal.bufferEpoch.Equal(current.bufferEpoch) && seal.readonlyEpoch.Equal(current.readonlyEpoch)
+	}
 
 func (a *App) tabIsOpen(target *Tab) bool {
 	for _, tab := range a.Tabs {

@@ -51,8 +51,17 @@ func (a *App) Restore() {
 		a.report(fmt.Errorf("已有文件操作，未开始会话恢复"))
 		return
 	}
-	a.resetSourceLanguageSession()
+	if !a.resetSourceLanguageSession() {
+		return
+	}
+	current := a.sourceLanguageContinuation()
+	if a.restoring || a.binaryJob != nil || !current() {
+		return
+	}
 	a.cancelAutosave()
+	if a.restoring || a.binaryJob != nil || !current() {
+		return
+	}
 	a.restoring = true
 	defer func() { a.restoring = false }()
 	sessionPath := filepath.Join(a.configDir, "session.json")
@@ -332,21 +341,89 @@ func (a *App) findOptions() search.Options {
 	return search.Options{Query: a.Query, Regex: a.Regex, CaseSensitive: a.CaseSensitive, WholeWord: a.WholeWord}
 }
 func (a *App) replace(all bool) {
+	scope := a.beginFlushRefusal(flushRefusalReplace)
+	lifecycle := a.captureFlushRefusalLifecycle()
+	generation := a.findGeneration
+	query, replacement := a.Query, a.Replacement
+	showFind, focusEpoch := a.ShowFind, a.findFocusIntentEpoch
+	caseSensitive, regex, wholeWord := a.CaseSensitive, a.Regex, a.WholeWord
 	t := a.Current()
-	if !t.textCapable() || t.Doc.ReadOnly {
+	if t == nil || t.Doc == nil || t.Editor == nil {
 		return
 	}
 	doc, input, buffer := t.Doc, t.Editor, t.Doc.Buffer
-	if !a.flushTab(t, "替换") {
+	tabID, manager, mode, name, path := t.ID, a.pluginManager, t.Mode, t.Name, doc.Path
+	encoding, bom, inspector := doc.Encoding, doc.BOM, t.ByteInspector
+	binding, inputEpoch := t.inputBinding, t.inputEpoch
+	route, profile := t.sourceLanguageRoute, t.sourceLanguageProfile
+	adapter, view, factoryGeneration := t.Adapter, t.View, t.OutlineFactoryGeneration
+	bindingEpoch := uint64(0)
+	lease := editor.InputBinding{}
+	if binding != nil {
+		bindingEpoch, lease = binding.epoch, binding.lease
+	}
+	requestCurrent := func() bool {
+		return a.currentFlushRefusalLifecycle(flushRefusalReplace, scope, lifecycle) &&
+			a.findGeneration == generation && a.ShowFind == showFind &&
+			a.Query == query && a.Replacement == replacement &&
+			a.CaseSensitive == caseSensitive && a.Regex == regex && a.WholeWord == wholeWord &&
+			!a.FindQueryComposing && !a.FindReplacementComposing &&
+			a.findFocusIntentEpoch == focusEpoch
+	}
+	if !t.textCapable() || t.Doc.ReadOnly {
+		return
+	}
+	result := a.flushTabResult(t, "替换")
+	switch result.kind {
+	case flushSeamErrorReported:
+		return
+	case flushAuthorityLost:
+		if !requestCurrent() {
+			return
+		}
+		reason := errors.New("替换时文档已变化；未替换")
+		if a.Current() == t && a.tabIsOpen(t) && t.ID == tabID && t.Doc == doc && t.Editor == input &&
+			doc.Buffer == buffer && input.Buffer == buffer {
+			if doc.ReadOnly || input.ReadOnly {
+				reason = errors.New("文档已变为只读；未替换")
+			} else if a.pluginManager == manager && t.Mode == mode && t.Name == name &&
+				doc.Path == path && doc.Encoding == encoding && doc.BOM == bom &&
+				t.ByteInspector == inspector {
+				if binding == nil {
+					if t.inputBinding == nil && t.inputEpoch == inputEpoch &&
+						t.sourceLanguageRoute == route && t.sourceLanguageProfile == profile &&
+						t.Adapter == adapter && t.View == view &&
+						t.OutlineFactoryGeneration == factoryGeneration {
+						reason = errors.New("替换时文档已变化；未替换")
+					}
+				} else if t.inputBinding == binding && binding.epoch == bindingEpoch &&
+					t.inputEpoch == inputEpoch && input.InputBindingCurrent(lease) &&
+					t.sourceLanguageRoute == route && t.sourceLanguageProfile == profile &&
+					t.Adapter == adapter && t.View == view &&
+					t.OutlineFactoryGeneration == factoryGeneration {
+					reason = errors.New("替换时文档已变化；未替换")
+				}
+			}
+		}
+		if !a.claimFlushRefusal(flushRefusalReplace, scope) {
+			return
+		}
+		a.Message = reason.Error()
 		return
 	}
 	if !a.findTargetCurrent(t, doc, input, buffer) {
-		a.invalidateFindCache()
-		a.Message = "替换时文档已变化；未替换"
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalReplace, scope) {
+			a.Message = "替换时文档已变化；未替换"
+		}
 		return
 	}
-	if doc.ReadOnly {
-		a.Message = "文档已变为只读；未替换"
+	if doc.ReadOnly || input.ReadOnly {
+		if requestCurrent() && a.claimFlushRefusal(flushRefusalReplace, scope) {
+			a.Message = "文档已变为只读；未替换"
+		}
+		return
+	}
+	if !a.claimFlushRefusal(flushRefusalReplace, scope) {
 		return
 	}
 	input.UnmarkText()
@@ -381,7 +458,9 @@ func (a *App) replace(all bool) {
 	if changed {
 		a.invalidateFindCache()
 		if t.View != nil {
-			a.releasePresentation(t)
+			if !a.releasePresentation(t) {
+				return
+			}
 		}
 	}
 	if !all {

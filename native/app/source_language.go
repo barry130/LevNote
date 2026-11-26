@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"levnote.local/native/core/document"
@@ -21,6 +23,10 @@ const (
 	sourceLanguageFieldBytes = 16 << 10
 )
 
+// Superseded continuations are control flow, not an error to present through a
+// callback-installed successor. Actual input/service errors remain unchanged.
+var errSourceLanguageSuperseded = errors.New("语言操作的原始目标已被回调替换")
+
 // Intent contains bounded request fields, never a whole source snapshot.
 // ByteOffset and editing descriptors are fixed at admission; a queued request
 // must not silently follow a later caret.
@@ -37,6 +43,7 @@ type sourceLanguageIntent struct {
 	// identity. Ordinary B1 read intents deliberately leave this nil.
 	completion *sourceCompletionIntent
 	rename     *sourceRenameRequest
+	automatic  *sourceAutoDescriptor
 }
 
 type sourceLanguageOwner struct {
@@ -87,6 +94,7 @@ type sourceLanguageShortcut struct {
 }
 
 type sourceLanguageState struct {
+	auto                                        sourceAutoState
 	shortcutSequence                            uint64
 	shortcut                                    *sourceLanguageShortcut
 	session, activation, request, routeSequence uint64
@@ -122,6 +130,7 @@ type sourceLanguageState struct {
 }
 
 func (a *App) configureSourceLanguage(t *Tab) {
+	defer a.bindSourceInput(t)
 	// Configuration declares capability only; folding already did its one
 	// existing provider refresh. This must never analyze or refresh it again.
 	profile, ok := a.configuredSourceFoldProfile(t)
@@ -212,11 +221,23 @@ func (a *App) bindSourceLanguageShortcut(t *Tab) {
 	binding.lease = t.Editor.SetSourceActionHandler(binding.handler)
 }
 
-func (a *App) retireSourceLanguage(t *Tab) {
+func (a *App) retireSourceLanguage(t *Tab) bool {
 	a.revokeSourceLanguageShortcut(t)
 	s := &a.sourceLanguage
+	var cancelAuto func()
+	if t == nil || s.auto.desired != nil && s.auto.desired.binding.tab == t || s.intent.automatic != nil && s.intent.automatic.binding.tab == t {
+		a.invalidateSourceAutoState(nil)
+		cancelAuto = a.prepareCancelSourceAutoTimer()
+	}
+	finish := func() bool {
+		current := a.sourceLanguageContinuation()
+		if cancelAuto != nil {
+			cancelAuto()
+		}
+		return current()
+	}
 	if t != nil && (s.owner == nil || s.owner.tab != t) && (s.pending == nil || s.pending.owner.tab != t) && s.presentationTab != t {
-		return
+		return finish()
 	}
 	a.releaseSourceRename()
 	s.activation++
@@ -235,17 +256,37 @@ func (a *App) retireSourceLanguage(t *Tab) {
 	if t != nil && s.presentationTab == t || a.shuttingDown.Load() {
 		a.closeSourceLanguagePresentation()
 	}
+	return finish()
 }
 
-func (a *App) resetSourceLanguageSession() {
-	a.retireSourceLanguage(nil)
-	a.closeSourceLanguagePresentation()
+func (a *App) resetSourceLanguageSession() bool {
+	if !a.retireSourceLanguage(nil) {
+		return false
+	}
+	if !a.closeSourceLanguagePresentation() {
+		return false
+	}
 	a.sourceLanguage.session++
+	return true
 }
 
-func (a *App) cancelSourceLanguage() {
-	a.retireSourceLanguage(nil)
-	a.sourceLanguage.status, a.sourceLanguage.reason = string(code.ServiceCanceled), "canceled-by-host"
+func (a *App) cancelSourceLanguage() bool {
+	s := &a.sourceLanguage
+	s.auto.manual = true
+	s.auto.cancel++
+	s.auto.cancelBinding, s.auto.cancelFloor = nil, text.ChangeStamp{}
+	if t := a.Current(); t != nil && t.Doc != nil && t.Doc.Buffer != nil {
+		s.auto.cancelBinding, s.auto.cancelFloor = t.inputBinding, t.Doc.Buffer.ChangeStamp()
+	}
+	request := s.request + 1
+	if !a.retireSourceLanguage(nil) {
+		return false
+	}
+	if s.request != request || !s.auto.manual || s.auto.desired != nil {
+		return false
+	}
+	s.status, s.reason = string(code.ServiceCanceled), "canceled-by-host"
+	return true
 }
 
 // sourceLanguageInputError is deliberately input-only. Route, readonly and
@@ -287,7 +328,7 @@ func languageCancelCommandAvailable(a *App) bool {
 		return false
 	}
 	s := &a.sourceLanguage
-	return s.task != nil || s.pending != nil || s.owner != nil
+	return s.task != nil || s.pending != nil || s.owner != nil || s.auto.desired != nil
 }
 
 func (a *App) sourceLanguageFocusStamp() sourceLanguageFocusStamp {
@@ -297,6 +338,73 @@ func (a *App) sourceLanguageFocusStamp() sourceLanguageFocusStamp {
 		findFocusIntentEpoch: a.findFocusIntentEpoch,
 		goToLineGeneration:   a.goToLineGeneration,
 		findFocus:            a.findFocus,
+	}
+}
+
+// Capture one synchronous Host continuation without acquiring source text or a
+// target. Its caller first commits its own state, then invokes the seam, then
+// returns immediately if a callback installed any successor authority.
+func (a *App) sourceLanguageContinuation() func() bool {
+	s := &a.sourceLanguage
+	session, activation, request, presentation := s.session, s.activation, s.request, s.presentation
+	sequence, cancel := s.auto.sequence, s.auto.cancel
+	t, manager := a.Current(), a.pluginManager
+	restoring, shuttingDown, config := a.restoring, a.shuttingDown.Load(), a.configDir
+	var sessionCurrent func() bool
+	if !shuttingDown {
+		sessionCurrent = a.sessionSeal(true)
+	}
+	stateCurrent := func() bool {
+		return a.restoring == restoring && a.shuttingDown.Load() == shuttingDown && a.configDir == config &&
+			(sessionCurrent == nil || sessionCurrent()) && s.session == session && s.activation == activation && s.request == request && s.presentation == presentation &&
+			s.auto.sequence == sequence && s.auto.cancel == cancel && a.Current() == t && a.pluginManager == manager
+	}
+	if t == nil {
+		return stateCurrent
+	}
+	id, doc, input, view, adapter, binding := t.ID, t.Doc, t.Editor, t.View, t.Adapter, t.inputBinding
+	boundCurrent := binding != nil && binding.input.InputBindingCurrent(binding.lease)
+	epoch, route, profile, mode, name := t.inputEpoch, t.sourceLanguageRoute, t.sourceLanguageProfile, t.Mode, t.Name
+	generation, inspector := t.OutlineFactoryGeneration, t.ByteInspector
+	binary := t.Binary
+	var binaryToken document.BinaryToken
+	if binary != nil {
+		binaryToken = binary.Token()
+	}
+	binaryPath, binaryKind, binarySize, binaryGeneration := t.BinaryPath, t.BinaryKind, t.BinarySize, t.BinaryGeneration
+	formatHostEpoch, formatHostActive := t.formatHostEpoch, t.formatHostActive
+	var docBuffer, inputBuffer *text.Buffer
+	var docStamp, inputStamp text.ChangeStamp
+	var path string
+	var encoding document.Encoding
+	var docVersion, docSelection, inputVersion, inputSelection uint64
+	var bom, docReadOnly, readOnly, blocked bool
+	if doc != nil {
+		docBuffer, path, encoding, bom, docReadOnly = doc.Buffer, doc.Path, doc.Encoding, doc.BOM, doc.ReadOnly
+		if docBuffer != nil {
+			docStamp, docVersion, docSelection = docBuffer.ChangeStamp(), docBuffer.Version(), docBuffer.SelectionGeneration()
+		}
+	}
+	if input != nil {
+		inputBuffer = input.Buffer
+		readOnly, blocked = input.ReadOnly, input.InputActionError() != nil
+		if inputBuffer != nil {
+			inputStamp, inputVersion, inputSelection = inputBuffer.ChangeStamp(), inputBuffer.Version(), inputBuffer.SelectionGeneration()
+		}
+	}
+	return func() bool {
+		return stateCurrent() && a.tabIsOpen(t) && t.ID == id && t.Doc == doc && t.Editor == input && t.View == view && t.Adapter == adapter &&
+			t.inputBinding == binding && t.inputEpoch == epoch && t.sourceLanguageRoute == route && t.sourceLanguageProfile == profile &&
+			t.Mode == mode && t.Name == name && t.OutlineFactoryGeneration == generation && t.ByteInspector == inspector &&
+			(doc == nil || doc.Buffer == docBuffer && doc.Path == path && doc.Encoding == encoding && doc.BOM == bom && doc.ReadOnly == docReadOnly) &&
+			(docBuffer == nil || docBuffer.ChangeStamp() == docStamp && docBuffer.Version() == docVersion && docBuffer.SelectionGeneration() == docSelection) &&
+			(input == nil || input.Buffer == inputBuffer && input.ReadOnly == readOnly && (input.InputActionError() != nil) == blocked) &&
+			(inputBuffer == nil || inputBuffer.ChangeStamp() == inputStamp && inputBuffer.Version() == inputVersion && inputBuffer.SelectionGeneration() == inputSelection) &&
+			(doc == nil || input == nil || docBuffer == inputBuffer) &&
+			t.Binary == binary && t.BinaryPath == binaryPath && t.BinaryKind == binaryKind && t.BinarySize == binarySize &&
+			t.BinaryGeneration == binaryGeneration && (binary == nil || binary.SameBaseline(binaryToken)) &&
+			t.formatHostEpoch == formatHostEpoch && t.formatHostActive == formatHostActive &&
+			(binding == nil || binding.input.InputBindingCurrent(binding.lease) == boundCurrent)
 	}
 }
 
@@ -311,7 +419,14 @@ func (a *App) sourceLanguageDispatcher() func(func()) {
 }
 
 func (a *App) failSourceLanguage(status, reason string, err error) error {
-	a.retireSourceLanguage(nil)
+	s := &a.sourceLanguage
+	request, sequence := s.request+1, s.auto.sequence+1
+	if !a.retireSourceLanguage(nil) {
+		return errSourceLanguageSuperseded
+	}
+	if s.request != request || s.auto.sequence != sequence {
+		return errSourceLanguageSuperseded
+	}
 	a.sourceLanguage.status, a.sourceLanguage.reason, a.sourceLanguage.failure = status, reason, err
 	if status == sourceLanguageStale {
 		a.Message = "语言结果已过期；请重新分析当前源码"
@@ -391,6 +506,18 @@ func (a *App) admitSourceLanguageRequest(intent sourceLanguageIntent, launch fun
 	if err := a.sourceLanguageInputError(); err != nil {
 		return err
 	}
+	// Explicit work owns presentation and the sole slot. Retire automatic
+	// publication before admission; a physical invocation still runs to done.
+	s := &a.sourceLanguage
+	previousOwner := s.owner
+	s.auto.explicit, s.auto.explicitPresentation = true, s.presentation
+	a.invalidateSourceAutoState(nil)
+	cancelAuto := a.prepareCancelSourceAutoTimer()
+	current := a.sourceLanguageContinuation()
+	cancelAuto()
+	if !current() {
+		return errSourceLanguageSuperseded
+	}
 	if intent.rename != nil {
 		return a.admitSourceRename(intent.rename, launch)
 	}
@@ -436,16 +563,19 @@ func (a *App) admitSourceLanguageRequest(intent sourceLanguageIntent, launch fun
 	// Own small caller strings without retaining an arbitrarily large parent.
 	intent.operation = canonicalSourceLanguageOperation(intent.operation)
 	intent.prefix, intent.newName = strings.Clone(intent.prefix), strings.Clone(intent.newName)
-	s := &a.sourceLanguage
 	if s.task != nil {
 		// Frozen B0 issues an opaque token only together with a source snapshot.
 		// Reuse the already admitted read target; never materialize a second
 		// source while the physical slot is occupied. Changed source/attachment
 		// is explicitly stale and requires a fresh request after retirement.
-		if err := a.sourceLanguageOwnerValid(s.owner, intent.completion != nil); err != nil {
+		currentOwner := s.owner
+		if currentOwner == nil {
+			currentOwner = previousOwner
+		}
+		if err := a.sourceLanguageOwnerValid(currentOwner, intent.completion != nil); err != nil {
 			return a.failSourceLanguage(sourceLanguageStale, "pending-target-changed", err)
 		}
-		owner := *s.owner
+		owner := *currentOwner
 		s.request++
 		owner.request = s.request
 		s.owner = &owner
@@ -571,6 +701,19 @@ func (a *App) completeSourceLanguage(id uint64) {
 		a.launchSourceLanguage(pending.owner, intent, snapshot.Source, pending.dispatch)
 		return
 	}
+	if d := s.intent.automatic; d != nil {
+		a.completeSourceAuto(d, out)
+		return
+	}
+	if s.auto.desired != nil && s.owner == nil {
+		d := s.auto.desired
+		if !a.sourceAutoNow().Before(d.due) {
+			a.trySourceAuto(d)
+		} else if effect := a.prepareSourceAuto(); effect != nil {
+			effect()
+		}
+		return
+	}
 	if s.intent.rename != nil {
 		a.completeSourceRename(id, out.result, out.err)
 		return
@@ -627,6 +770,608 @@ func validateSourceLanguageResult(result code.ServiceResult) error {
 func (a *App) stopSourceLanguage() *sourceLanguageTask {
 	task := a.sourceLanguage.task
 	a.cancelSourceLanguage()
+	for _, t := range a.Tabs {
+		a.revokeSourceInput(t)
+	}
 	a.closeSourceLanguagePresentation()
 	return task
+}
+
+const sourceAutoDelay = 500 * time.Millisecond
+
+// AutoServiceSymbols uses the real Symbols operation: AnalyzeService returns
+// symbols for valid source and actual validation diagnostics for invalid source
+// in that same invocation. No second diagnostics analysis or synthetic payload.
+const AutoServiceSymbols = code.ServiceSymbols
+
+type sourceInputBinding struct {
+	tab                                   *Tab
+	doc                                   *document.Document
+	input                                 *editor.Editor
+	buffer                                *text.Buffer
+	lease                                 editor.InputBinding
+	epoch, event                          uint64
+	stamp                                 text.ChangeStamp
+	delivery                              editor.InputNotificationID
+	manager                               *plugins.Manager
+	route                                 uint64
+	profile                               code.StructureProfile
+	mode, path, name                      string
+	encoding                              document.Encoding
+	bom, docReadOnly, readOnly, inspector bool
+	view                                  editor.View
+	adapter                               *editor.Adapter
+	viewGeneration                        uint64
+}
+
+// Descriptors carry scalar authority only. There is no source, source target,
+// selection or result while blocked, waiting for a deadline or a physical slot.
+type sourceAutoDescriptor struct {
+	binding                                           *sourceInputBinding
+	stamp                                             text.ChangeStamp
+	intent, activation, session, cancel, presentation uint64
+	due                                               time.Time
+}
+type sourceAutoState struct {
+	desired                     *sourceAutoDescriptor
+	sequence, cancel            uint64
+	timer                       autosaveState
+	queued, blocked             bool
+	manual                      bool
+	explicit                    bool
+	explicitPresentation        uint64
+	cancelBinding, closeBinding *sourceInputBinding
+	cancelFloor, closeFloor     text.ChangeStamp
+}
+type sourceAutoHooks struct {
+	queued    bool // explicit contract: dispatch enqueues, never invokes inline
+	now       func() time.Time
+	afterFunc func(time.Duration, func()) autosaveTimer
+	dispatch  func(func()) // must enqueue; the timer's UI-entry guard rejects inline
+}
+
+// Recovery owns the exact live attachment even for inactive, plain or rich
+// documents. Language authority adds presentation/route/metadata checks below.
+func (a *App) sourceInputAttachmentCurrent(b *sourceInputBinding) bool {
+	if b == nil || a.shuttingDown.Load() || a.restoring {
+		return false
+	}
+	t := b.tab
+	return t != nil && a.tabIsOpen(t) && t.inputBinding == b && t.inputEpoch == b.epoch &&
+		t.Doc == b.doc && t.Editor == b.input && t.Doc.Buffer == b.buffer && t.Editor.Buffer == b.buffer &&
+		b.input.InputBindingCurrent(b.lease)
+}
+
+func (a *App) sourceInputCurrent(b *sourceInputBinding) bool {
+	if !a.sourceInputAttachmentCurrent(b) {
+		return false
+	}
+	t := b.tab
+	return a.pluginManager == b.manager && t.sourceLanguageRoute == b.route && t.sourceLanguageProfile == b.profile &&
+		t.Mode == b.mode && t.Doc.Path == b.path && t.Name == b.name && t.Doc.Encoding == b.encoding &&
+		t.Doc.BOM == b.bom && t.Doc.ReadOnly == b.docReadOnly && t.Editor.ReadOnly == b.readOnly &&
+		t.ByteInspector == b.inspector && t.View == b.view && t.Adapter == b.adapter &&
+		t.OutlineFactoryGeneration == b.viewGeneration && b.input.InputBindingCurrent(b.lease)
+}
+
+func (a *App) sourceInputConsumerCurrent(b *sourceInputBinding) bool {
+	if b == nil || b.doc == nil || b.input == nil || b.buffer == nil {
+		return false
+	}
+	t := b.tab
+	if t == nil || !a.tabIsOpen(t) || t.inputBinding != b || t.inputEpoch != b.epoch ||
+		t.Doc != b.doc || t.Editor != b.input || t.Doc.Buffer != b.buffer || t.Editor.Buffer != b.buffer ||
+		!b.input.InputBindingCurrent(b.lease) {
+		return false
+	}
+	return a.pluginManager == b.manager && t.sourceLanguageRoute == b.route && t.sourceLanguageProfile == b.profile &&
+		t.Mode == b.mode && t.Doc.Path == b.path && t.Name == b.name && t.Doc.Encoding == b.encoding &&
+		t.Doc.BOM == b.bom && t.Doc.ReadOnly == b.docReadOnly && t.Editor.ReadOnly == b.readOnly &&
+		t.ByteInspector == b.inspector && t.View == b.view && t.Adapter == b.adapter &&
+		t.OutlineFactoryGeneration == b.viewGeneration
+}
+
+func (a *App) revokeSourceInput(t *Tab) {
+	if t == nil {
+		return
+	}
+	b := t.inputBinding
+	t.inputBinding = nil
+	t.inputEpoch++
+	if b != nil && b.input.InputBindingCurrent(b.lease) {
+		b.input.BindInputTerminal(nil)
+	}
+}
+
+func (a *App) bindSourceInput(t *Tab) {
+	if t == nil || t.Doc == nil || t.Editor == nil || t.Doc.Buffer == nil || t.Editor.Buffer != t.Doc.Buffer || !a.tabIsOpen(t) {
+		return
+	}
+	if a.sourceInputCurrent(t.inputBinding) {
+		return
+	}
+	oldBinding := t.inputBinding
+	var stopOld func()
+	if oldBinding != nil && (a.sourceLanguage.auto.desired != nil && a.sourceLanguage.auto.desired.binding == oldBinding ||
+		a.sourceLanguage.intent.automatic != nil && a.sourceLanguage.intent.automatic.binding == oldBinding) {
+		a.invalidateSourceAutoState(oldBinding)
+		stopOld = a.prepareCancelSourceAutoTimer()
+	}
+	a.revokeSourceInput(t)
+	b := &sourceInputBinding{tab: t, doc: t.Doc, input: t.Editor, buffer: t.Doc.Buffer, epoch: t.inputEpoch,
+		stamp: t.Doc.Buffer.ChangeStamp(), manager: a.pluginManager, route: t.sourceLanguageRoute, profile: t.sourceLanguageProfile,
+		mode: t.Mode, path: t.Doc.Path, name: t.Name, encoding: t.Doc.Encoding, bom: t.Doc.BOM,
+		docReadOnly: t.Doc.ReadOnly, readOnly: t.Editor.ReadOnly, inspector: t.ByteInspector,
+		view: t.View, adapter: t.Adapter, viewGeneration: t.OutlineFactoryGeneration}
+	t.inputBinding = b
+	b.lease = b.input.BindInputTerminal(func(d editor.InputDelivery) { a.consumeSourceInput(b, d) })
+	b.input.OnChange = func() {
+		d, ok := b.input.LastInputDelivery() // capture before any Host effect
+		if ok && d.Binding == b.lease && d.Stamp == b.buffer.ChangeStamp() {
+			a.consumeSourceInput(b, d)
+		} else {
+			// Format Host.Changed owns its already completed Buffer transaction;
+			// it has no Editor delivery. Observe the real full stamp directly.
+			a.consumeSourceChange(b, nil)
+		}
+	}
+	b.input.OnError = func(err error) {
+		d, ok := b.input.LastInputDelivery() // error publication is last
+		event := b.event
+		if ok {
+			if !a.consumeSourceInput(b, d) {
+				return
+			}
+			event = b.event
+		}
+		if a.sourceInputAttachmentCurrent(b) && b.event == event {
+			a.report(err)
+		}
+	}
+	// Last effect: Stop may reenter and install different callbacks.
+	if stopOld != nil {
+		stopOld()
+	}
+}
+
+// No callback follows the report in OnError, and no Editor write follows its
+// captured OnChange. Recovery applies to every live document, independently of
+// active language eligibility. Both timer generations commit before any seam.
+func (a *App) consumeSourceInput(b *sourceInputBinding, d editor.InputDelivery) bool {
+	return a.consumeSourceChange(b, &d)
+}
+
+func (a *App) provedSourceRollback(b *sourceInputBinding, d *editor.InputDelivery, before, live text.ChangeStamp) bool {
+	if d == nil || d.Recovery != editor.InputRecoveryRollback ||
+		(d.Disposition != editor.InputSame && d.Disposition != editor.InputRealCommit) ||
+		!a.sourceInputAttachmentCurrent(b) || d.Binding != b.lease || d.Editor != b.input || d.Buffer != b.buffer ||
+		before.BaselineID != live.BaselineID || d.Stamp != live {
+		return false
+	}
+	latest, ok := b.input.LastInputDelivery()
+	return ok && latest == *d
+}
+
+func (a *App) heldAutosaveBoundary(lastEdit time.Time, persistPending bool) bool {
+	s := &a.autosave
+	s.mu.Lock()
+	armed, due := s.armed, s.due
+	s.mu.Unlock()
+	return persistPending && armed && due.Equal(lastEdit.Add(autosaveDelay))
+}
+
+// nil delivery is only the existing complete format Host.Changed boundary. It
+// samples real Buffer identity; it never fabricates an Editor delivery or C.
+func (a *App) consumeSourceChange(b *sourceInputBinding, d *editor.InputDelivery) bool {
+	if !a.sourceInputAttachmentCurrent(b) || d != nil && (d.Binding != b.lease || d.Editor != b.input || d.Buffer != b.buffer) {
+		return false
+	}
+	// Capture this event's actual Host authority before either timer seam. A
+	// stale language seal may still recover its own exact live attachment.
+	t := b.tab
+	view, adapter, viewGeneration := t.View, t.Adapter, t.OutlineFactoryGeneration
+	manager, route, profile, mode := a.pluginManager, t.sourceLanguageRoute, t.sourceLanguageProfile, t.Mode
+	path, name, encoding, bom := t.Doc.Path, t.Name, t.Doc.Encoding, t.Doc.BOM
+	docReadOnly, readOnly, inspector, active := t.Doc.ReadOnly, t.Editor.ReadOnly, t.ByteInspector, a.Current()
+	live := b.buffer.ChangeStamp()
+	// A sticky duplicate never overrides an externally changed baseline. It
+	// may still be consumed by the final error boundary to retire old work.
+	if d != nil && b.delivery == d.Delivery && b.stamp == live && d.Stamp == live {
+		return true
+	}
+	if d == nil && b.stamp == live {
+		return true
+	}
+	before := b.stamp
+	if d != nil {
+		b.delivery = d.Delivery
+	}
+	b.stamp = live
+	b.event++
+	event := b.event
+	invalid := before.BaselineID != live.BaselineID || d != nil &&
+		(d.Stamp != live || d.Disposition == editor.InputUnprovedRetirement || d.Disposition == editor.InputRebaseInvalidation)
+	real := !invalid && before.ConfirmedChangeID != live.ConfirmedChangeID
+	var recover bool
+	if !invalid {
+		provisional := d != nil && d.Recovery == editor.InputRecoveryProvisional
+		rollback := a.provedSourceRollback(b, d, before, live)
+		heldBoundary := rollback && !real && a.heldAutosaveBoundary(a.lastEdit, a.persistPending)
+		renewRollback := rollback && (real || !heldBoundary)
+		recover = real || provisional || rollback
+		if real || provisional || renewRollback {
+			a.lastEdit = a.autosaveNow()
+		}
+		if recover {
+			a.persistPending = true
+		}
+	}
+	s, auto := &a.sourceLanguage, &a.sourceLanguage.auto
+	// Presentation generations also cover open-close with no intervening frame.
+	if auto.explicit && !s.visible && s.presentation != auto.explicitPresentation {
+		auto.explicit = false
+	}
+	if invalid {
+		a.invalidateSourceAutoState(b)
+	} else if real {
+		if auto.cancelBinding != b || auto.cancelFloor != live {
+			auto.manual = false
+		}
+		a.invalidateSourceAutoState(nil)
+		freshAfterClose := auto.closeBinding != b || auto.closeFloor != live
+		if !auto.manual && freshAfterClose && !s.visible && !auto.explicit && a.sourceAutoEligible(b) {
+			auto.sequence++
+			auto.desired = &sourceAutoDescriptor{binding: b, stamp: live, intent: auto.sequence, due: a.sourceAutoNow().Add(sourceAutoDelay),
+				activation: s.activation, session: s.session, cancel: auto.cancel, presentation: s.presentation}
+		}
+	}
+	var recoveryEffect func()
+	if recover {
+		recoveryEffect = a.prepareAutosave()
+	}
+	autoEffect := a.prepareSourceAuto()
+	sequence, cancel, presentation := auto.sequence, auto.cancel, s.presentation
+	session, activation, request := s.session, s.activation, s.request
+	current := func() bool {
+		return a.sourceInputAttachmentCurrent(b) && b.event == event && b.stamp == live && b.buffer.ChangeStamp() == live &&
+			t.View == view && t.Adapter == adapter && t.OutlineFactoryGeneration == viewGeneration && a.Current() == active &&
+			a.pluginManager == manager && t.sourceLanguageRoute == route && t.sourceLanguageProfile == profile && t.Mode == mode &&
+			t.Doc.Path == path && t.Name == name && t.Doc.Encoding == encoding && t.Doc.BOM == bom &&
+			t.Doc.ReadOnly == docReadOnly && t.Editor.ReadOnly == readOnly && t.ByteInspector == inspector &&
+			auto.sequence == sequence && auto.cancel == cancel && s.presentation == presentation &&
+			s.session == session && s.activation == activation && s.request == request
+	}
+	if recoveryEffect != nil {
+		recoveryEffect()
+		if !current() {
+			return false
+		}
+	}
+	if autoEffect != nil {
+		autoEffect()
+		if !current() {
+			return false
+		}
+	}
+	return current()
+}
+
+func (a *App) sourceAutoNow() time.Time {
+	if h := a.sourceAutoHooks; h != nil && h.now != nil {
+		return h.now()
+	}
+	return time.Now()
+}
+func (a *App) sourceAutoEligible(b *sourceInputBinding) bool {
+	if !a.sourceInputCurrent(b) || a.Current() != b.tab {
+		return false
+	}
+	t := b.tab
+	if !t.textCapable() || t.ByteInspector || (t.Mode != "source" && t.Mode != "split") {
+		return false
+	}
+	profile, ok := a.configuredSourceFoldProfile(t)
+	return ok && profile != "" && profile == b.profile
+}
+func (a *App) sourceAutoCurrent(d *sourceAutoDescriptor) bool {
+	s := &a.sourceLanguage
+	return d != nil && s.auto.desired == d && !s.auto.manual && !s.auto.explicit && !s.visible && s.presentation == d.presentation &&
+		s.auto.cancel == d.cancel && s.session == d.session && s.activation == d.activation &&
+		a.sourceAutoEligible(d.binding) && d.binding.buffer.ChangeStamp() == d.stamp
+}
+
+// This phase is callback-free; callers reserve timer cancellation before seams.
+func (a *App) invalidateSourceAutoState(b *sourceInputBinding) {
+	s, auto := &a.sourceLanguage, &a.sourceLanguage.auto
+	if b != nil && (auto.desired == nil || auto.desired.binding != b) && (s.intent.automatic == nil || s.intent.automatic.binding != b) {
+		return
+	}
+	auto.desired = nil
+	auto.queued, auto.blocked = false, false
+	auto.sequence++
+	if s.intent.automatic != nil {
+		if s.task != nil {
+			s.task.abandon()
+		}
+		s.owner = nil
+		s.result, s.failure = code.ServiceResult{}, nil
+		s.intent = sourceLanguageIntent{}
+		s.analysisVersion = 0
+		s.status, s.reason = sourceLanguageStale, "automatic-retired"
+		a.invalidateSourceLanguageRows()
+	}
+}
+
+func (a *App) prepareSourceAuto() func() {
+	s := &a.sourceLanguage
+	auto, d := &s.auto, s.auto.desired
+	if d == nil || !a.sourceAutoCurrent(d) {
+		if d != nil {
+			a.invalidateSourceAutoState(nil)
+		}
+		return a.prepareCancelSourceAutoTimer()
+	}
+	if auto.queued || s.task != nil && s.intent.automatic == d {
+		return nil
+	}
+	// Preedit blocks without capture, Flush, or a periodic retry timer.
+	if a.modalDepth > 0 || d.binding.input.InputActionError() != nil {
+		auto.blocked = true
+		return a.prepareCancelSourceAutoTimer()
+	}
+	auto.blocked = false
+	dispatch := a.sourceAutoDispatcher()
+	if dispatch == nil {
+		s.status, s.reason = sourceLanguageHostError, "automatic-ui-dispatch-unavailable"
+		return a.prepareCancelSourceAutoTimer()
+	}
+	// A proven terminal event resumes the same due descriptor by posting UI
+	// work, rather than starting a zero-delay timer or running inside Editor.
+	if !a.sourceAutoNow().Before(d.due) {
+		cancel := a.prepareCancelSourceAutoTimer()
+		auto.queued = true
+		return func() {
+			cancel()
+			if !a.sourceAutoCurrent(d) || !auto.queued {
+				return
+			}
+			if !sourceAutoDispatcherQueues(dispatch) {
+				a.sourceAutoUnavailable(d)
+				return
+			}
+			if !a.sourceAutoCurrent(d) || !auto.queued {
+				return
+			}
+			queueSourceAuto(dispatch, func() {
+				if !a.sourceAutoCurrent(d) || !auto.queued {
+					return
+				}
+				auto.queued = false
+				a.trySourceAuto(d)
+			})
+		}
+	}
+	after := func(delay time.Duration, fn func()) autosaveTimer { return time.AfterFunc(delay, fn) }
+	if h := a.sourceAutoHooks; h != nil {
+		after = h.afterFunc
+	}
+	timer := &auto.timer
+	timer.mu.Lock()
+	if timer.armed && timer.timer != nil && timer.due.Equal(d.due) {
+		timer.mu.Unlock()
+		return nil
+	}
+	old := timer.timer
+	timer.request++
+	request := timer.request
+	timer.timer, timer.armed, timer.due = nil, true, d.due
+	timer.mu.Unlock()
+	delay := max(time.Duration(0), d.due.Sub(a.sourceAutoNow()))
+	return func() {
+		if old != nil {
+			old.Stop()
+		}
+		if !a.sourceAutoCurrent(d) || !a.sourceAutoTimerCurrent(request) {
+			return
+		}
+		if !sourceAutoDispatcherQueues(dispatch) {
+			a.sourceAutoUnavailable(d)
+			return
+		}
+		if !a.sourceAutoCurrent(d) || !a.sourceAutoTimerCurrent(request) {
+			return
+		}
+		handle := after(delay, func() {
+			// This dispatcher was admitted on UI. A fast genuine UI queue may
+			// run before this timer-thread call returns, and must not be dropped.
+			dispatch(func() { a.deliverSourceAuto(request) })
+		})
+		ownerCurrent := a.sourceAutoCurrent(d)
+		timer.mu.Lock()
+		current := ownerCurrent && timer.request == request && timer.armed && !a.shuttingDown.Load()
+		if current {
+			timer.timer = handle
+		}
+		timer.mu.Unlock()
+		if !current && handle != nil {
+			handle.Stop()
+		}
+	}
+}
+
+func (a *App) sourceAutoTimerCurrent(request uint64) bool {
+	t := &a.sourceLanguage.auto.timer
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.request == request && t.armed
+}
+func (a *App) prepareCancelSourceAutoTimer() func() {
+	t := &a.sourceLanguage.auto.timer
+	t.mu.Lock()
+	t.request++
+	old := t.timer
+	t.timer, t.armed, t.due = nil, false, time.Time{}
+	t.mu.Unlock()
+	return func() {
+		if old != nil {
+			old.Stop()
+		}
+	}
+}
+
+func (a *App) deliverSourceAuto(request uint64) {
+	t := &a.sourceLanguage.auto.timer
+	t.mu.Lock()
+	if t.request != request || !t.armed {
+		t.mu.Unlock()
+		return
+	}
+	t.timer, t.armed, t.due = nil, false, time.Time{}
+	t.mu.Unlock()
+	d := a.sourceLanguage.auto.desired
+	if !a.sourceAutoCurrent(d) {
+		a.invalidateSourceAutoState(nil)
+		return
+	}
+	if a.sourceAutoNow().Before(d.due) {
+		if effect := a.prepareSourceAuto(); effect != nil {
+			effect()
+		}
+		return
+	}
+	a.trySourceAuto(d)
+}
+
+func (a *App) trySourceAuto(d *sourceAutoDescriptor) {
+	s := &a.sourceLanguage
+	if !a.sourceAutoCurrent(d) {
+		return
+	}
+	if a.modalDepth > 0 || d.binding.input.InputActionError() != nil {
+		s.auto.blocked = true
+		return
+	}
+	if s.task != nil {
+		return
+	} // only the descriptor survives a busy slot
+	dispatch := a.sourceAutoDispatcher()
+	if dispatch == nil {
+		return
+	}
+	if !sourceAutoDispatcherQueues(dispatch) {
+		a.sourceAutoUnavailable(d)
+		return
+	}
+	if !a.sourceAutoCurrent(d) || d.binding.input.InputActionError() != nil {
+		return
+	}
+	limits := code.DefaultServiceLimits()
+	snapshot, err := d.binding.input.CaptureSourceSnapshot(limits.Structure.Bytes)
+	if err != nil {
+		a.invalidateSourceAutoState(nil)
+		return
+	}
+	if !a.sourceAutoCurrent(d) {
+		return
+	}
+	s.request++
+	b := d.binding
+	owner := &sourceLanguageOwner{session: s.session, activation: s.activation, request: s.request, route: b.route,
+		tab: b.tab, doc: b.doc, input: b.input, buffer: b.buffer, manager: b.manager, target: snapshot.Target,
+		profile: b.profile, mode: b.mode, path: b.path, name: b.name, encoding: b.encoding, bom: b.bom,
+		docReadOnly: b.docReadOnly, editorReadOnly: b.readOnly, version: snapshot.Version}
+	a.launchSourceLanguage(owner, sourceLanguageIntent{operation: AutoServiceSymbols, limits: limits, automatic: d}, snapshot.Source, dispatch)
+}
+
+func (a *App) completeSourceAuto(d *sourceAutoDescriptor, out sourceLanguageOutcome) {
+	s := &a.sourceLanguage
+	if !a.sourceAutoCurrent(d) {
+		a.invalidateSourceAutoState(nil)
+		return
+	}
+	if d.binding.input.InputActionError() != nil {
+		// Do not cache a provisional-era result. Retain only the original
+		// descriptor for terminal readiness and a fresh current target.
+		s.auto.blocked = true
+		s.owner, s.intent, s.result = nil, sourceLanguageIntent{}, code.ServiceResult{}
+		return
+	}
+	if a.sourceLanguageOwnerValid(s.owner, false) != nil {
+		s.owner, s.intent, s.result = nil, sourceLanguageIntent{}, code.ServiceResult{}
+		// A proven unchanged stamp permits coordinate-free recapture only.
+		a.trySourceAuto(d)
+		return
+	}
+	err := out.err
+	if err == nil {
+		err = validateSourceLanguageResult(out.result)
+	}
+	if err != nil {
+		s.owner, s.intent = nil, sourceLanguageIntent{}
+		s.auto.desired = nil
+		s.status, s.reason, s.failure = sourceLanguageHostError, "automatic-analysis-failed", err
+		return
+	}
+	s.result, s.status, s.reason = out.result, string(out.result.Status), out.result.Reason
+	if out.result.Status != code.ServiceComplete && out.result.Status != code.ServiceInvalid {
+		s.owner = nil
+	}
+	// Keep a published seal, but no desired retry: readiness is not a fresh
+	// edit, and a successful automatic analysis is never periodically rearmed.
+	s.auto.desired = nil
+	a.invalidateSourceLanguageRows()
+}
+
+// Only these dispatchers have an explicitly queued contract. App.uiDispatch
+// and the headless App.update fallback are deliberately excluded.
+func (a *App) sourceAutoDispatcher() func(func()) {
+	if h := a.sourceAutoHooks; h != nil {
+		if !h.queued || h.afterFunc == nil || h.dispatch == nil {
+			return nil
+		}
+		return h.dispatch
+	}
+	if a.Window != nil {
+		return a.Window.Update
+	}
+	return nil
+}
+
+// Probe only from UI, after both timer generations have committed. UI work
+// cannot concurrently drain its own queue; an inline-only configuration is
+// rejected before any real timer or snapshot. Do not run this return-order
+// test on timer/worker threads, where a fast genuine UI queue is legitimate.
+func sourceAutoDispatcherQueues(dispatch func(func())) bool {
+	var posting, inline atomic.Bool
+	posting.Store(true)
+	dispatch(func() {
+		if posting.Load() {
+			inline.Store(true)
+		}
+	})
+	posting.Store(false)
+	return !inline.Load()
+}
+
+func (a *App) sourceAutoUnavailable(d *sourceAutoDescriptor) {
+	if !a.sourceAutoCurrent(d) {
+		return
+	}
+	a.sourceLanguage.status, a.sourceLanguage.reason = sourceLanguageHostError, "automatic-ui-dispatch-unavailable"
+	a.sourceLanguage.auto.queued = false
+	cancel := a.prepareCancelSourceAutoTimer()
+	cancel()
+}
+
+// Immediate terminal readiness posts from the UI thread. Reject inline resume;
+// timer/worker threads instead use their previously admitted dispatcher directly.
+func queueSourceAuto(dispatch func(func()), fn func()) {
+	var returned atomic.Bool
+	dispatch(func() {
+		if !returned.Load() {
+			return
+		}
+		fn()
+	})
+	returned.Store(true)
 }

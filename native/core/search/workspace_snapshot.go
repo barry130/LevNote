@@ -36,3 +36,19 @@ func (m FileMatch) MatchesBuffer(buffer *text.Buffer) bool {
 	}
 	return [sha256.Size]byte(hash.Sum(nil)) == m.snapshot.digest
 }
+
+// MatchesBufferWithoutSnapshot performs the same content check without going
+// through Buffer.WriteTo, so a read-only lost-observation caller cannot
+// populate a dirty Buffer's snapshot cache. The source remains m.snapshot's
+// recorded identity; a nil snapshot still has no evidence for matching.
+func (m FileMatch) MatchesBufferWithoutSnapshot(buffer *text.Buffer) bool {
+	if m.snapshot == nil || buffer == nil || buffer.LenBytes() != m.snapshot.bytes {
+		return false
+	}
+	source := buffer.String()
+	if len(source) != m.snapshot.bytes {
+		return false
+	}
+	digest := sha256.Sum256([]byte(source))
+	return digest == m.snapshot.digest
+}

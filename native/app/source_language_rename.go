@@ -64,7 +64,7 @@ func (a *App) sourceRenameInputError() error {
 }
 
 func (a *App) runSourceRenameCommand() {
-	if err := a.openSourceRename(); err != nil {
+	if err := a.openSourceRename(); err != nil && !errors.Is(err, errSourceLanguageSuperseded) {
 		a.report(err)
 	}
 }
@@ -221,8 +221,12 @@ func (a *App) openSourceRename() error {
 	if len(seed) > sourceRenameNameBytes || text.UTF16Len(seed) > sourceRenameNameUnits {
 		return errors.New("重命名字段初值超出预算")
 	}
-	a.retireSourceLanguage(nil)
-	a.closeSourceLanguagePresentation()
+	if !a.retireSourceLanguage(nil) {
+		return errSourceLanguageSuperseded
+	}
+	if !a.closeSourceLanguagePresentation() {
+		return errSourceLanguageSuperseded
+	}
 	if err := a.openSourceLanguagePresentation(); err != nil {
 		return err
 	}

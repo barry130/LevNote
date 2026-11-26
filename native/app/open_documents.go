@@ -237,9 +237,13 @@ func (a *App) refreshOpenDocuments(query string) {
 	p.filteredQuery = query
 }
 
-func (a *App) openDocumentsCurrent(generation uint64) bool {
+func (a *App) openDocumentsU(generation uint64) bool {
 	p := &a.openDocuments
-	return p.open && p.generation == generation && a.Current() != nil && a.Current().ID == p.originID && !a.shuttingDown.Load() && !a.restoring && a.modalDepth == 0
+	return p.open && p.generation == generation && !a.shuttingDown.Load() && !a.restoring && a.modalDepth == 0
+}
+
+func (a *App) openDocumentsCurrent(generation uint64) bool {
+	return a.openDocumentsU(generation) && a.Current() != nil && a.Current().ID == a.openDocuments.originID
 }
 
 func (a *App) cancelOpenDocuments(generation uint64) {
@@ -254,12 +258,20 @@ func (a *App) cancelOpenDocuments(generation uint64) {
 }
 
 func (a *App) activateOpenDocument(generation uint64, id int) bool {
+	scope := a.beginFlushRefusal(flushRefusalOpenDocuments)
+	lifecycle := a.captureFlushRefusalLifecycle()
 	if !a.openDocumentsCurrent(generation) {
 		return false
 	}
 	p := &a.openDocuments
+	currentRequest := func() bool {
+		return a.currentFlushRefusalLifecycle(flushRefusalOpenDocuments, scope, lifecycle) &&
+			a.openDocumentsU(generation)
+	}
 	if p.composing {
-		p.message = "请先完成或取消输入法组合"
+		if currentRequest() && a.claimFlushRefusal(flushRefusalOpenDocuments, scope) {
+			p.message = "请先完成或取消输入法组合"
+		}
 		return false
 	}
 	index := -1
@@ -270,7 +282,9 @@ func (a *App) activateOpenDocument(generation uint64, id int) bool {
 		}
 	}
 	if index < 0 {
-		p.message = "文档已关闭；请选择仍打开的文档"
+		if currentRequest() && a.claimFlushRefusal(flushRefusalOpenDocuments, scope) {
+			p.message = "文档已关闭；请选择仍打开的文档"
+		}
 		return false
 	}
 	origin, target := a.Current(), a.Tabs[index] // synchronous call only
@@ -284,17 +298,45 @@ func (a *App) activateOpenDocument(generation uint64, id int) bool {
 	// still refuse a stale/pending draft when its selected row is current.
 	ok := false
 	if index == a.Active {
-		if a.flushTab(origin, "选择已打开文档") {
-			if err := check(); err != nil {
-				a.report(err)
-			} else {
-				ok = true
+		result := a.flushTabResult(origin, "选择已打开文档")
+		switch result.kind {
+		case flushSeamErrorReported:
+			return false
+		case flushAuthorityLost:
+			if !currentRequest() {
+				return false
 			}
+			reason := check()
+			if reason == nil {
+				reason = errors.New("同步输入期间文档列表已变化；未切换，请重新选择")
+			}
+			if !a.claimFlushRefusal(flushRefusalOpenDocuments, scope) {
+				return false
+			}
+			a.closeOpenDocuments()
+			a.report(reason)
+			return false
 		}
+		if !currentRequest() {
+			return false
+		}
+		if err := check(); err != nil {
+			if !a.claimFlushRefusal(flushRefusalOpenDocuments, scope) {
+				return false
+			}
+			a.closeOpenDocuments()
+			a.report(err)
+			return false
+		}
+		ok = true
 	} else {
 		ok = a.selectChecked(index, check)
 	}
-	a.closeOpenDocuments() // on refusal, MyGo restores the still-mounted opener
+	if currentRequest() {
+		// On refusal, MyGo restores the still-mounted opener.
+		a.claimFlushRefusal(flushRefusalOpenDocuments, scope)
+		a.closeOpenDocuments()
+	}
 	return ok
 }
 

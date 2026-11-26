@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
+	"levnote.local/native/core/text"
 	"levnote.local/native/formats/code"
 )
 
@@ -132,21 +133,37 @@ func (a *App) openSourceLanguagePresentation() error {
 		return errors.New("当前没有可显示语言结果的文本标签")
 	}
 	s := &a.sourceLanguage
-	if s.visible && s.presentationTab == t && s.presentationDoc == t.Doc && s.presentationInput == t.Editor && s.presentationBuffer == t.Doc.Buffer && s.presentationRoute == t.sourceLanguageRoute && s.presentationMode == t.Mode {
-		return nil
+	if !(s.visible && s.presentationTab == t && s.presentationDoc == t.Doc && s.presentationInput == t.Editor && s.presentationBuffer == t.Doc.Buffer && s.presentationRoute == t.sourceLanguageRoute && s.presentationMode == t.Mode) {
+		s.presentation++
+		s.visible = true
+		s.presentationTab, s.presentationDoc, s.presentationInput = t, t.Doc, t.Editor
+		s.presentationBuffer, s.presentationRoute, s.presentationMode = t.Doc.Buffer, t.sourceLanguageRoute, t.Mode
+		s.action = nil
+		s.message = ""
+		s.selected = -1
+		a.invalidateSourceLanguageRows()
 	}
-	s.presentation++
-	s.visible = true
-	s.presentationTab, s.presentationDoc, s.presentationInput = t, t.Doc, t.Editor
-	s.presentationBuffer, s.presentationRoute, s.presentationMode = t.Doc.Buffer, t.sourceLanguageRoute, t.Mode
-	s.action = nil
-	s.message = ""
-	s.selected = -1
-	a.invalidateSourceLanguageRows()
+	// Opening itself owns presentation, including direct/helper callers that
+	// do not immediately start a request. Drop auto before any timer Stop seam.
+	s.auto.explicit, s.auto.explicitPresentation = true, s.presentation
+	physicalOwner, physicalIntent := s.owner, s.intent
+	a.invalidateSourceAutoState(nil)
+	if s.task != nil && physicalIntent.automatic != nil {
+		// Keep only the already occupied slot's original authority so an
+		// explicit request can reuse its B0 target without a second snapshot.
+		// Its abandoned result stays empty and can never publish as explicit.
+		s.owner, s.intent = physicalOwner, physicalIntent
+	}
+	cancelAuto := a.prepareCancelSourceAutoTimer()
+	current := a.sourceLanguageContinuation()
+	cancelAuto()
+	if !current() || !a.sourceLanguagePresentationCurrent() {
+		return errSourceLanguageSuperseded
+	}
 	return nil
 }
 
-func (a *App) closeSourceLanguagePresentation() {
+func (a *App) closeSourceLanguagePresentation() bool {
 	s := &a.sourceLanguage
 	a.releaseSourceRename()
 	s.presentation++
@@ -164,6 +181,19 @@ func (a *App) closeSourceLanguagePresentation() {
 	} else {
 		s.listLifetime.reset(&s.list)
 	}
+	// Close consumes the current confirmed floor, without moving recovery or
+	// replaying edits observed while explicit UI owned presentation.
+	s.auto.explicit = false
+	s.auto.explicitPresentation = s.presentation
+	s.auto.closeBinding, s.auto.closeFloor = nil, text.ChangeStamp{}
+	if t := a.Current(); t != nil && t.Doc != nil && t.Doc.Buffer != nil {
+		s.auto.closeBinding, s.auto.closeFloor = t.inputBinding, t.Doc.Buffer.ChangeStamp()
+	}
+	a.invalidateSourceAutoState(nil)
+	cancelAuto := a.prepareCancelSourceAutoTimer()
+	current := a.sourceLanguageContinuation()
+	cancelAuto() // final effect: a reentrant Stop owns its callback-exit state
+	return current()
 }
 
 func (a *App) invalidateSourceLanguageRows() {
@@ -432,7 +462,9 @@ func (a *App) processSourceLanguageActions() {
 	s.action = nil
 	switch action.kind {
 	case "close":
-		a.retireSourceLanguage(nil)
+		if !a.retireSourceLanguage(nil) {
+			return
+		}
 		a.closeSourceLanguagePresentation()
 	case "cancel":
 		a.runSourceLanguageCancel()
@@ -459,7 +491,9 @@ func (a *App) processSourceLanguageActions() {
 	case "complete":
 		a.confirmSourceCompletion(*action)
 	case "completion-cancel":
-		a.cancelSourceLanguage()
+		if !a.cancelSourceLanguage() {
+			return
+		}
 		a.closeSourceLanguagePresentation()
 	}
 }
@@ -536,7 +570,9 @@ func (a *App) runSourceLanguageCommand(operation string) {
 		return
 	}
 	if err := a.openSourceLanguagePresentation(); err != nil {
-		a.report(err)
+		if !errors.Is(err, errSourceLanguageSuperseded) {
+			a.report(err)
+		}
 		return
 	}
 	t := a.Current()
@@ -554,11 +590,16 @@ func (a *App) runSourceLanguageCommand(operation string) {
 		intent.hasSelectedRange = primary.Start() != primary.End()
 	}
 	if err := a.requestSourceLanguage(intent); err != nil {
+		if errors.Is(err, errSourceLanguageSuperseded) {
+			return
+		}
 		// Route, byte-budget and captured-source failures are visible language
 		// outcomes; the B1 failure boundary may retire an older presentation.
 		if !a.sourceLanguagePresentationCurrent() {
 			if showErr := a.openSourceLanguagePresentation(); showErr != nil {
-				a.report(showErr)
+				if !errors.Is(showErr, errSourceLanguageSuperseded) {
+					a.report(showErr)
+				}
 				return
 			}
 		}
@@ -579,8 +620,10 @@ func (a *App) runSourceLanguageCancel() {
 		a.report(errors.New("当前没有可取消的语言分析"))
 		return
 	}
-	a.cancelSourceLanguage()
-	if err := a.openSourceLanguagePresentation(); err != nil {
+	if !a.cancelSourceLanguage() {
+		return
+	}
+	if err := a.openSourceLanguagePresentation(); err != nil && !errors.Is(err, errSourceLanguageSuperseded) {
 		a.report(err)
 	}
 }

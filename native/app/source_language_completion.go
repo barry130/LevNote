@@ -196,10 +196,12 @@ func (a *App) runSourceCompletionCommand() {
 		return
 	}
 	if err := a.requestSourceCompletion(); err != nil {
-		a.report(err)
+		if !errors.Is(err, errSourceLanguageSuperseded) {
+			a.report(err)
+		}
 		return
 	}
-	if err := a.openSourceLanguagePresentation(); err != nil {
+	if err := a.openSourceLanguagePresentation(); err != nil && !errors.Is(err, errSourceLanguageSuperseded) {
 		a.report(err)
 	}
 }
